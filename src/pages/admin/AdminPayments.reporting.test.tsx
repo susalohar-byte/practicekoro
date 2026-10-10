@@ -96,7 +96,9 @@ describe('Payment period reporting UI', () => {
       await screen.findByText(/Cash flow mode: Refunds are attributed to actual refund settlement date/)
     ).toBeInTheDocument();
     expect(screen.getByText(/Disbursed Refunds:/)).toBeInTheDocument();
-    expect(screen.getByText('-₹50')).toBeInTheDocument();
+    // The refund total renders twice after the revenue-trend redesign: in the summary
+    // row and in the AdminMoneyChart header. Match any of them, as the ₹150 check does.
+    expect(screen.getAllByText('-₹50').length).toBeGreaterThan(0);
     expect(screen.getAllByText('₹150').length).toBeGreaterThan(0);
   });
 });
