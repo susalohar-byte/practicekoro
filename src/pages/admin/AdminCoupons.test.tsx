@@ -131,7 +131,9 @@ describe('AdminCoupons Page', () => {
     const fixedBtn = screen.getByRole('button', { name: /fixed amount/i });
     fireEvent.click(fixedBtn);
 
-    const submitBtn = screen.getAllByRole('button', { name: /^Create Coupon$/i }).find(b => b.getAttribute('type') === 'submit')!;
+    const submitBtn = screen
+      .getAllByRole('button', { name: /^Create Coupon$/i })
+      .find((b) => b.getAttribute('type') === 'submit')!;
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

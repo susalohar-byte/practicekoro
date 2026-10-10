@@ -85,7 +85,9 @@ export const TestResult: React.FC = () => {
           (total, solution) => total + Math.max(0, -solution.marksAwarded),
           0
         );
-        setNegativeMarksDeducted(savedNegativeMarks ?? (sols?.length ? solutionNegativeMarks : null));
+        setNegativeMarksDeducted(
+          savedNegativeMarks ?? (sols?.length ? solutionNegativeMarks : null)
+        );
         setLiveTest(lt);
         setLiveLeaderboard(lb || []);
         setAttemptRankings(rkData);
@@ -94,7 +96,10 @@ export const TestResult: React.FC = () => {
         const targetExamId = detectExamId(data?.testTitle, user?.targetExamTitle);
         if (typeof api.getStudentApplicableCutoff === 'function') {
           try {
-            const cutoffInfo = await api.getStudentApplicableCutoff(targetExamId, user || undefined);
+            const cutoffInfo = await api.getStudentApplicableCutoff(
+              targetExamId,
+              user || undefined
+            );
             setApplicableCutoff(cutoffInfo);
           } catch (cutoffErr) {
             console.warn('Could not load applicable cutoff benchmark:', cutoffErr);
@@ -271,9 +276,7 @@ export const TestResult: React.FC = () => {
 
             <div className="p-3 bg-white/15 backdrop-blur-md rounded-2xl border border-white/20">
               <p className="text-[10px] uppercase font-bold text-blue-100">Accuracy</p>
-              <p className="text-2xl font-black text-white mt-0.5">
-                {result.accuracy.toFixed(1)}%
-              </p>
+              <p className="text-2xl font-black text-white mt-0.5">{result.accuracy.toFixed(1)}%</p>
               <p className="text-[10px] text-blue-100 font-semibold mt-0.5">
                 {result.correctCount}/{result.correctCount + result.wrongCount} Attempted
               </p>
@@ -360,7 +363,8 @@ export const TestResult: React.FC = () => {
                   )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Demographic category-aware performance comparison against expected benchmarks and verified official cutoffs
+                  Demographic category-aware performance comparison against expected benchmarks and
+                  verified official cutoffs
                 </p>
               </div>
             </div>
@@ -386,10 +390,11 @@ export const TestResult: React.FC = () => {
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Important Educational Benchmark Notice:</span> PracticeKoro{' '}
-              <strong>Expected Cutoffs</strong> are algorithmic target estimates calculated to guide your study plan.
-              Mock examination scores provide diagnostic preparation feedback and do{' '}
-              <strong>NOT</strong> guarantee recruitment qualification or final government selection.
+              <span className="font-bold">Important Educational Benchmark Notice:</span>{' '}
+              PracticeKoro <strong>Expected Cutoffs</strong> are algorithmic target estimates
+              calculated to guide your study plan. Mock examination scores provide diagnostic
+              preparation feedback and do <strong>NOT</strong> guarantee recruitment qualification
+              or final government selection.
             </div>
           </div>
 
@@ -556,7 +561,8 @@ export const TestResult: React.FC = () => {
                   <span className="font-black text-[#026BFC]">
                     {result.score.toFixed(2)}{' '}
                     <span className="text-[10px] font-normal text-slate-400">
-                      / {result.totalMarks} ({((result.score / result.totalMarks) * 100).toFixed(1)}%)
+                      / {result.totalMarks} ({((result.score / result.totalMarks) * 100).toFixed(1)}
+                      %)
                     </span>
                   </span>
                 </div>
@@ -577,7 +583,8 @@ export const TestResult: React.FC = () => {
                     <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                       <span>
-                        Expected Cutoff ({applicableCutoff.expectedCutoff.year} {applicableCutoff.expectedCutoff.stage})
+                        Expected Cutoff ({applicableCutoff.expectedCutoff.year}{' '}
+                        {applicableCutoff.expectedCutoff.stage})
                       </span>
                       <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                         EXPECTED
@@ -587,7 +594,12 @@ export const TestResult: React.FC = () => {
                       {applicableCutoff.expectedCutoff.cutoffMarks.toFixed(2)}{' '}
                       <span className="text-[10px] font-normal text-slate-400">
                         / {applicableCutoff.expectedCutoff.maxMarks} (
-                        {((applicableCutoff.expectedCutoff.cutoffMarks / applicableCutoff.expectedCutoff.maxMarks) * 100).toFixed(1)}%)
+                        {(
+                          (applicableCutoff.expectedCutoff.cutoffMarks /
+                            applicableCutoff.expectedCutoff.maxMarks) *
+                          100
+                        ).toFixed(1)}
+                        %)
                       </span>
                     </span>
                   </div>
@@ -599,7 +611,9 @@ export const TestResult: React.FC = () => {
                           100,
                           Math.max(
                             0,
-                            (applicableCutoff.expectedCutoff.cutoffMarks / applicableCutoff.expectedCutoff.maxMarks) * 100
+                            (applicableCutoff.expectedCutoff.cutoffMarks /
+                              applicableCutoff.expectedCutoff.maxMarks) *
+                              100
                           )
                         )}%`,
                       }}
@@ -615,7 +629,8 @@ export const TestResult: React.FC = () => {
                     <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                       <span>
-                        Previous Official Cutoff ({applicableCutoff.previousOfficialCutoff.year} {applicableCutoff.previousOfficialCutoff.stage})
+                        Previous Official Cutoff ({applicableCutoff.previousOfficialCutoff.year}{' '}
+                        {applicableCutoff.previousOfficialCutoff.stage})
                       </span>
                       <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                         OFFICIAL VERIFIED
@@ -625,7 +640,12 @@ export const TestResult: React.FC = () => {
                       {applicableCutoff.previousOfficialCutoff.cutoffMarks.toFixed(2)}{' '}
                       <span className="text-[10px] font-normal text-slate-400">
                         / {applicableCutoff.previousOfficialCutoff.maxMarks} (
-                        {((applicableCutoff.previousOfficialCutoff.cutoffMarks / applicableCutoff.previousOfficialCutoff.maxMarks) * 100).toFixed(1)}%)
+                        {(
+                          (applicableCutoff.previousOfficialCutoff.cutoffMarks /
+                            applicableCutoff.previousOfficialCutoff.maxMarks) *
+                          100
+                        ).toFixed(1)}
+                        %)
                       </span>
                     </span>
                   </div>
@@ -683,8 +703,12 @@ export const TestResult: React.FC = () => {
                   <strong className="text-slate-600 dark:text-slate-300">
                     {applicableCutoff.previousOfficialCutoff.source}
                   </strong>
-                  . Verification status: {applicableCutoff.previousOfficialCutoff.verificationStatus}
-                  {applicableCutoff.previousOfficialCutoff.verifiedBy ? ` (${applicableCutoff.previousOfficialCutoff.verifiedBy})` : ''}.
+                  . Verification status:{' '}
+                  {applicableCutoff.previousOfficialCutoff.verificationStatus}
+                  {applicableCutoff.previousOfficialCutoff.verifiedBy
+                    ? ` (${applicableCutoff.previousOfficialCutoff.verifiedBy})`
+                    : ''}
+                  .
                 </span>
               </div>
             )}

@@ -182,9 +182,8 @@ export const TermsAndConditions: React.FC = () => {
               <span>4. Intellectual Property Rights</span>
             </h2>
             <p>
-              All software architecture, question curation, answer
-              explanations, short notes, score algorithms, and design tokens are the exclusive
-              intellectual property of PracticeKoro.
+              All software architecture, question curation, answer explanations, short notes, score
+              algorithms, and design tokens are the exclusive intellectual property of PracticeKoro.
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-slate-600 dark:text-slate-300">
               <li>

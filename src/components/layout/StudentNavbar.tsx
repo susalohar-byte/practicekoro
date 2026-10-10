@@ -46,26 +46,125 @@ interface SearchItem {
 
 const SEARCHABLE_ITEMS: SearchItem[] = [
   // Exams
-  { id: 'wbp-constable', title: 'WBP Constable', subtitle: 'West Bengal Police Recruitment • 120+ Tests', category: 'Exam', path: '/exams/wbp-constable', badge: 'Hot' },
-  { id: 'kp-constable', title: 'KP Constable', subtitle: 'Kolkata Police Recruitment • 100+ Tests', category: 'Exam', path: '/exams/kp-constable', badge: 'Popular' },
-  { id: 'ssc-gd', title: 'SSC GD Constable', subtitle: 'Staff Selection Commission • 150+ Tests', category: 'Exam', path: '/exams/ssc-gd', badge: 'Bestseller' },
-  { id: 'railway-ntpc', title: 'Railway NTPC', subtitle: 'RRB Non-Technical Popular Categories • 60+ Tests', category: 'Exam', path: '/exams/railway-ntpc' },
-  { id: 'wb-tet', title: 'WB Primary TET', subtitle: 'West Bengal Board of Primary Education • 45+ Tests', category: 'Exam', path: '/exams/primary-tet' },
-  { id: 'wbssc', title: 'WBSSC Group C & D', subtitle: 'School Service Commission • 50+ Tests', category: 'Exam', path: '/exams/wbssc' },
-  { id: 'wbpsc-clerkship', title: 'WBPSC Clerkship', subtitle: 'Public Service Commission • 20+ Tests', category: 'Exam', path: '/exams/wbpsc-clerkship' },
+  {
+    id: 'wbp-constable',
+    title: 'WBP Constable',
+    subtitle: 'West Bengal Police Recruitment • 120+ Tests',
+    category: 'Exam',
+    path: '/exams/wbp-constable',
+    badge: 'Hot',
+  },
+  {
+    id: 'kp-constable',
+    title: 'KP Constable',
+    subtitle: 'Kolkata Police Recruitment • 100+ Tests',
+    category: 'Exam',
+    path: '/exams/kp-constable',
+    badge: 'Popular',
+  },
+  {
+    id: 'ssc-gd',
+    title: 'SSC GD Constable',
+    subtitle: 'Staff Selection Commission • 150+ Tests',
+    category: 'Exam',
+    path: '/exams/ssc-gd',
+    badge: 'Bestseller',
+  },
+  {
+    id: 'railway-ntpc',
+    title: 'Railway NTPC',
+    subtitle: 'RRB Non-Technical Popular Categories • 60+ Tests',
+    category: 'Exam',
+    path: '/exams/railway-ntpc',
+  },
+  {
+    id: 'wb-tet',
+    title: 'WB Primary TET',
+    subtitle: 'West Bengal Board of Primary Education • 45+ Tests',
+    category: 'Exam',
+    path: '/exams/primary-tet',
+  },
+  {
+    id: 'wbssc',
+    title: 'WBSSC Group C & D',
+    subtitle: 'School Service Commission • 50+ Tests',
+    category: 'Exam',
+    path: '/exams/wbssc',
+  },
+  {
+    id: 'wbpsc-clerkship',
+    title: 'WBPSC Clerkship',
+    subtitle: 'Public Service Commission • 20+ Tests',
+    category: 'Exam',
+    path: '/exams/wbpsc-clerkship',
+  },
 
   // Subjects
-  { id: 'math', title: 'Mathematics', subtitle: 'Arithmetic, Algebra, Geometry • 30 Chapters', category: 'Subject', path: '/practice?subject=math' },
-  { id: 'reasoning', title: 'Reasoning', subtitle: 'Logical, Verbal, Non-Verbal • 30 Chapters', category: 'Subject', path: '/practice?subject=reasoning' },
-  { id: 'gk', title: 'General Knowledge', subtitle: 'History, Geography, Polity • 25 Chapters', category: 'Subject', path: '/practice?subject=gk' },
-  { id: 'english', title: 'English Language', subtitle: 'Grammar, Vocab, Comprehension • 20 Chapters', category: 'Subject', path: '/practice?subject=english' },
-  { id: 'bengali', title: 'Bengali Language', subtitle: 'Sahitya, Byakaran, Comprehension • 15 Chapters', category: 'Subject', path: '/practice?subject=bengali' },
-  { id: 'science', title: 'General Science', subtitle: 'Physics, Chemistry, Biology • 25 Chapters', category: 'Subject', path: '/practice?subject=science' },
+  {
+    id: 'math',
+    title: 'Mathematics',
+    subtitle: 'Arithmetic, Algebra, Geometry • 30 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=math',
+  },
+  {
+    id: 'reasoning',
+    title: 'Reasoning',
+    subtitle: 'Logical, Verbal, Non-Verbal • 30 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=reasoning',
+  },
+  {
+    id: 'gk',
+    title: 'General Knowledge',
+    subtitle: 'History, Geography, Polity • 25 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=gk',
+  },
+  {
+    id: 'english',
+    title: 'English Language',
+    subtitle: 'Grammar, Vocab, Comprehension • 20 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=english',
+  },
+  {
+    id: 'bengali',
+    title: 'Bengali Language',
+    subtitle: 'Sahitya, Byakaran, Comprehension • 15 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=bengali',
+  },
+  {
+    id: 'science',
+    title: 'General Science',
+    subtitle: 'Physics, Chemistry, Biology • 25 Chapters',
+    category: 'Subject',
+    path: '/practice?subject=science',
+  },
 
   // Practice Modes
-  { id: 'mock-tests', title: 'Full Length Mocks', subtitle: 'Real Exam Simulation with All-Bengal Rank', category: 'Practice', path: '/test-series' },
-  { id: 'mistakes-revision', title: 'Mistakes Notebook', subtitle: 'Revise & re-attempt incorrect questions', category: 'Practice', path: '/practice?tab=mistakes' },
-  { id: 'saved-questions', title: 'Saved Questions', subtitle: 'Important questions saved for quick review', category: 'Practice', path: '/saved-questions' },
+  {
+    id: 'mock-tests',
+    title: 'Full Length Mocks',
+    subtitle: 'Real Exam Simulation with All-Bengal Rank',
+    category: 'Practice',
+    path: '/test-series',
+  },
+  {
+    id: 'mistakes-revision',
+    title: 'Mistakes Notebook',
+    subtitle: 'Revise & re-attempt incorrect questions',
+    category: 'Practice',
+    path: '/practice?tab=mistakes',
+  },
+  {
+    id: 'saved-questions',
+    title: 'Saved Questions',
+    subtitle: 'Important questions saved for quick review',
+    category: 'Practice',
+    path: '/saved-questions',
+  },
 ];
 
 export const StudentNavbar: React.FC<StudentNavbarProps> = ({
@@ -213,9 +312,8 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
     }
   };
 
-  const unreadCount = notifications.length > 0
-    ? notifications.filter((n) => !readNotifIds.includes(n.id)).length
-    : 3; // Default 3 unread updates matching mobile app
+  const unreadCount =
+    notifications.length > 0 ? notifications.filter((n) => !readNotifIds.includes(n.id)).length : 3; // Default 3 unread updates matching mobile app
 
   return (
     <>
@@ -269,7 +367,10 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
 
               {/* Desktop View: Clean Integrated Search Bar */}
               {showSearch && (
-                <div ref={searchContainerRef} className="hidden lg:block relative w-80 xl:w-96 focus-within:w-96 xl:focus-within:w-[420px] transition-all duration-200">
+                <div
+                  ref={searchContainerRef}
+                  className="hidden lg:block relative w-80 xl:w-96 focus-within:w-96 xl:focus-within:w-[420px] transition-all duration-200"
+                >
                   <form onSubmit={handleSearchSubmit} className="relative">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                     <input
@@ -336,8 +437,19 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                       </div>
 
                       <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 px-2 flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                        <span>Press <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[9px]">↵</kbd> to view</span>
-                        <span><kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[9px]">ESC</kbd> to close</span>
+                        <span>
+                          Press{' '}
+                          <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[9px]">
+                            ↵
+                          </kbd>{' '}
+                          to view
+                        </span>
+                        <span>
+                          <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[9px]">
+                            ESC
+                          </kbd>{' '}
+                          to close
+                        </span>
                       </div>
                     </div>
                   )}
@@ -424,7 +536,12 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                     : 'bg-gradient-to-r from-[#026BFC] to-[#0158FC] text-white hover:brightness-105 shadow-blue-500/20'
                 )}
               >
-                <Crown className={cn('w-3.5 h-3.5', isPro ? 'fill-[#D97706] text-[#D97706]' : 'text-amber-300 fill-amber-300')} />
+                <Crown
+                  className={cn(
+                    'w-3.5 h-3.5',
+                    isPro ? 'fill-[#D97706] text-[#D97706]' : 'text-amber-300 fill-amber-300'
+                  )}
+                />
                 <span>{isPro ? 'Pro Active' : 'Upgrade to Pro'}</span>
               </Link>
 

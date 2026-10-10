@@ -33,8 +33,7 @@ const PUBLIC = join(ROOT, 'public');
 const SITE_NAME = 'PracticeKoro';
 const SITE_URL = 'https://practicekoro.online';
 
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || 'https://prycanbnxuihxhskallw.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://prycanbnxuihxhskallw.supabase.co';
 const SUPABASE_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByeWNhbmJueHVpaHhoc2thbGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMTY1NTgsImV4cCI6MjEwNDg5MjU1OH0.HOzUGuRqD0Y9qWlGGhvHGenylTJ2Sky_G7E3PEO0EIw';
@@ -105,8 +104,7 @@ function buildQuestionDescription(q) {
 function buildQAPageJsonLd(q, url) {
   const qText = q.questionBengaliText || q.questionText;
   const correctAnswer = getCorrectAnswerText(q);
-  const explanation =
-    q.explanationBengali || q.explanation || `সঠিক উত্তর: ${correctAnswer}`;
+  const explanation = q.explanationBengali || q.explanation || `সঠিক উত্তর: ${correctAnswer}`;
   const answerText = `সঠিক উত্তরটি হল ${correctAnswer}। ${explanation}`;
 
   return {
@@ -226,7 +224,10 @@ function renderSeoHtml(templateHtml, { title, description, canonicalUrl, jsonLdL
   const safeUrl = escapeHtml(canonicalUrl);
 
   const jsonLdScripts = jsonLdList
-    .map((data) => `    <script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`)
+    .map(
+      (data) =>
+        `    <script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
+    )
     .join('\n');
 
   let html = templateHtml;

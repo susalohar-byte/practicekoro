@@ -1238,9 +1238,7 @@ export const AdminNotifications: React.FC = () => {
           let targetNumbers: string[] = [];
           try {
             const students = await api.getAdminStudents(undefined, undefined, undefined, 50, 0);
-            targetNumbers = students
-              .map((s) => s.phone || '')
-              .filter((p) => p && p.length >= 10);
+            targetNumbers = students.map((s) => s.phone || '').filter((p) => p && p.length >= 10);
           } catch {
             // fallback
           }
@@ -1270,9 +1268,7 @@ export const AdminNotifications: React.FC = () => {
       setFormMessage('');
       setFormActionLink('');
       await loadBackendNotifications();
-      showToast(
-        `Notification broadcasted successfully via ${deliveryChannels.join(' + ')}!`
-      );
+      showToast(`Notification broadcasted successfully via ${deliveryChannels.join(' + ')}!`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Save failed');
     } finally {

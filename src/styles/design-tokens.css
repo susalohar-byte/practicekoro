@@ -12,49 +12,49 @@
   /* ==========================================================================
      PRIMARY BRAND BLUES
      ========================================================================== */
-  --pk-primary: #026BFC;          /* Authority Blue - Primary CTAs, active highlights */
-  --pk-primary-bright: #0198FD;   /* Bright Blue - Gradients, highlights, illustrations */
-  --pk-primary-interactive: #0062FD; /* Interactive Blue - Hover, active click states */
-  --pk-primary-accent: #1D8CF6;   /* Accent Blue - Decorative elements, secondary icons */
-  --pk-primary-hover: #0256CA;    /* Darkened Blue - High-conviction hover state */
-  --pk-primary-active: #0147A8;   /* Pressed State */
-  --pk-primary-subtle: #EFF6FF;   /* Soft Ice Blue - Chip fills, pill active backgrounds */
-  --pk-primary-border: #BFDBFE;   /* Border for primary badges & selected states */
-  --pk-blue-soft: #D9E7FD;        /* Soft Blue - Selected backgrounds, soft cards, borders */
-  --pk-blue-light: #EFF5FB;       /* Very Light Blue - Secondary surfaces, section bg, inputs */
+  --pk-primary: #026bfc; /* Authority Blue - Primary CTAs, active highlights */
+  --pk-primary-bright: #0198fd; /* Bright Blue - Gradients, highlights, illustrations */
+  --pk-primary-interactive: #0062fd; /* Interactive Blue - Hover, active click states */
+  --pk-primary-accent: #1d8cf6; /* Accent Blue - Decorative elements, secondary icons */
+  --pk-primary-hover: #0256ca; /* Darkened Blue - High-conviction hover state */
+  --pk-primary-active: #0147a8; /* Pressed State */
+  --pk-primary-subtle: #eff6ff; /* Soft Ice Blue - Chip fills, pill active backgrounds */
+  --pk-primary-border: #bfdbfe; /* Border for primary badges & selected states */
+  --pk-blue-soft: #d9e7fd; /* Soft Blue - Selected backgrounds, soft cards, borders */
+  --pk-blue-light: #eff5fb; /* Very Light Blue - Secondary surfaces, section bg, inputs */
 
   /* ==========================================================================
      BRAND DARK & TYPOGRAPHY
      ========================================================================== */
-  --pk-navy: #051A43;             /* Primary Brand Navy - Page titles, brand headers */
-  --pk-dark: #0B1F44;             /* Secondary Dark - Body headings, test questions, content */
-  --pk-text-primary: #0F172A;     /* High-contrast body & card titles */
-  --pk-text-secondary: #475569;   /* Supporting copy & metadata */
-  --pk-text-muted: #64748B;       /* Captions, timestamps, disabled indicators */
+  --pk-navy: #051a43; /* Primary Brand Navy - Page titles, brand headers */
+  --pk-dark: #0b1f44; /* Secondary Dark - Body headings, test questions, content */
+  --pk-text-primary: #0f172a; /* High-contrast body & card titles */
+  --pk-text-secondary: #475569; /* Supporting copy & metadata */
+  --pk-text-muted: #64748b; /* Captions, timestamps, disabled indicators */
 
   /* ==========================================================================
      CANVAS & SURFACES
      ========================================================================== */
-  --pk-background: #F8FAFC;       /* Crisp, neutral page canvas */
-  --pk-surface: #FFFFFF;          /* Pure card and modal surface */
-  --pk-surface-muted: #F1F5F9;    /* Table headers, segmented control backgrounds */
-  --pk-border: #E2E8F0;           /* Subtle 1px structural border */
-  --pk-border-subtle: #F1F5F9;    /* Secondary inner dividing lines */
+  --pk-background: #f8fafc; /* Crisp, neutral page canvas */
+  --pk-surface: #ffffff; /* Pure card and modal surface */
+  --pk-surface-muted: #f1f5f9; /* Table headers, segmented control backgrounds */
+  --pk-border: #e2e8f0; /* Subtle 1px structural border */
+  --pk-border-subtle: #f1f5f9; /* Secondary inner dividing lines */
 
   /* ==========================================================================
      SEMANTIC SYSTEM
      ========================================================================== */
-  --pk-success: #10B981;
-  --pk-success-bg: #ECFDF5;
-  --pk-success-border: #A7F3D0;
+  --pk-success: #10b981;
+  --pk-success-bg: #ecfdf5;
+  --pk-success-border: #a7f3d0;
 
-  --pk-warning: #F59E0B;
-  --pk-warning-bg: #FFFBEB;
-  --pk-warning-border: #FDE68A;
+  --pk-warning: #f59e0b;
+  --pk-warning-bg: #fffbeb;
+  --pk-warning-border: #fde68a;
 
-  --pk-danger: #EF4444;
-  --pk-danger-bg: #FEF2F2;
-  --pk-danger-border: #FECACA;
+  --pk-danger: #ef4444;
+  --pk-danger-bg: #fef2f2;
+  --pk-danger-border: #fecaca;
 
   /* ==========================================================================
      SHADOWS & ELEVATION (Restrained, modern SaaS precision)
@@ -77,16 +77,16 @@
    ============================================================================ */
 .dark {
   --pk-background: #020617;
-  --pk-surface: #0F172A;
-  --pk-surface-muted: #1E293B;
-  --pk-border: #1E293B;
-  --pk-border-subtle: #0F172A;
+  --pk-surface: #0f172a;
+  --pk-surface-muted: #1e293b;
+  --pk-border: #1e293b;
+  --pk-border-subtle: #0f172a;
 
-  --pk-navy: #93C5FD;
-  --pk-dark: #F8FAFC;
-  --pk-text-primary: #F8FAFC;
-  --pk-text-secondary: #CBD5E1;
-  --pk-text-muted: #94A3B8;
+  --pk-navy: #93c5fd;
+  --pk-dark: #f8fafc;
+  --pk-text-primary: #f8fafc;
+  --pk-text-secondary: #cbd5e1;
+  --pk-text-muted: #94a3b8;
 
   --pk-blue-light: rgba(1, 88, 252, 0.12);
   --pk-blue-soft: rgba(1, 88, 252, 0.24);

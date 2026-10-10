@@ -61,7 +61,12 @@ export const TestRunner: React.FC = () => {
   const [retryLoad, setRetryLoad] = useState(0);
   const submissionLock = useRef(false);
   const expiredSubmission = useRef('');
-  const autosave = useAttemptAutosave(attemptId, answers, timeSpent, !loading && !submitting && !loadError);
+  const autosave = useAttemptAutosave(
+    attemptId,
+    answers,
+    timeSpent,
+    !loading && !submitting && !loadError
+  );
 
   const clockRef = useRef({ start: 0, deadline: 0 });
   const submitTestRef = useRef<() => void>(() => undefined);
@@ -70,7 +75,11 @@ export const TestRunner: React.FC = () => {
   useEffect(() => {
     let active = true;
     async function init() {
-      if (!testId || !user) { setLoadError('Sign in and open a valid test to continue.'); setLoading(false); return; }
+      if (!testId || !user) {
+        setLoadError('Sign in and open a valid test to continue.');
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setLoadError('');
       try {
@@ -117,21 +126,36 @@ export const TestRunner: React.FC = () => {
           return;
         }
 
-        if (!testData || !attemptData || attemptData.testId !== testId || attemptData.userId !== user.id) throw new Error('This exam session is unavailable or does not belong to you.');
-        if (!qData.length) throw new Error('No questions are available for this test. Please contact support.');
+        if (
+          !testData ||
+          !attemptData ||
+          attemptData.testId !== testId ||
+          attemptData.userId !== user.id
+        )
+          throw new Error('This exam session is unavailable or does not belong to you.');
+        if (!qData.length)
+          throw new Error('No questions are available for this test. Please contact support.');
         setTest(testData);
         setQuestions(qData);
 
         // Load or initialize attempt answers from localStorage
         let savedCache: string | null = null;
-        try { savedCache = localStorage.getItem(`practicekoro_attempt_${activeAttemptId}`); } catch { /* Restricted browser storage must not crash an exam. */ }
+        try {
+          savedCache = localStorage.getItem(`practicekoro_attempt_${activeAttemptId}`);
+        } catch {
+          /* Restricted browser storage must not crash an exam. */
+        }
         if (savedCache) {
           try {
             const parsed = JSON.parse(savedCache);
             if (Array.isArray(parsed.answers)) {
               const map: Record<string, AttemptAnswerState> = {};
               parsed.answers.forEach((a: AttemptAnswerState) => {
-                if (qData.some(q => q.id === a.questionId) && [null, 'A', 'B', 'C', 'D'].includes(a.selectedOption)) map[a.questionId] = a;
+                if (
+                  qData.some((q) => q.id === a.questionId) &&
+                  [null, 'A', 'B', 'C', 'D'].includes(a.selectedOption)
+                )
+                  map[a.questionId] = a;
               });
               setAnswers(map);
             }
@@ -149,7 +173,10 @@ export const TestRunner: React.FC = () => {
         const elapsedSecs = Math.max(0, Math.floor((Date.now() - startTimestamp) / 1000));
         const remainingSecs = Math.max(0, totalDurationSecs - elapsedSecs);
 
-        clockRef.current = { start: startTimestamp, deadline: startTimestamp + totalDurationSecs * 1000 };
+        clockRef.current = {
+          start: startTimestamp,
+          deadline: startTimestamp + totalDurationSecs * 1000,
+        };
         setTimeRemaining(remainingSecs);
         setTimeSpent(elapsedSecs);
 
@@ -165,7 +192,9 @@ export const TestRunner: React.FC = () => {
       }
     }
     void init();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [testId, attemptId, user, isAdmin, navigate, searchParams, retryLoad]);
 
   // Submit test handler (Server-authoritative identity via auth.uid())
@@ -174,7 +203,6 @@ export const TestRunner: React.FC = () => {
     submissionLock.current = true;
     setSubmitting(true);
     setSubmitError('');
-
 
     try {
       const answersArray = Object.values(answers);
@@ -198,7 +226,9 @@ export const TestRunner: React.FC = () => {
       navigate(resultsUrl, { replace: true });
     } catch (err) {
       console.error('Submission failed:', err);
-      setSubmitError(getErrorMessage(err, 'Test submission failed. Your answers are preserved; please retry.'));
+      setSubmitError(
+        getErrorMessage(err, 'Test submission failed. Your answers are preserved; please retry.')
+      );
       setSubmitting(false);
       submissionLock.current = false;
     }
@@ -252,7 +282,12 @@ export const TestRunner: React.FC = () => {
     if (sub.includes('science') || sub.includes('বিজ্ঞান')) {
       return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800';
     }
-    if (sub.includes('history') || sub.includes('ইতিহাস') || sub.includes('bengali') || sub.includes('বাংলা')) {
+    if (
+      sub.includes('history') ||
+      sub.includes('ইতিহাস') ||
+      sub.includes('bengali') ||
+      sub.includes('বাংলা')
+    ) {
       return 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800';
     }
     return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800';
@@ -362,7 +397,14 @@ export const TestRunner: React.FC = () => {
   }
 
   if (loadError || !currentQ) {
-    return <div className="max-w-xl mx-auto p-6"><StudentLoadError message={loadError || 'No questions are available.'} onRetry={() => setRetryLoad(v => v + 1)} /></div>;
+    return (
+      <div className="max-w-xl mx-auto p-6">
+        <StudentLoadError
+          message={loadError || 'No questions are available.'}
+          onRetry={() => setRetryLoad((v) => v + 1)}
+        />
+      </div>
+    );
   }
 
   const currentAnswer = answers[currentQ.id]?.selectedOption || null;
@@ -377,10 +419,22 @@ export const TestRunner: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-white dark:bg-slate-950">
-      {(submitError || autosave.error) && <div role="alert" className="p-3 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 text-sm shrink-0">
-        {submitError || autosave.error}
-        <button type="button" disabled={submitting} className="ml-2 underline font-bold min-h-11 px-3" onClick={submitError ? () => void handleSubmitTest() : autosave.retry}>Retry</button>
-      </div>}
+      {(submitError || autosave.error) && (
+        <div
+          role="alert"
+          className="p-3 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 text-sm shrink-0"
+        >
+          {submitError || autosave.error}
+          <button
+            type="button"
+            disabled={submitting}
+            className="ml-2 underline font-bold min-h-11 px-3"
+            onClick={submitError ? () => void handleSubmitTest() : autosave.retry}
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {/* 1. TOP EXAM HEADER (Screen 11) */}
       <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-14 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -446,8 +500,8 @@ export const TestRunner: React.FC = () => {
             isTimeCritical
               ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-300 dark:border-rose-800 animate-pulse'
               : isTimeWarning
-              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs'
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs'
           }`}
         >
           <Clock
@@ -455,8 +509,8 @@ export const TestRunner: React.FC = () => {
               isTimeCritical
                 ? 'text-rose-600 dark:text-rose-400'
                 : isTimeWarning
-                ? 'text-amber-600 dark:text-amber-400'
-                : 'text-blue-600 dark:text-blue-400'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-blue-600 dark:text-blue-400'
             }`}
           />
           <span>{formatSeconds(timeRemaining)}</span>
@@ -486,7 +540,9 @@ export const TestRunner: React.FC = () => {
           <div className="space-y-4">
             {/* Subject Pill */}
             <div className="flex items-center justify-between">
-              <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition-colors ${subjectBadgeClass}`}>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold border transition-colors ${subjectBadgeClass}`}
+              >
                 {currentSubjectName}
               </span>
 
@@ -688,7 +744,9 @@ export const TestRunner: React.FC = () => {
               <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-2 border border-blue-100 dark:border-blue-900/60">
                 <Send className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">Submit Mock Test?</h3>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Submit Mock Test?
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Are you sure you want to complete and submit your exam attempt?
               </p>
@@ -697,16 +755,28 @@ export const TestRunner: React.FC = () => {
             {/* Metrics Breakdown */}
             <div className="grid grid-cols-3 gap-2 my-5 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center">
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Answered</p>
-                <p className="text-base font-black text-emerald-600 dark:text-emerald-400">{answeredCount}</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">
+                  Answered
+                </p>
+                <p className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                  {answeredCount}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Unanswered</p>
-                <p className="text-base font-black text-amber-600 dark:text-amber-400">{unansweredCount}</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">
+                  Unanswered
+                </p>
+                <p className="text-base font-black text-amber-600 dark:text-amber-400">
+                  {unansweredCount}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Marked</p>
-                <p className="text-base font-black text-purple-600 dark:text-purple-400">{markedCount}</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">
+                  Marked
+                </p>
+                <p className="text-base font-black text-purple-600 dark:text-purple-400">
+                  {markedCount}
+                </p>
               </div>
             </div>
 

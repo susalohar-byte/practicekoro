@@ -39,7 +39,8 @@ const mount = () =>
     </MemoryRouter>
   );
 const form = () => screen.getByPlaceholderText('e.g. WBP Constable').closest('form')!;
-const openCreate = async () => fireEvent.click(await screen.findByRole('button', { name: 'Create Exam' }));
+const openCreate = async () =>
+  fireEvent.click(await screen.findByRole('button', { name: 'Create Exam' }));
 const openActions = async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Actions for Disposable Exam' }));
 };

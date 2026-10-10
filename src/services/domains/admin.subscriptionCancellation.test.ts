@@ -8,7 +8,9 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
 }));
 vi.mock('@/lib/supabase', () => ({
-  get isSupabaseConfigured() { return mocks.configured; },
+  get isSupabaseConfigured() {
+    return mocks.configured;
+  },
   supabaseRuntime: { from: mocks.from },
 }));
 import { adminCommerceApi } from './adminCommerce';
@@ -17,7 +19,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.configured = true;
   const query = {
-    update: mocks.update, eq: mocks.eq, select: mocks.select, maybeSingle: mocks.maybeSingle,
+    update: mocks.update,
+    eq: mocks.eq,
+    select: mocks.select,
+    maybeSingle: mocks.maybeSingle,
   };
   for (const method of [mocks.from, mocks.update, mocks.eq, mocks.select]) {
     method.mockReturnValue(query);
@@ -27,16 +32,19 @@ beforeEach(() => {
 describe('persisted subscription cancellation', () => {
   it('cancels only the selected active subscription and returns persisted expiry', async () => {
     mocks.maybeSingle.mockResolvedValue({
-      data: { id: 's1', status: 'cancelled', expires_at: '2026-10-01T00:00:00Z' }, error: null,
+      data: { id: 's1', status: 'cancelled', expires_at: '2026-10-01T00:00:00Z' },
+      error: null,
     });
     expect(await adminCommerceApi.cancelSubscription('s1')).toEqual({
-      success: true, expiresAt: '2026-10-01T00:00:00Z',
+      success: true,
+      expiresAt: '2026-10-01T00:00:00Z',
     });
     expect(mocks.from).toHaveBeenCalledWith('subscriptions');
     expect(mocks.eq).toHaveBeenCalledWith('id', 's1');
     expect(mocks.eq).toHaveBeenCalledWith('status', 'active');
     expect(mocks.update).toHaveBeenCalledWith({
-      status: 'cancelled', expires_at: expect.any(String),
+      status: 'cancelled',
+      expires_at: expect.any(String),
     });
     expect(Date.parse(mocks.update.mock.calls[0][0].expires_at)).toBeLessThanOrEqual(Date.now());
   });
@@ -44,7 +52,8 @@ describe('persisted subscription cancellation', () => {
   it('does not report success for RLS denial', async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { message: 'RLS denied' } });
     expect(await adminCommerceApi.cancelSubscription('s1')).toEqual({
-      success: false, error: 'RLS denied',
+      success: false,
+      error: 'RLS denied',
     });
   });
 
@@ -55,7 +64,8 @@ describe('persisted subscription cancellation', () => {
 
   it('does not report success for an unexpected returned subscription', async () => {
     mocks.maybeSingle.mockResolvedValue({
-      data: { id: 'other', status: 'cancelled' }, error: null,
+      data: { id: 'other', status: 'cancelled' },
+      error: null,
     });
     expect((await adminCommerceApi.cancelSubscription('s1')).success).toBe(false);
   });
@@ -63,7 +73,8 @@ describe('persisted subscription cancellation', () => {
   it('reports transport errors rather than success', async () => {
     mocks.maybeSingle.mockRejectedValue(new Error('Network error'));
     expect(await adminCommerceApi.cancelSubscription('s1')).toEqual({
-      success: false, error: 'Network error',
+      success: false,
+      error: 'Network error',
     });
   });
 

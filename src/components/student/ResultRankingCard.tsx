@@ -51,7 +51,8 @@ export const ResultRankingCard: React.FC<{ attemptId: string }> = ({ attemptId }
     };
   }, [attemptId]);
 
-  const formatRank = (rank: number | null | undefined) => (rank ? `#${numberFormat.format(rank)}` : '—');
+  const formatRank = (rank: number | null | undefined) =>
+    rank ? `#${numberFormat.format(rank)}` : '—';
 
   return (
     <Card className="overflow-hidden rounded-3xl border border-blue-100/80 bg-white p-0 shadow-xs dark:border-slate-800 dark:bg-slate-900">
@@ -61,7 +62,9 @@ export const ResultRankingCard: React.FC<{ attemptId: string }> = ({ attemptId }
             <Trophy className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">Your Ranking</h2>
+            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+              Your Ranking
+            </h2>
             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               Based on completed PracticeKoro results
             </p>
@@ -94,11 +97,7 @@ export const ResultRankingCard: React.FC<{ attemptId: string }> = ({ attemptId }
         </div>
       </div>
 
-      <div
-        role="tabpanel"
-        aria-labelledby={`ranking-tab-${activeScope}`}
-        className="p-5 sm:p-6"
-      >
+      <div role="tabpanel" aria-labelledby={`ranking-tab-${activeScope}`} className="p-5 sm:p-6">
         {loading ? (
           <div className="grid min-h-28 place-items-center text-sm font-medium text-slate-500 dark:text-slate-400">
             Updating live ranks…
@@ -126,7 +125,9 @@ export const ResultRankingCard: React.FC<{ attemptId: string }> = ({ attemptId }
                 <Metric
                   label="Your Rank"
                   value={formatRank(rankings.testSeries.rank)}
-                  supportingText={rankings.testSeries.rank ? 'In this test series' : 'Complete more tests to rank'}
+                  supportingText={
+                    rankings.testSeries.rank ? 'In this test series' : 'Complete more tests to rank'
+                  }
                   prominent
                 />
                 <Metric
@@ -208,6 +209,8 @@ const Metric: React.FC<{
     >
       {value}
     </p>
-    <p className="mt-1 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{supportingText}</p>
+    <p className="mt-1 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+      {supportingText}
+    </p>
   </div>
 );

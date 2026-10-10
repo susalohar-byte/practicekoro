@@ -476,7 +476,8 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
   {
     rank: 11,
     name: 'Kolkata',
-    landmarkImg: 'https://images.unsplash.com/photo-1558431382-27e303142255?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1558431382-27e303142255?w=120&auto=format&fit=crop&q=80',
     totalStudents: 1450,
     testsAttempted: 31200,
     avgScore: 82,
@@ -485,15 +486,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 8,
     colorClass: 'bg-emerald-100 text-emerald-800',
     topStudents: [
-      { rank: 1, name: 'Anirban Bhattacharya', avatar: '/images/avatar_sayon.jpg', testsAttempted: 52, avgScore: 94, bestScore: 99, lastActive: '1 hour ago' },
-      { rank: 2, name: 'Pooja Ganguly', avatar: '/images/avatar_tania.jpg', testsAttempted: 46, avgScore: 91, bestScore: 97, lastActive: '3 hours ago' },
-      { rank: 3, name: 'Subham Sen', avatar: '/images/performer_suman.png', testsAttempted: 40, avgScore: 88, bestScore: 95, lastActive: '1 day ago' },
+      {
+        rank: 1,
+        name: 'Anirban Bhattacharya',
+        avatar: '/images/avatar_sayon.jpg',
+        testsAttempted: 52,
+        avgScore: 94,
+        bestScore: 99,
+        lastActive: '1 hour ago',
+      },
+      {
+        rank: 2,
+        name: 'Pooja Ganguly',
+        avatar: '/images/avatar_tania.jpg',
+        testsAttempted: 46,
+        avgScore: 91,
+        bestScore: 97,
+        lastActive: '3 hours ago',
+      },
+      {
+        rank: 3,
+        name: 'Subham Sen',
+        avatar: '/images/performer_suman.png',
+        testsAttempted: 40,
+        avgScore: 88,
+        bestScore: 95,
+        lastActive: '1 day ago',
+      },
     ],
   },
   {
     rank: 12,
     name: 'Murshidabad',
-    landmarkImg: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=120&auto=format&fit=crop&q=80',
     totalStudents: 590,
     testsAttempted: 13800,
     avgScore: 59,
@@ -502,15 +528,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 1,
     colorClass: 'bg-orange-100 text-orange-800',
     topStudents: [
-      { rank: 1, name: 'Nasiruddin Mondal', avatar: '/images/avatar_arindam.jpg', testsAttempted: 32, avgScore: 78, bestScore: 79, lastActive: '1 day ago' },
-      { rank: 2, name: 'Sanjida Khatun', avatar: '/images/avatar_sneha.jpg', testsAttempted: 28, avgScore: 73, bestScore: 78, lastActive: '2 days ago' },
-      { rank: 3, name: 'Farooq Hossain', avatar: '/images/avatar_abhishek.jpg', testsAttempted: 24, avgScore: 68, bestScore: 75, lastActive: '4 days ago' },
+      {
+        rank: 1,
+        name: 'Nasiruddin Mondal',
+        avatar: '/images/avatar_arindam.jpg',
+        testsAttempted: 32,
+        avgScore: 78,
+        bestScore: 79,
+        lastActive: '1 day ago',
+      },
+      {
+        rank: 2,
+        name: 'Sanjida Khatun',
+        avatar: '/images/avatar_sneha.jpg',
+        testsAttempted: 28,
+        avgScore: 73,
+        bestScore: 78,
+        lastActive: '2 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Farooq Hossain',
+        avatar: '/images/avatar_abhishek.jpg',
+        testsAttempted: 24,
+        avgScore: 68,
+        bestScore: 75,
+        lastActive: '4 days ago',
+      },
     ],
   },
   {
     rank: 13,
     name: 'Malda',
-    landmarkImg: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=120&auto=format&fit=crop&q=80',
     totalStudents: 560,
     testsAttempted: 13200,
     avgScore: 58,
@@ -519,15 +570,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 1,
     colorClass: 'bg-orange-100 text-orange-800',
     topStudents: [
-      { rank: 1, name: 'Bikram Sarkar', avatar: '/images/leaderboard_rohit.jpg', testsAttempted: 30, avgScore: 76, bestScore: 78, lastActive: '2 days ago' },
-      { rank: 2, name: 'Ananya Pramanik', avatar: '/images/avatar_mousumi.jpg', testsAttempted: 26, avgScore: 71, bestScore: 77, lastActive: '3 days ago' },
-      { rank: 3, name: 'Rabiul Sk', avatar: '/images/avatar_koushik.jpg', testsAttempted: 22, avgScore: 66, bestScore: 74, lastActive: '5 days ago' },
+      {
+        rank: 1,
+        name: 'Bikram Sarkar',
+        avatar: '/images/leaderboard_rohit.jpg',
+        testsAttempted: 30,
+        avgScore: 76,
+        bestScore: 78,
+        lastActive: '2 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Ananya Pramanik',
+        avatar: '/images/avatar_mousumi.jpg',
+        testsAttempted: 26,
+        avgScore: 71,
+        bestScore: 77,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Rabiul Sk',
+        avatar: '/images/avatar_koushik.jpg',
+        testsAttempted: 22,
+        avgScore: 66,
+        bestScore: 74,
+        lastActive: '5 days ago',
+      },
     ],
   },
   {
     rank: 14,
     name: 'Uttar Dinajpur',
-    landmarkImg: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=120&auto=format&fit=crop&q=80',
     totalStudents: 510,
     testsAttempted: 11900,
     avgScore: 56,
@@ -536,15 +612,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 1,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Debabrata Barman', avatar: '/images/avatar_abhishek.jpg', testsAttempted: 28, avgScore: 75, bestScore: 76, lastActive: '3 days ago' },
-      { rank: 2, name: 'Manasi Roy', avatar: '/images/avatar_tania.jpg', testsAttempted: 25, avgScore: 70, bestScore: 75, lastActive: '4 days ago' },
-      { rank: 3, name: 'Prasenjit Das', avatar: '/images/avatar_sayon.jpg', testsAttempted: 21, avgScore: 64, bestScore: 72, lastActive: '6 days ago' },
+      {
+        rank: 1,
+        name: 'Debabrata Barman',
+        avatar: '/images/avatar_abhishek.jpg',
+        testsAttempted: 28,
+        avgScore: 75,
+        bestScore: 76,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Manasi Roy',
+        avatar: '/images/avatar_tania.jpg',
+        testsAttempted: 25,
+        avgScore: 70,
+        bestScore: 75,
+        lastActive: '4 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Prasenjit Das',
+        avatar: '/images/avatar_sayon.jpg',
+        testsAttempted: 21,
+        avgScore: 64,
+        bestScore: 72,
+        lastActive: '6 days ago',
+      },
     ],
   },
   {
     rank: 15,
     name: 'Dakshin Dinajpur',
-    landmarkImg: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=120&auto=format&fit=crop&q=80',
     totalStudents: 480,
     testsAttempted: 11200,
     avgScore: 55,
@@ -553,15 +654,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Siddhartha Mahanta', avatar: '/images/avatar_koushik.jpg', testsAttempted: 27, avgScore: 74, bestScore: 75, lastActive: '3 days ago' },
-      { rank: 2, name: 'Madhuri Sarkar', avatar: '/images/avatar_sneha.jpg', testsAttempted: 24, avgScore: 69, bestScore: 73, lastActive: '5 days ago' },
-      { rank: 3, name: 'Gourab Ghosh', avatar: '/images/performer_suman.png', testsAttempted: 20, avgScore: 63, bestScore: 70, lastActive: '1 week ago' },
+      {
+        rank: 1,
+        name: 'Siddhartha Mahanta',
+        avatar: '/images/avatar_koushik.jpg',
+        testsAttempted: 27,
+        avgScore: 74,
+        bestScore: 75,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Madhuri Sarkar',
+        avatar: '/images/avatar_sneha.jpg',
+        testsAttempted: 24,
+        avgScore: 69,
+        bestScore: 73,
+        lastActive: '5 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Gourab Ghosh',
+        avatar: '/images/performer_suman.png',
+        testsAttempted: 20,
+        avgScore: 63,
+        bestScore: 70,
+        lastActive: '1 week ago',
+      },
     ],
   },
   {
     rank: 16,
     name: 'Jalpaiguri',
-    landmarkImg: 'https://images.unsplash.com/photo-1548013146-72479768bada?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1548013146-72479768bada?w=120&auto=format&fit=crop&q=80',
     totalStudents: 540,
     testsAttempted: 12600,
     avgScore: 57,
@@ -570,15 +696,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 1,
     colorClass: 'bg-orange-100 text-orange-800',
     topStudents: [
-      { rank: 1, name: 'Alok Roy', avatar: '/images/avatar_arindam.jpg', testsAttempted: 29, avgScore: 76, bestScore: 77, lastActive: '2 days ago' },
-      { rank: 2, name: 'Swarnali Das', avatar: '/images/avatar_mousumi.jpg', testsAttempted: 25, avgScore: 71, bestScore: 76, lastActive: '4 days ago' },
-      { rank: 3, name: 'Rajen Oraon', avatar: '/images/avatar_abhishek.jpg', testsAttempted: 21, avgScore: 65, bestScore: 72, lastActive: '5 days ago' },
+      {
+        rank: 1,
+        name: 'Alok Roy',
+        avatar: '/images/avatar_arindam.jpg',
+        testsAttempted: 29,
+        avgScore: 76,
+        bestScore: 77,
+        lastActive: '2 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Swarnali Das',
+        avatar: '/images/avatar_mousumi.jpg',
+        testsAttempted: 25,
+        avgScore: 71,
+        bestScore: 76,
+        lastActive: '4 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Rajen Oraon',
+        avatar: '/images/avatar_abhishek.jpg',
+        testsAttempted: 21,
+        avgScore: 65,
+        bestScore: 72,
+        lastActive: '5 days ago',
+      },
     ],
   },
   {
     rank: 17,
     name: 'Alipurduar',
-    landmarkImg: 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?w=120&auto=format&fit=crop&q=80',
     totalStudents: 430,
     testsAttempted: 9800,
     avgScore: 54,
@@ -587,15 +738,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Dipesh Lama', avatar: '/images/leaderboard_rohit.jpg', testsAttempted: 26, avgScore: 73, bestScore: 74, lastActive: '3 days ago' },
-      { rank: 2, name: 'Sangita Minz', avatar: '/images/avatar_tania.jpg', testsAttempted: 22, avgScore: 68, bestScore: 72, lastActive: '5 days ago' },
-      { rank: 3, name: 'Amitava Rava', avatar: '/images/avatar_sayon.jpg', testsAttempted: 19, avgScore: 62, bestScore: 69, lastActive: '1 week ago' },
+      {
+        rank: 1,
+        name: 'Dipesh Lama',
+        avatar: '/images/leaderboard_rohit.jpg',
+        testsAttempted: 26,
+        avgScore: 73,
+        bestScore: 74,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Sangita Minz',
+        avatar: '/images/avatar_tania.jpg',
+        testsAttempted: 22,
+        avgScore: 68,
+        bestScore: 72,
+        lastActive: '5 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Amitava Rava',
+        avatar: '/images/avatar_sayon.jpg',
+        testsAttempted: 19,
+        avgScore: 62,
+        bestScore: 69,
+        lastActive: '1 week ago',
+      },
     ],
   },
   {
     rank: 18,
     name: 'Cooch Behar',
-    landmarkImg: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=120&auto=format&fit=crop&q=80',
     totalStudents: 490,
     testsAttempted: 11400,
     avgScore: 55,
@@ -604,15 +780,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Manoranjan Barman', avatar: '/images/avatar_koushik.jpg', testsAttempted: 28, avgScore: 74, bestScore: 75, lastActive: '2 days ago' },
-      { rank: 2, name: 'Payel Adhikary', avatar: '/images/avatar_sneha.jpg', testsAttempted: 23, avgScore: 69, bestScore: 73, lastActive: '4 days ago' },
-      { rank: 3, name: 'Subal Roy', avatar: '/images/performer_suman.png', testsAttempted: 20, avgScore: 63, bestScore: 70, lastActive: '6 days ago' },
+      {
+        rank: 1,
+        name: 'Manoranjan Barman',
+        avatar: '/images/avatar_koushik.jpg',
+        testsAttempted: 28,
+        avgScore: 74,
+        bestScore: 75,
+        lastActive: '2 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Payel Adhikary',
+        avatar: '/images/avatar_sneha.jpg',
+        testsAttempted: 23,
+        avgScore: 69,
+        bestScore: 73,
+        lastActive: '4 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Subal Roy',
+        avatar: '/images/performer_suman.png',
+        testsAttempted: 20,
+        avgScore: 63,
+        bestScore: 70,
+        lastActive: '6 days ago',
+      },
     ],
   },
   {
     rank: 19,
     name: 'Darjeeling',
-    landmarkImg: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=120&auto=format&fit=crop&q=80',
     totalStudents: 460,
     testsAttempted: 10600,
     avgScore: 54,
@@ -621,15 +822,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Pema Bhutia', avatar: '/images/avatar_sayon.jpg', testsAttempted: 26, avgScore: 73, bestScore: 74, lastActive: '3 days ago' },
-      { rank: 2, name: 'Tenzing Sherpa', avatar: '/images/avatar_arindam.jpg', testsAttempted: 22, avgScore: 67, bestScore: 72, lastActive: '4 days ago' },
-      { rank: 3, name: 'Rinchen Tamang', avatar: '/images/avatar_tania.jpg', testsAttempted: 19, avgScore: 62, bestScore: 69, lastActive: '1 week ago' },
+      {
+        rank: 1,
+        name: 'Pema Bhutia',
+        avatar: '/images/avatar_sayon.jpg',
+        testsAttempted: 26,
+        avgScore: 73,
+        bestScore: 74,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Tenzing Sherpa',
+        avatar: '/images/avatar_arindam.jpg',
+        testsAttempted: 22,
+        avgScore: 67,
+        bestScore: 72,
+        lastActive: '4 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Rinchen Tamang',
+        avatar: '/images/avatar_tania.jpg',
+        testsAttempted: 19,
+        avgScore: 62,
+        bestScore: 69,
+        lastActive: '1 week ago',
+      },
     ],
   },
   {
     rank: 20,
     name: 'Kalimpong',
-    landmarkImg: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=120&auto=format&fit=crop&q=80',
     totalStudents: 380,
     testsAttempted: 8900,
     avgScore: 53,
@@ -638,15 +864,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Karma Lepcha', avatar: '/images/leaderboard_rohit.jpg', testsAttempted: 24, avgScore: 72, bestScore: 73, lastActive: '4 days ago' },
-      { rank: 2, name: 'Dawa Pradhan', avatar: '/images/avatar_mousumi.jpg', testsAttempted: 20, avgScore: 66, bestScore: 70, lastActive: '5 days ago' },
-      { rank: 3, name: 'Sonam Gurung', avatar: '/images/avatar_koushik.jpg', testsAttempted: 17, avgScore: 61, bestScore: 68, lastActive: '1 week ago' },
+      {
+        rank: 1,
+        name: 'Karma Lepcha',
+        avatar: '/images/leaderboard_rohit.jpg',
+        testsAttempted: 24,
+        avgScore: 72,
+        bestScore: 73,
+        lastActive: '4 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Dawa Pradhan',
+        avatar: '/images/avatar_mousumi.jpg',
+        testsAttempted: 20,
+        avgScore: 66,
+        bestScore: 70,
+        lastActive: '5 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Sonam Gurung',
+        avatar: '/images/avatar_koushik.jpg',
+        testsAttempted: 17,
+        avgScore: 61,
+        bestScore: 68,
+        lastActive: '1 week ago',
+      },
     ],
   },
   {
     rank: 21,
     name: 'Jhargram',
-    landmarkImg: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=120&auto=format&fit=crop&q=80',
     totalStudents: 410,
     testsAttempted: 9400,
     avgScore: 53,
@@ -655,15 +906,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 0,
     colorClass: 'bg-rose-100 text-rose-800',
     topStudents: [
-      { rank: 1, name: 'Somnath Soren', avatar: '/images/avatar_abhishek.jpg', testsAttempted: 25, avgScore: 72, bestScore: 73, lastActive: '3 days ago' },
-      { rank: 2, name: 'Baha Tudu', avatar: '/images/avatar_sneha.jpg', testsAttempted: 21, avgScore: 66, bestScore: 71, lastActive: '6 days ago' },
-      { rank: 3, name: 'Sanatan Mandi', avatar: '/images/avatar_arindam.jpg', testsAttempted: 18, avgScore: 60, bestScore: 67, lastActive: '1 week ago' },
+      {
+        rank: 1,
+        name: 'Somnath Soren',
+        avatar: '/images/avatar_abhishek.jpg',
+        testsAttempted: 25,
+        avgScore: 72,
+        bestScore: 73,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Baha Tudu',
+        avatar: '/images/avatar_sneha.jpg',
+        testsAttempted: 21,
+        avgScore: 66,
+        bestScore: 71,
+        lastActive: '6 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Sanatan Mandi',
+        avatar: '/images/avatar_arindam.jpg',
+        testsAttempted: 18,
+        avgScore: 60,
+        bestScore: 67,
+        lastActive: '1 week ago',
+      },
     ],
   },
   {
     rank: 22,
     name: 'Purba Medinipur',
-    landmarkImg: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=120&auto=format&fit=crop&q=80',
     totalStudents: 750,
     testsAttempted: 17100,
     avgScore: 67,
@@ -672,15 +948,40 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 2,
     colorClass: 'bg-amber-100 text-amber-800',
     topStudents: [
-      { rank: 1, name: 'Sourav Jana', avatar: '/images/avatar_koushik.jpg', testsAttempted: 35, avgScore: 81, bestScore: 87, lastActive: '1 day ago' },
-      { rank: 2, name: 'Mousumi Maity', avatar: '/images/avatar_mousumi.jpg', testsAttempted: 31, avgScore: 77, bestScore: 85, lastActive: '3 days ago' },
-      { rank: 3, name: 'Subhajit Bera', avatar: '/images/performer_suman.png', testsAttempted: 28, avgScore: 72, bestScore: 82, lastActive: '4 days ago' },
+      {
+        rank: 1,
+        name: 'Sourav Jana',
+        avatar: '/images/avatar_koushik.jpg',
+        testsAttempted: 35,
+        avgScore: 81,
+        bestScore: 87,
+        lastActive: '1 day ago',
+      },
+      {
+        rank: 2,
+        name: 'Mousumi Maity',
+        avatar: '/images/avatar_mousumi.jpg',
+        testsAttempted: 31,
+        avgScore: 77,
+        bestScore: 85,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Subhajit Bera',
+        avatar: '/images/performer_suman.png',
+        testsAttempted: 28,
+        avgScore: 72,
+        bestScore: 82,
+        lastActive: '4 days ago',
+      },
     ],
   },
   {
     rank: 23,
     name: 'Purba Bardhaman',
-    landmarkImg: 'https://images.unsplash.com/photo-1548013146-72479768bada?w=120&auto=format&fit=crop&q=80',
+    landmarkImg:
+      'https://images.unsplash.com/photo-1548013146-72479768bada?w=120&auto=format&fit=crop&q=80',
     totalStudents: 710,
     testsAttempted: 16100,
     avgScore: 65,
@@ -689,9 +990,33 @@ const INITIAL_DISTRICTS: DistrictRankData[] = [
     top100Count: 2,
     colorClass: 'bg-amber-100 text-amber-800',
     topStudents: [
-      { rank: 1, name: 'Arindam Konar', avatar: '/images/avatar_arindam.jpg', testsAttempted: 34, avgScore: 80, bestScore: 85, lastActive: '2 days ago' },
-      { rank: 2, name: 'Supriya Hazra', avatar: '/images/avatar_tania.jpg', testsAttempted: 30, avgScore: 75, bestScore: 83, lastActive: '3 days ago' },
-      { rank: 3, name: 'Kalyan Samanta', avatar: '/images/avatar_sayon.jpg', testsAttempted: 27, avgScore: 71, bestScore: 80, lastActive: '5 days ago' },
+      {
+        rank: 1,
+        name: 'Arindam Konar',
+        avatar: '/images/avatar_arindam.jpg',
+        testsAttempted: 34,
+        avgScore: 80,
+        bestScore: 85,
+        lastActive: '2 days ago',
+      },
+      {
+        rank: 2,
+        name: 'Supriya Hazra',
+        avatar: '/images/avatar_tania.jpg',
+        testsAttempted: 30,
+        avgScore: 75,
+        bestScore: 83,
+        lastActive: '3 days ago',
+      },
+      {
+        rank: 3,
+        name: 'Kalyan Samanta',
+        avatar: '/images/avatar_sayon.jpg',
+        testsAttempted: 27,
+        avgScore: 71,
+        bestScore: 80,
+        lastActive: '5 days ago',
+      },
     ],
   },
 ];
@@ -724,46 +1049,46 @@ export const AdminDistrictRankings: React.FC = () => {
     api
       .getAppLeaderboard('all_india')
       .then((data) => {
-      if (!isMounted || !data || data.length === 0) return;
+        if (!isMounted || !data || data.length === 0) return;
         const districtStats: Record<string, { count: number; totalPerc: number; maxPerc: number }> =
           {};
-      data.forEach((r) => {
-        if (r.district) {
-          const dName = r.district;
-          if (!districtStats[dName]) {
-            districtStats[dName] = { count: 0, totalPerc: 0, maxPerc: 0 };
-          }
-          districtStats[dName].count += r.tests_count || 1;
-          districtStats[dName].totalPerc += Number(r.average_percentage || 0);
+        data.forEach((r) => {
+          if (r.district) {
+            const dName = r.district;
+            if (!districtStats[dName]) {
+              districtStats[dName] = { count: 0, totalPerc: 0, maxPerc: 0 };
+            }
+            districtStats[dName].count += r.tests_count || 1;
+            districtStats[dName].totalPerc += Number(r.average_percentage || 0);
             districtStats[dName].maxPerc = Math.max(
               districtStats[dName].maxPerc,
               Number(r.average_percentage || 0)
             );
-        }
-      });
+          }
+        });
 
-      if (Object.keys(districtStats).length > 0) {
-        setDistrictsList((prev) =>
-          prev.map((d) => {
-            const stat = districtStats[d.name];
-            if (!stat) return d;
-            const avg = Math.round(stat.totalPerc / Math.max(1, stat.count));
-            return {
-              ...d,
-              testsAttempted: stat.count * 12,
-              avgScore: avg || d.avgScore,
-              topScore: Math.round(stat.maxPerc) || d.topScore,
-            };
-          })
-        );
-      }
+        if (Object.keys(districtStats).length > 0) {
+          setDistrictsList((prev) =>
+            prev.map((d) => {
+              const stat = districtStats[d.name];
+              if (!stat) return d;
+              const avg = Math.round(stat.totalPerc / Math.max(1, stat.count));
+              return {
+                ...d,
+                testsAttempted: stat.count * 12,
+                avgScore: avg || d.avgScore,
+                topScore: Math.round(stat.maxPerc) || d.topScore,
+              };
+            })
+          );
+        }
       })
       .catch((err) => {
-      console.warn('Failed to load district leaderboard from database:', err);
+        console.warn('Failed to load district leaderboard from database:', err);
       })
       .finally(() => {
         if (isMounted) setPageLoading(false);
-    });
+      });
     return () => {
       isMounted = false;
     };
@@ -839,8 +1164,11 @@ export const AdminDistrictRankings: React.FC = () => {
     }
   }, [currentPage, totalPages]);
 
-  const startIndex = filteredDistricts.length === 0 ? 0 : isAll ? 0 : (currentPage - 1) * effectivePageSize;
-  const endIndex = isAll ? filteredDistricts.length : Math.min(currentPage * effectivePageSize, filteredDistricts.length);
+  const startIndex =
+    filteredDistricts.length === 0 ? 0 : isAll ? 0 : (currentPage - 1) * effectivePageSize;
+  const endIndex = isAll
+    ? filteredDistricts.length
+    : Math.min(currentPage * effectivePageSize, filteredDistricts.length);
 
   const displayedDistricts = useMemo(() => {
     if (filteredDistricts.length === 0) return [];
@@ -876,7 +1204,9 @@ export const AdminDistrictRankings: React.FC = () => {
       'data:text/csv;charset=utf-8,' +
       [headers.join(','), ...rows.map((e) => e.map(csvCell).join(','))].join('\n');
 
-    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent.replace(/^data:text\/csv;charset=utf-8,/, ''));
+    const encodedUri =
+      'data:text/csv;charset=utf-8,' +
+      encodeURIComponent(csvContent.replace(/^data:text\/csv;charset=utf-8,/, ''));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute(
@@ -1079,7 +1409,12 @@ export const AdminDistrictRankings: React.FC = () => {
 
         {/* Select District */}
         <div className="w-[130px]">
-          <label htmlFor="select-district-filter" className="block text-[11px] font-semibold text-[#64748B] mb-1">Select District</label>
+          <label
+            htmlFor="select-district-filter"
+            className="block text-[11px] font-semibold text-[#64748B] mb-1"
+          >
+            Select District
+          </label>
           <div className="relative">
             <select
               id="select-district-filter"
@@ -1187,142 +1522,142 @@ export const AdminDistrictRankings: React.FC = () => {
                         isDetailsOpen && selectedDistrictName === district.name
                       );
 
-                    return (
-                      <tr
-                        key={district.rank}
-                        onClick={() => {
-                          setSelectedDistrictName(district.name);
-                          setIsDetailsOpen(true);
-                        }}
-                        className={cn(
-                          'hover:bg-[#F8FAFC] transition-colors cursor-pointer text-xs',
-                          isSelected && 'bg-[#EFF6FF]'
-                        )}
-                      >
-                        {/* Rank Badge */}
-                        <td className="py-3 px-3.5 text-center">
-                          {district.rank === 1 && (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-amber-300">
-                              1
-                            </div>
+                      return (
+                        <tr
+                          key={district.rank}
+                          onClick={() => {
+                            setSelectedDistrictName(district.name);
+                            setIsDetailsOpen(true);
+                          }}
+                          className={cn(
+                            'hover:bg-[#F8FAFC] transition-colors cursor-pointer text-xs',
+                            isSelected && 'bg-[#EFF6FF]'
                           )}
-                          {district.rank === 2 && (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-slate-400 to-slate-300 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-slate-200">
-                              2
-                            </div>
-                          )}
-                          {district.rank === 3 && (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-700 to-orange-500 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-orange-300">
-                              3
-                            </div>
-                          )}
-                          {district.rank > 3 && (
-                              <span className="font-bold text-[#64748B]">{district.rank}</span>
-                          )}
-                        </td>
-
-                        {/* District Landmark Thumbnail & Name */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2.5">
-                            <img
-                              src={district.landmarkImg}
-                              alt={district.name}
-                              className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200 shadow-2xs"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                            <span className="font-bold text-[#0F172A] leading-tight truncate">
-                              {district.name}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Total Students */}
-                        <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
-                          {district.totalStudents.toLocaleString()}
-                        </td>
-
-                        {/* Tests Attempted */}
-                        <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
-                          {district.testsAttempted.toLocaleString()}
-                        </td>
-
-                        {/* Avg. Score Badge */}
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={cn(
-                              'text-[11px] font-bold px-2 py-0.5 rounded inline-block',
-                              district.avgScore >= 74
-                                ? 'bg-[#DCFCE7] text-[#16A34A]'
-                                : district.avgScore >= 66
-                                ? 'bg-[#FEF3C7] text-[#D97706]'
-                                : 'bg-[#FFEDD5] text-[#EA580C]'
-                            )}
-                          >
-                            {district.avgScore}%
-                          </span>
-                        </td>
-
-                        {/* Top Score */}
-                        <td className="py-3 px-3 text-center font-bold text-[#1E293B]">
-                          {district.topScore}%
-                        </td>
-
-                        {/* Active Students */}
-                        <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
-                          {district.activeStudents}
-                        </td>
-
-                        {/* Actions */}
-                        <td
-                          className="py-3 px-3 text-center relative"
-                          onClick={(e) => e.stopPropagation()}
                         >
-                          <button
-                            onClick={() =>
-                              setOpenActionRank(
-                                openActionRank === district.rank ? null : district.rank
-                              )
-                            }
-                            className="p-1 rounded-md text-[#94A3B8] hover:text-[#0F172A] hover:bg-slate-100 transition-colors"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                          {/* Rank Badge */}
+                          <td className="py-3 px-3.5 text-center">
+                            {district.rank === 1 && (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-amber-300">
+                                1
+                              </div>
+                            )}
+                            {district.rank === 2 && (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-slate-400 to-slate-300 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-slate-200">
+                                2
+                              </div>
+                            )}
+                            {district.rank === 3 && (
+                              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-700 to-orange-500 text-white font-black text-[11px] flex items-center justify-center mx-auto shadow-xs border border-orange-300">
+                                3
+                              </div>
+                            )}
+                            {district.rank > 3 && (
+                              <span className="font-bold text-[#64748B]">{district.rank}</span>
+                            )}
+                          </td>
 
-                          {/* Popover Menu */}
-                          {openActionRank === district.rank && (
-                            <div
-                              ref={actionMenuRef}
-                              className="absolute right-2 top-8 z-30 w-44 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 text-left text-xs animate-in fade-in duration-150"
-                            >
-                              <button
-                                onClick={() => {
-                                  setSelectedDistrictName(district.name);
-                                  setIsDetailsOpen(true);
-                                  setOpenActionRank(null);
+                          {/* District Landmark Thumbnail & Name */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <img
+                                src={district.landmarkImg}
+                                alt={district.name}
+                                className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200 shadow-2xs"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
                                 }}
-                                className="w-full px-3 py-2 text-[#1E293B] hover:bg-slate-50 flex items-center gap-2 font-medium"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                                <span>View District Details</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setIsAllStudentsModalOpen(true);
-                                  setOpenActionRank(null);
-                                }}
-                                className="w-full px-3 py-2 text-[#1E293B] hover:bg-slate-50 flex items-center gap-2 font-medium"
-                              >
-                                <Users className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Top Students</span>
-                              </button>
+                              />
+                              <span className="font-bold text-[#0F172A] leading-tight truncate">
+                                {district.name}
+                              </span>
                             </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
+                          </td>
+
+                          {/* Total Students */}
+                          <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
+                            {district.totalStudents.toLocaleString()}
+                          </td>
+
+                          {/* Tests Attempted */}
+                          <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
+                            {district.testsAttempted.toLocaleString()}
+                          </td>
+
+                          {/* Avg. Score Badge */}
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={cn(
+                                'text-[11px] font-bold px-2 py-0.5 rounded inline-block',
+                                district.avgScore >= 74
+                                  ? 'bg-[#DCFCE7] text-[#16A34A]'
+                                  : district.avgScore >= 66
+                                    ? 'bg-[#FEF3C7] text-[#D97706]'
+                                    : 'bg-[#FFEDD5] text-[#EA580C]'
+                              )}
+                            >
+                              {district.avgScore}%
+                            </span>
+                          </td>
+
+                          {/* Top Score */}
+                          <td className="py-3 px-3 text-center font-bold text-[#1E293B]">
+                            {district.topScore}%
+                          </td>
+
+                          {/* Active Students */}
+                          <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
+                            {district.activeStudents}
+                          </td>
+
+                          {/* Actions */}
+                          <td
+                            className="py-3 px-3 text-center relative"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() =>
+                                setOpenActionRank(
+                                  openActionRank === district.rank ? null : district.rank
+                                )
+                              }
+                              className="p-1 rounded-md text-[#94A3B8] hover:text-[#0F172A] hover:bg-slate-100 transition-colors"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+
+                            {/* Popover Menu */}
+                            {openActionRank === district.rank && (
+                              <div
+                                ref={actionMenuRef}
+                                className="absolute right-2 top-8 z-30 w-44 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 text-left text-xs animate-in fade-in duration-150"
+                              >
+                                <button
+                                  onClick={() => {
+                                    setSelectedDistrictName(district.name);
+                                    setIsDetailsOpen(true);
+                                    setOpenActionRank(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-[#1E293B] hover:bg-slate-50 flex items-center gap-2 font-medium"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>View District Details</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsAllStudentsModalOpen(true);
+                                    setOpenActionRank(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-[#1E293B] hover:bg-slate-50 flex items-center gap-2 font-medium"
+                                >
+                                  <Users className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Top Students</span>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1334,8 +1669,8 @@ export const AdminDistrictRankings: React.FC = () => {
                 {filteredDistricts.length === 0
                   ? 'Showing 0 of 0 districts'
                   : isAll
-                  ? `Showing all ${filteredDistricts.length} districts of West Bengal`
-                  : `Showing ${startIndex + 1}–${endIndex} of ${filteredDistricts.length} districts`}
+                    ? `Showing all ${filteredDistricts.length} districts of West Bengal`
+                    : `Showing ${startIndex + 1}–${endIndex} of ${filteredDistricts.length} districts`}
               </span>
 
               {/* View / Pagination Controls */}
@@ -1624,8 +1959,8 @@ export const AdminDistrictRankings: React.FC = () => {
                         d.avgScore >= 75
                           ? 'bg-emerald-500'
                           : d.avgScore >= 72
-                          ? 'bg-lime-500'
-                          : 'bg-amber-500'
+                            ? 'bg-lime-500'
+                            : 'bg-amber-500'
                       )}
                       style={{ width: `${d.avgScore}%` }}
                     />

@@ -853,19 +853,25 @@ export const AdminPayments: React.FC = () => {
                 {attributionMode === 'cashflow' && (
                   <div className="mt-2.5 p-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-slate-900 border border-blue-100/80 dark:border-blue-900/40 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div className="flex flex-col">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Gross Inflow:</span>{' '}
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                        Gross Inflow:
+                      </span>{' '}
                       <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
                         ₹{cashFlowStats.grossInflow.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Disbursed Refunds:</span>{' '}
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                        Disbursed Refunds:
+                      </span>{' '}
                       <span className="font-semibold text-rose-600 dark:text-rose-400 text-sm">
                         -₹{cashFlowStats.refundOutflow.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">Net Cash Flow:</span>{' '}
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                        Net Cash Flow:
+                      </span>{' '}
                       <span className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
                         ₹{cashFlowStats.netCashFlow.toLocaleString('en-IN')}
                       </span>
@@ -1201,7 +1207,8 @@ export const AdminPayments: React.FC = () => {
                                   row.avatarTextColor || 'text-blue-600'
                                 )}
                                 style={{
-                                  display: row.avatarType === 'photo' && row.avatarSrc ? 'none' : 'flex',
+                                  display:
+                                    row.avatarType === 'photo' && row.avatarSrc ? 'none' : 'flex',
                                 }}
                               >
                                 {row.avatarInitials}

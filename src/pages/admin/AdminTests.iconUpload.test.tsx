@@ -95,7 +95,10 @@ describe('Mock Test Icon Upload and Persistence', () => {
   });
 
   it('renders custom icon img in AdminTests table when test has iconUrl', async () => {
-    vi.spyOn(api, 'getAllAdminTests').mockResolvedValue([sampleTestWithIcon, sampleTestWithoutIcon]);
+    vi.spyOn(api, 'getAllAdminTests').mockResolvedValue([
+      sampleTestWithIcon,
+      sampleTestWithoutIcon,
+    ]);
     vi.spyOn(api, 'getExams').mockResolvedValue([]);
     vi.spyOn(api, 'getSubjects').mockResolvedValue([]);
     vi.spyOn(api, 'getAllAdminChapters').mockResolvedValue([]);
@@ -117,7 +120,9 @@ describe('Mock Test Icon Upload and Persistence', () => {
     const onTestCreated = vi.fn();
     const onClose = vi.fn();
 
-    vi.spyOn(api, 'uploadTestIcon').mockResolvedValue('https://cdn.practicekoro.online/uploaded-badge.png');
+    vi.spyOn(api, 'uploadTestIcon').mockResolvedValue(
+      'https://cdn.practicekoro.online/uploaded-badge.png'
+    );
     const createSpy = vi.spyOn(api, 'createTest').mockResolvedValue({
       ...sampleTestWithIcon,
       id: 'test-new-123',
@@ -129,7 +134,17 @@ describe('Mock Test Icon Upload and Persistence', () => {
       <CreateMockTestModal
         isOpen={true}
         onClose={onClose}
-        exams={[{ id: 'exam-1', title: 'WBP Exam', slug: 'wbp', category: 'Police', orderIndex: 1, isActive: true, iconName: 'Shield' }]}
+        exams={[
+          {
+            id: 'exam-1',
+            title: 'WBP Exam',
+            slug: 'wbp',
+            category: 'Police',
+            orderIndex: 1,
+            isActive: true,
+            iconName: 'Shield',
+          },
+        ]}
         subjects={[]}
         chapters={[]}
         onTestCreated={onTestCreated}
@@ -174,7 +189,9 @@ describe('Mock Test Icon Upload and Persistence', () => {
     vi.spyOn(api, 'getExams').mockResolvedValue([]);
     vi.spyOn(api, 'getSubjects').mockResolvedValue([]);
     vi.spyOn(api, 'getAllAdminChapters').mockResolvedValue([]);
-    vi.spyOn(api, 'uploadTestIcon').mockResolvedValue('https://cdn.practicekoro.online/new-badge.png');
+    vi.spyOn(api, 'uploadTestIcon').mockResolvedValue(
+      'https://cdn.practicekoro.online/new-badge.png'
+    );
     const updateSpy = vi.spyOn(api, 'updateTest').mockResolvedValue({
       ...sampleTestWithIcon,
       iconUrl: 'https://cdn.practicekoro.online/new-badge.png',

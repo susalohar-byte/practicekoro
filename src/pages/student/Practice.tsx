@@ -58,21 +58,22 @@ export const Practice: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: practiceCatalog = { subjects: [], chapters: [], tests: [], attempts: [] } } = useQuery({
-    queryKey: ['practice-catalog', user?.id],
-    queryFn: async () => {
-      const [subjects, chapters, tests, attempts] = await Promise.all([
-        api.getSubjects(),
-        api.getAllChapters(),
-        api.getTests(),
-        user?.id ? api.getUserAttempts(user.id) : Promise.resolve([]),
-      ]);
-      return { subjects, chapters, tests, attempts };
-    },
-    enabled: Boolean(user?.id),
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-  });
+  const { data: practiceCatalog = { subjects: [], chapters: [], tests: [], attempts: [] } } =
+    useQuery({
+      queryKey: ['practice-catalog', user?.id],
+      queryFn: async () => {
+        const [subjects, chapters, tests, attempts] = await Promise.all([
+          api.getSubjects(),
+          api.getAllChapters(),
+          api.getTests(),
+          user?.id ? api.getUserAttempts(user.id) : Promise.resolve([]),
+        ]);
+        return { subjects, chapters, tests, attempts };
+      },
+      enabled: Boolean(user?.id),
+      staleTime: 30_000,
+      refetchOnWindowFocus: true,
+    });
 
   // Revision data: cached mistakes + bookmarks (TanStack Query)
   const {
@@ -275,10 +276,8 @@ export const Practice: React.FC = () => {
   const sessionAccuracy =
     sessionTotal > 0 ? ((sessionCorrect / sessionTotal) * 100).toFixed(1) : '0';
 
-
   return (
     <div className="space-y-4 sm:space-y-5 pb-12 pk-student-page">
-
       {/* =========================================================================
           PRACTICE MODE: INTERACTIVE WORKSPACE
           ========================================================================= */}
@@ -360,9 +359,11 @@ export const Practice: React.FC = () => {
 
             <div className="space-y-2">
               <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-relaxed">
-                <MathText>{!isBilingualEnabled || languageMode === 'bengali'
-                  ? currentQuestion.questionBengaliText || currentQuestion.questionText
-                  : currentQuestion.questionText || currentQuestion.questionBengaliText}</MathText>
+                <MathText>
+                  {!isBilingualEnabled || languageMode === 'bengali'
+                    ? currentQuestion.questionBengaliText || currentQuestion.questionText
+                    : currentQuestion.questionText || currentQuestion.questionBengaliText}
+                </MathText>
               </p>
             </div>
 
@@ -414,7 +415,9 @@ export const Practice: React.FC = () => {
                     >
                       {opt}
                     </span>
-                    <span className="text-sm font-medium pt-0.5 flex-1"><MathText>{optText}</MathText></span>
+                    <span className="text-sm font-medium pt-0.5 flex-1">
+                      <MathText>{optText}</MathText>
+                    </span>
 
                     {isAnswerSubmitted && isCorrectOption && (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -689,407 +692,429 @@ export const Practice: React.FC = () => {
           {/* =========================================================================
               VIEW 1: PRACTICE DASHBOARD (1:1 PracticeKoro App UI)
               ========================================================================= */}
-          {activeTab === 'dashboard' && (() => {
-            const subjectThemes = [
-              ['bg-[#EBF3FF] dark:bg-blue-950/50', 'text-[#2563EB] dark:text-blue-400', FileText],
-              ['bg-[#E6F8EE] dark:bg-emerald-950/50', 'text-[#16A34A] dark:text-emerald-400', Calculator],
-              ['bg-[#F3E8FF] dark:bg-purple-950/50', 'text-[#9333EA] dark:text-purple-400', BookOpen],
-              ['bg-[#FFE4E6] dark:bg-rose-950/50', 'text-[#E11D48] dark:text-rose-400', Brain],
-              ['bg-[#FEF3C7] dark:bg-amber-950/50', 'text-[#D97706] dark:text-amber-400', Sparkles],
-              ['bg-[#E0F2FE] dark:bg-sky-950/50', 'text-[#0284C7] dark:text-sky-400', Monitor],
-              ['bg-[#FCE7F3] dark:bg-pink-950/50', 'text-[#DB2777] dark:text-pink-400', Clock],
-              ['bg-[#DCFCE7] dark:bg-green-950/50', 'text-[#15803D] dark:text-green-400', Globe],
-            ] as const;
-            const allSubjectsList = practiceCatalog.subjects.map((subject, index) => {
-              const chaptersCount = practiceCatalog.chapters.filter(
-                (chapter) => chapter.subjectId === subject.id
-              ).length;
-              const theme = subjectThemes[index % subjectThemes.length];
-              const normalized = subject.name.toLowerCase();
-              const symbol = normalized.includes('bengali') ? 'অ' : normalized.includes('english') ? 'A' : undefined;
-              const iconUrl =
-                subject.iconName &&
-                (subject.iconName.startsWith('http') ||
-                  subject.iconName.startsWith('data:') ||
-                  subject.iconName.startsWith('/'))
-                  ? subject.iconName
-                  : undefined;
-              return {
-                id: subject.id,
-                title: subject.name,
-                chaptersCount: `${chaptersCount} Chapters`,
-                iconBg: theme[0],
-                iconColor: theme[1],
-                icon: symbol ? undefined : theme[2],
-                iconUrl,
-                symbol,
-                symbolBg: normalized.includes('bengali')
-                  ? 'bg-[#EA580C] text-white'
-                  : 'bg-[#9333EA] text-white',
-              };
-            });
-            const subjectFilters = ['All Subjects', ...allSubjectsList.map((subject) => subject.title)];
-
-            const continueItemsList = practiceCatalog.attempts
-              .filter((attempt) => attempt.status === 'in_progress')
-              .slice(0, 3)
-              .map((attempt, index) => {
-                const completed = (attempt.correctCount || 0) + (attempt.wrongCount || 0);
-                const total = Math.max(completed, attempt.totalQuestions || 0);
+          {activeTab === 'dashboard' &&
+            (() => {
+              const subjectThemes = [
+                ['bg-[#EBF3FF] dark:bg-blue-950/50', 'text-[#2563EB] dark:text-blue-400', FileText],
+                [
+                  'bg-[#E6F8EE] dark:bg-emerald-950/50',
+                  'text-[#16A34A] dark:text-emerald-400',
+                  Calculator,
+                ],
+                [
+                  'bg-[#F3E8FF] dark:bg-purple-950/50',
+                  'text-[#9333EA] dark:text-purple-400',
+                  BookOpen,
+                ],
+                ['bg-[#FFE4E6] dark:bg-rose-950/50', 'text-[#E11D48] dark:text-rose-400', Brain],
+                [
+                  'bg-[#FEF3C7] dark:bg-amber-950/50',
+                  'text-[#D97706] dark:text-amber-400',
+                  Sparkles,
+                ],
+                ['bg-[#E0F2FE] dark:bg-sky-950/50', 'text-[#0284C7] dark:text-sky-400', Monitor],
+                ['bg-[#FCE7F3] dark:bg-pink-950/50', 'text-[#DB2777] dark:text-pink-400', Clock],
+                ['bg-[#DCFCE7] dark:bg-green-950/50', 'text-[#15803D] dark:text-green-400', Globe],
+              ] as const;
+              const allSubjectsList = practiceCatalog.subjects.map((subject, index) => {
+                const chaptersCount = practiceCatalog.chapters.filter(
+                  (chapter) => chapter.subjectId === subject.id
+                ).length;
+                const theme = subjectThemes[index % subjectThemes.length];
+                const normalized = subject.name.toLowerCase();
+                const symbol = normalized.includes('bengali')
+                  ? 'অ'
+                  : normalized.includes('english')
+                    ? 'A'
+                    : undefined;
+                const iconUrl =
+                  subject.iconName &&
+                  (subject.iconName.startsWith('http') ||
+                    subject.iconName.startsWith('data:') ||
+                    subject.iconName.startsWith('/'))
+                    ? subject.iconName
+                    : undefined;
                 return {
-                id: attempt.id,
-                testId: attempt.testId,
-                title: attempt.testTitle || 'Test in progress',
-                subtitle: attempt.examTitle || attempt.subjectName || 'Continue your test',
-                completed,
-                total,
-                pct: total > 0 ? Math.round((completed / total) * 100) : 0,
-                icon: subjectThemes[index % subjectThemes.length][2],
-                iconBg: `${subjectThemes[index % subjectThemes.length][0]} ${subjectThemes[index % subjectThemes.length][1]}`,
-              };
+                  id: subject.id,
+                  title: subject.name,
+                  chaptersCount: `${chaptersCount} Chapters`,
+                  iconBg: theme[0],
+                  iconColor: theme[1],
+                  icon: symbol ? undefined : theme[2],
+                  iconUrl,
+                  symbol,
+                  symbolBg: normalized.includes('bengali')
+                    ? 'bg-[#EA580C] text-white'
+                    : 'bg-[#9333EA] text-white',
+                };
+              });
+              const subjectFilters = [
+                'All Subjects',
+                ...allSubjectsList.map((subject) => subject.title),
+              ];
+
+              const continueItemsList = practiceCatalog.attempts
+                .filter((attempt) => attempt.status === 'in_progress')
+                .slice(0, 3)
+                .map((attempt, index) => {
+                  const completed = (attempt.correctCount || 0) + (attempt.wrongCount || 0);
+                  const total = Math.max(completed, attempt.totalQuestions || 0);
+                  return {
+                    id: attempt.id,
+                    testId: attempt.testId,
+                    title: attempt.testTitle || 'Test in progress',
+                    subtitle: attempt.examTitle || attempt.subjectName || 'Continue your test',
+                    completed,
+                    total,
+                    pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+                    icon: subjectThemes[index % subjectThemes.length][2],
+                    iconBg: `${subjectThemes[index % subjectThemes.length][0]} ${subjectThemes[index % subjectThemes.length][1]}`,
+                  };
+                });
+
+              const quickItemsList = [
+                {
+                  id: 'quick_10',
+                  title: '10 Questions',
+                  subtitle: 'Daily Practice',
+                  icon: Target,
+                  iconBg: 'bg-[#E6F8EE] text-[#16A34A]',
+                },
+                {
+                  id: 'quick_25',
+                  title: '25 Questions',
+                  subtitle: 'Mixed Practice',
+                  icon: FileText,
+                  iconBg: 'bg-[#FFEDD5] text-[#EA580C]',
+                },
+                {
+                  id: 'quick_50',
+                  title: '50 Questions',
+                  subtitle: 'Full Practice',
+                  icon: Award,
+                  iconBg: 'bg-[#F3E8FF] text-[#8B5CF6]',
+                },
+              ];
+
+              const query = (searchParams.get('q') || '').trim().toLowerCase();
+              const selectedFilter = searchParams.get('subject_filter') || 'All Subjects';
+
+              const filteredSubjects = allSubjectsList.filter((item) => {
+                const matchesFilter =
+                  selectedFilter === 'All Subjects' ||
+                  item.title.toLowerCase() === selectedFilter.toLowerCase();
+                const matchesQuery =
+                  query === '' ||
+                  item.title.toLowerCase().includes(query) ||
+                  item.chaptersCount.toLowerCase().includes(query);
+                return matchesFilter && matchesQuery;
               });
 
-            const quickItemsList = [
-              {
-                id: 'quick_10',
-                title: '10 Questions',
-                subtitle: 'Daily Practice',
-                icon: Target,
-                iconBg: 'bg-[#E6F8EE] text-[#16A34A]',
-              },
-              {
-                id: 'quick_25',
-                title: '25 Questions',
-                subtitle: 'Mixed Practice',
-                icon: FileText,
-                iconBg: 'bg-[#FFEDD5] text-[#EA580C]',
-              },
-              {
-                id: 'quick_50',
-                title: '50 Questions',
-                subtitle: 'Full Practice',
-                icon: Award,
-                iconBg: 'bg-[#F3E8FF] text-[#8B5CF6]',
-              },
-            ];
+              return (
+                <div className="space-y-4 sm:space-y-5">
+                  {/* ── 1. TITLE & SUBTITLE (App Practice Header) ── */}
+                  <div>
+                    <h1 className="text-2xl sm:text-[28px] font-black text-[#051A43] dark:text-white tracking-tight leading-tight">
+                      Practice
+                    </h1>
+                    <p className="text-xs sm:text-[13px] text-[#64748B] dark:text-slate-400 font-medium mt-1">
+                      Subject-wise practice to strengthen your preparation
+                    </p>
 
-            const query = (searchParams.get('q') || '').trim().toLowerCase();
-            const selectedFilter = searchParams.get('subject_filter') || 'All Subjects';
+                    {/* ── 2. SUBJECT CATEGORY FILTER PILLS ── */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 mt-3 scrollbar-none">
+                      {subjectFilters.map((filter) => {
+                        const isSelected = selectedFilter === filter;
+                        return (
+                          <button
+                            key={filter}
+                            type="button"
+                            onClick={() => {
+                              const newParams = new URLSearchParams(searchParams);
+                              if (filter === 'All Subjects') {
+                                newParams.delete('subject_filter');
+                              } else {
+                                newParams.set('subject_filter', filter);
+                              }
+                              setSearchParams(newParams);
+                            }}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#026BFC] text-white shadow-xs'
+                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                            }`}
+                          >
+                            {filter}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-            const filteredSubjects = allSubjectsList.filter((item) => {
-              const matchesFilter =
-                selectedFilter === 'All Subjects' ||
-                item.title.toLowerCase() === selectedFilter.toLowerCase();
-              const matchesQuery =
-                query === '' ||
-                item.title.toLowerCase().includes(query) ||
-                item.chaptersCount.toLowerCase().includes(query);
-              return matchesFilter && matchesQuery;
-            });
-
-            return (
-              <div className="space-y-4 sm:space-y-5">
-                {/* ── 1. TITLE & SUBTITLE (App Practice Header) ── */}
-                <div>
-                  <h1 className="text-2xl sm:text-[28px] font-black text-[#051A43] dark:text-white tracking-tight leading-tight">
-                    Practice
-                  </h1>
-                  <p className="text-xs sm:text-[13px] text-[#64748B] dark:text-slate-400 font-medium mt-1">
-                    Subject-wise practice to strengthen your preparation
-                  </p>
-
-                  {/* ── 2. SUBJECT CATEGORY FILTER PILLS ── */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 mt-3 scrollbar-none">
-                    {subjectFilters.map((filter) => {
-                      const isSelected = selectedFilter === filter;
-                      return (
+                  {/* ── 3. SEARCH BAR (App PKSearchFilterBar) ── */}
+                  <div className="space-y-2">
+                    <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs px-3.5 py-2">
+                      <Crosshair className="w-4 h-4 text-[#026BFC] shrink-0 mr-2.5" />
+                      <input
+                        type="text"
+                        value={searchParams.get('q') || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const newParams = new URLSearchParams(searchParams);
+                          if (val) {
+                            newParams.set('q', val);
+                          } else {
+                            newParams.delete('q');
+                          }
+                          setSearchParams(newParams);
+                        }}
+                        placeholder="Search subject or chapter..."
+                        className="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
+                      />
+                      {query && (
                         <button
-                          key={filter}
                           type="button"
                           onClick={() => {
                             const newParams = new URLSearchParams(searchParams);
-                            if (filter === 'All Subjects') {
-                              newParams.delete('subject_filter');
-                            } else {
-                              newParams.set('subject_filter', filter);
-                            }
+                            newParams.delete('q');
                             setSearchParams(newParams);
                           }}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#026BFC] text-white shadow-xs'
-                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                          }`}
+                          className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
-                          {filter}
+                          <XCircle className="w-4 h-4" />
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      )}
+                    </div>
 
-                {/* ── 3. SEARCH BAR (App PKSearchFilterBar) ── */}
-                <div className="space-y-2">
-                  <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs px-3.5 py-2">
-                    <Crosshair className="w-4 h-4 text-[#026BFC] shrink-0 mr-2.5" />
-                    <input
-                      type="text"
-                      value={searchParams.get('q') || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const newParams = new URLSearchParams(searchParams);
-                        if (val) {
-                          newParams.set('q', val);
-                        } else {
-                          newParams.delete('q');
-                        }
-                        setSearchParams(newParams);
-                      }}
-                      placeholder="Search subject or chapter..."
-                      className="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
-                    />
-                    {query && (
+                    {/* Quick Revision Access Chips */}
+                    <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                       <button
                         type="button"
-                        onClick={() => {
-                          const newParams = new URLSearchParams(searchParams);
-                          newParams.delete('q');
-                          setSearchParams(newParams);
-                        }}
-                        className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        onClick={() => handleTabChange('mistakes')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 transition-colors"
                       >
-                        <XCircle className="w-4 h-4" />
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>Mistakes Notebook</span>
+                        {pendingMistakes.length > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
+                            {pendingMistakes.length}
+                          </span>
+                        )}
                       </button>
-                    )}
-                  </div>
 
-                  {/* Quick Revision Access Chips */}
-                  <div className="flex items-center gap-2 pt-0.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('mistakes')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 transition-colors"
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>Mistakes Notebook</span>
-                      {pendingMistakes.length > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
-                          {pendingMistakes.length}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('bookmarks')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-[#026BFC] dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
-                    >
-                      <Bookmark className="w-3.5 h-3.5" />
-                      <span>Saved Questions</span>
-                      {bookmarks.length > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-[#026BFC] text-white text-[10px]">
-                          {bookmarks.length}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ── 4. SECTION 1: SUBJECTS (2-Column Grid on Mobile, 3-4 Column on Desktop) ── */}
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-[#026BFC]" />
-                      <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                        Subjects
-                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('bookmarks')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-[#026BFC] dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition-colors"
+                      >
+                        <Bookmark className="w-3.5 h-3.5" />
+                        <span>Saved Questions</span>
+                        {bookmarks.length > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-[#026BFC] text-white text-[10px]">
+                            {bookmarks.length}
+                          </span>
+                        )}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('topics')}
-                      className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                    >
-                      <span>See All</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                    {filteredSubjects.map((sub) => {
-                      const Icon = sub.icon;
-                      return (
-                        <button
-                          type="button"
-                          key={sub.id}
-                          onClick={() => handleTabChange('topics')}
-                          className="w-full h-16 px-3 py-2 text-left rounded-2xl bg-white dark:bg-slate-900 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:border-[#0877FF]/40 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Icon or Symbol Box */}
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${sub.iconBg} ${sub.iconColor}`}
-                            >
-                              {sub.iconUrl ? (
-                                <img
-                                  src={sub.iconUrl}
-                                  alt={sub.title}
-                                  className="w-5 h-5 object-contain rounded"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : sub.symbol ? (
-                                <span
-                                  className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${sub.symbolBg}`}
-                                >
-                                  {sub.symbol}
-                                </span>
-                              ) : Icon ? (
-                                <Icon className="w-4 h-4" />
-                              ) : null}
-                            </div>
-
-                            <div className="min-w-0">
-                              <h3 className="text-xs sm:text-sm font-bold text-[#051A43] dark:text-white truncate group-hover:text-[#026BFC] transition-colors leading-tight">
-                                {sub.title}
-                              </h3>
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
-                                {sub.chaptersCount}
-                              </p>
-                            </div>
-                          </div>
-
-                          <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-[#0877FF] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                {/* ── 5. SECTION 2: CONTINUE PRACTICE ── */}
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-[#026BFC]" />
-                      <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                        Continue Practice
-                      </h2>
+                  {/* ── 4. SECTION 1: SUBJECTS (2-Column Grid on Mobile, 3-4 Column on Desktop) ── */}
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-[#026BFC]" />
+                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
+                          Subjects
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('topics')}
+                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
+                      >
+                        <span>See All</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('topics')}
-                      className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                    >
-                      <span>See All</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {continueItemsList.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <div
-                          key={item.id}
-                          className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex flex-col justify-between"
-                        >
-                          <div className="flex items-start gap-2.5 mb-2">
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
-                            >
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-xs sm:text-[13px] font-bold text-[#051A43] dark:text-white truncate">
-                                {item.title}
-                              </h4>
-                              <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
-                                {item.subtitle}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1 my-1">
-                            <div className="flex items-center justify-between text-[10.5px] font-bold">
-                              <span className="text-slate-600 dark:text-slate-400">
-                                {item.completed}/{item.total} questions
-                              </span>
-                              <span className="text-[#026BFC]">{item.pct}%</span>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                              <div
-                                className="h-full bg-[#026BFC] rounded-full"
-                                style={{ width: `${item.pct}%` }}
-                              />
-                            </div>
-                          </div>
-
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                      {filteredSubjects.map((sub) => {
+                        const Icon = sub.icon;
+                        return (
                           <button
                             type="button"
-                            onClick={() => navigate(`/exams/${item.testId}/runner?attemptId=${item.id}`)}
-                            className="mt-2 w-full py-1.5 rounded-lg bg-[#026BFC] hover:bg-[#0256CA] text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all"
+                            key={sub.id}
+                            onClick={() => handleTabChange('topics')}
+                            className="w-full h-16 px-3 py-2 text-left rounded-2xl bg-white dark:bg-slate-900 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:border-[#0877FF]/40 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
                           >
-                            <span>Continue</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Icon or Symbol Box */}
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${sub.iconBg} ${sub.iconColor}`}
+                              >
+                                {sub.iconUrl ? (
+                                  <img
+                                    src={sub.iconUrl}
+                                    alt={sub.title}
+                                    className="w-5 h-5 object-contain rounded"
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : sub.symbol ? (
+                                  <span
+                                    className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${sub.symbolBg}`}
+                                  >
+                                    {sub.symbol}
+                                  </span>
+                                ) : Icon ? (
+                                  <Icon className="w-4 h-4" />
+                                ) : null}
+                              </div>
+
+                              <div className="min-w-0">
+                                <h3 className="text-xs sm:text-sm font-bold text-[#051A43] dark:text-white truncate group-hover:text-[#026BFC] transition-colors leading-tight">
+                                  {sub.title}
+                                </h3>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                                  {sub.chaptersCount}
+                                </p>
+                              </div>
+                            </div>
+
+                            <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-[#0877FF] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
                           </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                {/* ── 6. SECTION 3: QUICK PRACTICE ── */}
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-[#026BFC]" />
-                      <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                        Quick Practice
-                      </h2>
+                        );
+                      })}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('topics')}
-                      className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                    >
-                      <span>See All</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  </section>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {quickItemsList.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <div
-                          key={item.id}
-                          onClick={() => handleTabChange('topics')}
-                          className="h-14 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex items-center justify-between group cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
+                  {/* ── 5. SECTION 2: CONTINUE PRACTICE ── */}
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#026BFC]" />
+                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
+                          Continue Practice
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('topics')}
+                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
+                      >
+                        <span>See All</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {continueItemsList.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex flex-col justify-between"
+                          >
+                            <div className="flex items-start gap-2.5 mb-2">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs sm:text-[13px] font-bold text-[#051A43] dark:text-white truncate">
+                                  {item.title}
+                                </h4>
+                                <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
+                                  {item.subtitle}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 my-1">
+                              <div className="flex items-center justify-between text-[10.5px] font-bold">
+                                <span className="text-slate-600 dark:text-slate-400">
+                                  {item.completed}/{item.total} questions
+                                </span>
+                                <span className="text-[#026BFC]">{item.pct}%</span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full bg-[#026BFC] rounded-full"
+                                  style={{ width: `${item.pct}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(`/exams/${item.testId}/runner?attemptId=${item.id}`)
+                              }
+                              className="mt-2 w-full py-1.5 rounded-lg bg-[#026BFC] hover:bg-[#0256CA] text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all"
                             >
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-xs sm:text-sm font-bold text-[#051A43] dark:text-white truncate group-hover:text-[#026BFC] transition-colors leading-tight">
-                                {item.title}
-                              </h4>
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
-                                {item.subtitle}
-                              </p>
-                            </div>
+                              <span>Continue</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-[#026BFC] group-hover:translate-x-0.5 transition-all shrink-0" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              </div>
-            );
-          })()}
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  {/* ── 6. SECTION 3: QUICK PRACTICE ── */}
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-[#026BFC]" />
+                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
+                          Quick Practice
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('topics')}
+                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
+                      >
+                        <span>See All</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {quickItemsList.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => handleTabChange('topics')}
+                            className="h-14 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex items-center justify-between group cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-xs sm:text-sm font-bold text-[#051A43] dark:text-white truncate group-hover:text-[#026BFC] transition-colors leading-tight">
+                                  {item.title}
+                                </h4>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                                  {item.subtitle}
+                                </p>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-[#026BFC] group-hover:translate-x-0.5 transition-all shrink-0" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              );
+            })()}
 
           {/* =========================================================================
               VIEW 2: TOPIC TESTS

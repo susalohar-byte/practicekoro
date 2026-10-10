@@ -123,7 +123,8 @@ export const PopularExams: React.FC = () => {
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {exam.testsCount ? `${exam.testsCount} • ` : ''}{exam.subtitle}
+                        {exam.testsCount ? `${exam.testsCount} • ` : ''}
+                        {exam.subtitle}
                       </p>
                     </div>
                   </div>

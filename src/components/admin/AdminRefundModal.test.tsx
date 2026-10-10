@@ -29,40 +29,28 @@ const callbacks = {
 
 describe('AdminRefundModal lifecycle', () => {
   it('opens from a closed modal with no payment without changing hook order', () => {
-    const view = render(
-      <AdminRefundModal {...callbacks} payment={null} isOpen={false} />
-    );
+    const view = render(<AdminRefundModal {...callbacks} payment={null} isOpen={false} />);
     expect(screen.queryByText('Process Payment Refund')).not.toBeInTheDocument();
 
-    view.rerender(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
+    view.rerender(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
     expect(screen.getByText('Process Payment Refund')).toBeInTheDocument();
     expect(screen.getByLabelText(/Refund Amount/)).toHaveValue(199);
   });
 
   it('resets refund form state when closed and reopened', () => {
-    const view = render(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
+    const view = render(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
     fireEvent.change(screen.getByLabelText(/Refund Amount/), {
       target: { value: '50' },
     });
     expect(screen.getByLabelText(/Refund Amount/)).toHaveValue(50);
 
-    view.rerender(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen={false} />
-    );
-    view.rerender(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
+    view.rerender(<AdminRefundModal {...callbacks} payment={payment} isOpen={false} />);
+    view.rerender(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
     expect(screen.getByLabelText(/Refund Amount/)).toHaveValue(199);
   });
 
   it('initializes the amount for a different payment while open', () => {
-    const view = render(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
+    const view = render(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
     fireEvent.change(screen.getByLabelText(/Refund Amount/), {
       target: { value: '50' },
     });
@@ -77,16 +65,10 @@ describe('AdminRefundModal lifecycle', () => {
   });
 
   it('handles a missing payment while open and a subsequent valid payment', () => {
-    const view = render(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
-    view.rerender(
-      <AdminRefundModal {...callbacks} payment={null} isOpen />
-    );
+    const view = render(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
+    view.rerender(<AdminRefundModal {...callbacks} payment={null} isOpen />);
     expect(screen.queryByText('Process Payment Refund')).not.toBeInTheDocument();
-    view.rerender(
-      <AdminRefundModal {...callbacks} payment={payment} isOpen />
-    );
+    view.rerender(<AdminRefundModal {...callbacks} payment={payment} isOpen />);
     expect(screen.getByLabelText(/Refund Amount/)).toHaveValue(199);
   });
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-type KatexRenderer = typeof import('katex')['default'];
+type KatexRenderer = (typeof import('katex'))['default'];
 type MathSegment =
   | { value: string; display: boolean; raw: string }
   | { value: string; display?: never; raw?: never };
@@ -61,7 +61,11 @@ export const MathText: React.FC<MathTextProps> = ({ children, className }) => {
     <span className={className} style={{ whiteSpace: 'pre-wrap' }}>
       {segments.map((segment, index) => {
         if (!('display' in segment) || !katex) {
-          return <React.Fragment key={index}>{'display' in segment ? segment.raw : segment.value}</React.Fragment>;
+          return (
+            <React.Fragment key={index}>
+              {'display' in segment ? segment.raw : segment.value}
+            </React.Fragment>
+          );
         }
 
         const html = katex.renderToString(segment.value, {

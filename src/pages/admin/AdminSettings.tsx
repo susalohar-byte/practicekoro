@@ -137,7 +137,8 @@ const SETTINGS_TABS: TabConfig[] = [
 
 export const AdminSettings: React.FC = () => {
   const { user: currentAdmin, adminRole, updateProfile } = useAuth();
-  const canManageSettings = adminRole === 'super_admin' && (currentAdmin?.role === 'admin' || !currentAdmin?.role);
+  const canManageSettings =
+    adminRole === 'super_admin' && (currentAdmin?.role === 'admin' || !currentAdmin?.role);
   const operationRef = useRef(false);
   const loadVersion = useRef(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -342,11 +343,9 @@ export const AdminSettings: React.FC = () => {
           if (s.id === 'gateway_fast2sms_api_key') setFast2smsApiKey(String(val ?? ''));
           if (s.id === 'gateway_fast2sms_route')
             setFast2smsRoute(val === 'dlt' || val === 'otp' ? val : 'q');
-          if (s.id === 'gateway_fast2sms_sender_id')
-            setFast2smsSenderId(String(val || 'FSTSMS'));
+          if (s.id === 'gateway_fast2sms_sender_id') setFast2smsSenderId(String(val || 'FSTSMS'));
           if (s.id === 'gateway_fcm_enabled') setFcmEnabled(val === true || val === 'true');
-          if (s.id === 'gateway_fcm_project_id')
-            setFcmProjectId(String(val || 'practicekoro-app'));
+          if (s.id === 'gateway_fcm_project_id') setFcmProjectId(String(val || 'practicekoro-app'));
           if (s.id === 'gateway_fcm_server_key') setFcmServerKey(String(val ?? ''));
           if (s.id === 'gateway_fcm_vapid_key') setFcmVapidKey(String(val ?? ''));
         });
@@ -730,7 +729,6 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-
   // Do not expose editable defaults when the authoritative load failed or is pending.
   if (isLoadingSettings)
     return <AdminPageSkeleton label="Loading saved settings…" variant="form" />;
@@ -931,7 +929,13 @@ export const AdminSettings: React.FC = () => {
                     className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploadingAvatar ? 'Uploading...' : currentAdmin?.avatarUrl ? 'Change Picture' : 'Upload Picture'}</span>
+                    <span>
+                      {isUploadingAvatar
+                        ? 'Uploading...'
+                        : currentAdmin?.avatarUrl
+                          ? 'Change Picture'
+                          : 'Upload Picture'}
+                    </span>
                   </button>
                   {currentAdmin?.avatarUrl && (
                     <button
@@ -2670,7 +2674,8 @@ export const AdminSettings: React.FC = () => {
                   SMS & Push Notification Gateways
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Configure Fast2SMS for carrier text alerts and Firebase Cloud Messaging (FCM) for mobile & web push notifications.
+                  Configure Fast2SMS for carrier text alerts and Firebase Cloud Messaging (FCM) for
+                  mobile & web push notifications.
                 </p>
               </div>
             </div>
@@ -2709,7 +2714,8 @@ export const AdminSettings: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Send instant test reminders, result alerts, and login OTPs directly to Indian mobile numbers via Fast2SMS.
+                    Send instant test reminders, result alerts, and login OTPs directly to Indian
+                    mobile numbers via Fast2SMS.
                   </p>
                 </div>
               </div>
@@ -2766,7 +2772,11 @@ export const AdminSettings: React.FC = () => {
                       className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                       title={fast2smsShowKey ? 'Hide key' : 'Show key'}
                     >
-                      {fast2smsShowKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {fast2smsShowKey ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                     {fast2smsApiKey && (
                       <button
@@ -2800,7 +2810,8 @@ export const AdminSettings: React.FC = () => {
                   <option value="otp">OTP (Priority Service for Login Verification)</option>
                 </select>
                 <p className="text-[11px] text-slate-400">
-                  Select &quot;Quick&quot; for instant sending without DLT template approval, or &quot;DLT&quot; for official header delivery.
+                  Select &quot;Quick&quot; for instant sending without DLT template approval, or
+                  &quot;DLT&quot; for official header delivery.
                 </p>
               </div>
 

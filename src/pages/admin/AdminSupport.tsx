@@ -1444,19 +1444,19 @@ export const AdminSupport: React.FC = () => {
                       <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
                         {(['Open', 'In Progress', 'Resolved', 'Closed'] as TicketStatus[]).map(
                           (st) => (
-                          <button
-                            key={st}
-                            onClick={() => {
-                              handleUpdateStatus(st);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center justify-between"
-                          >
-                            <span>{st}</span>
+                            <button
+                              key={st}
+                              onClick={() => {
+                                handleUpdateStatus(st);
+                                setIsStatusDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center justify-between"
+                            >
+                              <span>{st}</span>
                               {activeTicket.status === st && (
                                 <Check className="w-3.5 h-3.5 text-blue-600" />
                               )}
-                          </button>
+                            </button>
                           )
                         )}
                       </div>

@@ -130,7 +130,20 @@ export const Home: React.FC = () => {
     if (activeLiveTest?.scheduledStartTime || activeLiveTest?.startAt) {
       const d = new Date(activeLiveTest.scheduledStartTime || activeLiveTest.startAt);
       const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       const hour24 = d.getHours();
       const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
       const minutes = String(d.getMinutes()).padStart(2, '0');
@@ -507,7 +520,12 @@ export const Home: React.FC = () => {
                 <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#026BFC] flex items-center justify-center group-hover:bg-[#026BFC] group-hover:text-white transition-colors">
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-bold border', card.badgeColor)}>
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded text-[10px] font-bold border',
+                    card.badgeColor
+                  )}
+                >
                   {card.badge}
                 </span>
               </div>
@@ -624,7 +642,11 @@ export const Home: React.FC = () => {
             let badgeText = series.badgeText;
             let badgeBg = 'bg-black/35 text-[#6EE7B7]';
 
-            if (tLower.includes('wbp') || tLower.includes('police') || tLower.includes('constable')) {
+            if (
+              tLower.includes('wbp') ||
+              tLower.includes('police') ||
+              tLower.includes('constable')
+            ) {
               gradient = 'bg-gradient-to-br from-[#0052D4] to-[#0A2E6E]';
               borderColor = 'border-[#1E40AF]';
               bgAsset = '/images/exams/bg_wbp.png';
@@ -633,7 +655,11 @@ export const Home: React.FC = () => {
               isDark = true;
               badgeText = badgeText || 'Most Popular';
               badgeBg = 'bg-black/35 text-amber-300';
-            } else if (tLower.includes('railway') || tLower.includes('ntpc') || tLower.includes('rrb')) {
+            } else if (
+              tLower.includes('railway') ||
+              tLower.includes('ntpc') ||
+              tLower.includes('rrb')
+            ) {
               gradient = 'bg-gradient-to-br from-[#7F1D1D] to-[#450A0A]';
               borderColor = 'border-[#991B1B]';
               bgAsset = '/images/exams/bg_railway.png';
@@ -827,7 +853,9 @@ export const Home: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed mt-1.5">
-              Focus on negative marking prevention during the first 30 minutes of your mock test. Skip questions with less than 60% certainty and return to them during your second pass.
+              Focus on negative marking prevention during the first 30 minutes of your mock test.
+              Skip questions with less than 60% certainty and return to them during your second
+              pass.
             </p>
           </div>
 

@@ -165,7 +165,11 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   };
 
   const handleRemoveQuestion = async (questionId: string) => {
-    if (!confirm('Remove this question from this mock test? (The question remains in the Question Bank).')) {
+    if (
+      !confirm(
+        'Remove this question from this mock test? (The question remains in the Question Bank).'
+      )
+    ) {
       return;
     }
 
@@ -240,9 +244,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       ? (attempts.reduce((sum, a) => sum + (a.score || 0), 0) / attempts.length).toFixed(1)
       : '0.0';
   const highestScore =
-    attempts.length > 0
-      ? Math.max(...attempts.map((a) => a.score || 0)).toFixed(1)
-      : '0.0';
+    attempts.length > 0 ? Math.max(...attempts.map((a) => a.score || 0)).toFixed(1) : '0.0';
   const passRate =
     attempts.length > 0
       ? Math.round(
@@ -360,7 +362,10 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
               {(
                 [
                   { key: 'overview', label: 'Overview' },
-                  { key: 'questions', label: `Questions (${assignedQuestions.length || test.totalQuestions})` },
+                  {
+                    key: 'questions',
+                    label: `Questions (${assignedQuestions.length || test.totalQuestions})`,
+                  },
                   { key: 'settings', label: 'Settings' },
                   { key: 'analytics', label: 'Analytics' },
                 ] as const
@@ -494,7 +499,8 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                     <div>
                       <span className="text-slate-400 block text-[11px]">Passing Marks</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {test.passingMarks} marks ({Math.round((test.passingMarks / (test.totalMarks || 100)) * 100)}%)
+                        {test.passingMarks} marks (
+                        {Math.round((test.passingMarks / (test.totalMarks || 100)) * 100)}%)
                       </span>
                     </div>
 
@@ -558,12 +564,17 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                     onClick={() => onOpenAddQuestions(test)}
                     className="h-8 text-xs font-semibold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    + Add Questions
+                    <Plus className="w-3.5 h-3.5" />+ Add Questions
                   </Button>
                 </div>
 
-                {isLoadingQuestions ? <AdminSectionSkeleton label="Loading questions..." variant="table" className="p-4" /> : assignedQuestions.length === 0 ? (
+                {isLoadingQuestions ? (
+                  <AdminSectionSkeleton
+                    label="Loading questions..."
+                    variant="table"
+                    className="p-4"
+                  />
+                ) : assignedQuestions.length === 0 ? (
                   <div className="py-12 px-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
                     <FileText className="w-8 h-8 mx-auto text-slate-400" />
                     <div>
@@ -571,7 +582,8 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                         No Questions Assigned Yet
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1">
-                        Select and assign questions from the Central Question Bank to make this test ready for students.
+                        Select and assign questions from the Central Question Bank to make this test
+                        ready for students.
                       </p>
                     </div>
                     <Button
@@ -614,8 +626,8 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                                     q.difficulty === 'easy'
                                       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                                       : q.difficulty === 'medium'
-                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                                      : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                                        : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
                                   )}
                                 >
                                   {q.difficulty}
@@ -771,7 +783,9 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                   <textarea
                     rows={3}
                     value={settingsForm.description}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, description: e.target.value })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -787,7 +801,10 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                       required
                       value={settingsForm.durationMinutes}
                       onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, durationMinutes: Number(e.target.value) })
+                        setSettingsForm({
+                          ...settingsForm,
+                          durationMinutes: Number(e.target.value),
+                        })
                       }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                     />
@@ -836,7 +853,10 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                       min={0}
                       value={settingsForm.negativeMarking}
                       onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, negativeMarking: Number(e.target.value) })
+                        setSettingsForm({
+                          ...settingsForm,
+                          negativeMarking: Number(e.target.value),
+                        })
                       }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                     />
@@ -955,7 +975,13 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                   <div className="px-3.5 py-2.5 bg-slate-100/70 dark:bg-[#070D1E] text-xs font-bold text-slate-700 dark:text-slate-300">
                     Recent Candidate Attempts
                   </div>
-                  {isLoadingAttempts ? <AdminSectionSkeleton label="Loading attempt records..." variant="table" className="p-4" /> : attempts.length === 0 ? (
+                  {isLoadingAttempts ? (
+                    <AdminSectionSkeleton
+                      label="Loading attempt records..."
+                      variant="table"
+                      className="p-4"
+                    />
+                  ) : attempts.length === 0 ? (
                     <div className="py-8 text-center text-xs text-slate-400">
                       No candidate attempts recorded yet.
                     </div>

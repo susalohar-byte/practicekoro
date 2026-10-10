@@ -30,24 +30,32 @@ export const TestDetails: React.FC = () => {
   useEffect(() => {
     let active = true;
     async function loadTest() {
-      if (!testId) { setLoading(false); setTest(null); return; }
+      if (!testId) {
+        setLoading(false);
+        setTest(null);
+        return;
+      }
       setLoading(true);
       setLoadError('');
       try {
         const data = await api.getTestById(testId);
         if (active) setTest(data);
       } catch (err) {
-        if (active) setLoadError(getErrorMessage(err, 'Unable to load test details. Please retry.'));
+        if (active)
+          setLoadError(getErrorMessage(err, 'Unable to load test details. Please retry.'));
       } finally {
         if (active) setLoading(false);
       }
     }
     void loadTest();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [testId, retryLoad]);
 
   if (loading) return <StudentLoading label="Loading test details" />;
-  if (loadError) return <StudentLoadError message={loadError} onRetry={() => setRetryLoad(v => v + 1)} />;
+  if (loadError)
+    return <StudentLoadError message={loadError} onRetry={() => setRetryLoad((v) => v + 1)} />;
 
   if (!test) {
     return (
@@ -95,7 +103,14 @@ export const TestDetails: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {startError && <p role="alert" className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl">{startError}</p>}
+      {startError && (
+        <p
+          role="alert"
+          className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl"
+        >
+          {startError}
+        </p>
+      )}
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}
@@ -146,9 +161,7 @@ export const TestDetails: React.FC = () => {
                 </span>
               )}
               {test.chapterName && (
-                <span className="text-xs text-slate-500 font-medium">
-                  {test.chapterName}
-                </span>
+                <span className="text-xs text-slate-500 font-medium">{test.chapterName}</span>
               )}
             </div>
 
@@ -266,8 +279,8 @@ export const TestDetails: React.FC = () => {
                 </>
               ) : (
                 <>
-                  There is <strong>no negative marking</strong> in this test. Unanswered
-                  questions do not carry negative marks.
+                  There is <strong>no negative marking</strong> in this test. Unanswered questions
+                  do not carry negative marks.
                 </>
               )}
             </div>

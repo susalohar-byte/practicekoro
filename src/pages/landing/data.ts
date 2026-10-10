@@ -128,7 +128,8 @@ export const toolsFeatures = [
     icon: Bookmark,
     title: 'Smart Bookmarks & Short Notes',
     bengaliTag: 'গুরুত্বপূর্ণ নোট ও বুকমার্ক',
-    description: 'Save difficult formulas, GK tidbits, and questions for quick last-minute revision.',
+    description:
+      'Save difficult formulas, GK tidbits, and questions for quick last-minute revision.',
     color: 'text-amber-600 bg-amber-50 border-amber-100',
   },
   {

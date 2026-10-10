@@ -85,11 +85,7 @@ function subscribeToTables(
 
   let channel = supabase.channel(channelName);
   for (const table of tables) {
-    channel = channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table },
-      callback
-    );
+    channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, callback);
   }
   channel.subscribe();
 

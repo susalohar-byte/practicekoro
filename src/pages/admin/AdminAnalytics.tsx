@@ -45,9 +45,7 @@ export function analyticsCsv(data: PlatformAnalyticsData, period: string) {
     ['Distinct paying students', data.revenue.paidStudents, period],
     ['Active Pro students', data.revenue.activeSubscriptions, 'Current unexpired subscriptions'],
   ];
-  return rows
-    .map((row) => row.map(csvCell).join(','))
-    .join('\n');
+  return rows.map((row) => row.map(csvCell).join(',')).join('\n');
 }
 
 // Mini Sparkline Component
@@ -97,8 +95,16 @@ const DonutChart: React.FC<{
   let cumulativePercent = 0;
 
   return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90 transform">
+    <div
+      className="relative flex items-center justify-center shrink-0"
+      style={{ width: size, height: size }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="-rotate-90 transform"
+      >
         {slices.map((slice, idx) => {
           const slicePercent = slice.value / total;
           const strokeDasharray = `${slicePercent * circumference} ${circumference}`;
@@ -172,17 +178,25 @@ export const AdminAnalytics: React.FC = () => {
   const [locationTab, setLocationTab] = useState<'State' | 'District' | 'City'>('State');
 
   // Subscriptions Dropdown filter
-  const [subscriptionFilter, setSubscriptionFilter] = useState<'By Subscriptions' | 'By Revenue'>('By Subscriptions');
-  const [revenuePeriodFilter, setRevenuePeriodFilter] = useState<'This Month' | 'Last 30 Days' | 'This Year'>('This Month');
+  const [subscriptionFilter, setSubscriptionFilter] = useState<'By Subscriptions' | 'By Revenue'>(
+    'By Subscriptions'
+  );
+  const [revenuePeriodFilter, setRevenuePeriodFilter] = useState<
+    'This Month' | 'Last 30 Days' | 'This Year'
+  >('This Month');
 
   // Topic Practice Pack Delivery state
   const [selectedTopicId, setSelectedTopicId] = useState('');
-  const [targetAudience, setTargetAudience] = useState<'struggling' | 'all' | 'active' | 'pro'>('struggling');
+  const [targetAudience, setTargetAudience] = useState<'struggling' | 'all' | 'active' | 'pro'>(
+    'struggling'
+  );
   const [isDispatching, setIsDispatching] = useState(false);
   const [dispatchNotice, setDispatchNotice] = useState<string | null>(null);
 
   // Modals for deep-dive inspections
-  const [viewAllModal, setViewAllModal] = useState<'subjects' | 'topics' | 'categories' | null>(null);
+  const [viewAllModal, setViewAllModal] = useState<'subjects' | 'topics' | 'categories' | null>(
+    null
+  );
   const [selectedWeakSubject, setSelectedWeakSubject] = useState<{
     id: string;
     name: string;
@@ -229,11 +243,14 @@ export const AdminAnalytics: React.FC = () => {
       await api.createNotification({
         title: `🎯 Practice Pack: ${topicName}`,
         message: `A focused practice pack for ${topicName} has been recommended to target your weak areas. Practice smart and boost your score!`,
-        targetAudience: targetAudience === 'pro' ? 'pro' : targetAudience === 'all' ? 'all' : 'free',
+        targetAudience:
+          targetAudience === 'pro' ? 'pro' : targetAudience === 'all' ? 'all' : 'free',
         channel: 'in_app',
         status: 'sent',
       });
-      setDispatchNotice(`Practice pack on "${topicName}" successfully dispatched to ${targetAudience} students!`);
+      setDispatchNotice(
+        `Practice pack on "${topicName}" successfully dispatched to ${targetAudience} students!`
+      );
     } catch {
       setDispatchNotice(`Practice pack on "${topicName}" dispatched to targeted students.`);
     } finally {
@@ -351,7 +368,9 @@ export const AdminAnalytics: React.FC = () => {
 
       const maleRaw = maleObj ? maleObj.studentCount : 0;
       const femaleRaw = femaleObj ? femaleObj.studentCount : 0;
-      const otherRaw = otherObj ? otherObj.studentCount : Math.max(0, validTotal - maleRaw - femaleRaw);
+      const otherRaw = otherObj
+        ? otherObj.studentCount
+        : Math.max(0, validTotal - maleRaw - femaleRaw);
 
       malePct = Math.round((maleRaw / validTotal) * 100);
       femalePct = Math.round((femaleRaw / validTotal) * 100);
@@ -410,7 +429,8 @@ export const AdminAnalytics: React.FC = () => {
           }
         }
         const points = trendPoints.length >= 2 ? trendPoints : [sub.accuracyRate, sub.accuracyRate];
-        const color = sub.accuracyRate < 50 ? '#EF4444' : sub.accuracyRate < 60 ? '#F59E0B' : '#10B981';
+        const color =
+          sub.accuracyRate < 50 ? '#EF4444' : sub.accuracyRate < 60 ? '#F59E0B' : '#10B981';
         return {
           rank: idx + 1,
           id: sub.subjectId,
@@ -423,11 +443,51 @@ export const AdminAnalytics: React.FC = () => {
       });
     }
     return [
-      { rank: 1, id: 'sub-1', name: 'সাধারণ বিজ্ঞান', accuracy: 40, students: 2842, points: [60, 52, 48, 44, 40], color: '#EF4444' },
-      { rank: 2, id: 'sub-2', name: 'ইতিহাস', accuracy: 52, students: 1986, points: [58, 55, 54, 50, 52], color: '#F97316' },
-      { rank: 3, id: 'sub-3', name: 'ভূগোল', accuracy: 56, students: 1654, points: [52, 54, 55, 58, 56], color: '#F59E0B' },
-      { rank: 4, id: 'sub-4', name: 'গণিত', accuracy: 61, students: 1402, points: [50, 53, 57, 59, 61], color: '#10B981' },
-      { rank: 5, id: 'sub-5', name: 'বাংলা ভাষা', accuracy: 64, students: 1236, points: [55, 58, 60, 62, 64], color: '#10B981' },
+      {
+        rank: 1,
+        id: 'sub-1',
+        name: 'সাধারণ বিজ্ঞান',
+        accuracy: 40,
+        students: 2842,
+        points: [60, 52, 48, 44, 40],
+        color: '#EF4444',
+      },
+      {
+        rank: 2,
+        id: 'sub-2',
+        name: 'ইতিহাস',
+        accuracy: 52,
+        students: 1986,
+        points: [58, 55, 54, 50, 52],
+        color: '#F97316',
+      },
+      {
+        rank: 3,
+        id: 'sub-3',
+        name: 'ভূগোল',
+        accuracy: 56,
+        students: 1654,
+        points: [52, 54, 55, 58, 56],
+        color: '#F59E0B',
+      },
+      {
+        rank: 4,
+        id: 'sub-4',
+        name: 'গণিত',
+        accuracy: 61,
+        students: 1402,
+        points: [50, 53, 57, 59, 61],
+        color: '#10B981',
+      },
+      {
+        rank: 5,
+        id: 'sub-5',
+        name: 'বাংলা ভাষা',
+        accuracy: 64,
+        students: 1236,
+        points: [55, 58, 60, 62, 64],
+        color: '#10B981',
+      },
     ];
   }, [data?.questionInsights?.weakestSubjects, data?.historicalSubjectTrends]);
 
@@ -450,11 +510,56 @@ export const AdminAnalytics: React.FC = () => {
       });
     }
     return [
-      { rank: 1, id: 'top-1', name: 'ভারতের সংবিধান', subjectName: 'রাষ্ট্রবিজ্ঞান', accuracy: 32, students: 1842, points: [50, 42, 38, 35, 32], color: '#EF4444' },
-      { rank: 2, id: 'top-2', name: 'মৌলিক অধিকার', subjectName: 'রাষ্ট্রবিজ্ঞান', accuracy: 38, students: 1521, points: [48, 44, 40, 39, 38], color: '#EF4444' },
-      { rank: 3, id: 'top-3', name: 'পরিবেশ ও প্রতিবেশ', subjectName: 'সাধারণ বিজ্ঞান', accuracy: 42, students: 1318, points: [52, 48, 45, 43, 42], color: '#F97316' },
-      { rank: 4, id: 'top-4', name: 'ভারতের ইতিহাস (মধ্যযুগ)', subjectName: 'ইতিহাস', accuracy: 45, students: 1206, points: [50, 48, 47, 46, 45], color: '#F59E0B' },
-      { rank: 5, id: 'top-5', name: 'জৈববৈচিত্র্য', subjectName: 'সাধারণ বিজ্ঞান', accuracy: 46, students: 1084, points: [52, 49, 48, 47, 46], color: '#F59E0B' },
+      {
+        rank: 1,
+        id: 'top-1',
+        name: 'ভারতের সংবিধান',
+        subjectName: 'রাষ্ট্রবিজ্ঞান',
+        accuracy: 32,
+        students: 1842,
+        points: [50, 42, 38, 35, 32],
+        color: '#EF4444',
+      },
+      {
+        rank: 2,
+        id: 'top-2',
+        name: 'মৌলিক অধিকার',
+        subjectName: 'রাষ্ট্রবিজ্ঞান',
+        accuracy: 38,
+        students: 1521,
+        points: [48, 44, 40, 39, 38],
+        color: '#EF4444',
+      },
+      {
+        rank: 3,
+        id: 'top-3',
+        name: 'পরিবেশ ও প্রতিবেশ',
+        subjectName: 'সাধারণ বিজ্ঞান',
+        accuracy: 42,
+        students: 1318,
+        points: [52, 48, 45, 43, 42],
+        color: '#F97316',
+      },
+      {
+        rank: 4,
+        id: 'top-4',
+        name: 'ভারতের ইতিহাস (মধ্যযুগ)',
+        subjectName: 'ইতিহাস',
+        accuracy: 45,
+        students: 1206,
+        points: [50, 48, 47, 46, 45],
+        color: '#F59E0B',
+      },
+      {
+        rank: 5,
+        id: 'top-5',
+        name: 'জৈববৈচিত্র্য',
+        subjectName: 'সাধারণ বিজ্ঞান',
+        accuracy: 46,
+        students: 1084,
+        points: [52, 49, 48, 47, 46],
+        color: '#F59E0B',
+      },
     ];
   }, [data?.questionInsights?.weakestTopics]);
 
@@ -481,7 +586,11 @@ export const AdminAnalytics: React.FC = () => {
       { rank: 4, id: 'cat-4', name: 'SSC (CGL/CHSL)', students: 1120, attempts: 5206 },
       { rank: 5, id: 'cat-5', name: 'Railway (NTPC/Group D)', students: 986, attempts: 4855 },
     ];
-  }, [examCategories, data?.studentPerformance?.testsAttempted, data?.studentPerformance?.totalStudents]);
+  }, [
+    examCategories,
+    data?.studentPerformance?.testsAttempted,
+    data?.studentPerformance?.totalStudents,
+  ]);
 
   // 4. Student Demographics Location Distribution
   const demographicsData = useMemo(() => {
@@ -494,7 +603,14 @@ export const AdminAnalytics: React.FC = () => {
         const list = top.map((d, idx) => ({
           name: d.district,
           pct: Math.max(1, Math.round((d.studentCount / total) * 100)),
-          color: idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-blue-400' : 'bg-slate-400',
+          color:
+            idx === 0
+              ? 'bg-blue-600'
+              : idx === 1
+                ? 'bg-blue-500'
+                : idx === 2
+                  ? 'bg-blue-400'
+                  : 'bg-slate-400',
         }));
         if (othersCount > 0) {
           list.push({
@@ -556,7 +672,8 @@ export const AdminAnalytics: React.FC = () => {
         label: t.label,
       }));
       const bluePoints = trend.map((_, idx) => {
-        const signups = revTrend[idx]?.signups || Math.round((trend[idx]?.attemptsCount || 0) * 0.4);
+        const signups =
+          revTrend[idx]?.signups || Math.round((trend[idx]?.attemptsCount || 0) * 0.4);
         return {
           x: 50 + (idx / (count - 1)) * 430,
           y: 145 - (signups / maxVal) * 115,
@@ -577,8 +694,10 @@ export const AdminAnalytics: React.FC = () => {
     return {
       labels: ['1 Sep', '5 Sep', '10 Sep', '15 Sep', '20 Sep', '25 Sep', '30 Sep'],
       maxVal: 2000,
-      greenPath: 'M 50 120 C 110 115, 150 95, 200 110 C 250 90, 310 95, 360 70 C 400 80, 440 60, 480 35',
-      bluePath: 'M 50 135 C 110 130, 150 125, 200 118 C 250 125, 310 100, 360 105 C 400 118, 440 85, 480 55',
+      greenPath:
+        'M 50 120 C 110 115, 150 95, 200 110 C 250 90, 310 95, 360 70 C 400 80, 440 60, 480 35',
+      bluePath:
+        'M 50 135 C 110 130, 150 125, 200 118 C 250 125, 310 100, 360 105 C 400 118, 440 85, 480 55',
       greenPoints: [
         { x: 50, y: 120, val: 500, label: '1 Sep' },
         { x: 120, y: 110, val: 650, label: '5 Sep' },
@@ -605,7 +724,14 @@ export const AdminAnalytics: React.FC = () => {
     if (subscriptionPlans.length > 0) {
       const activeSubCount = data?.revenue?.activeSubscriptions || 2022;
       const totalRev = data?.revenue?.totalRevenue ?? 48350;
-      const colors = ['bg-blue-600', 'bg-purple-500', 'bg-emerald-500', 'bg-amber-400', 'bg-sky-400', 'bg-slate-400'];
+      const colors = [
+        'bg-blue-600',
+        'bg-purple-500',
+        'bg-emerald-500',
+        'bg-amber-400',
+        'bg-sky-400',
+        'bg-slate-400',
+      ];
       return subscriptionPlans.slice(0, 6).map((plan, idx) => {
         const weight = Math.max(0.06, 0.48 - idx * 0.09);
         const count = Math.round(activeSubCount * weight);
@@ -620,14 +746,49 @@ export const AdminAnalytics: React.FC = () => {
       });
     }
     return [
-      { label: '6 Months Mock Test', count: subscriptionFilter === 'By Subscriptions' ? '1,024' : '₹25,142', heightPct: 100, color: 'bg-blue-600' },
-      { label: '3 Months Mock Test', count: subscriptionFilter === 'By Subscriptions' ? '412' : '₹10,004', heightPct: 42, color: 'bg-purple-500' },
-      { label: '1 Month Mock Test', count: subscriptionFilter === 'By Subscriptions' ? '268' : '₹6,770', heightPct: 28, color: 'bg-emerald-500' },
-      { label: 'PYQ Pack', count: subscriptionFilter === 'By Subscriptions' ? '156' : '₹3,868', heightPct: 18, color: 'bg-amber-400' },
-      { label: 'Subject Pack', count: subscriptionFilter === 'By Subscriptions' ? '98' : '₹1,934', heightPct: 12, color: 'bg-sky-400' },
-      { label: 'Free Plan', count: subscriptionFilter === 'By Subscriptions' ? '64' : '₹632', heightPct: 8, color: 'bg-slate-400' },
+      {
+        label: '6 Months Mock Test',
+        count: subscriptionFilter === 'By Subscriptions' ? '1,024' : '₹25,142',
+        heightPct: 100,
+        color: 'bg-blue-600',
+      },
+      {
+        label: '3 Months Mock Test',
+        count: subscriptionFilter === 'By Subscriptions' ? '412' : '₹10,004',
+        heightPct: 42,
+        color: 'bg-purple-500',
+      },
+      {
+        label: '1 Month Mock Test',
+        count: subscriptionFilter === 'By Subscriptions' ? '268' : '₹6,770',
+        heightPct: 28,
+        color: 'bg-emerald-500',
+      },
+      {
+        label: 'PYQ Pack',
+        count: subscriptionFilter === 'By Subscriptions' ? '156' : '₹3,868',
+        heightPct: 18,
+        color: 'bg-amber-400',
+      },
+      {
+        label: 'Subject Pack',
+        count: subscriptionFilter === 'By Subscriptions' ? '98' : '₹1,934',
+        heightPct: 12,
+        color: 'bg-sky-400',
+      },
+      {
+        label: 'Free Plan',
+        count: subscriptionFilter === 'By Subscriptions' ? '64' : '₹632',
+        heightPct: 8,
+        color: 'bg-slate-400',
+      },
     ];
-  }, [subscriptionPlans, subscriptionFilter, data?.revenue?.activeSubscriptions, data?.revenue?.totalRevenue]);
+  }, [
+    subscriptionPlans,
+    subscriptionFilter,
+    data?.revenue?.activeSubscriptions,
+    data?.revenue?.totalRevenue,
+  ]);
 
   // Filtered lists for deep-dive section
   const filteredStudentRankings = useMemo(() => {
@@ -740,7 +901,10 @@ export const AdminAnalytics: React.FC = () => {
         className="space-y-5"
       >
         {error && (
-          <div role="alert" className="rounded-2xl p-4 border border-rose-200 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between">
+          <div
+            role="alert"
+            className="rounded-2xl p-4 border border-rose-200 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between"
+          >
             <div>
               <span className="font-bold mr-1">Analytics unavailable:</span> {error}
             </div>
@@ -772,7 +936,9 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Total Students</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Total Students
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {totalStudentsCount.toLocaleString('en-IN')}
                   </p>
@@ -793,12 +959,15 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Active Students</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Active Students
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {activeStudentsCount.toLocaleString('en-IN')}
                   </p>
                   <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
-                    {Math.round((activeStudentsCount / Math.max(1, totalStudentsCount)) * 100)}% of total
+                    {Math.round((activeStudentsCount / Math.max(1, totalStudentsCount)) * 100)}% of
+                    total
                   </p>
                 </div>
               </div>
@@ -814,11 +983,15 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">New Students</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    New Students
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {newStudentsCount.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">this month</p>
+                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                    this month
+                  </p>
                 </div>
               </div>
 
@@ -833,11 +1006,15 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tests Attempted</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Tests Attempted
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {testsAttemptedCount.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">+11,764 this month</p>
+                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                    +11,764 this month
+                  </p>
                 </div>
               </div>
 
@@ -852,11 +1029,15 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Questions Answered</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Questions Answered
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {questionsAnsweredCount.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">+27,412 this month</p>
+                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                    +27,412 this month
+                  </p>
                 </div>
               </div>
 
@@ -871,11 +1052,15 @@ export const AdminAnalytics: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Overall Accuracy</p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Overall Accuracy
+                  </p>
                   <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
                     {overallAccuracyVal}%
                   </p>
-                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">+3% from last month</p>
+                  <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                    +3% from last month
+                  </p>
                 </div>
               </div>
             </div>
@@ -886,7 +1071,9 @@ export const AdminAnalytics: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Card 1: Student Gender Distribution */}
               <div className={`lg:col-span-4 ${card} flex flex-col justify-between`}>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Student Gender Distribution</h2>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Student Gender Distribution
+                </h2>
 
                 <div className="flex items-center justify-between gap-4 sm:gap-6 my-auto py-3">
                   {/* Left: Donut Chart */}
@@ -922,7 +1109,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 2: Student Growth (Dynamic Multi-curve SVG Chart) */}
               <div className={`lg:col-span-4 ${card} flex flex-col justify-between`}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Student Growth</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Student Growth
+                  </h2>
                   <div className="flex items-center gap-3 text-xs">
                     <span className="inline-flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
                       <span className="w-2 h-2 rounded-full bg-blue-600" /> New Students
@@ -939,16 +1128,39 @@ export const AdminAnalytics: React.FC = () => {
                     {/* Background Grid Lines & Y-axis Labels */}
                     {[
                       { y: 15, label: `${growthChartData.maxVal.toLocaleString('en-IN')}` },
-                      { y: 50, label: `${Math.round(growthChartData.maxVal * 0.75).toLocaleString('en-IN')}` },
-                      { y: 85, label: `${Math.round(growthChartData.maxVal * 0.5).toLocaleString('en-IN')}` },
-                      { y: 120, label: `${Math.round(growthChartData.maxVal * 0.25).toLocaleString('en-IN')}` },
+                      {
+                        y: 50,
+                        label: `${Math.round(growthChartData.maxVal * 0.75).toLocaleString('en-IN')}`,
+                      },
+                      {
+                        y: 85,
+                        label: `${Math.round(growthChartData.maxVal * 0.5).toLocaleString('en-IN')}`,
+                      },
+                      {
+                        y: 120,
+                        label: `${Math.round(growthChartData.maxVal * 0.25).toLocaleString('en-IN')}`,
+                      },
                       { y: 155, label: '0' },
                     ].map((g) => (
                       <g key={g.y}>
-                        <text x="0" y={g.y + 4} className="text-[10px] fill-slate-400" textAnchor="start">
+                        <text
+                          x="0"
+                          y={g.y + 4}
+                          className="text-[10px] fill-slate-400"
+                          textAnchor="start"
+                        >
                           {g.label}
                         </text>
-                        <line x1="38" y1={g.y} x2="495" y2={g.y} stroke="#E2E8F0" strokeDasharray="3 3" strokeWidth="1" className="dark:stroke-slate-800" />
+                        <line
+                          x1="38"
+                          y1={g.y}
+                          x2="495"
+                          y2={g.y}
+                          stroke="#E2E8F0"
+                          strokeDasharray="3 3"
+                          strokeWidth="1"
+                          className="dark:stroke-slate-800"
+                        />
                       </g>
                     ))}
 
@@ -1015,7 +1227,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 3: Student Demographics (Location) */}
               <div className={`lg:col-span-4 ${card} flex flex-col justify-between`}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Student Demographics (Location)</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Student Demographics (Location)
+                  </h2>
                   {/* Segmented Tab Pill */}
                   <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center text-[10px] font-semibold text-slate-600 dark:text-slate-300">
                     {(['State', 'District', 'City'] as const).map((tab) => (
@@ -1057,7 +1271,10 @@ export const AdminAnalytics: React.FC = () => {
                           {loc.pct}%
                         </span>
                         <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div className={`h-full ${loc.color} rounded-full`} style={{ width: `${loc.pct}%` }} />
+                          <div
+                            className={`h-full ${loc.color} rounded-full`}
+                            style={{ width: `${loc.pct}%` }}
+                          />
                         </div>
                       </div>
                     ))}
@@ -1075,7 +1292,10 @@ export const AdminAnalytics: React.FC = () => {
                         } districts`
                       : 'Kolkata & Purulia districts'}
                   </span>
-                  <a href="/admin/district-rankings" className="text-blue-600 hover:underline inline-flex items-center gap-0.5">
+                  <a
+                    href="/admin/district-rankings"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                  >
                     District Rankings <ChevronRight className="w-3 h-3" />
                   </a>
                 </div>
@@ -1089,7 +1309,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 1: Subscription Plan Overview (Bar Chart) */}
               <div className={`lg:col-span-7 ${card} flex flex-col justify-between`}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Subscription Plan Overview</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Subscription Plan Overview
+                  </h2>
                   <div className="relative">
                     <select
                       value={subscriptionFilter}
@@ -1106,7 +1328,10 @@ export const AdminAnalytics: React.FC = () => {
                 {/* Vertical Bar Chart */}
                 <div className="h-[210px] w-full pt-6 pb-2 px-2 flex items-end justify-between gap-3 sm:gap-6">
                   {subscriptionBars.map((bar) => (
-                    <div key={bar.label} className="flex-1 flex flex-col items-center h-full justify-end group">
+                    <div
+                      key={bar.label}
+                      className="flex-1 flex flex-col items-center h-full justify-end group"
+                    >
                       <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 mb-1">
                         {bar.count}
                       </span>
@@ -1124,7 +1349,9 @@ export const AdminAnalytics: React.FC = () => {
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 flex justify-between items-center">
-                  <span>Total Pro Subscriptions: {data?.revenue?.activeSubscriptions || 2022} active</span>
+                  <span>
+                    Total Pro Subscriptions: {data?.revenue?.activeSubscriptions || 2022} active
+                  </span>
                   <a href="/admin/subscriptions" className="text-blue-600 hover:underline">
                     Manage Plans →
                   </a>
@@ -1134,7 +1361,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 2: Subscription Revenue (Donut + Breakdown Table) */}
               <div className={`lg:col-span-5 ${card} flex flex-col justify-between`}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Subscription Revenue</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Subscription Revenue
+                  </h2>
                   <div className="relative">
                     <select
                       value={revenuePeriodFilter}
@@ -1169,9 +1398,24 @@ export const AdminAnalytics: React.FC = () => {
                   {/* Revenue Breakdown */}
                   <div className="flex-1 w-full space-y-1.5 text-xs">
                     {[
-                      { name: '6 Months Mock Test', pct: '52%', amount: '₹25,142', color: 'bg-blue-600' },
-                      { name: '3 Months Mock Test', pct: '21%', amount: '₹10,004', color: 'bg-purple-500' },
-                      { name: '1 Month Mock Test', pct: '14%', amount: '₹6,770', color: 'bg-emerald-500' },
+                      {
+                        name: '6 Months Mock Test',
+                        pct: '52%',
+                        amount: '₹25,142',
+                        color: 'bg-blue-600',
+                      },
+                      {
+                        name: '3 Months Mock Test',
+                        pct: '21%',
+                        amount: '₹10,004',
+                        color: 'bg-purple-500',
+                      },
+                      {
+                        name: '1 Month Mock Test',
+                        pct: '14%',
+                        amount: '₹6,770',
+                        color: 'bg-emerald-500',
+                      },
                       { name: 'PYQ Pack', pct: '8%', amount: '₹3,868', color: 'bg-amber-500' },
                       { name: 'Subject Pack', pct: '4%', amount: '₹1,934', color: 'bg-cyan-500' },
                       { name: 'Free Plan', pct: '1%', amount: '₹632', color: 'bg-slate-400' },
@@ -1182,7 +1426,9 @@ export const AdminAnalytics: React.FC = () => {
                           <span className="truncate max-w-[120px]">{row.name}</span>
                         </span>
                         <span className="text-slate-400 font-medium">{row.pct}</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{row.amount}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {row.amount}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1204,7 +1450,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 1: Weakest Subjects */}
               <div className={card}>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Weakest Subjects</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Weakest Subjects
+                  </h2>
                   <button
                     type="button"
                     onClick={() => setViewAllModal('subjects')}
@@ -1227,17 +1475,22 @@ export const AdminAnalytics: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {displayWeakestSubjects.slice(0, 5).map((sub) => (
-                        <tr key={sub.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                        <tr
+                          key={sub.name}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                        >
                           <td className="py-2.5 text-slate-400 font-semibold">{sub.rank}</td>
-                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{sub.name}</td>
+                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                            {sub.name}
+                          </td>
                           <td className="py-2.5 text-center">
                             <span
                               className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                                 sub.accuracy < 50
                                   ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/60 dark:text-rose-300'
                                   : sub.accuracy < 60
-                                  ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/60 dark:text-amber-300'
-                                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300'
                               }`}
                             >
                               {sub.accuracy}%
@@ -1259,7 +1512,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 2: Weakest Topics */}
               <div className={card}>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Weakest Topics</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Weakest Topics
+                  </h2>
                   <button
                     type="button"
                     onClick={() => setViewAllModal('topics')}
@@ -1282,9 +1537,15 @@ export const AdminAnalytics: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {displayWeakestTopics.slice(0, 5).map((top) => (
-                        <tr key={top.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                        <tr
+                          key={top.name}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                        >
                           <td className="py-2.5 text-slate-400 font-semibold">{top.rank}</td>
-                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100 truncate max-w-[130px]" title={top.name}>
+                          <td
+                            className="py-2.5 font-bold text-slate-800 dark:text-slate-100 truncate max-w-[130px]"
+                            title={top.name}
+                          >
                             {top.name}
                           </td>
                           <td className="py-2.5 text-center">
@@ -1293,8 +1554,8 @@ export const AdminAnalytics: React.FC = () => {
                                 top.accuracy < 40
                                   ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/60 dark:text-rose-300'
                                   : top.accuracy < 50
-                                  ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/60 dark:text-amber-300'
-                                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300'
                               }`}
                             >
                               {top.accuracy}%
@@ -1316,8 +1577,13 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 3: Subject-wise Weak Students */}
               <div className={card}>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Subject-wise Weak Students</h2>
-                  <a href="/admin/students" className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-0.5">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Subject-wise Weak Students
+                  </h2>
+                  <a
+                    href="/admin/students"
+                    className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                  >
                     View All <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </div>
@@ -1334,9 +1600,14 @@ export const AdminAnalytics: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {displayWeakestSubjects.slice(0, 5).map((sub) => (
-                        <tr key={sub.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                        <tr
+                          key={sub.name}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                        >
                           <td className="py-2.5 text-slate-400 font-semibold">{sub.rank}</td>
-                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{sub.name}</td>
+                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                            {sub.name}
+                          </td>
                           <td className="py-2.5 text-center font-bold text-slate-700 dark:text-slate-200">
                             {sub.students.toLocaleString('en-IN')}
                           </td>
@@ -1370,7 +1641,9 @@ export const AdminAnalytics: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Card 1: Test Type Usage */}
               <div className={`lg:col-span-4 ${card} flex flex-col justify-between`}>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Test Type Usage</h2>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Test Type Usage
+                </h2>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 py-2">
                   <DonutChart
@@ -1388,25 +1661,36 @@ export const AdminAnalytics: React.FC = () => {
 
                   <div className="flex-1 w-full space-y-1.5 text-xs">
                     {[
-                      { name: 'Full Mock Tests', pct: '42%', count: '20,206', color: 'bg-blue-600' },
+                      {
+                        name: 'Full Mock Tests',
+                        pct: '42%',
+                        count: '20,206',
+                        color: 'bg-blue-600',
+                      },
                       { name: 'Topic Tests', pct: '36%', count: '17,295', color: 'bg-purple-500' },
                       { name: 'Official PYQ', pct: '18%', count: '8,693', color: 'bg-amber-500' },
                       { name: 'Other Tests', pct: '4%', count: '2,126', color: 'bg-cyan-500' },
                     ].map((item) => (
-                      <div key={item.name} className="flex items-center justify-between text-[11px]">
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between text-[11px]"
+                      >
                         <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
                           <span className={`w-2 h-2 rounded-full ${item.color}`} />
                           <span className="truncate max-w-[110px]">{item.name}</span>
                         </span>
                         <span className="text-slate-400 font-medium">{item.pct}</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{item.count}</span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {item.count}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
-                  Total Tests in catalog: {testsAttemptedCount.toLocaleString('en-IN')} attempts logged
+                  Total Tests in catalog: {testsAttemptedCount.toLocaleString('en-IN')} attempts
+                  logged
                 </div>
               </div>
 
@@ -1430,7 +1714,12 @@ export const AdminAnalytics: React.FC = () => {
 
                   <div className="flex-1 w-full space-y-1.5 text-xs">
                     {[
-                      { name: 'Mobile (Android)', pct: '72%', count: '5,642', color: 'bg-blue-600' },
+                      {
+                        name: 'Mobile (Android)',
+                        pct: '72%',
+                        count: '5,642',
+                        color: 'bg-blue-600',
+                      },
                       { name: 'Mobile (iOS)', pct: '14%', count: '1,102', color: 'bg-purple-500' },
                       { name: 'Desktop (Windows)', pct: '9%', count: '721', color: 'bg-amber-500' },
                       { name: 'Desktop (Mac)', pct: '5%', count: '377', color: 'bg-slate-600' },
@@ -1455,7 +1744,9 @@ export const AdminAnalytics: React.FC = () => {
               {/* Card 3: Top Exam Categories by Usage */}
               <div className={`lg:col-span-4 ${card} flex flex-col justify-between`}>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Top Exam Categories by Usage</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Top Exam Categories by Usage
+                  </h2>
                   <button
                     type="button"
                     onClick={() => setViewAllModal('categories')}
@@ -1477,9 +1768,14 @@ export const AdminAnalytics: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {displayExamCategories.map((cat) => (
-                        <tr key={cat.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                        <tr
+                          key={cat.name}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                        >
                           <td className="py-2.5 text-slate-400 font-semibold">{cat.rank}</td>
-                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{cat.name}</td>
+                          <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                            {cat.name}
+                          </td>
                           <td className="py-2.5 text-center text-slate-600 dark:text-slate-300 font-medium">
                             {cat.students.toLocaleString('en-IN')}
                           </td>
@@ -1493,7 +1789,8 @@ export const AdminAnalytics: React.FC = () => {
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
-                  Leader: {displayExamCategories[0]?.name || 'West Bengal Police'} recruitment mock exams
+                  Leader: {displayExamCategories[0]?.name || 'West Bengal Police'} recruitment mock
+                  exams
                 </div>
               </div>
             </div>
@@ -1504,7 +1801,9 @@ export const AdminAnalytics: React.FC = () => {
             <section className={card}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Topic Practice Pack Delivery</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Topic Practice Pack Delivery
+                  </h2>
                   <span className="text-[10px] bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-100 dark:border-blue-900">
                     Targeting &amp; Delivery Workflow
                   </span>
@@ -1514,7 +1813,8 @@ export const AdminAnalytics: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Curate and dispatch targeted revision practice packs directly to students struggling in specific topics.
+                Curate and dispatch targeted revision practice packs directly to students struggling
+                in specific topics.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1572,7 +1872,9 @@ export const AdminAnalytics: React.FC = () => {
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                 <span className="text-[11px] text-slate-400">
-                  {selectedTopicId ? 'Topic selected. Ready to dispatch.' : 'Select a topic to enable delivery.'}
+                  {selectedTopicId
+                    ? 'Topic selected. Ready to dispatch.'
+                    : 'Select a topic to enable delivery.'}
                 </span>
                 <button
                   type="button"
@@ -1591,9 +1893,12 @@ export const AdminAnalytics: React.FC = () => {
             <section className={card}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">Detailed Performance Inspector</h2>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Detailed Performance Inspector
+                  </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Deep dive into student leaderboard standings and the hardest questions across mock series.
+                    Deep dive into student leaderboard standings and the hardest questions across
+                    mock series.
                   </p>
                 </div>
 
@@ -1668,7 +1973,10 @@ export const AdminAnalytics: React.FC = () => {
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredStudentRankings.length > 0 ? (
                           filteredStudentRankings.slice(0, 15).map((student) => (
-                            <tr key={student.userId} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                            <tr
+                              key={student.userId}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                            >
                               <td className="py-2.5 px-3 text-center font-bold text-slate-400">
                                 {student.rank <= 3 ? (
                                   <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px]">
@@ -1680,7 +1988,9 @@ export const AdminAnalytics: React.FC = () => {
                               </td>
                               <td className="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">
                                 <div>{student.name}</div>
-                                <div className="text-[10px] text-slate-400 font-normal">{student.email}</div>
+                                <div className="text-[10px] text-slate-400 font-normal">
+                                  {student.email}
+                                </div>
                               </td>
                               <td className="py-2.5 px-3">
                                 {student.isPro ? (
@@ -1702,8 +2012,8 @@ export const AdminAnalytics: React.FC = () => {
                                     student.accuracy < 50
                                       ? 'bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-300'
                                       : student.accuracy < 70
-                                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
-                                      : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
+                                        ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
+                                        : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
                                   }`}
                                 >
                                   {student.accuracy}%
@@ -1713,7 +2023,9 @@ export const AdminAnalytics: React.FC = () => {
                                 {student.totalScore}
                               </td>
                               <td className="py-2.5 px-3 text-right text-[11px] text-slate-400">
-                                {student.lastActive ? getKolkataDateString(new Date(student.lastActive)) : 'N/A'}
+                                {student.lastActive
+                                  ? getKolkataDateString(new Date(student.lastActive))
+                                  : 'N/A'}
                               </td>
                             </tr>
                           ))
@@ -1765,14 +2077,21 @@ export const AdminAnalytics: React.FC = () => {
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {filteredWrongQuestions.length > 0 ? (
                           filteredWrongQuestions.slice(0, 15).map((q, idx) => (
-                            <tr key={q.questionId} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
-                              <td className="py-2.5 px-3 text-center text-slate-400 font-bold">{idx + 1}</td>
+                            <tr
+                              key={q.questionId}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                            >
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-bold">
+                                {idx + 1}
+                              </td>
                               <td className="py-2.5 px-3 max-w-xs sm:max-w-md">
                                 <p className="font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
                                   {q.questionBengaliText || q.questionText}
                                 </p>
                                 {q.questionBengaliText && q.questionText && (
-                                  <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{q.questionText}</p>
+                                  <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                                    {q.questionText}
+                                  </p>
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
@@ -1821,8 +2140,12 @@ export const AdminAnalytics: React.FC = () => {
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">All Weakest Subjects</h3>
-                      <p className="text-[11px] text-slate-500">Overview of student accuracy across all tested subjects.</p>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        All Weakest Subjects
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Overview of student accuracy across all tested subjects.
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -1845,17 +2168,22 @@ export const AdminAnalytics: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {displayWeakestSubjects.map((sub) => (
-                          <tr key={sub.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                          <tr
+                            key={sub.id}
+                            className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                          >
                             <td className="py-2.5 text-slate-400 font-semibold">{sub.rank}</td>
-                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{sub.name}</td>
+                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                              {sub.name}
+                            </td>
                             <td className="py-2.5 text-center">
                               <span
                                 className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                                   sub.accuracy < 50
                                     ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300'
                                     : sub.accuracy < 60
-                                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
-                                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
+                                      : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
                                 }`}
                               >
                                 {sub.accuracy}%
@@ -1887,7 +2215,10 @@ export const AdminAnalytics: React.FC = () => {
                     </table>
                   </div>
                   <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
-                    <a href="/admin/subjects" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold">
+                    <a
+                      href="/admin/subjects"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                    >
                       Manage Subjects in Catalog <ExternalLink className="w-3 h-3" />
                     </a>
                     <button
@@ -1908,8 +2239,12 @@ export const AdminAnalytics: React.FC = () => {
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">All Weakest Chapters &amp; Topics</h3>
-                      <p className="text-[11px] text-slate-500">Low-scoring topics requiring revision practice packs.</p>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        All Weakest Chapters &amp; Topics
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Low-scoring topics requiring revision practice packs.
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -1933,18 +2268,25 @@ export const AdminAnalytics: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {displayWeakestTopics.map((top) => (
-                          <tr key={top.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                          <tr
+                            key={top.id}
+                            className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                          >
                             <td className="py-2.5 text-slate-400 font-semibold">{top.rank}</td>
-                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{top.name}</td>
-                            <td className="py-2.5 text-slate-500 dark:text-slate-400">{top.subjectName}</td>
+                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                              {top.name}
+                            </td>
+                            <td className="py-2.5 text-slate-500 dark:text-slate-400">
+                              {top.subjectName}
+                            </td>
                             <td className="py-2.5 text-center">
                               <span
                                 className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                                   top.accuracy < 40
                                     ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300'
                                     : top.accuracy < 50
-                                    ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
-                                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
+                                      : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300'
                                 }`}
                               >
                                 {top.accuracy}%
@@ -1971,7 +2313,10 @@ export const AdminAnalytics: React.FC = () => {
                     </table>
                   </div>
                   <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
-                    <a href="/admin/topics" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold">
+                    <a
+                      href="/admin/topics"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                    >
                       Manage Topics in Catalog <ExternalLink className="w-3 h-3" />
                     </a>
                     <button
@@ -1992,8 +2337,12 @@ export const AdminAnalytics: React.FC = () => {
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">All Exam Categories by Usage</h3>
-                      <p className="text-[11px] text-slate-500">Student uptake and test volumes across examination categories.</p>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        All Exam Categories by Usage
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Student uptake and test volumes across examination categories.
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -2015,9 +2364,14 @@ export const AdminAnalytics: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {displayExamCategories.map((cat) => (
-                          <tr key={cat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                          <tr
+                            key={cat.id}
+                            className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                          >
                             <td className="py-2.5 text-slate-400 font-semibold">{cat.rank}</td>
-                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{cat.name}</td>
+                            <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
+                              {cat.name}
+                            </td>
                             <td className="py-2.5 text-center text-slate-600 dark:text-slate-300 font-medium">
                               {cat.students.toLocaleString('en-IN')}
                             </td>
@@ -2030,7 +2384,10 @@ export const AdminAnalytics: React.FC = () => {
                     </table>
                   </div>
                   <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
-                    <a href="/admin/exam-categories" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold">
+                    <a
+                      href="/admin/exam-categories"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                    >
                       Manage Exam Categories <ExternalLink className="w-3 h-3" />
                     </a>
                     <button
@@ -2086,11 +2443,16 @@ export const AdminAnalytics: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {data.studentRankings.slice(0, 10).map((st) => (
-                            <tr key={st.userId} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50">
+                            <tr
+                              key={st.userId}
+                              className="hover:bg-slate-50/50 dark:hover:bg-slate-850/50"
+                            >
                               <td className="py-2.5 text-slate-400 font-semibold">#{st.rank}</td>
                               <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">
                                 <div>{st.name}</div>
-                                <div className="text-[10px] text-slate-400 font-normal">{st.email}</div>
+                                <div className="text-[10px] text-slate-400 font-normal">
+                                  {st.email}
+                                </div>
                               </td>
                               <td className="py-2.5 text-center text-slate-600 dark:text-slate-300 font-medium">
                                 {st.questionsAttempted}
@@ -2104,7 +2466,10 @@ export const AdminAnalytics: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const match = displayWeakestTopics.find((t) => t.subjectName === selectedWeakSubject.name) || displayWeakestTopics[0];
+                                    const match =
+                                      displayWeakestTopics.find(
+                                        (t) => t.subjectName === selectedWeakSubject.name
+                                      ) || displayWeakestTopics[0];
                                     if (match) setSelectedTopicId(match.id);
                                     setSelectedWeakSubject(null);
                                   }}
@@ -2119,14 +2484,16 @@ export const AdminAnalytics: React.FC = () => {
                       </table>
                     ) : (
                       <div className="py-12 text-center text-xs text-slate-400">
-                        No individual student attempts recorded in {selectedWeakSubject.name} for this period.
+                        No individual student attempts recorded in {selectedWeakSubject.name} for
+                        this period.
                       </div>
                     )}
                   </div>
 
                   <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
                     <span className="text-slate-400">
-                      Total struggling attempts in subject: {selectedWeakSubject.students.toLocaleString('en-IN')}
+                      Total struggling attempts in subject:{' '}
+                      {selectedWeakSubject.students.toLocaleString('en-IN')}
                     </span>
                     <button
                       type="button"

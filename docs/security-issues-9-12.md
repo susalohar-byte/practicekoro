@@ -2,12 +2,12 @@
 
 ## Status
 
-| Issue | Implemented | Production status |
-| --- | --- | --- |
-| 9: image upload validation | Raster-only bucket MIME settings and size limits; authenticated, rate-limited server decoding/re-encoding; frontend upload helpers use the validated endpoint without alternate-bucket/data-URL fallback. | Bucket settings and `upload-raster-image` version 1 are live. **Not fully closed:** frontend hosting deployment and the staged direct-write denial policy are still required. |
-| 10: browser hardening | Enforcing CSP, externalized theme initialization, safe prerendered JSON-LD serialization, and initial one-day HSTS. | Built and locally tested, **not deployed to hosting**. Existing live headers remain unchanged. |
-| 11: mutable function search paths | Fixed paths on all six reported functions; original bodies and execution permissions preserved. | **Applied and verified in production.** Mutable-path warnings cleared; unrelated advisories are not claimed resolved. |
-| 12: leaked-password protection | Entitlement checked; no paid upgrade or substitute password checker added. | **Blocked:** organization is on the Free plan; Supabase requires Pro or above. |
+| Issue                             | Implemented                                                                                                                                                                                               | Production status                                                                                                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 9: image upload validation        | Raster-only bucket MIME settings and size limits; authenticated, rate-limited server decoding/re-encoding; frontend upload helpers use the validated endpoint without alternate-bucket/data-URL fallback. | Bucket settings and `upload-raster-image` version 1 are live. **Not fully closed:** frontend hosting deployment and the staged direct-write denial policy are still required. |
+| 10: browser hardening             | Enforcing CSP, externalized theme initialization, safe prerendered JSON-LD serialization, and initial one-day HSTS.                                                                                       | Built and locally tested, **not deployed to hosting**. Existing live headers remain unchanged.                                                                                |
+| 11: mutable function search paths | Fixed paths on all six reported functions; original bodies and execution permissions preserved.                                                                                                           | **Applied and verified in production.** Mutable-path warnings cleared; unrelated advisories are not claimed resolved.                                                         |
+| 12: leaked-password protection    | Entitlement checked; no paid upgrade or substitute password checker added.                                                                                                                                | **Blocked:** organization is on the Free plan; Supabase requires Pro or above.                                                                                                |
 
 Reference: https://supabase.com/docs/guides/auth/password-security
 

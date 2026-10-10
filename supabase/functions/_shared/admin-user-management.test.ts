@@ -47,21 +47,30 @@ function makeClient(reads: any[] = [actor, student]) {
 describe('server-only management authorization and persistence', () => {
   it('cleans up an invited Auth account even when the profile save throws', async () => {
     const { client } = makeClient([actor, null]);
-    client.from.mockImplementationOnce(() => {
-      const q: any = {};
-      q.select = () => q; q.eq = () => q;
-      q.maybeSingle = async () => ({ data: actor, error: null });
-      return q;
-    }).mockImplementationOnce(() => {
-      const q: any = {};
-      q.select = () => q; q.eq = () => q;
-      q.maybeSingle = async () => ({ data: null, error: null });
-      return q;
-    }).mockImplementationOnce(() => ({
-      upsert: async () => { throw new Error('Network failed'); },
-    }));
+    client.from
+      .mockImplementationOnce(() => {
+        const q: any = {};
+        q.select = () => q;
+        q.eq = () => q;
+        q.maybeSingle = async () => ({ data: actor, error: null });
+        return q;
+      })
+      .mockImplementationOnce(() => {
+        const q: any = {};
+        q.select = () => q;
+        q.eq = () => q;
+        q.maybeSingle = async () => ({ data: null, error: null });
+        return q;
+      })
+      .mockImplementationOnce(() => ({
+        upsert: async () => {
+          throw new Error('Network failed');
+        },
+      }));
     const result = await manageUsers(client, 'admin', {
-      action: 'create_student', fullName: 'Learner', email: 'learner@example.com',
+      action: 'create_student',
+      fullName: 'Learner',
+      email: 'learner@example.com',
     });
     expect(result).toMatchObject({ success: false, error: 'Network failed' });
     expect(client.auth.admin.deleteUser).toHaveBeenCalledWith('new-user-id');

@@ -15,9 +15,9 @@ export function isSupabaseEnvValid(env: {
   const key = (env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY)?.trim();
   return Boolean(
     url &&
-      key &&
-      url.startsWith('http') &&
-      !url.includes('your-project-ref') &&
-      !url.includes('placeholder')
+    key &&
+    url.startsWith('http') &&
+    !url.includes('your-project-ref') &&
+    !url.includes('placeholder')
   );
 }

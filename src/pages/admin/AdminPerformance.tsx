@@ -794,8 +794,8 @@ export const AdminPerformance: React.FC = () => {
                             ex.avgScore >= 70
                               ? 'bg-[#DCFCE7] text-[#16A34A]'
                               : ex.avgScore >= 60
-                              ? 'bg-[#FEF3C7] text-[#D97706]'
-                              : 'bg-[#FFEDD5] text-[#EA580C]'
+                                ? 'bg-[#FEF3C7] text-[#D97706]'
+                                : 'bg-[#FFEDD5] text-[#EA580C]'
                           )}
                         >
                           {ex.avgScore}%

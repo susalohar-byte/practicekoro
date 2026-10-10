@@ -30,7 +30,9 @@ export function getAdminSubscriptionDisplay(
   if (!Number.isFinite(expiry)) return {};
   return {
     validTill: new Date(expiry).toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
     }),
     daysRemaining: Math.max(0, Math.ceil((expiry - now) / 86400000)),
     active: payment.subscriptionStatus
@@ -42,7 +44,9 @@ export function getAdminSubscriptionDisplay(
 export function formatRecordedAmount(amount?: number, currency = 'INR'): string {
   if (amount == null || !Number.isFinite(amount)) return 'Unavailable';
   return new Intl.NumberFormat('en-IN', {
-    style: 'currency', currency, maximumFractionDigits: 2,
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -51,9 +55,15 @@ export function getRecordedSubscriptionRevenue(
 ): number {
   const counted = new Set<string>();
   return rows.reduce((total, row) => {
-    if (!row.paymentId || counted.has(row.paymentId) ||
-        row.paymentStatus !== 'completed' || row.amount == null ||
-        !Number.isFinite(row.amount) || row.amount < 0) return total;
+    if (
+      !row.paymentId ||
+      counted.has(row.paymentId) ||
+      row.paymentStatus !== 'completed' ||
+      row.amount == null ||
+      !Number.isFinite(row.amount) ||
+      row.amount < 0
+    )
+      return total;
     counted.add(row.paymentId);
     return total + row.amount;
   }, 0);

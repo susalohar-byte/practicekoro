@@ -67,7 +67,8 @@ export const MandatoryDistrictModal: React.FC = () => {
           Select Your District
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
-          Please select your West Bengal district to unlock District-wise Rank and compare with fellow aspirants in your area.
+          Please select your West Bengal district to unlock District-wise Rank and compare with
+          fellow aspirants in your area.
         </p>
 
         {error && (

@@ -1212,7 +1212,8 @@ export const AdminSubscriptions: React.FC = () => {
                                   row.avatarTextColor || 'text-blue-600'
                                 )}
                                 style={{
-                                  display: row.avatarType === 'photo' && row.avatarSrc ? 'none' : 'flex',
+                                  display:
+                                    row.avatarType === 'photo' && row.avatarSrc ? 'none' : 'flex',
                                 }}
                               >
                                 {row.avatarInitials}

@@ -1378,288 +1378,288 @@ export const AdminTopics: React.FC = () => {
                     </tr>
                   ) : (
                     subjectGroups.map((group) => {
-                    const isCollapsed = collapsedGroups[group.name];
-                    const groupIcon =
-                      group.iconName === 'FlaskConical' ? (
-                        <FlaskConical className="w-4 h-4 text-[#8B5CF6]" />
-                      ) : group.iconName === 'Brain' ? (
-                        <Brain className="w-4 h-4 text-[#EF4444]" />
-                      ) : (
-                        <Building2 className="w-4 h-4 text-[#026BFC]" />
-                      );
+                      const isCollapsed = collapsedGroups[group.name];
+                      const groupIcon =
+                        group.iconName === 'FlaskConical' ? (
+                          <FlaskConical className="w-4 h-4 text-[#8B5CF6]" />
+                        ) : group.iconName === 'Brain' ? (
+                          <Brain className="w-4 h-4 text-[#EF4444]" />
+                        ) : (
+                          <Building2 className="w-4 h-4 text-[#026BFC]" />
+                        );
 
-                    return (
-                      <React.Fragment key={group.id}>
-                        {/* Collapsible Subject Header Row */}
-                        <tr
-                          onClick={() => toggleGroupCollapse(group.name)}
-                          className="bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-100/70 dark:hover:bg-slate-900/80 transition-colors cursor-pointer select-none"
-                        >
-                          <td
-                            className="py-3 px-3 text-center"
-                            onClick={(e) => e.stopPropagation()}
+                      return (
+                        <React.Fragment key={group.id}>
+                          {/* Collapsible Subject Header Row */}
+                          <tr
+                            onClick={() => toggleGroupCollapse(group.name)}
+                            className="bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-100/70 dark:hover:bg-slate-900/80 transition-colors cursor-pointer select-none"
                           >
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                const ids = group.topics.map((t) => t.id);
-                                setSelectedTopicIds((prev) => {
-                                  const next = new Set(prev);
-                                  if (e.target.checked) {
-                                    ids.forEach((id) => next.add(id));
-                                  } else {
-                                    ids.forEach((id) => next.delete(id));
-                                  }
-                                  return next;
-                                });
-                              }}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
-                            />
-                          </td>
-                          <td colSpan={7} className="py-3 px-2">
-                            <div className="flex items-center gap-2.5">
-                              <div
-                                className={cn(
-                                  'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
-                                  group.colorScheme === 'purple'
-                                    ? 'bg-[#F6EEFD] text-[#8B5CF6]'
-                                    : group.colorScheme === 'red'
-                                      ? 'bg-[#FEECEC] text-[#EF4444]'
-                                      : 'bg-[#EBF3FF] text-[#026BFC]'
-                                )}
-                              >
-                                {groupIcon}
+                            <td
+                              className="py-3 px-3 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                onChange={(e) => {
+                                  const ids = group.topics.map((t) => t.id);
+                                  setSelectedTopicIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) {
+                                      ids.forEach((id) => next.add(id));
+                                    } else {
+                                      ids.forEach((id) => next.delete(id));
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                              />
+                            </td>
+                            <td colSpan={7} className="py-3 px-2">
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className={cn(
+                                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
+                                    group.colorScheme === 'purple'
+                                      ? 'bg-[#F6EEFD] text-[#8B5CF6]'
+                                      : group.colorScheme === 'red'
+                                        ? 'bg-[#FEECEC] text-[#EF4444]'
+                                        : 'bg-[#EBF3FF] text-[#026BFC]'
+                                  )}
+                                >
+                                  {groupIcon}
+                                </div>
+                                <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                  {group.name}
+                                </span>
+                                <span className="text-slate-400 font-normal text-xs">
+                                  ({group.topicsCount} Topics)
+                                </span>
                               </div>
-                              <span className="font-bold text-slate-900 dark:text-white text-xs">
-                                {group.name}
-                              </span>
-                              <span className="text-slate-400 font-normal text-xs">
-                                ({group.topicsCount} Topics)
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2.5 text-center text-slate-400">
-                            {isCollapsed ? (
-                              <ChevronDown className="w-4 h-4 mx-auto text-slate-400" />
-                            ) : (
-                              <ChevronUp className="w-4 h-4 mx-auto text-slate-400" />
-                            )}
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="py-3 px-2.5 text-center text-slate-400">
+                              {isCollapsed ? (
+                                <ChevronDown className="w-4 h-4 mx-auto text-slate-400" />
+                              ) : (
+                                <ChevronUp className="w-4 h-4 mx-auto text-slate-400" />
+                              )}
+                            </td>
+                          </tr>
 
-                        {/* Topics under this subject */}
-                        {!isCollapsed &&
-                          group.topics.map((topic, tIdx) => {
-                            const isSelected = Boolean(
-                              showDetailsPanel && selectedTopic?.id === topic.id
-                            );
-                            const isChecked = selectedTopicIds.has(topic.id);
-                            const isPublished = topic.statusLabel === 'Published';
+                          {/* Topics under this subject */}
+                          {!isCollapsed &&
+                            group.topics.map((topic, tIdx) => {
+                              const isSelected = Boolean(
+                                showDetailsPanel && selectedTopic?.id === topic.id
+                              );
+                              const isChecked = selectedTopicIds.has(topic.id);
+                              const isPublished = topic.statusLabel === 'Published';
                               const rowNumber =
                                 topicRowNumberMap.get(topic.id) ?? startIndex + tIdx + 1;
 
-                            return (
-                              <tr
-                                key={topic.id}
-                                onClick={() => handleSelectTopicRow(topic)}
-                                className={cn(
-                                  'transition-colors cursor-pointer group',
-                                  isSelected
-                                    ? 'bg-blue-50/40 dark:bg-blue-950/20 outline outline-1 outline-[#026BFC] -outline-offset-1'
-                                    : 'hover:bg-slate-50/60 dark:hover:bg-slate-900/40'
-                                )}
-                              >
-                                {/* Checkbox */}
-                                <td
-                                  className="py-3.5 px-3 text-center"
-                                  onClick={(evt) => evt.stopPropagation()}
+                              return (
+                                <tr
+                                  key={topic.id}
+                                  onClick={() => handleSelectTopicRow(topic)}
+                                  className={cn(
+                                    'transition-colors cursor-pointer group',
+                                    isSelected
+                                      ? 'bg-blue-50/40 dark:bg-blue-950/20 outline outline-1 outline-[#026BFC] -outline-offset-1'
+                                      : 'hover:bg-slate-50/60 dark:hover:bg-slate-900/40'
+                                  )}
                                 >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={(evt) =>
+                                  {/* Checkbox */}
+                                  <td
+                                    className="py-3.5 px-3 text-center"
+                                    onClick={(evt) => evt.stopPropagation()}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(evt) =>
                                         toggleSelectRow(
                                           topic.id,
                                           evt as unknown as React.MouseEvent
                                         )
-                                    }
-                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
-                                  />
-                                </td>
-
-                                {/* Row Index */}
-                                <td
-                                  className={cn(
-                                    'py-3.5 px-2 text-center font-medium',
-                                    isSelected ? 'text-[#026BFC] font-bold' : 'text-slate-400'
-                                  )}
-                                >
-                                  {rowNumber}
-                                </td>
-
-                                {/* Topic Name: Icon + Name */}
-                                <td className="py-3.5 px-3 min-w-[200px]">
-                                  <div className="flex items-center gap-3">
-                                    <TopicIconBadge
-                                      name={topic.name}
-                                      iconName={topic.iconName}
-                                      className="w-8 h-8 shrink-0"
+                                      }
+                                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
                                     />
-                                    <span className="font-bold text-slate-900 dark:text-white block leading-snug">
-                                      {topic.name}
-                                    </span>
-                                  </div>
-                                </td>
+                                  </td>
 
-                                {/* Subject Name */}
-                                <td className="py-3.5 px-2.5 text-slate-500 dark:text-slate-400">
-                                  {topic.subjectName}
-                                </td>
-
-                                {/* Total Tests */}
-                                <td className="py-3.5 px-2 text-center text-slate-700 dark:text-slate-300 font-medium">
-                                  {topic.totalTests}
-                                </td>
-
-                                {/* Total Questions */}
-                                <td className="py-3.5 px-2 text-center text-slate-700 dark:text-slate-300 font-medium">
-                                  {topic.totalQuestions}
-                                </td>
-
-                                {/* Status Badge */}
-                                <td className="py-3.5 px-2.5 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleTopicStatus(topic);
-                                    }}
-                                    title={`Click to switch to ${isPublished ? 'Draft' : 'Published'}`}
+                                  {/* Row Index */}
+                                  <td
                                     className={cn(
-                                      'px-2.5 py-0.5 rounded-full text-xs font-medium inline-block cursor-pointer transition-all hover:scale-105 active:scale-95',
-                                      isPublished
-                                        ? 'bg-[#E8F8F0] text-[#10B981] dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-[#d5f5e3]'
-                                        : 'bg-[#FEF8E7] text-[#D97706] dark:bg-amber-950/60 dark:text-amber-300 hover:bg-[#fef0cd]'
+                                      'py-3.5 px-2 text-center font-medium',
+                                      isSelected ? 'text-[#026BFC] font-bold' : 'text-slate-400'
                                     )}
                                   >
-                                    {topic.statusLabel}
-                                  </button>
-                                </td>
+                                    {rowNumber}
+                                  </td>
 
-                                {/* Order Index */}
-                                <td className="py-3.5 px-2 text-center text-slate-500 font-medium">
-                                  {topic.orderIndex}
-                                </td>
-
-                                {/* Actions Menu */}
-                                <td
-                                  className="py-3.5 px-2.5 text-center relative"
-                                  onClick={(evt) => evt.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setOpenActionMenuId(
-                                        openActionMenuId === topic.id ? null : topic.id
-                                      )
-                                    }
-                                    className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                  >
-                                    <MoreHorizontal className="w-4 h-4 text-slate-500" />
-                                  </button>
-
-                                  {openActionMenuId === topic.id && (
-                                    <>
-                                      <div
-                                        className="fixed inset-0 z-30"
-                                        onClick={() => setOpenActionMenuId(null)}
+                                  {/* Topic Name: Icon + Name */}
+                                  <td className="py-3.5 px-3 min-w-[200px]">
+                                    <div className="flex items-center gap-3">
+                                      <TopicIconBadge
+                                        name={topic.name}
+                                        iconName={topic.iconName}
+                                        className="w-8 h-8 shrink-0"
                                       />
-                                      <div className="absolute right-0 mt-1 w-48 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 shadow-xl z-40 py-1 text-xs">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionMenuId(null);
-                                            handleSelectTopicRow(topic);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                        >
-                                          <FileText className="w-3.5 h-3.5 text-blue-500" />
-                                          View Details
-                                        </button>
+                                      <span className="font-bold text-slate-900 dark:text-white block leading-snug">
+                                        {topic.name}
+                                      </span>
+                                    </div>
+                                  </td>
 
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionMenuId(null);
-                                            handleToggleTopicStatus(topic);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                        >
-                                          {isPublished ? (
-                                            <>
-                                              <EyeOff className="w-3.5 h-3.5 text-amber-500" />
-                                              Unpublish (Set to Draft)
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                                              Publish Topic
-                                            </>
-                                          )}
-                                        </button>
+                                  {/* Subject Name */}
+                                  <td className="py-3.5 px-2.5 text-slate-500 dark:text-slate-400">
+                                    {topic.subjectName}
+                                  </td>
 
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionMenuId(null);
-                                            handleOpenEditModal(topic);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                        >
-                                          <Edit2 className="w-3.5 h-3.5 text-amber-500" />
-                                          Edit Topic
-                                        </button>
+                                  {/* Total Tests */}
+                                  <td className="py-3.5 px-2 text-center text-slate-700 dark:text-slate-300 font-medium">
+                                    {topic.totalTests}
+                                  </td>
 
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionMenuId(null);
-                                            handleDuplicateTopic(topic);
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                        >
-                                          <Copy className="w-3.5 h-3.5 text-indigo-500" />
-                                          Duplicate Topic
-                                        </button>
+                                  {/* Total Questions */}
+                                  <td className="py-3.5 px-2 text-center text-slate-700 dark:text-slate-300 font-medium">
+                                    {topic.totalQuestions}
+                                  </td>
 
-                                        <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                                  {/* Status Badge */}
+                                  <td className="py-3.5 px-2.5 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleTopicStatus(topic);
+                                      }}
+                                      title={`Click to switch to ${isPublished ? 'Draft' : 'Published'}`}
+                                      className={cn(
+                                        'px-2.5 py-0.5 rounded-full text-xs font-medium inline-block cursor-pointer transition-all hover:scale-105 active:scale-95',
+                                        isPublished
+                                          ? 'bg-[#E8F8F0] text-[#10B981] dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-[#d5f5e3]'
+                                          : 'bg-[#FEF8E7] text-[#D97706] dark:bg-amber-950/60 dark:text-amber-300 hover:bg-[#fef0cd]'
+                                      )}
+                                    >
+                                      {topic.statusLabel}
+                                    </button>
+                                  </td>
 
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenActionMenuId(null);
-                                            if (
-                                              confirm(
-                                                `Permanently delete topic "${topic.name}"? This cannot be undone.`
-                                              )
-                                            ) {
-                                              handleDeleteTopic(topic.id);
-                                            }
-                                          }}
-                                          className="w-full px-3 py-1.5 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                          Delete Topic
-                                        </button>
-                                      </div>
-                                    </>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </React.Fragment>
-                    );
+                                  {/* Order Index */}
+                                  <td className="py-3.5 px-2 text-center text-slate-500 font-medium">
+                                    {topic.orderIndex}
+                                  </td>
+
+                                  {/* Actions Menu */}
+                                  <td
+                                    className="py-3.5 px-2.5 text-center relative"
+                                    onClick={(evt) => evt.stopPropagation()}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setOpenActionMenuId(
+                                          openActionMenuId === topic.id ? null : topic.id
+                                        )
+                                      }
+                                      className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                    >
+                                      <MoreHorizontal className="w-4 h-4 text-slate-500" />
+                                    </button>
+
+                                    {openActionMenuId === topic.id && (
+                                      <>
+                                        <div
+                                          className="fixed inset-0 z-30"
+                                          onClick={() => setOpenActionMenuId(null)}
+                                        />
+                                        <div className="absolute right-0 mt-1 w-48 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 shadow-xl z-40 py-1 text-xs">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              handleSelectTopicRow(topic);
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                          >
+                                            <FileText className="w-3.5 h-3.5 text-blue-500" />
+                                            View Details
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              handleToggleTopicStatus(topic);
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                          >
+                                            {isPublished ? (
+                                              <>
+                                                <EyeOff className="w-3.5 h-3.5 text-amber-500" />
+                                                Unpublish (Set to Draft)
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                                                Publish Topic
+                                              </>
+                                            )}
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              handleOpenEditModal(topic);
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                          >
+                                            <Edit2 className="w-3.5 h-3.5 text-amber-500" />
+                                            Edit Topic
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              handleDuplicateTopic(topic);
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                          >
+                                            <Copy className="w-3.5 h-3.5 text-indigo-500" />
+                                            Duplicate Topic
+                                          </button>
+
+                                          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              if (
+                                                confirm(
+                                                  `Permanently delete topic "${topic.name}"? This cannot be undone.`
+                                                )
+                                              ) {
+                                                handleDeleteTopic(topic.id);
+                                              }
+                                            }}
+                                            className="w-full px-3 py-1.5 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            Delete Topic
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </React.Fragment>
+                      );
                     })
                   )}
                 </tbody>

@@ -25,26 +25,11 @@ export const BottomNav: React.FC = () => {
         >
           <svg width="18" height="28" viewBox="0 0 18 28" fill="none">
             {/* Top angled ray */}
-            <path
-              d="M14 6L4 2"
-              stroke="#F97316"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
+            <path d="M14 6L4 2" stroke="#F97316" strokeWidth="2.4" strokeLinecap="round" />
             {/* Middle horizontal ray */}
-            <path
-              d="M16 14L2 14"
-              stroke="#F97316"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-            />
+            <path d="M16 14L2 14" stroke="#F97316" strokeWidth="2.6" strokeLinecap="round" />
             {/* Bottom angled ray */}
-            <path
-              d="M14 22L4 26"
-              stroke="#F97316"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
+            <path d="M14 22L4 26" stroke="#F97316" strokeWidth="2.4" strokeLinecap="round" />
           </svg>
         </div>
 
@@ -55,26 +40,11 @@ export const BottomNav: React.FC = () => {
         >
           <svg width="18" height="28" viewBox="0 0 18 28" fill="none">
             {/* Top angled ray */}
-            <path
-              d="M4 6L14 2"
-              stroke="#F97316"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
+            <path d="M4 6L14 2" stroke="#F97316" strokeWidth="2.4" strokeLinecap="round" />
             {/* Middle horizontal ray */}
-            <path
-              d="M2 14L16 14"
-              stroke="#F97316"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-            />
+            <path d="M2 14L16 14" stroke="#F97316" strokeWidth="2.6" strokeLinecap="round" />
             {/* Bottom angled ray */}
-            <path
-              d="M4 22L14 26"
-              stroke="#F97316"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
+            <path d="M4 22L14 26" stroke="#F97316" strokeWidth="2.4" strokeLinecap="round" />
           </svg>
         </div>
 
@@ -123,10 +93,7 @@ export const BottomNav: React.FC = () => {
                     fill="#EF4444"
                   />
                   {/* Roof Fill */}
-                  <path
-                    d="M4.2 10.2L12 3.8L19.8 10.2H4.2Z"
-                    fill="#EF4444"
-                  />
+                  <path d="M4.2 10.2L12 3.8L19.8 10.2H4.2Z" fill="#EF4444" />
                   {/* Navy Door Arch */}
                   <path
                     d="M10 21V15.5C10 14.67 10.67 14 11.5 14H12.5C13.33 14 14 14.67 14 15.5V21"
@@ -174,9 +141,7 @@ export const BottomNav: React.FC = () => {
             </span>
 
             {/* Active Indicator Dot */}
-            {isHomeActive && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />
-            )}
+            {isHomeActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />}
           </Link>
 
           {/* 2. TEST SERIES */}
@@ -214,24 +179,9 @@ export const BottomNav: React.FC = () => {
                   strokeLinejoin="round"
                 />
                 {/* 3 Horizontal Content Lines */}
-                <path
-                  d="M8.5 11.5H15.5"
-                  stroke="#0B132B"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M8.5 15H15.5"
-                  stroke="#0B132B"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M8.5 18H12.5"
-                  stroke="#0B132B"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
+                <path d="M8.5 11.5H15.5" stroke="#0B132B" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M8.5 15H15.5" stroke="#0B132B" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M8.5 18H12.5" stroke="#0B132B" strokeWidth="2.2" strokeLinecap="round" />
               </svg>
             </div>
 
@@ -351,18 +301,8 @@ export const BottomNav: React.FC = () => {
                   strokeLinejoin="round"
                 />
                 {/* Stem & Base */}
-                <path
-                  d="M12 17V20.5"
-                  stroke="#0B132B"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M8.5 21H15.5"
-                  stroke="#0B132B"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                />
+                <path d="M12 17V20.5" stroke="#0B132B" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M8.5 21H15.5" stroke="#0B132B" strokeWidth="2.4" strokeLinecap="round" />
               </svg>
             </div>
 
@@ -377,9 +317,7 @@ export const BottomNav: React.FC = () => {
             </span>
 
             {/* Active Indicator Dot */}
-            {isResultsActive && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />
-            )}
+            {isResultsActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />}
           </Link>
 
           {/* 5. PROFILE */}
@@ -429,9 +367,7 @@ export const BottomNav: React.FC = () => {
             </span>
 
             {/* Active Indicator Dot */}
-            {isProfileActive && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />
-            )}
+            {isProfileActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FFD84D] mt-0.5" />}
           </Link>
         </div>
       </div>

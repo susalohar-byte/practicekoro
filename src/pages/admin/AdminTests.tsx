@@ -1090,7 +1090,13 @@ export const AdminTests: React.FC = () => {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {isLoading && pagedTests.length === 0 ? <tr><td colSpan={10} className="p-4"><AdminSectionSkeleton label="Loading tests..." variant="table" /></td></tr> : pagedTests.length === 0 ? (
+                  {isLoading && pagedTests.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="p-4">
+                        <AdminSectionSkeleton label="Loading tests..." variant="table" />
+                      </td>
+                    </tr>
+                  ) : pagedTests.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="py-12 text-center text-slate-400">
                         No tests found matching the selected filters.

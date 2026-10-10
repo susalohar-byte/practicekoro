@@ -169,7 +169,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                High-quality mock tests, official PYQs and topic practice tailored for all West Bengal government exams.
+                High-quality mock tests, official PYQs and topic practice tailored for all West
+                Bengal government exams.
               </p>
             </div>
 
@@ -193,7 +194,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-pink-500" />
                   </span>
-                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Mock Tests</span>
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                    Mock Tests
+                  </span>
                 </div>
 
                 {/* Floating Badge 2 (Real Exam PYQ) with Emerald Beacon */}
@@ -202,7 +205,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                   </span>
-                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">Real Exam PYQ</span>
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                    Real Exam PYQ
+                  </span>
                 </div>
 
                 {/* Floating Badge 3 (Top-Right Chip) */}
@@ -252,7 +257,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                Practice with detailed step-by-step solutions, performance analytics, and personalized recommendations.
+                Practice with detailed step-by-step solutions, performance analytics, and
+                personalized recommendations.
               </p>
             </div>
 
@@ -271,7 +277,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 transition-colors">
                       Full Mock Tests
                     </h4>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500">Real exam timer & marking scheme</p>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500">
+                      Real exam timer & marking scheme
+                    </p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 font-bold text-[9px] flex items-center gap-1">
@@ -293,7 +301,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-600 transition-colors">
                       Topic Practice
                     </h4>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500">Chapter-wise targeted drills</p>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500">
+                      Chapter-wise targeted drills
+                    </p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-800/50 text-teal-700 dark:text-teal-300 font-bold text-[9px] flex items-center gap-1">
@@ -315,7 +325,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600 transition-colors">
                       Previous Year Questions
                     </h4>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500">Official verified papers (2018-2025)</p>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500">
+                      Official verified papers (2018-2025)
+                    </p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-800/50 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center gap-1">
@@ -337,7 +349,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-rose-600 transition-colors">
                       Performance Analytics
                     </h4>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500">Instant accuracy, percentile & weak areas</p>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500">
+                      Instant accuracy, percentile & weak areas
+                    </p>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-800/50 text-rose-700 dark:text-rose-300 font-bold text-[9px] flex items-center gap-1">
@@ -384,7 +398,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-xs mx-auto">
-                Join thousands of aspirants across West Bengal who practice daily and excel in competitive exams.
+                Join thousands of aspirants across West Bengal who practice daily and excel in
+                competitive exams.
               </p>
             </div>
 
@@ -416,21 +431,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   className="p-3 rounded-2xl bg-blue-50/90 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/60 shadow-xs hover:scale-105 hover:-translate-y-1 hover:shadow-md transition-all duration-200 animate-pop-in cursor-default"
                   style={{ animationDelay: '100ms' }}
                 >
-                  <span className="block text-sm sm:text-base font-black text-blue-600 dark:text-blue-400">10K+</span>
+                  <span className="block text-sm sm:text-base font-black text-blue-600 dark:text-blue-400">
+                    10K+
+                  </span>
                   <span className="text-[10px] font-semibold text-slate-500">Students</span>
                 </div>
                 <div
                   className="p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/60 shadow-xs hover:scale-105 hover:-translate-y-1 hover:shadow-md transition-all duration-200 animate-pop-in cursor-default"
                   style={{ animationDelay: '180ms' }}
                 >
-                  <span className="block text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">100%</span>
+                  <span className="block text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
+                    100%
+                  </span>
                   <span className="text-[10px] font-semibold text-slate-500">Verified PYQ</span>
                 </div>
                 <div
                   className="p-3 rounded-2xl bg-purple-50/90 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/60 shadow-xs hover:scale-105 hover:-translate-y-1 hover:shadow-md transition-all duration-200 animate-pop-in cursor-default"
                   style={{ animationDelay: '260ms' }}
                 >
-                  <span className="block text-sm sm:text-base font-black text-purple-600 dark:text-purple-400">Higher</span>
+                  <span className="block text-sm sm:text-base font-black text-purple-600 dark:text-purple-400">
+                    Higher
+                  </span>
                   <span className="text-[10px] font-semibold text-slate-500">Success Rate</span>
                 </div>
               </div>

@@ -69,11 +69,7 @@ const getSubjectTheme = (subjectName: string) => {
       badgeBg: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300',
     };
   }
-  if (
-    lower.includes('awareness') ||
-    lower.includes('current') ||
-    lower.includes('সাম্প্রতিক')
-  ) {
+  if (lower.includes('awareness') || lower.includes('current') || lower.includes('সাম্প্রতিক')) {
     return {
       icon: Globe,
       isSigma: false,
@@ -380,13 +376,17 @@ export const TopicTests: React.FC = () => {
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0158FC] text-[11px] font-black text-white">
               1
             </span>
-            <h2 id="subject-tabs-heading" className="text-sm font-black text-slate-900 dark:text-white">
+            <h2
+              id="subject-tabs-heading"
+              className="text-sm font-black text-slate-900 dark:text-white"
+            >
               Choose Subject (বিষয় নির্বাচন করুন)
             </h2>
           </div>
           {selectedSubject && (
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-              Active: <strong className="text-slate-800 dark:text-slate-200">{selectedSubject.name}</strong>
+              Active:{' '}
+              <strong className="text-slate-800 dark:text-slate-200">{selectedSubject.name}</strong>
             </span>
           )}
         </div>
@@ -444,7 +444,9 @@ export const TopicTests: React.FC = () => {
                     {subject.chaptersCount !== undefined && (
                       <span
                         className={`text-[10px] block mt-0.5 ${
-                          selected ? 'text-blue-100 font-medium' : 'text-slate-400 dark:text-slate-500'
+                          selected
+                            ? 'text-blue-100 font-medium'
+                            : 'text-slate-400 dark:text-slate-500'
                         }`}
                       >
                         {subject.chaptersCount} Topics

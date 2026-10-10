@@ -54,7 +54,8 @@ export async function sendFcmPush(options: FcmSendOptions): Promise<FcmSendResul
 
   // If no server key configured yet, simulate push dispatch safely
   if (!trimmedKey) {
-    const targetDesc = deviceTokens.length > 0 ? `${deviceTokens.length} devices` : `topic /topics/${topic}`;
+    const targetDesc =
+      deviceTokens.length > 0 ? `${deviceTokens.length} devices` : `topic /topics/${topic}`;
     return {
       success: true,
       isSimulated: true,
@@ -112,7 +113,8 @@ export async function sendFcmPush(options: FcmSendOptions): Promise<FcmSendResul
         success: true,
         isSimulated: true,
         recipientCount: deviceTokens.length || 1,
-        message: 'Push broadcast dispatched via simulated service worker. In production, route through backend Supabase Edge Functions for direct Google FCM API authentication.',
+        message:
+          'Push broadcast dispatched via simulated service worker. In production, route through backend Supabase Edge Functions for direct Google FCM API authentication.',
         multicastId: `fcm-cors-${Date.now()}`,
       };
     }

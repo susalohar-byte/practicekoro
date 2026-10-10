@@ -28,10 +28,15 @@ import type { QuestionRow } from '@/services/domains/localStore';
 // TESTS API
 // --------------------------------------------------------------------------
 /** Upload custom test icon to Supabase storage with robust bucket fallback */
-export async function uploadTestIcon(file: File, _testId: string = 'custom'): Promise<string>{
+export async function uploadTestIcon(file: File, _testId: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export async function getAllAdminTests(filter?: {

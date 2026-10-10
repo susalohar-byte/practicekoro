@@ -241,10 +241,10 @@ export function aggregateAnalytics(
       rawGender === 'male' || rawGender === 'm'
         ? 'Male'
         : rawGender === 'female' || rawGender === 'f'
-        ? 'Female'
-        : rawGender === 'transgender' || rawGender === 'other'
-        ? 'Other'
-        : 'Not specified';
+          ? 'Female'
+          : rawGender === 'transgender' || rawGender === 'other'
+            ? 'Other'
+            : 'Not specified';
     genders.set(normGender, (genders.get(normGender) || 0) + 1);
   }
 

@@ -30,10 +30,7 @@ export async function optimizeBannerImage(
   const originalSize = file.size;
 
   // In non-browser / test environments or SVGs, return directly
-  if (
-    typeof window === 'undefined' ||
-    typeof document === 'undefined'
-  ) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -363,7 +360,8 @@ export const bannerService = {
     const opt = await optimizeBannerImage(file);
     const fileToUpload = opt.file;
 
-    if (isSupabaseConfigured) return { url: await uploadValidatedImage(fileToUpload, 'banners'), optimization: opt };
+    if (isSupabaseConfigured)
+      return { url: await uploadValidatedImage(fileToUpload, 'banners'), optimization: opt };
 
     // Attempt 4: Safe compressed Data URL
     if (isSupabaseConfigured) throw new Error('Durable image upload failed.');

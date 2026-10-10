@@ -31,9 +31,7 @@ beforeEach(() => {
 
 describe('ExamContext live sync', () => {
   it('loads exams on mount', async () => {
-    mockedGetExams.mockResolvedValueOnce([
-      { id: 'e1', title: 'WBP Constable' } as never,
-    ]);
+    mockedGetExams.mockResolvedValueOnce([{ id: 'e1', title: 'WBP Constable' } as never]);
     render(
       <ExamProvider>
         <Probe />
@@ -57,9 +55,7 @@ describe('ExamContext live sync', () => {
     });
     expect(mockedGetExams).toHaveBeenCalledTimes(1);
 
-    mockedGetExams.mockResolvedValueOnce([
-      { id: 'e9', title: 'New Exam From Admin' } as never,
-    ]);
+    mockedGetExams.mockResolvedValueOnce([{ id: 'e9', title: 'New Exam From Admin' } as never]);
     await act(async () => {
       window.dispatchEvent(new CustomEvent(EXAMS_UPDATED_EVENT));
     });

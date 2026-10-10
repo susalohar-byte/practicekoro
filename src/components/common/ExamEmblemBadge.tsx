@@ -239,10 +239,7 @@ export const ExamEmblemBadge: React.FC<{
         <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
           <circle cx="16" cy="16" r="14" fill="#9D174D" stroke="#F472B6" strokeWidth="1.5" />
           <circle cx="16" cy="16" r="10" fill="#831843" stroke="#FBCFE8" strokeWidth="1" />
-          <path
-            d="M16 9L23 13L16 17L9 13L16 9Z"
-            fill="#FBCFE8"
-          />
+          <path d="M16 9L23 13L16 17L9 13L16 9Z" fill="#FBCFE8" />
           <path
             d="M11 15.5V19.5C11 21.5 13.5 23 16 23C18.5 23 21 21.5 21 19.5V15.5"
             stroke="#FBCFE8"

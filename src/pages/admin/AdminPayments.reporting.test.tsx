@@ -88,12 +88,16 @@ describe('Payment period reporting UI', () => {
     await screen.findAllByText('recent-payment');
 
     // Default mode is accrual
-    expect(screen.getByText(/Refunds are attributed to the original payment date/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refunds are attributed to the original payment date/)
+    ).toBeInTheDocument();
 
     // Switch to Cash Flow mode
     fireEvent.click(screen.getByRole('button', { name: 'Cash flow attribution mode' }));
     expect(
-      await screen.findByText(/Cash flow mode: Refunds are attributed to actual refund settlement date/)
+      await screen.findByText(
+        /Cash flow mode: Refunds are attributed to actual refund settlement date/
+      )
     ).toBeInTheDocument();
     expect(screen.getByText(/Disbursed Refunds:/)).toBeInTheDocument();
     // The refund total renders twice after the revenue-trend redesign: in the summary

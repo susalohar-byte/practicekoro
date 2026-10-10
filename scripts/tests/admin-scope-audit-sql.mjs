@@ -177,11 +177,18 @@ try {
   await login(1);
   await db.query(`UPDATE profiles SET admin_role='content_writer' WHERE id=$1`, [id(1)]);
   await db.exec('RESET ROLE');
-  const demotion = (await db.query(`SELECT * FROM admin_audit_logs WHERE entity_type='profiles' AND entity_id=$1 ORDER BY created_at DESC LIMIT 1`, [id(1)])).rows[0];
+  const demotion = (
+    await db.query(
+      `SELECT * FROM admin_audit_logs WHERE entity_type='profiles' AND entity_id=$1 ORDER BY created_at DESC LIMIT 1`,
+      [id(1)]
+    )
+  ).rows[0];
   eq(demotion.admin_role, 'super_admin');
   eq(demotion.details.changed_fields.includes('admin_role'), true);
   await db.exec(`SET request.jwt.claim.sub=''; SET request.jwt.claim.role='';`);
-  const metadata = (await db.query(await readFile('supabase/tests/admin_scope_audit_permissions.sql','utf8'))).rows[0].security_checks;
+  const metadata = (
+    await db.query(await readFile('supabase/tests/admin_scope_audit_permissions.sql', 'utf8'))
+  ).rows[0].security_checks;
   for (const value of Object.values(metadata)) eq(value, true);
   await login(null, 'anon');
   await deny(`SELECT admin_get_payment_gateway()`);

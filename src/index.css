@@ -7,8 +7,9 @@
 
 @font-face {
   font-family: 'Li Subha Letterpress Unicode';
-  src: url('/fonts/Li-Subha-Letterpress-Unicode.woff') format('woff'),
-       url('/fonts/Li-Subha-Letterpress-Unicode.ttf') format('truetype');
+  src:
+    url('/fonts/Li-Subha-Letterpress-Unicode.woff') format('woff'),
+    url('/fonts/Li-Subha-Letterpress-Unicode.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -16,8 +17,9 @@
 
 @font-face {
   font-family: 'Subha Letterpress';
-  src: url('/fonts/Li-Subha-Letterpress-Unicode.woff') format('woff'),
-       url('/fonts/Li-Subha-Letterpress-Unicode.ttf') format('truetype');
+  src:
+    url('/fonts/Li-Subha-Letterpress-Unicode.woff') format('woff'),
+    url('/fonts/Li-Subha-Letterpress-Unicode.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -36,8 +38,8 @@
 @layer base {
   :root {
     --font-sans:
-      'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Bengali', 'PracticeKoro Bengali Fallback',
-      sans-serif;
+      'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Bengali',
+      'PracticeKoro Bengali Fallback', sans-serif;
   }
 
   body {
@@ -99,9 +101,18 @@
 }
 
 @keyframes wave-hand {
-  0%, 100% { transform: rotate(0deg); }
-  20%, 60% { transform: rotate(14deg); }
-  40%, 80% { transform: rotate(-14deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20%,
+  60% {
+    transform: rotate(14deg);
+  }
+  40%,
+  80% {
+    transform: rotate(-14deg);
+  }
 }
 
 .animate-wave {
@@ -112,62 +123,132 @@
 
 /* Onboard & Interactive Element Keyframes */
 @keyframes float-gentle {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes float-reverse {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.45; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.08); }
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
 }
 
 @keyframes shimmer-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 @keyframes pop-in {
-  0% { opacity: 0; transform: scale(0.88) translateY(14px); }
-  70% { opacity: 1; transform: scale(1.02) translateY(-2px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(14px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes slide-up-fade {
-  0% { opacity: 0; transform: translateY(14px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes halo-spin {
-  from { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.06); }
-  to { transform: rotate(360deg) scale(1); }
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.06);
+  }
+  to {
+    transform: rotate(360deg) scale(1);
+  }
 }
 
 @keyframes shine-sweep {
-  0% { transform: translateX(-150%) skewX(-20deg); opacity: 0; }
-  50% { opacity: 0.6; }
-  100% { transform: translateX(200%) skewX(-20deg); opacity: 0; }
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(200%) skewX(-20deg);
+    opacity: 0;
+  }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0.3; }
-  100% { transform: scale(0.95); opacity: 0.8; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }
 
 @keyframes shadow-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(0.85); opacity: 0.15; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(0.85);
+    opacity: 0.15;
+  }
 }
 
 .animate-float {
@@ -632,15 +713,47 @@ html:not(.dark) .admin-scope header .text-slate-500:not(.admin-dark-card *):not(
    DARK MODE COMPREHENSIVE TYPOGRAPHY & BOX FIXES
    When dark mode is active (html.dark), ensure 100% visible text everywhere.
    ========================================================================= */
-.dark .admin-scope .text-slate-900:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not([class*='bg-rose']):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not([class*='bg-gray-200']),
-.dark .admin-scope :not([class*='bg-amber-1']):not([class*='bg-amber-2']):not([class*='bg-amber-3']):not([class*='bg-amber-4']):not([class*='bg-yellow']):not([class*='bg-emerald-1']):not([class*='bg-emerald-2']):not([class*='bg-rose-1']):not([class*='bg-rose-2']):not([class*='bg-slate-1']):not([class*='bg-slate-2']) > .text-slate-900 {
+.dark
+  .admin-scope
+  .text-slate-900:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not(
+    [class*='bg-rose']
+  ):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not(
+    [class*='bg-gray-200']
+  ),
+.dark
+  .admin-scope
+  :not([class*='bg-amber-1']):not([class*='bg-amber-2']):not([class*='bg-amber-3']):not(
+    [class*='bg-amber-4']
+  ):not([class*='bg-yellow']):not([class*='bg-emerald-1']):not([class*='bg-emerald-2']):not(
+    [class*='bg-rose-1']
+  ):not([class*='bg-rose-2']):not([class*='bg-slate-1']):not([class*='bg-slate-2'])
+  > .text-slate-900 {
   color: #f8fafc !important;
 }
-.dark .admin-scope .text-slate-800:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not([class*='bg-rose']):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not([class*='bg-gray-200']),
-.dark .admin-scope :not([class*='bg-amber-1']):not([class*='bg-amber-2']):not([class*='bg-amber-3']):not([class*='bg-amber-4']):not([class*='bg-yellow']):not([class*='bg-emerald-1']):not([class*='bg-emerald-2']):not([class*='bg-rose-1']):not([class*='bg-rose-2']):not([class*='bg-slate-1']):not([class*='bg-slate-2']) > .text-slate-800 {
+.dark
+  .admin-scope
+  .text-slate-800:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not(
+    [class*='bg-rose']
+  ):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not(
+    [class*='bg-gray-200']
+  ),
+.dark
+  .admin-scope
+  :not([class*='bg-amber-1']):not([class*='bg-amber-2']):not([class*='bg-amber-3']):not(
+    [class*='bg-amber-4']
+  ):not([class*='bg-yellow']):not([class*='bg-emerald-1']):not([class*='bg-emerald-2']):not(
+    [class*='bg-rose-1']
+  ):not([class*='bg-rose-2']):not([class*='bg-slate-1']):not([class*='bg-slate-2'])
+  > .text-slate-800 {
   color: #f1f5f9 !important;
 }
-.dark .admin-scope .text-slate-700:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not([class*='bg-rose']):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not([class*='bg-gray-200']) {
+.dark
+  .admin-scope
+  .text-slate-700:not([class*='bg-amber']):not([class*='bg-yellow']):not([class*='bg-emerald']):not(
+    [class*='bg-rose']
+  ):not([class*='bg-slate-100']):not([class*='bg-slate-200']):not([class*='bg-gray-100']):not(
+    [class*='bg-gray-200']
+  ) {
   color: #e2e8f0 !important;
 }
 .dark .admin-scope .text-slate-600 {

@@ -1300,7 +1300,13 @@ export const AdminBanners: React.FC = () => {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  {loading ? <tr><td colSpan={11} className="p-4"><AdminSectionSkeleton label="Loading banners..." variant="table" /></td></tr> : visibleBanners.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={11} className="p-4">
+                        <AdminSectionSkeleton label="Loading banners..." variant="table" />
+                      </td>
+                    </tr>
+                  ) : visibleBanners.length === 0 ? (
                     <tr>
                       <td colSpan={11} className="py-12 text-center text-slate-400">
                         No banners match the selected criteria.

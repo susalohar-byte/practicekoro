@@ -21,7 +21,8 @@ const mockQuestion: Question = {
   optionD: 'লুম্বিনী',
   correctOption: 'A',
   explanation: 'Gautam Buddha gave his first sermon at Sarnath.',
-  explanationBengali: 'গৌতম বুদ্ধ সারনাথে তাঁর প্রথম ধর্মোপদেশ ধম্ম-চক্ক-প্রবর্তন মুদ্রা দ্বারা প্রদান করেছিলেন।',
+  explanationBengali:
+    'গৌতম বুদ্ধ সারনাথে তাঁর প্রথম ধর্মোপদেশ ধম্ম-চক্ক-প্রবর্তন মুদ্রা দ্বারা প্রদান করেছিলেন।',
   difficulty: 'medium',
   defaultMarks: 1,
   defaultNegativeMarks: 0,

@@ -27,7 +27,10 @@ Deno.serve(async (req: Request) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   };
-  if (requestOrigin && (effectiveOrigins.includes(requestOrigin) || requestOrigin.includes('localhost'))) {
+  if (
+    requestOrigin &&
+    (effectiveOrigins.includes(requestOrigin) || requestOrigin.includes('localhost'))
+  ) {
     corsHeaders['Access-Control-Allow-Origin'] = requestOrigin;
   } else {
     corsHeaders['Access-Control-Allow-Origin'] = '*';
@@ -86,8 +89,7 @@ Deno.serve(async (req: Request) => {
   // Check if caller has admin role
   const adminEmail = (user.email || '').toLowerCase().trim();
   const isSuperAdminEmail =
-    adminEmail === 'admin@practicekoro.online' ||
-    adminEmail === 'admin@practicekoro.com';
+    adminEmail === 'admin@practicekoro.online' || adminEmail === 'admin@practicekoro.com';
 
   let hasAdminRole = isSuperAdminEmail;
   if (!hasAdminRole) {
@@ -263,7 +265,9 @@ Deno.serve(async (req: Request) => {
         );
       }
     } else {
-      console.warn('Razorpay live keys not fully configured in edge environment. Generating reference ID.');
+      console.warn(
+        'Razorpay live keys not fully configured in edge environment. Generating reference ID.'
+      );
       finalRefundId = `rfnd_manual_${Date.now()}`;
     }
   }
@@ -311,7 +315,9 @@ Deno.serve(async (req: Request) => {
           expires_at: nowIso,
           updated_at: nowIso,
         })
-        .or(`payment_id.eq.${payment.id},and(user_id.eq.${payment.user_id},plan_id.eq.${payment.plan_id})`)
+        .or(
+          `payment_id.eq.${payment.id},and(user_id.eq.${payment.user_id},plan_id.eq.${payment.plan_id})`
+        )
         .eq('status', 'active');
 
       // 3. Demote profile to free tier if is_pro flag exists

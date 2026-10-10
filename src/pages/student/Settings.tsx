@@ -126,7 +126,9 @@ export const Settings: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-slate-900">বাংলা (Bengali Only)</p>
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-brand-600 text-white">সক্রিয়</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-brand-600 text-white">
+                  সক্রিয়
+                </span>
               </div>
               <p className="text-xs text-slate-600 mt-1">
                 মক টেস্ট এবং প্রশ্নাবলী সম্পূর্ণ বাংলা ভাষায় প্রস্তুত করা হয়েছে।

@@ -178,8 +178,7 @@ export const DEFAULT_SHOWCASE_SERIES: TestSeries[] = [
     title: 'Food SI',
     subtitle: 'Full Preparation Series',
     slug: 'food-si-full-prep',
-    description:
-      'WBPSC Sub-Inspector in Food & Supplies department 100-mark full mock drills.',
+    description: 'WBPSC Sub-Inspector in Food & Supplies department 100-mark full mock drills.',
     examTitle: 'Food SI',
     examCategory: 'WBPSC',
     isPremium: false,
@@ -203,8 +202,7 @@ export const DEFAULT_SHOWCASE_SERIES: TestSeries[] = [
     title: 'WBPSC Miscellaneous',
     subtitle: 'Topic + Mock + PYQ',
     slug: 'wbpsc-misc-topic-mock',
-    description:
-      'WBPSC Miscellaneous Services Prelims and Mains oriented chapter drills.',
+    description: 'WBPSC Miscellaneous Services Prelims and Mains oriented chapter drills.',
     examTitle: 'WBPSC Misc',
     examCategory: 'WBPSC',
     isPremium: false,
@@ -228,8 +226,7 @@ export const DEFAULT_SHOWCASE_SERIES: TestSeries[] = [
     title: 'Kolkata Police',
     subtitle: 'Practice Series',
     slug: 'kolkata-police-practice',
-    description:
-      'KP Constable & Lady Constable full mock tests and speed calculations.',
+    description: 'KP Constable & Lady Constable full mock tests and speed calculations.',
     examTitle: 'Kolkata Police',
     examCategory: 'Police',
     isPremium: false,
@@ -379,7 +376,8 @@ export const localLiveTests: LiveTest[] = [
     rankingEnabled: true,
     subscriptionRequired: false,
     isPublished: true,
-    instructions: 'Official West Bengal Police Constable pattern. 100 Questions, 60 Minutes, 0.25 Negative Marking. Statewide ranking and detailed analysis will be available immediately upon completion.',
+    instructions:
+      'Official West Bengal Police Constable pattern. 100 Questions, 60 Minutes, 0.25 Negative Marking. Statewide ranking and detailed analysis will be available immediately upon completion.',
     createdAt: '2026-09-25T16:20:00.000Z',
     updatedAt: '2026-09-30T08:15:00.000Z',
   },
@@ -945,7 +943,6 @@ export const localLiveTests: LiveTest[] = [
     createdAt: '2026-08-25T10:00:00.000Z',
   },
 ];
-
 
 export const localLiveTestParticipations: LiveTestParticipation[] = [
   {

@@ -233,10 +233,18 @@ export async function deleteSubject(id: string): Promise<boolean> {
   return confirmed;
 }
 
-export async function uploadSubjectIcon(file: File, _subjectId: string = 'custom'): Promise<string>{
+export async function uploadSubjectIcon(
+  file: File,
+  _subjectId: string = 'custom'
+): Promise<string> {
   validateRasterFile(file, 'banners', 2 * 1024 * 1024);
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export async function getSubjectReportingData(): Promise<SubjectReportingData> {

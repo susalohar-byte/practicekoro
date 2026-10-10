@@ -179,10 +179,15 @@ export async function deleteChapter(id: string): Promise<boolean> {
   return true;
 }
 
-export async function uploadTopicIcon(file: File, _topicId: string = 'custom'): Promise<string>{
+export async function uploadTopicIcon(file: File, _topicId: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export const adminChaptersApi = {

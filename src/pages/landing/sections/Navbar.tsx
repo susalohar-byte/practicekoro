@@ -122,7 +122,6 @@ export const Navbar: React.FC = () => {
       {!user && menuOpen && (
         <div className="sm:hidden absolute top-full mt-2 w-full max-w-6xl pointer-events-auto">
           <div className="mx-2 sm:mx-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-xl p-3 space-y-1">
-
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}

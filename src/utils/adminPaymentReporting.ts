@@ -56,20 +56,14 @@ export function paymentChart(rows: AdminPaymentRow[], range: ReturnType<typeof p
   });
 }
 
-export function refundInCashFlowRange(
-  p: AdminPaymentRow,
-  range: ReturnType<typeof paymentRange>
-) {
+export function refundInCashFlowRange(p: AdminPaymentRow, range: ReturnType<typeof paymentRange>) {
   const refundAmt = recordedRefundAmount(p);
   if (refundAmt <= 0) return false;
   const stamp = Date.parse(p.refundedAt || p.createdAt || p.created_at || '');
   return stamp >= Date.parse(range.startIso) && stamp <= Date.parse(range.endIso);
 }
 
-export function cashFlowChart(
-  rows: AdminPaymentRow[],
-  range: ReturnType<typeof paymentRange>
-) {
+export function cashFlowChart(rows: AdminPaymentRow[], range: ReturnType<typeof paymentRange>) {
   const valid = rows
     .map((p) => Date.parse(p.createdAt || p.created_at || ''))
     .filter((t) => Number.isFinite(t) && t <= Date.parse(range.endIso));

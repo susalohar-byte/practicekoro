@@ -740,7 +740,8 @@ export const AdminTestQuestions: React.FC = () => {
 
   const totalAssignedMarks = assignedQuestions.reduce((acc, q) => acc + (q.marks || 0), 0);
 
-  if (isLoading || referencesLoading) return <AdminPageSkeleton label="Loading Test Workspace" variant="detail" />;
+  if (isLoading || referencesLoading)
+    return <AdminPageSkeleton label="Loading Test Workspace" variant="detail" />;
 
   if (!test) {
     return (

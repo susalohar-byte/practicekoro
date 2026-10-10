@@ -176,7 +176,9 @@ export async function sendFast2Sms(options: {
     const data: Fast2SmsResponse = await res.json().catch(() => ({ return: false }));
 
     if (res.ok && data?.return === true) {
-      const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || 'SMS sent';
+      const msg = Array.isArray(data.message)
+        ? data.message.join(', ')
+        : data.message || 'SMS sent';
       return {
         success: true,
         recipientCount: validNumbers.length,

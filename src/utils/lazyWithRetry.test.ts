@@ -1,9 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import {
-  isChunkLoadError,
-  clearChunkReloadGuard,
-  CHUNK_RELOAD_KEY,
-} from './lazyWithRetry';
+import { isChunkLoadError, clearChunkReloadGuard, CHUNK_RELOAD_KEY } from './lazyWithRetry';
 
 describe('lazyWithRetry utility', () => {
   beforeEach(() => {

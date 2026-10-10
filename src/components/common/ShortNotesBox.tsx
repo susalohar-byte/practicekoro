@@ -213,8 +213,12 @@ export const ShortNotesBox: React.FC<ShortNotesBoxProps> = ({
   let displayTitle = title;
   if (!displayTitle) {
     displayTitle = isMathematics
-      ? (isBilingualEnabled ? 'Explanation' : 'সমাধান')
-      : (isBilingualEnabled ? 'Short Notes' : 'শর্ট নোটস');
+      ? isBilingualEnabled
+        ? 'Explanation'
+        : 'সমাধান'
+      : isBilingualEnabled
+        ? 'Short Notes'
+        : 'শর্ট নোটস';
   } else if (!isBilingualEnabled) {
     if (displayTitle.includes('(Short Notes)')) {
       displayTitle = displayTitle.replace(/\s*\(Short Notes\)/i, '').trim();

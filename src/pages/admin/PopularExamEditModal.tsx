@@ -126,12 +126,14 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
         setTestsCount(label);
         setCardBadge(label);
       } catch (countError) {
-        setError(countError instanceof Error ? countError.message : 'Could not calculate available tests.');
+        setError(
+          countError instanceof Error ? countError.message : 'Could not calculate available tests.'
+        );
       }
     }
   };
 
-  const handleSelectGradientPreset = (preset: typeof PRESET_GRADIENTS[0]) => {
+  const handleSelectGradientPreset = (preset: (typeof PRESET_GRADIENTS)[0]) => {
     setCardGradientStart(preset.start);
     setCardGradientEnd(preset.end);
     setCardArrowColor(preset.arrow);
@@ -172,7 +174,7 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
         examId: examId || undefined,
         title: title.trim(),
         testsCount: testsCount.trim() || '100+ Tests',
-        cardBadge: (cardBadge.trim() || testsCount.trim()) || '100+ Tests',
+        cardBadge: cardBadge.trim() || testsCount.trim() || '100+ Tests',
         cardGradientStart,
         cardGradientEnd,
         cardArrowColor,
@@ -230,7 +232,9 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
               <Eye className="w-3.5 h-3.5 text-indigo-500" />
               Live Homepage Preview
             </span>
-            <span className="text-[11px] text-slate-400">Updates live as you type or pick colors</span>
+            <span className="text-[11px] text-slate-400">
+              Updates live as you type or pick colors
+            </span>
           </div>
 
           <div className="max-w-[320px] sm:max-w-[340px] mx-auto py-2">
@@ -349,7 +353,9 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
                 placeholder="Calculated from published tests"
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
               />
-              <p className="mt-1 text-[10px] text-slate-400">Automatically counts active, published tests linked to the selected exam.</p>
+              <p className="mt-1 text-[10px] text-slate-400">
+                Automatically counts active, published tests linked to the selected exam.
+              </p>
             </div>
           </div>
 
@@ -488,7 +494,8 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-400">
-              The logo is a separate upload from the background image and preserves its aspect ratio.
+              The logo is a separate upload from the background image and preserves its aspect
+              ratio.
             </p>
           </div>
 

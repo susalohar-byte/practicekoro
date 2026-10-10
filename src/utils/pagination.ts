@@ -28,27 +28,11 @@ export function getPageNumbers(currentPage: number, totalPages: number): PageIte
 
   // When near the end
   if (safeCurrent >= safeTotal - 3) {
-    return [
-      1,
-      'ellipsis',
-      safeTotal - 4,
-      safeTotal - 3,
-      safeTotal - 2,
-      safeTotal - 1,
-      safeTotal,
-    ];
+    return [1, 'ellipsis', safeTotal - 4, safeTotal - 3, safeTotal - 2, safeTotal - 1, safeTotal];
   }
 
   // In the middle
-  return [
-    1,
-    'ellipsis',
-    safeCurrent - 1,
-    safeCurrent,
-    safeCurrent + 1,
-    'ellipsis',
-    safeTotal,
-  ];
+  return [1, 'ellipsis', safeCurrent - 1, safeCurrent, safeCurrent + 1, 'ellipsis', safeTotal];
 }
 
 /**

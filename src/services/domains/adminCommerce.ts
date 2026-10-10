@@ -1236,9 +1236,7 @@ export const adminCommerceApi = {
           studentName: profile.full_name || 'Student Aspirant',
           studentEmail: profile.email || '',
           studentAvatar: profile.avatar_url || undefined,
-          studentInitials: profile.full_name
-            ? profile.full_name.slice(0, 2).toUpperCase()
-            : 'ST',
+          studentInitials: profile.full_name ? profile.full_name.slice(0, 2).toUpperCase() : 'ST',
           studentAvatarColor: 'bg-blue-600',
           testName: test.title || 'Practice Test',
           exam: exam.title || 'Competitive Exam',
@@ -2932,14 +2930,20 @@ export const adminCommerceApi = {
       { district: 'Kolkata', studentCount: Math.max(1, Math.round(totalStudents * 0.4)) },
       { district: 'North 24 Parganas', studentCount: Math.max(1, Math.round(totalStudents * 0.3)) },
       { district: 'Howrah', studentCount: Math.max(1, Math.round(totalStudents * 0.2)) },
-      { district: 'Not specified', studentCount: Math.max(0, totalStudents - Math.round(totalStudents * 0.9)) },
+      {
+        district: 'Not specified',
+        studentCount: Math.max(0, totalStudents - Math.round(totalStudents * 0.9)),
+      },
     ].filter((d) => d.studentCount > 0);
 
     const localGenders = [
       { gender: 'Male', studentCount: Math.max(1, Math.round(totalStudents * 0.52)) },
       { gender: 'Female', studentCount: Math.max(1, Math.round(totalStudents * 0.41)) },
       { gender: 'Other', studentCount: Math.max(0, Math.round(totalStudents * 0.02)) },
-      { gender: 'Not specified', studentCount: Math.max(0, totalStudents - Math.round(totalStudents * 0.95)) },
+      {
+        gender: 'Not specified',
+        studentCount: Math.max(0, totalStudents - Math.round(totalStudents * 0.95)),
+      },
     ].filter((g) => g.studentCount > 0);
 
     return {

@@ -624,7 +624,8 @@ export const MOCK_QUESTIONS: Record<string, Question[]> = {
       subjectId: 'wbp-bengali',
       chapterId: 'wbp-bengali-lit',
       topicId: 'wbp-bengali-lit',
-      questionText: "In which year was Rabindranath Tagore's poetic work 'Gitanjali' published in Bengali?",
+      questionText:
+        "In which year was Rabindranath Tagore's poetic work 'Gitanjali' published in Bengali?",
       questionBengaliText: "রবীন্দ্রনাথ ঠাকুরের 'গীতাঞ্জলি' কাব্যগ্রন্থটি কোন সালে প্রকাশিত হয়?",
       optionA: '1910',
       optionB: '1912',
@@ -1219,7 +1220,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Indira Gandhi',
       optionD: 'Kalpana Chawla',
       correctOption: 'A',
-      explanation: 'Marie Curie was the first woman to win a Nobel Prize (Physics in 1903) and the first person to win Nobel Prizes in two different scientific fields (Physics and Chemistry in 1911).',
+      explanation:
+        'Marie Curie was the first woman to win a Nobel Prize (Physics in 1903) and the first person to win Nobel Prizes in two different scientific fields (Physics and Chemistry in 1911).',
       difficulty: 'medium',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1237,13 +1239,15 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
     createdAt: '2026-09-10T09:15:00Z',
     question: {
       id: 'q-bm-math-01',
-      questionText: 'If the sum of interior angles of a polygon is 1440°, then the number of sides is:',
+      questionText:
+        'If the sum of interior angles of a polygon is 1440°, then the number of sides is:',
       optionA: '8',
       optionB: '9',
       optionC: '10',
       optionD: '12',
       correctOption: 'C',
-      explanation: 'Sum of interior angles = (n - 2) * 180° = 1440° => n - 2 = 1440 / 180 = 8 => n = 10 sides.',
+      explanation:
+        'Sum of interior angles = (n - 2) * 180° = 1440° => n - 2 = 1440 / 180 = 8 => n = 10 sides.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1267,7 +1271,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Carrot',
       optionD: 'Banana',
       correctOption: 'C',
-      explanation: 'Carrot is a root vegetable that grows underground, whereas Apple, Orange, and Banana are fruits that grow on trees/plants.',
+      explanation:
+        'Carrot is a root vegetable that grows underground, whereas Apple, Orange, and Banana are fruits that grow on trees/plants.',
       difficulty: 'medium',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1315,7 +1320,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'going',
       optionD: 'gone',
       correctOption: 'B',
-      explanation: 'For third-person singular subjects (he, she, it) in simple present tense representing a daily routine, the verb takes "s" or "es" (goes).',
+      explanation:
+        'For third-person singular subjects (he, she, it) in simple present tense representing a daily routine, the verb takes "s" or "es" (goes).',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1339,7 +1345,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Punjab',
       optionD: 'Haryana',
       correctOption: 'B',
-      explanation: 'Lothal is located near the village of Saragwala in the Dholka Taluka of Ahmedabad district, Gujarat.',
+      explanation:
+        'Lothal is located near the village of Saragwala in the Dholka Taluka of Ahmedabad district, Gujarat.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1363,7 +1370,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Articles 23 to 24',
       optionD: 'Articles 25 to 28',
       correctOption: 'A',
-      explanation: 'Articles 14-18 of the Indian Constitution guarantee the fundamental Right to Equality for all citizens.',
+      explanation:
+        'Articles 14-18 of the Indian Constitution guarantee the fundamental Right to Equality for all citizens.',
       difficulty: 'medium',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1387,7 +1395,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Raja Ram Mohan Roy',
       optionD: 'Ishwar Chandra Vidyasagar',
       correctOption: 'B',
-      explanation: 'Mahatma Jyotirao Phule founded the Satyashodhak Samaj in Pune in 1873 to liberate lower caste people from social exploitation.',
+      explanation:
+        'Mahatma Jyotirao Phule founded the Satyashodhak Samaj in Pune in 1873 to liberate lower caste people from social exploitation.',
       difficulty: 'hard',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1411,7 +1420,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Teesta River',
       optionD: 'Rupnarayan River',
       correctOption: 'B',
-      explanation: 'The Damodar River was formerly known as the Sorrow of Bengal because of its frequent devastating floods before the construction of DVC dams.',
+      explanation:
+        'The Damodar River was formerly known as the Sorrow of Bengal because of its frequent devastating floods before the construction of DVC dams.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1435,7 +1445,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Fe',
       optionD: 'Pb',
       correctOption: 'B',
-      explanation: 'The chemical symbol Au comes from the Latin word "Aurum", which means shining dawn or gold.',
+      explanation:
+        'The chemical symbol Au comes from the Latin word "Aurum", which means shining dawn or gold.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1459,7 +1470,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Carbon Monoxide and Hydrogen',
       optionD: 'Nitrogen and Carbon Dioxide',
       correctOption: 'B',
-      explanation: 'Domestic liquefied petroleum gas (LPG) predominantly consists of propane and butane hydrocarbon gases.',
+      explanation:
+        'Domestic liquefied petroleum gas (LPG) predominantly consists of propane and butane hydrocarbon gases.',
       difficulty: 'medium',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1483,7 +1495,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Kazi Nazrul Islam',
       optionD: 'Dwijendralal Ray',
       correctOption: 'B',
-      explanation: 'Vande Mataram was written by Bankim Chandra Chattopadhyay in his 1882 novel Anandamath.',
+      explanation:
+        'Vande Mataram was written by Bankim Chandra Chattopadhyay in his 1882 novel Anandamath.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1501,13 +1514,15 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
     createdAt: '2026-08-08T13:10:00Z',
     question: {
       id: 'q-bm-math-02',
-      questionText: 'A train 150m long is running at 54 km/h. How many seconds will it take to cross a telegraph post?',
+      questionText:
+        'A train 150m long is running at 54 km/h. How many seconds will it take to cross a telegraph post?',
       optionA: '10 seconds',
       optionB: '12 seconds',
       optionC: '15 seconds',
       optionD: '18 seconds',
       correctOption: 'A',
-      explanation: 'Speed = 54 * (5/18) = 15 m/s. Time to cross post = Distance / Speed = 150 / 15 = 10 seconds.',
+      explanation:
+        'Speed = 54 * (5/18) = 15 m/s. Time to cross post = Distance / Speed = 150 / 15 = 10 seconds.',
       difficulty: 'medium',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1525,13 +1540,15 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
     createdAt: '2026-08-05T10:30:00Z',
     question: {
       id: 'q-bm-math-03',
-      questionText: 'If the simple interest on a sum of money for 3 years at 5% per annum is ₹150, what is the principal?',
+      questionText:
+        'If the simple interest on a sum of money for 3 years at 5% per annum is ₹150, what is the principal?',
       optionA: '₹800',
       optionB: '₹1000',
       optionC: '₹1200',
       optionD: '₹1500',
       correctOption: 'B',
-      explanation: 'Principal P = (SI * 100) / (R * T) = (150 * 100) / (5 * 3) = 15000 / 15 = ₹1000.',
+      explanation:
+        'Principal P = (SI * 100) / (R * T) = (150 * 100) / (5 * 3) = 15000 / 15 = ₹1000.',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1597,13 +1614,15 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
     createdAt: '2026-07-25T14:40:00Z',
     question: {
       id: 'q-bm-reas-02',
-      questionText: "Pointing to a photograph, a man said: 'He is the son of the only daughter of the father of my brother.' How is the man related to the boy?",
+      questionText:
+        "Pointing to a photograph, a man said: 'He is the son of the only daughter of the father of my brother.' How is the man related to the boy?",
       optionA: 'Brother',
       optionB: 'Maternal Uncle (মামা)',
       optionC: 'Father',
       optionD: 'Grandfather',
       correctOption: 'B',
-      explanation: "Father of my brother = my father. The only daughter of my father = my sister. Son of my sister = nephew. Therefore, the man is his maternal uncle (মামা).",
+      explanation:
+        'Father of my brother = my father. The only daughter of my father = my sister. Son of my sister = nephew. Therefore, the man is his maternal uncle (মামা).',
       difficulty: 'hard',
       defaultMarks: 1,
       defaultNegativeMarks: 0,
@@ -1771,7 +1790,8 @@ export const MOCK_BOOKMARKS: BookmarkItem[] = [
       optionC: 'Positive',
       optionD: 'Cheerful',
       correctOption: 'A',
-      explanation: 'Optimistic means hopeful and confident about the future. Its opposite is pessimistic (expecting the worst).',
+      explanation:
+        'Optimistic means hopeful and confident about the future. Its opposite is pessimistic (expecting the worst).',
       difficulty: 'easy',
       defaultMarks: 1,
       defaultNegativeMarks: 0,

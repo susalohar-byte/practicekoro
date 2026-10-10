@@ -1,11 +1,6 @@
 import { AdminSectionSkeleton } from './AdminSkeleton';
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Search,
-  BookOpen,
-  Filter,
-} from 'lucide-react';
+import { X, Search, BookOpen, Filter } from 'lucide-react';
 import type { MockTest, Question, Subject, Chapter } from '@/types';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
@@ -151,7 +146,9 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
               Assign Questions from Central Question Bank
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Target Test: <span className="font-semibold text-blue-600 dark:text-blue-400">{test.title}</span> • Questions are referenced without duplication.
+              Target Test:{' '}
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{test.title}</span> •
+              Questions are referenced without duplication.
             </p>
           </div>
           <button
@@ -256,7 +253,13 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
         {/* Question List - Scrollable */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-          {isLoading ? <AdminSectionSkeleton label="Loading questions from Question Bank..." variant="table" className="p-4" /> : questions.length === 0 ? (
+          {isLoading ? (
+            <AdminSectionSkeleton
+              label="Loading questions from Question Bank..."
+              variant="table"
+              className="p-4"
+            />
+          ) : questions.length === 0 ? (
             <div className="py-16 text-center text-xs text-slate-400">
               No questions found matching the selected filters.
             </div>
@@ -314,7 +317,11 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#070D1E] shrink-0 flex items-center justify-between">
           <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Selected: <span className="font-bold text-blue-600 dark:text-blue-400">{selectedQuestionIds.size}</span> questions
+            Selected:{' '}
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              {selectedQuestionIds.size}
+            </span>{' '}
+            questions
           </div>
 
           <div className="flex items-center gap-2">

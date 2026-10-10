@@ -1,15 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Reveal } from './Reveal';
-import {
-  Crown,
-  ArrowRight,
-  BarChart3,
-  Target,
-  FileText,
-  Zap,
-  ShieldCheck,
-} from 'lucide-react';
+import { Crown, ArrowRight, BarChart3, Target, FileText, Zap, ShieldCheck } from 'lucide-react';
 
 export const Pricing: React.FC = () => {
   const navigate = useNavigate();
@@ -45,9 +37,7 @@ export const Pricing: React.FC = () => {
             <div className="space-y-2.5 max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                 One Pass.{' '}
-                <span className="text-[#0062FF] dark:text-blue-400">
-                  All Premium Tests.
-                </span>
+                <span className="text-[#0062FF] dark:text-blue-400">All Premium Tests.</span>
               </h2>
               <p className="text-xs sm:text-base text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
                 A single All-Access pass for every exam — WBP, KP, WBCS, WBPSC, Railway &amp; more.
@@ -129,7 +119,9 @@ export const Pricing: React.FC = () => {
                   <span className="text-4xl sm:text-6xl font-black tracking-tight text-white font-sans">
                     ₹199
                   </span>
-                  <span className="text-sm sm:text-base font-semibold text-blue-100">/ 365 days</span>
+                  <span className="text-sm sm:text-base font-semibold text-blue-100">
+                    / 365 days
+                  </span>
                 </div>
                 <div>
                   <span className="px-3 py-1 rounded-full bg-emerald-400/25 border border-emerald-300/30 text-emerald-300 text-xs font-black inline-block mt-0.5">

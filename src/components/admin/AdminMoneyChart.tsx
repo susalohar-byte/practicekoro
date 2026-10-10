@@ -132,7 +132,8 @@ export function AdminMoneyChart({
                         <div className="flex items-center justify-between gap-3 text-rose-300 font-medium">
                           <span>Refunded:</span>
                           <span>
-                            ₹{(p.refunds || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                            ₹
+                            {(p.refunds || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       )}

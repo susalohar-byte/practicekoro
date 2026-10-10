@@ -46,10 +46,7 @@ export const LiveTest: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [list, active] = await Promise.all([
-        api.getLiveTests(),
-        api.getActiveLiveTest(),
-      ]);
+      const [list, active] = await Promise.all([api.getLiveTests(), api.getActiveLiveTest()]);
 
       const visibleList = list.filter((lt) => lt.status !== 'cancelled');
       setAllTests(visibleList);
@@ -202,7 +199,8 @@ export const LiveTest: React.FC = () => {
             <CalendarClock className="mx-auto mb-3 h-12 w-12 text-slate-300" />
             <h1 className="text-xl font-black text-[#0B1F44]">No Live Test Scheduled</h1>
             <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-              There is currently no active or upcoming live examination scheduled. Check back soon or practice with our Mock Test series.
+              There is currently no active or upcoming live examination scheduled. Check back soon
+              or practice with our Mock Test series.
             </p>
             <div className="mt-5">
               <Link to="/test-series" className="pk-primary-btn inline-flex items-center gap-2">
@@ -231,7 +229,8 @@ export const LiveTest: React.FC = () => {
           <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
             <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
             <div>
-              <span className="font-bold">Event Cancelled:</span> This scheduled Live Test event has been cancelled by administration.
+              <span className="font-bold">Event Cancelled:</span> This scheduled Live Test event has
+              been cancelled by administration.
             </div>
           </div>
         )}
@@ -382,7 +381,9 @@ export const LiveTest: React.FC = () => {
               ) : state === 'live' ? (
                 <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
                   <Radio className="h-4 w-4 animate-pulse" />
-                  <span>Live examination window is open right now! Click Join to start immediately.</span>
+                  <span>
+                    Live examination window is open right now! Click Join to start immediately.
+                  </span>
                 </div>
               ) : (
                 <div className="text-xs text-slate-600 dark:text-slate-400">
@@ -504,7 +505,9 @@ export const LiveTest: React.FC = () => {
                 <CalendarClock className="w-4 h-4 text-[#0158FC]" />
                 <span>All Live Test Events ({allTests.length})</span>
               </h3>
-              <span className="text-[11px] text-slate-400">Select an event to view details or join</span>
+              <span className="text-[11px] text-slate-400">
+                Select an event to view details or join
+              </span>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -572,7 +575,8 @@ export const LiveTest: React.FC = () => {
                           {item.title}
                         </div>
                         <div className="mt-0.5 text-[11px] text-slate-500">
-                          {item.durationMinutes}m • {item.totalQuestions} Qs • {item.totalMarks} Marks
+                          {item.durationMinutes}m • {item.totalQuestions} Qs • {item.totalMarks}{' '}
+                          Marks
                         </div>
                       </div>
                     </div>
@@ -693,15 +697,7 @@ export const LiveTest: React.FC = () => {
   );
 };
 
-const Info = ({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) => (
+const Info = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-slate-900 p-3.5 border border-slate-100 dark:border-slate-850">
     <div className="text-[#0158FC] dark:text-sky-400">
       {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}

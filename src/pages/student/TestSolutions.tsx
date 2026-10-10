@@ -45,7 +45,9 @@ export const TestSolutions: React.FC = () => {
   const [reportIssue, setReportIssue] = useState('');
 
   const handleReportQuestion = (sol: QuestionSolution, index: number) => {
-    setReportSubject(`Question #${sol.questionOrder || index + 1} Issue: ${sol.questionText.slice(0, 45)}...`);
+    setReportSubject(
+      `Question #${sol.questionOrder || index + 1} Issue: ${sol.questionText.slice(0, 45)}...`
+    );
     setReportIssue(
       `Test: ${testMeta?.title || 'Mock Test'}\nQuestion #${sol.questionOrder || index + 1} (ID: ${sol.id})\nQuestion: ${sol.questionText}\n\nProblem details (e.g. wrong answer key, typo, translation error):\n`
     );
@@ -55,7 +57,11 @@ export const TestSolutions: React.FC = () => {
   useEffect(() => {
     let active = true;
     async function loadSolutions() {
-      if (!testId || !attemptId) { setLoadError('Open a valid attempt to view solutions.'); setLoading(false); return; }
+      if (!testId || !attemptId) {
+        setLoadError('Open a valid attempt to view solutions.');
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setLoadError('');
       try {
@@ -73,22 +79,26 @@ export const TestSolutions: React.FC = () => {
       }
     }
     void loadSolutions();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [testId, attemptId, retryLoad]);
 
   const handleToggleBookmark = async (qId: string) => {
     if (!user || bookmarkLocks.current.has(qId)) return;
     bookmarkLocks.current.add(qId);
-    setBookmarkPending(prev => [...prev, qId]);
+    setBookmarkPending((prev) => [...prev, qId]);
     setBookmarkError('');
     try {
       const isNowBookmarked = await api.toggleBookmark(user.id, qId);
-      setSolutions(prev => prev.map(s => s.id === qId ? { ...s, isBookmarked: isNowBookmarked } : s));
+      setSolutions((prev) =>
+        prev.map((s) => (s.id === qId ? { ...s, isBookmarked: isNowBookmarked } : s))
+      );
     } catch (err) {
       setBookmarkError(getErrorMessage(err, 'Bookmark could not be saved. Please retry.'));
     } finally {
       bookmarkLocks.current.delete(qId);
-      setBookmarkPending(prev => prev.filter(id => id !== qId));
+      setBookmarkPending((prev) => prev.filter((id) => id !== qId));
     }
   };
 
@@ -111,12 +121,24 @@ export const TestSolutions: React.FC = () => {
   });
 
   if (loading) return <StudentLoading label="Loading solutions" />;
-  if (loadError) return <StudentLoadError message={loadError} onRetry={() => setRetryLoad(v => v + 1)} />;
+  if (loadError)
+    return <StudentLoadError message={loadError} onRetry={() => setRetryLoad((v) => v + 1)} />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {bookmarkError && <p role="alert" className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl">{bookmarkError}</p>}
-      {solutions.length === 0 && <p role="status" className="text-sm text-slate-500">No recorded solutions are available for this attempt.</p>}
+      {bookmarkError && (
+        <p
+          role="alert"
+          className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl"
+        >
+          {bookmarkError}
+        </p>
+      )}
+      {solutions.length === 0 && (
+        <p role="status" className="text-sm text-slate-500">
+          No recorded solutions are available for this attempt.
+        </p>
+      )}
       {/* Top Navigation */}
       <div className="flex items-center justify-between">
         <button
@@ -228,8 +250,8 @@ export const TestSolutions: React.FC = () => {
                       variant="warning"
                       className="bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800/60 gap-1"
                     >
-                      <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" /> Incorrect (
-                      {sol.marksAwarded})
+                      <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" /> Incorrect
+                      ({sol.marksAwarded})
                     </Badge>
                   )}
                   {isSkipped && (
@@ -269,9 +291,11 @@ export const TestSolutions: React.FC = () => {
               {/* Question Text */}
               <div className="space-y-1">
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
-                  <MathText>{!isBilingualEnabled
-                    ? sol.questionBengaliText || sol.questionText
-                    : sol.questionText}</MathText>
+                  <MathText>
+                    {!isBilingualEnabled
+                      ? sol.questionBengaliText || sol.questionText
+                      : sol.questionText}
+                  </MathText>
                 </h3>
                 {isBilingualEnabled && sol.questionBengaliText && (
                   <p className="text-xs sm:text-sm text-slate-600 font-medium">
@@ -287,7 +311,8 @@ export const TestSolutions: React.FC = () => {
                   const isAnswer = sol.correctOption === opt;
                   const isUserChoice = sol.selectedOption === opt;
 
-                  let style = 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200';
+                  let style =
+                    'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200';
 
                   if (isAnswer) {
                     style =
@@ -306,7 +331,9 @@ export const TestSolutions: React.FC = () => {
                         <span className="w-5 h-5 rounded-full bg-white dark:bg-slate-800 border border-current flex items-center justify-center font-bold text-[10px] shrink-0">
                           {opt}
                         </span>
-                        <span><MathText>{optText}</MathText></span>
+                        <span>
+                          <MathText>{optText}</MathText>
+                        </span>
                       </div>
 
                       {isAnswer && (

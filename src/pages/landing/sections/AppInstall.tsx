@@ -159,7 +159,8 @@ export const AppInstall: React.FC = () => {
                     Real Exam Interface
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Simulates real CBT exam hall screens with timed test interfaces and instant ranking.
+                    Simulates real CBT exam hall screens with timed test interfaces and instant
+                    ranking.
                   </p>
                 </div>
               </div>
@@ -185,7 +186,8 @@ export const AppInstall: React.FC = () => {
                     Install On Your Phone Today
                   </h3>
                   <p className="text-xs sm:text-sm text-blue-100/90 max-w-md mx-auto sm:mx-0">
-                    Compatible with Android (Chrome, Edge) and iPhone (Safari). 100% Free to install.
+                    Compatible with Android (Chrome, Edge) and iPhone (Safari). 100% Free to
+                    install.
                   </p>
                 </div>
 
@@ -223,7 +225,8 @@ export const AppInstall: React.FC = () => {
                       <p className="text-blue-100 leading-relaxed text-[11px]">
                         1. Tap the three dots (⋮) in the top-right corner.
                         <br />
-                        2. Tap <strong>&quot;Install app&quot;</strong> or <strong>&quot;Add to Home screen&quot;</strong>.
+                        2. Tap <strong>&quot;Install app&quot;</strong> or{' '}
+                        <strong>&quot;Add to Home screen&quot;</strong>.
                       </p>
                     </div>
                     <div className="p-3.5 rounded-xl bg-white/10 backdrop-blur-xs">

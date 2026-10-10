@@ -57,8 +57,8 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                   isRefunded
                     ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
                     : isCompleted
-                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                 )}
               >
                 {isRefunded ? <RotateCcw className="w-5 h-5" /> : <Receipt className="w-5 h-5" />}
@@ -67,9 +67,7 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
                   Transaction Details
                 </h3>
-                <p className="text-xs text-slate-400 font-mono">
-                  {payment.id.slice(0, 18)}...
-                </p>
+                <p className="text-xs text-slate-400 font-mono">{payment.id.slice(0, 18)}...</p>
               </div>
             </div>
 
@@ -148,7 +146,11 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                           onClick={() => handleCopy(payment.refundId!, 'rfnd')}
                           className="hover:text-purple-600"
                         >
-                          {copiedKey === 'rfnd' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                          {copiedKey === 'rfnd' ? (
+                            <Check className="w-3 h-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -208,7 +210,11 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                       onClick={() => handleCopy(payment.userId, 'uid')}
                       className="hover:text-slate-800"
                     >
-                      {copiedKey === 'uid' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                      {copiedKey === 'uid' ? (
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -260,7 +266,11 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                       onClick={() => handleCopy(payment.id, 'pid')}
                       className="hover:text-blue-600"
                     >
-                      {copiedKey === 'pid' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                      {copiedKey === 'pid' ? (
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -274,7 +284,11 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                         onClick={() => handleCopy(payment.razorpayPaymentId!, 'rzpid')}
                         className="hover:text-indigo-700"
                       >
-                        {copiedKey === 'rzpid' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedKey === 'rzpid' ? (
+                          <Check className="w-3 h-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -286,10 +300,16 @@ export const AdminPaymentDrawer: React.FC<AdminPaymentDrawerProps> = ({
                     <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
                       <span>{payment.razorpayOrderId || payment.orderId}</span>
                       <button
-                        onClick={() => handleCopy((payment.razorpayOrderId || payment.orderId)!, 'oid')}
+                        onClick={() =>
+                          handleCopy((payment.razorpayOrderId || payment.orderId)!, 'oid')
+                        }
                         className="hover:text-blue-600"
                       >
-                        {copiedKey === 'oid' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                        {copiedKey === 'oid' ? (
+                          <Check className="w-3 h-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
                       </button>
                     </div>
                   </div>

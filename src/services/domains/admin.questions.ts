@@ -662,16 +662,26 @@ export async function archiveQuestion(id: string): Promise<boolean> {
   return true;
 }
 
-export async function uploadQuestionImage(file: File): Promise<string>{
+export async function uploadQuestionImage(file: File): Promise<string> {
   validateRasterFile(file, 'question-images');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'question-images');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
-export async function uploadUserAvatar(file: File, _userId: string): Promise<string>{
+export async function uploadUserAvatar(file: File, _userId: string): Promise<string> {
   validateRasterFile(file, 'avatars');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'avatars');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export const adminQuestionsApi = {

@@ -141,9 +141,7 @@ describe('Item Analysis & Date-Range Revenue Analytics Gaps (Gap 5)', () => {
       );
 
       // Check for Custom Date-Range Revenue Analytics Header
-      expect(
-        await screen.findByText(/^Revenue & Growth Analytics$/i)
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/^Revenue & Growth Analytics$/i)).toBeInTheDocument();
 
       // Check for Date Range Presets
       expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();

@@ -32,21 +32,24 @@ vi.mock('@/services/api', () => ({
     } satisfies GradedResult),
     getAttemptSolutions: vi.fn().mockResolvedValue([
       // Weak section: History 1/4 correct (25%)
-      ...[1, 2, 3].map((i) => ({
-        id: `h-wrong-${i}`,
-        questionOrder: i,
-        questionText: `History Q${i}`,
-        optionA: 'A',
-        optionB: 'B',
-        optionC: 'C',
-        optionD: 'D',
-        selectedOption: 'A',
-        correctOption: 'B',
-        isCorrect: false,
-        marksAwarded: -0.25,
-        subjectId: 'hist',
-        subjectName: 'History',
-      } as const)),
+      ...[1, 2, 3].map(
+        (i) =>
+          ({
+            id: `h-wrong-${i}`,
+            questionOrder: i,
+            questionText: `History Q${i}`,
+            optionA: 'A',
+            optionB: 'B',
+            optionC: 'C',
+            optionD: 'D',
+            selectedOption: 'A',
+            correctOption: 'B',
+            isCorrect: false,
+            marksAwarded: -0.25,
+            subjectId: 'hist',
+            subjectName: 'History',
+          }) as const
+      ),
       {
         id: 'h-right',
         questionOrder: 4,
@@ -63,21 +66,24 @@ vi.mock('@/services/api', () => ({
         subjectName: 'History',
       } as const,
       // Strong section: Math 3/3 correct (100%) — must NOT appear as weak
-      ...[1, 2, 3].map((i) => ({
-        id: `m-right-${i}`,
-        questionOrder: 10 + i,
-        questionText: `Math Q${i}`,
-        optionA: 'A',
-        optionB: 'B',
-        optionC: 'C',
-        optionD: 'D',
-        selectedOption: 'B',
-        correctOption: 'B',
-        isCorrect: true,
-        marksAwarded: 1,
-        subjectId: 'math',
-        subjectName: 'Math',
-      } as const)),
+      ...[1, 2, 3].map(
+        (i) =>
+          ({
+            id: `m-right-${i}`,
+            questionOrder: 10 + i,
+            questionText: `Math Q${i}`,
+            optionA: 'A',
+            optionB: 'B',
+            optionC: 'C',
+            optionD: 'D',
+            selectedOption: 'B',
+            correctOption: 'B',
+            isCorrect: true,
+            marksAwarded: 1,
+            subjectId: 'math',
+            subjectName: 'Math',
+          }) as const
+      ),
     ] satisfies QuestionSolution[]),
     getAttemptNegativeMarks: vi.fn().mockResolvedValue(0.75),
     getAttemptRankings: vi.fn().mockResolvedValue(null),

@@ -102,9 +102,7 @@ describe('AuthContext global loading (regression)', () => {
 
     expect(result.error?.message).toBe('Invalid login credentials');
     // Nothing after bootstrap may flip loading back to true.
-    expect(samples.slice(baseline)).toEqual(
-      expect.not.arrayContaining([true])
-    );
+    expect(samples.slice(baseline)).toEqual(expect.not.arrayContaining([true]));
   });
 
   it('register() without a session returns needsConfirmation and never logs in', async () => {

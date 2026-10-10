@@ -61,8 +61,12 @@ export const Testimonials: React.FC = () => {
                     />
                   </span>
                   <span>
-                    <span className="block text-sm font-bold text-slate-900 dark:text-white">{t.name}</span>
-                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">{t.role}</span>
+                    <span className="block text-sm font-bold text-slate-900 dark:text-white">
+                      {t.name}
+                    </span>
+                    <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                      {t.role}
+                    </span>
                   </span>
                 </figcaption>
               </figure>

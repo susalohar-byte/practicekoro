@@ -55,7 +55,10 @@ export const TestSeriesDetail: React.FC = () => {
   useEffect(() => {
     let mounted = true;
     async function loadData() {
-      if (!seriesId) { setLoading(false); return; }
+      if (!seriesId) {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setLoadError('');
@@ -66,7 +69,7 @@ export const TestSeriesDetail: React.FC = () => {
         setAnalyticsError(false);
         // Load all test series to find the matching series by ID or slug
         const allSeries = await api.getStudentTestSeries();
-        const found = allSeries.find(s => s.id === seriesId || s.slug === seriesId);
+        const found = allSeries.find((s) => s.id === seriesId || s.slug === seriesId);
         if (found) {
           if (mounted) setSeries(found);
           const [fetchedTests, report] = await Promise.all([
@@ -80,11 +83,10 @@ export const TestSeriesDetail: React.FC = () => {
           const seriesTests = fetchedTests;
 
           const myAttempts = user?.id
-            ? await api
-                .getUserAttempts(
-                  user.id,
-                  seriesTests.map((test) => test.id)
-                )
+            ? await api.getUserAttempts(
+                user.id,
+                seriesTests.map((test) => test.id)
+              )
             : [];
           if (mounted) {
             setTests(seriesTests);
@@ -216,7 +218,8 @@ export const TestSeriesDetail: React.FC = () => {
   };
 
   if (loading) return <StudentLoading label="Loading test series details" />;
-  if (loadError) return <StudentLoadError message={loadError} onRetry={() => setRetryLoad(v => v + 1)} />;
+  if (loadError)
+    return <StudentLoadError message={loadError} onRetry={() => setRetryLoad((v) => v + 1)} />;
 
   if (!series) {
     return (
@@ -301,7 +304,9 @@ export const TestSeriesDetail: React.FC = () => {
               {/* Progress pill */}
               <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-3 py-1.5 rounded-xl self-start sm:self-auto">
                 <div className="text-right">
-                  <p className="text-[10px] uppercase font-bold text-blue-200/80">Preparation Progress</p>
+                  <p className="text-[10px] uppercase font-bold text-blue-200/80">
+                    Preparation Progress
+                  </p>
                   <p className="text-xs font-black text-white">
                     {completedCount} of {tests.length} Completed ({completionPercent}%)
                   </p>

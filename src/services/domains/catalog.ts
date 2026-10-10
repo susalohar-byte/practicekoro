@@ -106,65 +106,64 @@ export const catalogApi = {
 
   async getExams(): Promise<Exam[]> {
     if (!isSupabaseConfigured) return [];
-      const [examsRes, testsRes, testExamsRes] = await Promise.all([
-        supabase
-          .from('exams')
-          .select('*')
-          .eq('is_active', true)
-          .order('order_index', { ascending: true }),
-        supabase
-          .from('tests')
-          .select('id, exam_id, total_questions')
-          .eq('is_active', true)
-          .eq('status', 'published'),
-        supabase.from('test_exams').select('test_id, exam_id'),
-      ]);
+    const [examsRes, testsRes, testExamsRes] = await Promise.all([
+      supabase
+        .from('exams')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true }),
+      supabase
+        .from('tests')
+        .select('id, exam_id, total_questions')
+        .eq('is_active', true)
+        .eq('status', 'published'),
+      supabase.from('test_exams').select('test_id, exam_id'),
+    ]);
 
-      const data = examsRes.data;
-      const error = examsRes.error || testsRes.error || testExamsRes.error;
-      if (error) throw new Error(error.message || 'Exams could not be loaded');
-      if (!data) throw new Error('Exam records were not confirmed');
-      if (data.length === 0) return [];
+    const data = examsRes.data;
+    const error = examsRes.error || testsRes.error || testExamsRes.error;
+    if (error) throw new Error(error.message || 'Exams could not be loaded');
+    if (!data) throw new Error('Exam records were not confirmed');
+    if (data.length === 0) return [];
 
-      const statsMap: Record<string, { testsCount: number; questionsCount: number }> = {};
-      data.forEach((e: ExamRow) => {
-        statsMap[e.id] = { testsCount: 0, questionsCount: 0 };
-      });
+    const statsMap: Record<string, { testsCount: number; questionsCount: number }> = {};
+    data.forEach((e: ExamRow) => {
+      statsMap[e.id] = { testsCount: 0, questionsCount: 0 };
+    });
 
-      if (testsRes.data) {
-        testsRes.data.forEach(
-          (t: { id: string; exam_id?: string | null; total_questions?: number | null }) => {
-            const targetExamIds = new Set<string>();
-            if (t.exam_id && statsMap[t.exam_id]) targetExamIds.add(t.exam_id);
-            if (testExamsRes.data) {
-              testExamsRes.data
-                .filter((te: { test_id: string; exam_id: string }) => te.test_id === t.id)
-                .forEach((te: { test_id: string; exam_id: string }) => {
-                  if (statsMap[te.exam_id]) targetExamIds.add(te.exam_id);
-                });
-            }
-            targetExamIds.forEach((examId) => {
-              statsMap[examId].testsCount += 1;
-              statsMap[examId].questionsCount += t.total_questions || 0;
-            });
+    if (testsRes.data) {
+      testsRes.data.forEach(
+        (t: { id: string; exam_id?: string | null; total_questions?: number | null }) => {
+          const targetExamIds = new Set<string>();
+          if (t.exam_id && statsMap[t.exam_id]) targetExamIds.add(t.exam_id);
+          if (testExamsRes.data) {
+            testExamsRes.data
+              .filter((te: { test_id: string; exam_id: string }) => te.test_id === t.id)
+              .forEach((te: { test_id: string; exam_id: string }) => {
+                if (statsMap[te.exam_id]) targetExamIds.add(te.exam_id);
+              });
           }
-        );
-      }
+          targetExamIds.forEach((examId) => {
+            statsMap[examId].testsCount += 1;
+            statsMap[examId].questionsCount += t.total_questions || 0;
+          });
+        }
+      );
+    }
 
-      return (data as ExamRow[]).map((item) => ({
-        id: item.id,
-        title: item.title,
-        slug: item.slug,
-        description: item.description ?? undefined,
-        category: item.category,
-        iconName: item.icon_name,
-        bannerUrl: item.banner_url ?? undefined,
-        orderIndex: item.order_index,
-        isActive: item.is_active,
-        testsCount: statsMap[item.id]?.testsCount ?? 0,
-        questionsCount: statsMap[item.id]?.questionsCount ?? 0,
-      }));
-
+    return (data as ExamRow[]).map((item) => ({
+      id: item.id,
+      title: item.title,
+      slug: item.slug,
+      description: item.description ?? undefined,
+      category: item.category,
+      iconName: item.icon_name,
+      bannerUrl: item.banner_url ?? undefined,
+      orderIndex: item.order_index,
+      isActive: item.is_active,
+      testsCount: statsMap[item.id]?.testsCount ?? 0,
+      questionsCount: statsMap[item.id]?.questionsCount ?? 0,
+    }));
   },
 
   async getExamBySlug(slug: string): Promise<Exam | null> {
@@ -331,7 +330,9 @@ export const catalogApi = {
 
       let query = supabase
         .from('tests')
-        .select('*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title)')
+        .select(
+          '*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title)'
+        )
         .eq('is_active', true)
         .eq('status', 'published');
       if (chapterId) query = query.eq('chapter_id', chapterId);
@@ -406,7 +407,9 @@ export const catalogApi = {
 
         let query = supabase
           .from('tests')
-          .select('*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title)')
+          .select(
+            '*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title)'
+          )
           .eq('is_active', true)
           .eq('status', 'published')
           .in('test_type', ['topic', 'chapter_mock', 'subject_mock']);
@@ -527,54 +530,54 @@ export const catalogApi = {
   async getTestById(testId: string): Promise<MockTest | null> {
     if (!isSupabaseConfigured) return null;
 
-      const { data, error } = await supabase
-        .from('tests')
-        .select(
-          `
+    const { data, error } = await supabase
+      .from('tests')
+      .select(
+        `
           *,
           exams:exam_id (title),
           subjects:subject_id (name),
           chapters:chapter_id (name),
           test_series:test_series_id (title)
         `
-        )
-        .eq('id', testId)
-        .eq('is_active', true)
-        .eq('status', 'published')
-        .maybeSingle();
-      if (error) throw new Error(error.message || 'Test details could not be loaded');
-      if (!data) return null;
-      const row = data as any;
-      return {
-        id: row.id,
-        examId: row.exam_id ?? undefined,
-        subjectId: row.subject_id ?? undefined,
-        chapterId: row.chapter_id ?? undefined,
-        testSeriesId: row.test_series_id ?? undefined,
-        title: row.title,
-        slug: row.slug,
-        description: row.description ?? undefined,
-        testType: row.test_type,
-        year: 'year' in row && row.year ? Number(row.year) : undefined,
-        paperName: row.paper_name ?? undefined,
-        shift: row.shift ?? undefined,
-        setName: row.set_name ?? undefined,
-        examDate: row.exam_date ?? undefined,
-        durationMinutes: row.duration_minutes,
-        totalQuestions: row.total_questions,
-        totalMarks: Number(row.total_marks),
-        passingMarks: Number(row.passing_marks),
-        negativeMarking: Number(row.negative_marking),
-        isPremium: row.is_premium,
-        orderIndex: row.order_index,
-        isActive: row.is_active,
-        status: row.status || 'published',
-        examTitle: row.exams?.title || undefined,
-        subjectName: row.subjects?.name || undefined,
-        chapterName: row.chapters?.name || undefined,
-        topicName: row.chapters?.name || undefined,
-        testSeriesTitle: row.test_series?.title || undefined,
-      };
+      )
+      .eq('id', testId)
+      .eq('is_active', true)
+      .eq('status', 'published')
+      .maybeSingle();
+    if (error) throw new Error(error.message || 'Test details could not be loaded');
+    if (!data) return null;
+    const row = data as any;
+    return {
+      id: row.id,
+      examId: row.exam_id ?? undefined,
+      subjectId: row.subject_id ?? undefined,
+      chapterId: row.chapter_id ?? undefined,
+      testSeriesId: row.test_series_id ?? undefined,
+      title: row.title,
+      slug: row.slug,
+      description: row.description ?? undefined,
+      testType: row.test_type,
+      year: 'year' in row && row.year ? Number(row.year) : undefined,
+      paperName: row.paper_name ?? undefined,
+      shift: row.shift ?? undefined,
+      setName: row.set_name ?? undefined,
+      examDate: row.exam_date ?? undefined,
+      durationMinutes: row.duration_minutes,
+      totalQuestions: row.total_questions,
+      totalMarks: Number(row.total_marks),
+      passingMarks: Number(row.passing_marks),
+      negativeMarking: Number(row.negative_marking),
+      isPremium: row.is_premium,
+      orderIndex: row.order_index,
+      isActive: row.is_active,
+      status: row.status || 'published',
+      examTitle: row.exams?.title || undefined,
+      subjectName: row.subjects?.name || undefined,
+      chapterName: row.chapters?.name || undefined,
+      topicName: row.chapters?.name || undefined,
+      testSeriesTitle: row.test_series?.title || undefined,
+    };
   },
 
   async getStudentTestQuestions(testId: string): Promise<StudentTestQuestion[]> {
@@ -689,7 +692,8 @@ export const catalogApi = {
 
       if (data && typeof data === 'object') {
         const res = data as { attempt_id: string; start_time: string; duration_minutes?: number };
-        if (!res.attempt_id || !Number.isFinite(Date.parse(res.start_time))) throw new Error('Exam session creation was not confirmed');
+        if (!res.attempt_id || !Number.isFinite(Date.parse(res.start_time)))
+          throw new Error('Exam session creation was not confirmed');
         return {
           attemptId: res.attempt_id,
           startTime: res.start_time,
@@ -843,21 +847,28 @@ export const catalogApi = {
       if (data && typeof data === 'object' && !Array.isArray(data)) {
         const res = data as Record<string, unknown>;
         const numericFields = [
-          'score', 'total_marks', 'percentage', 'accuracy',
-          'correct_count', 'wrong_count', 'skipped_count',
+          'score',
+          'total_marks',
+          'percentage',
+          'accuracy',
+          'correct_count',
+          'wrong_count',
+          'skipped_count',
         ];
         if (
           res.success === false ||
-          !numericFields.every((key) =>
-            (typeof res[key] === 'number' ||
-              (typeof res[key] === 'string' && res[key].trim() !== '')) &&
-            Number.isFinite(Number(res[key]))
+          !numericFields.every(
+            (key) =>
+              (typeof res[key] === 'number' ||
+                (typeof res[key] === 'string' && res[key].trim() !== '')) &&
+              Number.isFinite(Number(res[key]))
           ) ||
           Number(res.total_marks) <= 0 ||
-          !['correct_count', 'wrong_count', 'skipped_count'].every((key) =>
-            Number.isInteger(Number(res[key])) && Number(res[key]) >= 0
+          !['correct_count', 'wrong_count', 'skipped_count'].every(
+            (key) => Number.isInteger(Number(res[key])) && Number(res[key]) >= 0
           ) ||
-          Number(res.accuracy) < 0 || Number(res.accuracy) > 100
+          Number(res.accuracy) < 0 ||
+          Number(res.accuracy) > 100
         ) {
           throw new Error('Invalid grading response. Please retry submission.');
         }
@@ -1172,17 +1183,26 @@ export const catalogApi = {
 
   async toggleBookmark(userId: string, questionId: string, note?: string): Promise<boolean> {
     if (isSupabaseConfigured) {
-      const { data: existing, error: lookupError } = await supabase.from('bookmarks')
-        .select('id').eq('user_id', userId).eq('question_id', questionId).maybeSingle();
+      const { data: existing, error: lookupError } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('question_id', questionId)
+        .maybeSingle();
       if (lookupError) throw new Error(lookupError.message || 'Bookmark lookup failed');
       if (existing) {
         await this.removeBookmarks(userId, [questionId]);
         return false;
       }
-      const { data, error } = await supabase.from('bookmarks').insert({
-        user_id: userId, question_id: questionId,
-        note: note || 'Bookmarked during practice review',
-      }).select('id').single();
+      const { data, error } = await supabase
+        .from('bookmarks')
+        .insert({
+          user_id: userId,
+          question_id: questionId,
+          note: note || 'Bookmarked during practice review',
+        })
+        .select('id')
+        .single();
       if (error) throw new Error(error.message || 'Bookmark save failed');
       if (!data?.id) throw new Error('Bookmark save was not confirmed');
       return true;
@@ -1226,7 +1246,7 @@ export const catalogApi = {
       return testIds ? unique.filter((attempt) => testIds.includes(attempt.testId)) : unique;
     }
 
-      const data = await readCompleteQuery(() => {
+    const data = await readCompleteQuery(() => {
       let query = supabase
         .from('test_attempts')
         .select(
@@ -1245,46 +1265,47 @@ export const catalogApi = {
             subjects:subject_id (name),
             chapters:chapter_id (name)
           )
-        `
-        , { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('user_id', userId);
       if (testIds) query = query.in('test_id', testIds);
       return query.order('created_at', { ascending: false }).order('id', { ascending: false });
-      });
+    });
 
-      if (!data) throw new Error('Test history could not be loaded');
-      if (data.length === 0) return [];
-      return data.map((d) => {
-        const test = d.tests;
-        return {
-          id: d.id,
-          userId: d.user_id,
-          testId: d.test_id,
-          testSeriesId: test?.test_series_id ?? undefined,
-          testTitle: test?.title || d.test_id,
-          examTitle: test?.exams?.title,
-          subjectName: test?.subjects?.name,
-          chapterName: test?.chapters?.name,
-          durationMinutes: test?.duration_minutes ? Number(test.duration_minutes) : undefined,
-          totalQuestions: test?.total_questions ? Number(test.total_questions) : undefined,
-          isPremium: Boolean(test?.is_premium),
-          testType: test?.test_type,
-          year: test?.year ? Number(test.year) : undefined,
-          status: d.status,
-          startTime: d.start_time,
-          endTime: d.end_time ?? undefined,
-          timeSpentSeconds: d.time_spent_seconds,
-          score: Number(d.score),
-          totalMarks: Number(d.total_marks || test?.total_marks || 0),
-          correctCount: d.correct_count,
-          wrongCount: d.wrong_count,
-          skippedCount: d.skipped_count,
-          accuracy: Number(d.accuracy),
-          rank: d.rank ?? undefined,
-          percentile: d.percentile ? Number(d.percentile) : undefined,
-          createdAt: d.created_at,
-        };
-      });
+    if (!data) throw new Error('Test history could not be loaded');
+    if (data.length === 0) return [];
+    return data.map((d) => {
+      const test = d.tests;
+      return {
+        id: d.id,
+        userId: d.user_id,
+        testId: d.test_id,
+        testSeriesId: test?.test_series_id ?? undefined,
+        testTitle: test?.title || d.test_id,
+        examTitle: test?.exams?.title,
+        subjectName: test?.subjects?.name,
+        chapterName: test?.chapters?.name,
+        durationMinutes: test?.duration_minutes ? Number(test.duration_minutes) : undefined,
+        totalQuestions: test?.total_questions ? Number(test.total_questions) : undefined,
+        isPremium: Boolean(test?.is_premium),
+        testType: test?.test_type,
+        year: test?.year ? Number(test.year) : undefined,
+        status: d.status,
+        startTime: d.start_time,
+        endTime: d.end_time ?? undefined,
+        timeSpentSeconds: d.time_spent_seconds,
+        score: Number(d.score),
+        totalMarks: Number(d.total_marks || test?.total_marks || 0),
+        correctCount: d.correct_count,
+        wrongCount: d.wrong_count,
+        skippedCount: d.skipped_count,
+        accuracy: Number(d.accuracy),
+        rank: d.rank ?? undefined,
+        percentile: d.percentile ? Number(d.percentile) : undefined,
+        createdAt: d.created_at,
+      };
+    });
   },
 
   async getMistakes(userId: string): Promise<MistakeItem[]> {
@@ -1391,7 +1412,8 @@ export const catalogApi = {
 
   async getBookmarks(userId: string): Promise<BookmarkItem[]> {
     if (!isSupabaseConfigured) return [];
-      const data = await readCompleteQuery(() => supabase
+    const data = await readCompleteQuery(() =>
+      supabase
         .from('bookmarks')
         .select(
           `
@@ -1410,54 +1432,55 @@ export const catalogApi = {
               )
             )
           )
-        `
-        , { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('user_id', userId)
-        .order('created_at', { ascending: false }).order('id', { ascending: false }));
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+    );
 
-      if (!data) throw new Error('Saved questions could not be loaded');
-      if (data.length === 0) return [];
-      return (data as unknown as Array<BookmarkRow & { questions: QuestionWithContext }>).map(
-        (d) => {
-          const q = d.questions || {};
-          const ch = q.chapters;
-          const sub = ch?.subjects;
-          const ex = sub?.exams;
-          return {
-            id: d.id,
-            userId: d.user_id,
-            questionId: d.question_id,
-            note: d.note ?? undefined,
-            createdAt: d.created_at,
-            examTitle: ex?.title,
-            subjectName: sub?.name,
-            chapterName: ch?.name,
-            question: {
-              id: String(q.id),
-              chapterId: q.chapter_id ?? undefined,
-              subjectId: q.subject_id ?? undefined,
-              questionText: String(q.question_text),
-              questionBengaliText: q.question_bengali_text
-                ? String(q.question_bengali_text)
-                : undefined,
-              optionA: String(q.option_a),
-              optionB: String(q.option_b),
-              optionC: String(q.option_c),
-              optionD: String(q.option_d),
-              correctOption: (q.correct_option as 'A' | 'B' | 'C' | 'D') || 'A',
-              explanation: q.explanation ? String(q.explanation) : undefined,
-              explanationBengali: q.explanation_bengali ? String(q.explanation_bengali) : undefined,
-              difficulty: (q.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
-              defaultMarks: Number(q.default_marks || 1),
-              defaultNegativeMarks: Number(q.default_negative_marks || 0),
-              isActive: Boolean(q.is_active),
-              examTitle: ex?.title,
-              subjectName: sub?.name,
-              chapterName: ch?.name,
-            },
-          };
-        }
-      );
+    if (!data) throw new Error('Saved questions could not be loaded');
+    if (data.length === 0) return [];
+    return (data as unknown as Array<BookmarkRow & { questions: QuestionWithContext }>).map((d) => {
+      const q = d.questions || {};
+      const ch = q.chapters;
+      const sub = ch?.subjects;
+      const ex = sub?.exams;
+      return {
+        id: d.id,
+        userId: d.user_id,
+        questionId: d.question_id,
+        note: d.note ?? undefined,
+        createdAt: d.created_at,
+        examTitle: ex?.title,
+        subjectName: sub?.name,
+        chapterName: ch?.name,
+        question: {
+          id: String(q.id),
+          chapterId: q.chapter_id ?? undefined,
+          subjectId: q.subject_id ?? undefined,
+          questionText: String(q.question_text),
+          questionBengaliText: q.question_bengali_text
+            ? String(q.question_bengali_text)
+            : undefined,
+          optionA: String(q.option_a),
+          optionB: String(q.option_b),
+          optionC: String(q.option_c),
+          optionD: String(q.option_d),
+          correctOption: (q.correct_option as 'A' | 'B' | 'C' | 'D') || 'A',
+          explanation: q.explanation ? String(q.explanation) : undefined,
+          explanationBengali: q.explanation_bengali ? String(q.explanation_bengali) : undefined,
+          difficulty: (q.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+          defaultMarks: Number(q.default_marks || 1),
+          defaultNegativeMarks: Number(q.default_negative_marks || 0),
+          isActive: Boolean(q.is_active),
+          examTitle: ex?.title,
+          subjectName: sub?.name,
+          chapterName: ch?.name,
+        },
+      };
+    });
   },
 
   async removeBookmarks(userId: string, questionIds: string[]): Promise<boolean> {
@@ -1465,14 +1488,22 @@ export const catalogApi = {
     if (!userId) throw new Error('Sign in to update saved questions');
     if (!ids.length) return true;
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('bookmarks').delete()
-        .eq('user_id', userId).in('question_id', ids);
+      const { error } = await supabase
+        .from('bookmarks')
+        .delete()
+        .eq('user_id', userId)
+        .in('question_id', ids);
       if (error) throw new Error(error.message || 'Saved questions could not be removed');
       // Verify the desired state. Removal is idempotent, never a toggle that can re-add a row.
-      const { data: remaining, error: verifyError } = await supabase.from('bookmarks')
-        .select('id').eq('user_id', userId).in('question_id', ids).limit(1);
+      const { data: remaining, error: verifyError } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', userId)
+        .in('question_id', ids)
+        .limit(1);
       if (verifyError) throw new Error(verifyError.message || 'Removal could not be verified');
-      if (!remaining || remaining.length) throw new Error('Removal was not confirmed. Refresh and retry.');
+      if (!remaining || remaining.length)
+        throw new Error('Removal was not confirmed. Refresh and retry.');
       return true;
     }
     for (let i = MOCK_BOOKMARKS.length - 1; i >= 0; i--) {
@@ -1487,10 +1518,14 @@ export const catalogApi = {
     if (isSupabaseConfigured) {
       const { error } = await supabase.from('bookmarks').delete().eq('user_id', userId);
       if (error) throw new Error(error.message || 'Saved questions could not be cleared');
-      const { data: remaining, error: verifyError } = await supabase.from('bookmarks')
-        .select('id').eq('user_id', userId).limit(1);
+      const { data: remaining, error: verifyError } = await supabase
+        .from('bookmarks')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
       if (verifyError) throw new Error(verifyError.message || 'Clear could not be verified');
-      if (!remaining || remaining.length) throw new Error('Clear was not confirmed. Refresh and retry.');
+      if (!remaining || remaining.length)
+        throw new Error('Clear was not confirmed. Refresh and retry.');
       return true;
     }
     for (let i = MOCK_BOOKMARKS.length - 1; i >= 0; i--) {
@@ -1507,7 +1542,7 @@ export const catalogApi = {
   async getStudentTestSeries(examId?: string): Promise<TestSeries[]> {
     if (!isSupabaseConfigured) return [];
 
-      const data = await readCompleteQuery(() => {
+    const data = await readCompleteQuery(() => {
       let query = supabase
         .from('test_series')
         .select(
@@ -1515,53 +1550,54 @@ export const catalogApi = {
           *,
           exams:exam_id (id, title, category, slug),
           tests (id, test_type, is_active, status)
-        `
-        , { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('is_active', true)
-.order('order_index', { ascending: true }).order('id', { ascending: true });
+        .order('order_index', { ascending: true })
+        .order('id', { ascending: true });
 
       if (examId) query = query.eq('exam_id', examId);
 
       return query;
-      });
+    });
 
-      return data.map((item: any) => {
-        const rawTests = Array.isArray(item.tests) ? item.tests : [];
-        const activeTests = rawTests.filter(
-          (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
-        );
-        const count = activeTests.length;
-        const fullMockCount = activeTests.filter((t: any) => t.test_type === 'full_mock').length;
-        const pyqTestCount = activeTests.filter((t: any) => t.test_type === 'pyq').length;
-        const topicTestCount = activeTests.filter(
-          (t: any) =>
-            t.test_type === 'topic' ||
-            t.test_type === 'chapter_mock' ||
-            t.test_type === 'subject_mock'
-        ).length;
+    return data.map((item: any) => {
+      const rawTests = Array.isArray(item.tests) ? item.tests : [];
+      const activeTests = rawTests.filter(
+        (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
+      );
+      const count = activeTests.length;
+      const fullMockCount = activeTests.filter((t: any) => t.test_type === 'full_mock').length;
+      const pyqTestCount = activeTests.filter((t: any) => t.test_type === 'pyq').length;
+      const topicTestCount = activeTests.filter(
+        (t: any) =>
+          t.test_type === 'topic' ||
+          t.test_type === 'chapter_mock' ||
+          t.test_type === 'subject_mock'
+      ).length;
 
-        return {
-          id: item.id,
-          examId: item.exam_id,
-          title: item.title,
-          slug: item.slug,
-          description: item.description ?? undefined,
-          iconUrl: item.icon_url || undefined,
-          isPremium: Boolean(item.is_premium),
-          orderIndex: Number(item.order_index || 0),
-          isActive: Boolean(item.is_active),
-          isPopular: Boolean(item.is_popular),
-          createdAt: item.created_at,
-          examTitle: item.exams?.title || undefined,
-          examCategory: item.exams?.category || undefined,
-          testCount: count,
-          testsCount: count,
-          fullMockCount,
-          topicTestCount,
-          pyqTestCount,
-        };
-      });
-
+      return {
+        id: item.id,
+        examId: item.exam_id,
+        title: item.title,
+        slug: item.slug,
+        description: item.description ?? undefined,
+        iconUrl: item.icon_url || undefined,
+        isPremium: Boolean(item.is_premium),
+        orderIndex: Number(item.order_index || 0),
+        isActive: Boolean(item.is_active),
+        isPopular: Boolean(item.is_popular),
+        createdAt: item.created_at,
+        examTitle: item.exams?.title || undefined,
+        examCategory: item.exams?.category || undefined,
+        testCount: count,
+        testsCount: count,
+        fullMockCount,
+        topicTestCount,
+        pyqTestCount,
+      };
+    });
   },
 
   /**
@@ -1570,60 +1606,59 @@ export const catalogApi = {
   async getSeriesTestsForStudent(seriesId: string): Promise<MockTest[]> {
     if (!isSupabaseConfigured) return [];
 
-      const { data, error } = await supabase
-        .from('tests')
-        .select(
-          `
+    const { data, error } = await supabase
+      .from('tests')
+      .select(
+        `
           *,
           exams:exam_id (title),
           subjects:subject_id (name),
           chapters:chapter_id (name),
           test_series:test_series_id (title)
         `
-        )
-        .eq('test_series_id', seriesId)
-        .eq('is_active', true)
-        .eq('status', 'published')
-        .order('order_index', { ascending: true });
+      )
+      .eq('test_series_id', seriesId)
+      .eq('is_active', true)
+      .eq('status', 'published')
+      .order('order_index', { ascending: true });
 
-      if (error) throw new Error(error.message || 'Series tests could not be loaded');
-      if (!data) throw new Error('Series tests were not confirmed');
-      if (data.length === 0) {
-        return [];
-      }
+    if (error) throw new Error(error.message || 'Series tests could not be loaded');
+    if (!data) throw new Error('Series tests were not confirmed');
+    if (data.length === 0) {
+      return [];
+    }
 
-      return data.map((item: any) => ({
-        id: item.id,
-        examId: item.exam_id,
-        subjectId: item.subject_id ?? undefined,
-        chapterId: item.chapter_id ?? undefined,
-        topicId: item.chapter_id ?? undefined,
-        testSeriesId: item.test_series_id ?? undefined,
-        title: item.title,
-        slug: item.slug,
-        description: item.description ?? undefined,
-        testType: item.test_type,
-        year: item.year ? Number(item.year) : undefined,
-        paperName: item.paper_name ?? undefined,
-        shift: item.shift ?? undefined,
-        setName: item.set_name ?? undefined,
-        examDate: item.exam_date ?? undefined,
-        durationMinutes: Number(item.duration_minutes || 60),
-        totalQuestions: Number(item.total_questions || 0),
-        totalMarks: Number(item.total_marks || 0),
-        passingMarks: Number(item.passing_marks || 0),
-        negativeMarking: Number(item.negative_marking || 0),
-        isPremium: Boolean(item.is_premium),
-        orderIndex: Number(item.order_index || 0),
-        isActive: Boolean(item.is_active),
-        status: (item.status as 'draft' | 'published' | 'archived') || 'published',
-        examTitle: item.exams?.title,
-        subjectName: item.subjects?.name,
-        chapterName: item.chapters?.name,
-        topicName: item.chapters?.name,
-        testSeriesTitle: item.test_series?.title,
-      }));
-
+    return data.map((item: any) => ({
+      id: item.id,
+      examId: item.exam_id,
+      subjectId: item.subject_id ?? undefined,
+      chapterId: item.chapter_id ?? undefined,
+      topicId: item.chapter_id ?? undefined,
+      testSeriesId: item.test_series_id ?? undefined,
+      title: item.title,
+      slug: item.slug,
+      description: item.description ?? undefined,
+      testType: item.test_type,
+      year: item.year ? Number(item.year) : undefined,
+      paperName: item.paper_name ?? undefined,
+      shift: item.shift ?? undefined,
+      setName: item.set_name ?? undefined,
+      examDate: item.exam_date ?? undefined,
+      durationMinutes: Number(item.duration_minutes || 60),
+      totalQuestions: Number(item.total_questions || 0),
+      totalMarks: Number(item.total_marks || 0),
+      passingMarks: Number(item.passing_marks || 0),
+      negativeMarking: Number(item.negative_marking || 0),
+      isPremium: Boolean(item.is_premium),
+      orderIndex: Number(item.order_index || 0),
+      isActive: Boolean(item.is_active),
+      status: (item.status as 'draft' | 'published' | 'archived') || 'published',
+      examTitle: item.exams?.title,
+      subjectName: item.subjects?.name,
+      chapterName: item.chapters?.name,
+      topicName: item.chapters?.name,
+      testSeriesTitle: item.test_series?.title,
+    }));
   },
 
   /**
@@ -1658,7 +1693,8 @@ export const catalogApi = {
       p_series_id: seriesId,
     });
     if (error) throw new Error(error.message || 'Failed to load series analytics');
-    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Series results were not confirmed by the server');
+    if (!data || typeof data !== 'object' || Array.isArray(data))
+      throw new Error('Series results were not confirmed by the server');
     return data as unknown as TestSeriesAnalytics;
   },
 };

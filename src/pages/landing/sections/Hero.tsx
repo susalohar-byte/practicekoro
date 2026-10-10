@@ -107,7 +107,8 @@ export const Hero: React.FC = () => {
             {/* Subheadline - Streamlined & uncluttered */}
             <Reveal delay={160}>
               <p className="mt-2.5 sm:mt-3.5 text-xs sm:text-base text-slate-200 max-w-xl mx-auto leading-relaxed font-normal text-balance drop-shadow-sm px-2 sm:px-0">
-                আসল পরীক্ষার ধাঁচে পূর্ণাঙ্গ প্রস্তুতি — WBP, WBPSC, WBSSC, TET ও Railways পরীক্ষার জন্য।
+                আসল পরীক্ষার ধাঁচে পূর্ণাঙ্গ প্রস্তুতি — WBP, WBPSC, WBSSC, TET ও Railways পরীক্ষার
+                জন্য।
               </p>
             </Reveal>
 

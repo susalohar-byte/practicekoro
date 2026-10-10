@@ -1,5 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Eye, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Image as ImageIcon,
+  Eye,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 import { uploadQuestionImage } from '@/services/domains/admin.questions';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -18,12 +26,7 @@ export interface QuestionImageFieldProps {
   className?: string;
 }
 
-const ALLOWED_MIME_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  'image/webp',
-];
+const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 

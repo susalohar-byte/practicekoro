@@ -690,10 +690,15 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
 }
 
 /** Upload Exam/Test Logo for Live Test to Supabase Storage */
-export async function uploadLiveTestLogo(file: File, _id: string = 'custom'): Promise<string>{
+export async function uploadLiveTestLogo(file: File, _id: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 /** Cancel a live test */

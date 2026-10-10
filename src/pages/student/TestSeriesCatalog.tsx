@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import type { TestSeries } from '@/types';
 
-
-
 interface CardTheme {
   gradient: string;
   border: string;
@@ -96,7 +94,12 @@ function resolveCardTheme(title: string, examTitle?: string): CardTheme {
       emblem: '/images/exams/emblem_tet.png',
     };
   }
-  if (combined.includes('food') || combined.includes('si') || combined.includes('psc') || combined.includes('wbpsc')) {
+  if (
+    combined.includes('food') ||
+    combined.includes('si') ||
+    combined.includes('psc') ||
+    combined.includes('wbpsc')
+  ) {
     return {
       gradient: 'from-[#F5F3FF] to-[#EDE9FE]',
       border: 'border-[#DDD6FE]',
@@ -125,7 +128,9 @@ export const TestSeriesCatalog: React.FC = () => {
   const loadVersion = useRef(0);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSort, setSelectedSort] = useState<'Most Popular' | 'Newest' | 'Most Tests' | 'A–Z'>('Most Popular');
+  const [selectedSort, setSelectedSort] = useState<
+    'Most Popular' | 'Newest' | 'Most Tests' | 'A–Z'
+  >('Most Popular');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
@@ -160,12 +165,16 @@ export const TestSeriesCatalog: React.FC = () => {
     setLoading(true);
     setLoadError('');
     try {
-      const [seriesData, examsData] = await Promise.all([api.getStudentTestSeries(), api.getExams()]);
+      const [seriesData, examsData] = await Promise.all([
+        api.getStudentTestSeries(),
+        api.getExams(),
+      ]);
       if (version !== loadVersion.current) return;
       setSeriesList(seriesData);
-      setExamsList(examsData.map(e => ({ id: e.id, title: e.title, slug: e.slug || e.id })));
+      setExamsList(examsData.map((e) => ({ id: e.id, title: e.title, slug: e.slug || e.id })));
     } catch (err) {
-      if (version === loadVersion.current) setLoadError(getErrorMessage(err, 'Test series could not be loaded.'));
+      if (version === loadVersion.current)
+        setLoadError(getErrorMessage(err, 'Test series could not be loaded.'));
     } finally {
       if (version === loadVersion.current) setLoading(false);
     }
@@ -174,7 +183,10 @@ export const TestSeriesCatalog: React.FC = () => {
     void loadData();
     const unsubscribe = api.subscribeToStudentCatalogUpdates(loadData);
     const counter = loadVersion;
-    return () => { counter.current++; unsubscribe(); };
+    return () => {
+      counter.current++;
+      unsubscribe();
+    };
   }, [loadData]);
 
   // Filter series based on selected exam and search query
@@ -185,7 +197,9 @@ export const TestSeriesCatalog: React.FC = () => {
         const slug = selectedExamSlug.toLowerCase().replace(/_/g, '-').trim();
         const sExamId = (series.examId || '').toLowerCase();
 
-        const selectedExam = examsList.find(exam => exam.id === selectedExamSlug || exam.slug === selectedExamSlug);
+        const selectedExam = examsList.find(
+          (exam) => exam.id === selectedExamSlug || exam.slug === selectedExamSlug
+        );
         const matchesExam = selectedExam ? series.examId === selectedExam.id : sExamId === slug;
         if (!matchesExam) return false;
       }
@@ -216,7 +230,9 @@ export const TestSeriesCatalog: React.FC = () => {
         return bCount - aCount;
       });
     } else if (selectedSort === 'Newest') {
-      list.sort((a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
+      list.sort(
+        (a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0)
+      );
     } else if (selectedSort === 'Most Tests') {
       list.sort((a, b) => {
         const aCount = (a.fullMockCount ?? 0) + (a.topicTestCount ?? 0) + (a.pyqTestCount ?? 0);
@@ -328,14 +344,18 @@ export const TestSeriesCatalog: React.FC = () => {
           >
             <Filter className="w-3.5 h-3.5" />
             <span className="max-w-[85px] sm:max-w-[130px] truncate">{selectedExamTitle}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${isFilterDropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {/* Filter Dropdown Menu */}
           {isFilterDropdownOpen && (
             <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-150">
               <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200">Filter by Exam</span>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                  Filter by Exam
+                </span>
                 {selectedExamSlug && (
                   <button
                     onClick={() => handleSelectExam('')}
@@ -350,7 +370,9 @@ export const TestSeriesCatalog: React.FC = () => {
                 <button
                   onClick={() => handleSelectExam('')}
                   className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${
-                    !selectedExamSlug ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40' : 'text-slate-700 dark:text-slate-300'
+                    !selectedExamSlug
+                      ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40'
+                      : 'text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <span>All Exams</span>
@@ -364,7 +386,9 @@ export const TestSeriesCatalog: React.FC = () => {
                       key={exam.id}
                       onClick={() => handleSelectExam(exam.slug, exam.title)}
                       className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${
-                        isSelected ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40' : 'text-slate-700 dark:text-slate-300'
+                        isSelected
+                          ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40'
+                          : 'text-slate-700 dark:text-slate-300'
                       }`}
                     >
                       <span className="truncate">{exam.title}</span>
@@ -426,7 +450,9 @@ export const TestSeriesCatalog: React.FC = () => {
           >
             <span className="text-slate-400">⇅</span>
             <span>{selectedSort}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${isSortDropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {isSortDropdownOpen && (
@@ -439,7 +465,9 @@ export const TestSeriesCatalog: React.FC = () => {
                     setIsSortDropdownOpen(false);
                   }}
                   className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
-                    selectedSort === opt ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40' : 'text-slate-700 dark:text-slate-300'
+                    selectedSort === opt
+                      ? 'text-[#026BFC] bg-blue-50/60 dark:bg-blue-950/40'
+                      : 'text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <span>{opt}</span>
@@ -452,14 +480,18 @@ export const TestSeriesCatalog: React.FC = () => {
       </div>
 
       {/* ── 5. RESPONSIVE 2-COLUMN GRID (MOBILE) / 3-4 COLUMNS (DESKTOP) ── */}
-      {loadError ? (<StudentLoadError message={loadError} onRetry={() => void loadData()} />) : loading ? (
+      {loadError ? (
+        <StudentLoadError message={loadError} onRetry={() => void loadData()} />
+      ) : loading ? (
         <StudentLoading label="Loading published test series" />
       ) : sortedList.length === 0 ? (
         <div className="py-12 sm:py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-3">
           <div className="w-14 h-14 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
             <Search className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-black text-slate-900 dark:text-white">No test series found</h3>
+          <h3 className="text-base font-black text-slate-900 dark:text-white">
+            No test series found
+          </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto">
             Try another exam or search term.
           </p>

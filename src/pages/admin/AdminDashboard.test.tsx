@@ -46,7 +46,9 @@ describe('AdminDashboard Component Tests', () => {
     );
 
     // Verify main header
-    expect(await screen.findByRole('heading', { level: 1, name: /Dashboard/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /Dashboard/i })
+    ).toBeInTheDocument();
     expect(screen.getByText(/Overview of your PracticeKoro platform/i)).toBeInTheDocument();
 
     // Verify 6 KPI metric cards
@@ -117,7 +119,8 @@ describe('AdminDashboard Component Tests', () => {
         id: 'custom-exam-1',
         title: 'Custom Police Exam',
         slug: 'custom-police',
-        iconName: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        iconName:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
         orderIndex: 1,
         isActive: true,
         testsCount: 10,
@@ -133,10 +136,7 @@ describe('AdminDashboard Component Tests', () => {
     expect(await screen.findByText('Most Popular Exams')).toBeInTheDocument();
     const logoImg = await screen.findByAltText('Custom Police Exam');
     expect(logoImg).toBeInTheDocument();
-    expect(logoImg).toHaveAttribute(
-      'src',
-      expect.stringContaining('data:image/png;base64')
-    );
+    expect(logoImg).toHaveAttribute('src', expect.stringContaining('data:image/png;base64'));
   });
 
   it('renders Top Students leaderboard accurately', async () => {
@@ -150,9 +150,15 @@ describe('AdminDashboard Component Tests', () => {
   });
 
   it('displays error state and provides a working retry button when API fails', async () => {
-    const spyStats = vi.spyOn(api, 'getAdminDashboardV2Stats').mockRejectedValue(new Error('Network RPC timeout'));
-    const spyExams = vi.spyOn(api, 'getAllAdminExams').mockRejectedValue(new Error('Network RPC timeout'));
-    const spyTests = vi.spyOn(api, 'getAllAdminTests').mockRejectedValue(new Error('Network RPC timeout'));
+    const spyStats = vi
+      .spyOn(api, 'getAdminDashboardV2Stats')
+      .mockRejectedValue(new Error('Network RPC timeout'));
+    const spyExams = vi
+      .spyOn(api, 'getAllAdminExams')
+      .mockRejectedValue(new Error('Network RPC timeout'));
+    const spyTests = vi
+      .spyOn(api, 'getAllAdminTests')
+      .mockRejectedValue(new Error('Network RPC timeout'));
 
     render(
       <MemoryRouter>

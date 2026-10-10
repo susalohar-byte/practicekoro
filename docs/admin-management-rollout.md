@@ -24,6 +24,7 @@ release. A Git push alone does not enable the new backend operations.
    Production origins default to `https://practicekoro.online` and
    `https://www.practicekoro.online`. For another frontend origin, configure the
    function's `ALLOWED_ORIGINS` as a comma-separated HTTPS allowlist.
+
 4. Deploy the web build after the backend is ready.
 
 ## Behavior and safeguards

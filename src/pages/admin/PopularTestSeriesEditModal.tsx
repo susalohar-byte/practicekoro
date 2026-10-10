@@ -99,7 +99,9 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
   const [cardGradientEnd, setCardGradientEnd] = useState(card?.cardGradientEnd || '#0048C6');
   const [cardArrowColor, setCardArrowColor] = useState(card?.cardArrowColor || '#026BFC');
   const [cardBgImage, setCardBgImage] = useState(card?.cardBgImage || '/images/series_wbp_bg.png');
-  const [cardLogoUrl, setCardLogoUrl] = useState(card?.cardLogoUrl || '/images/exams/emblem_series_wbp.png');
+  const [cardLogoUrl, setCardLogoUrl] = useState(
+    card?.cardLogoUrl || '/images/exams/emblem_series_wbp.png'
+  );
   const [route, setRoute] = useState(card?.route || '/test-series');
   const [isActive, setIsActive] = useState(card?.isActive !== false);
   const [testSeriesId, setTestSeriesId] = useState(card?.testSeriesId || '');
@@ -151,7 +153,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
     }
   };
 
-  const handleSelectGradientPreset = (preset: typeof PRESET_GRADIENTS[0]) => {
+  const handleSelectGradientPreset = (preset: (typeof PRESET_GRADIENTS)[0]) => {
     setCardGradientStart(preset.start);
     setCardGradientEnd(preset.end);
     setCardArrowColor(preset.arrow);
@@ -235,7 +237,9 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       await onSave(updatedCard);
       onClose();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Failed to save Popular Test Series card.');
+      setError(
+        saveError instanceof Error ? saveError.message : 'Failed to save Popular Test Series card.'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -255,7 +259,8 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
                 {card ? 'Edit Popular Test Series Card' : 'New Popular Test Series Card'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                1:1 reference styling with background art, circular emblem, and full/topic/pyq test breakdown
+                1:1 reference styling with background art, circular emblem, and full/topic/pyq test
+                breakdown
               </p>
             </div>
           </div>
@@ -310,11 +315,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
                 {/* Large Circular White Logo Container */}
                 <div className="w-[48px] h-[48px] rounded-full bg-white p-1.5 shadow-sm flex items-center justify-center border border-white/80 shrink-0">
                   {cardLogoUrl ? (
-                    <img
-                      src={cardLogoUrl}
-                      alt=""
-                      className="w-full h-full object-contain"
-                    />
+                    <img src={cardLogoUrl} alt="" className="w-full h-full object-contain" />
                   ) : (
                     <Sparkles className="w-5 h-5 text-indigo-500" />
                   )}
@@ -354,7 +355,8 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
               <option value="">-- Choose Test Series to connect --</option>
               {existingSeries.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({s.testCount || 0} Tests: {s.fullMockCount || 0} Full Mock, {s.topicTestCount || 0} Topic, {s.pyqTestCount || 0} PYQ)
+                  {s.title} ({s.testCount || 0} Tests: {s.fullMockCount || 0} Full Mock,{' '}
+                  {s.topicTestCount || 0} Topic, {s.pyqTestCount || 0} PYQ)
                 </option>
               ))}
             </select>
@@ -393,7 +395,8 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
           {/* Statistics Override / Defaults */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
             <div className="text-xs font-black text-slate-800 dark:text-slate-200">
-              📊 Test Breakdown Counts (Automatically calculated from tests in database, or override here)
+              📊 Test Breakdown Counts (Automatically calculated from tests in database, or override
+              here)
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -456,7 +459,10 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
                 >
                   <span className="truncate">{p.name}</span>
                   <div
-                    className={cn('w-4 h-4 rounded-full bg-gradient-to-br shrink-0 shadow-2xs', p.badge)}
+                    className={cn(
+                      'w-4 h-4 rounded-full bg-gradient-to-br shrink-0 shadow-2xs',
+                      p.badge
+                    )}
                   />
                 </button>
               ))}

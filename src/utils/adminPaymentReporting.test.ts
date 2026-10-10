@@ -83,4 +83,3 @@ describe('Payment reporting integrity', () => {
     expect(points.reduce((s, p) => s + p.refunds, 0)).toBe(50);
   });
 });
-

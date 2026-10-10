@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Upload,
-  Download,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
+import { X, Upload, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { api } from '@/services/api';
 import type { Exam, Subject, Chapter } from '@/types';
@@ -84,11 +78,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       '',
     ];
 
-    const csvContent = [
-      headers.join(','),
-      sampleRow1.join(','),
-      sampleRow2.join(','),
-    ].join('\n');
+    const csvContent = [headers.join(','), sampleRow1.join(','), sampleRow2.join(',')].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -119,7 +109,10 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
     try {
       const text = await csvFile.text();
-      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      const lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
       if (lines.length < 2) {
         throw new Error('CSV file contains no data rows.');
       }
@@ -142,9 +135,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
         let foundChapId: string | undefined;
 
         if (row.examname) {
-          const matchExam = exams.find(
-            (e) => e.title.toLowerCase() === row.examname.toLowerCase()
-          );
+          const matchExam = exams.find((e) => e.title.toLowerCase() === row.examname.toLowerCase());
           if (matchExam) foundExamId = matchExam.id;
         }
 

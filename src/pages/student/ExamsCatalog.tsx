@@ -111,7 +111,11 @@ function enrichExam(exam: Exam): EnrichedExam {
   let sectionTitle = category;
   if (catLower === 'west bengal' || catLower === 'state govt' || catLower === 'state government') {
     sectionTitle = 'West Bengal Government Exams';
-  } else if (catLower === 'central' || catLower === 'central govt' || catLower === 'central government') {
+  } else if (
+    catLower === 'central' ||
+    catLower === 'central govt' ||
+    catLower === 'central government'
+  ) {
     sectionTitle = 'Central Government Exams';
   } else if (catLower === 'teaching') {
     sectionTitle = 'Teaching Exams';
@@ -654,7 +658,7 @@ export const ExamsCatalog: React.FC = () => {
                 )}
               </div>
 
-              {(selectedFilter !== 'all') && (
+              {selectedFilter !== 'all' && (
                 <button
                   onClick={() => {
                     setSelectedFilter('all');

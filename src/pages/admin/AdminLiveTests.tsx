@@ -656,7 +656,13 @@ export const AdminLiveTests: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {loading ? <tr><td colSpan={9} className="p-4"><AdminSectionSkeleton label="Loading live tests..." variant="table" /></td></tr> : paginatedTests.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={9} className="p-4">
+                        <AdminSectionSkeleton label="Loading live tests..." variant="table" />
+                      </td>
+                    </tr>
+                  ) : paginatedTests.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-slate-500">
                         <div className="flex flex-col items-center justify-center gap-2">

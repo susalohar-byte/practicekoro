@@ -864,7 +864,13 @@ export const AdminBlog: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
-                  {loading ? <tr><td colSpan={11} className="p-4"><AdminSectionSkeleton label="Loading blog posts..." variant="table" /></td></tr> : paginatedPosts.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={11} className="p-4">
+                        <AdminSectionSkeleton label="Loading blog posts..." variant="table" />
+                      </td>
+                    </tr>
+                  ) : paginatedPosts.length === 0 ? (
                     <tr>
                       <td colSpan={11} className="py-12 text-center text-slate-500">
                         <div className="flex flex-col items-center justify-center gap-2">

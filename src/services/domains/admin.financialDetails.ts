@@ -5,7 +5,7 @@ import type { AdminPaymentRow, AdminSubscriptionRow } from '@/types';
 export async function enrichAdminSubscriptionPayments(
   rows: AdminSubscriptionRow[]
 ): Promise<AdminSubscriptionRow[]> {
-  const ids = [...new Set(rows.flatMap((row) => row.paymentId ? [row.paymentId] : []))];
+  const ids = [...new Set(rows.flatMap((row) => (row.paymentId ? [row.paymentId] : [])))];
   if (!ids.length) return rows;
   try {
     const { data, error } = await supabase
@@ -41,7 +41,10 @@ export async function enrichAdminPaymentSubscriptions(
     const { data, error } = await supabase
       .from('subscriptions')
       .select('id, user_id, payment_id, status, expires_at, created_at')
-      .in('payment_id', rows.map((row) => row.id))
+      .in(
+        'payment_id',
+        rows.map((row) => row.id)
+      )
       .order('created_at', { ascending: false });
     if (error || !data) return rows;
     const subscriptions = new Map<string, (typeof data)[number]>();
@@ -116,9 +119,7 @@ export async function enrichAdminSubscriptionAvatars(
       if (row.avatarUrl) return row;
       const avatar =
         (row.userId ? avatarMap.get(row.userId) : undefined) ||
-        (row.studentEmail
-          ? avatarMap.get(row.studentEmail.toLowerCase().trim())
-          : undefined);
+        (row.studentEmail ? avatarMap.get(row.studentEmail.toLowerCase().trim()) : undefined);
       return {
         ...row,
         avatarUrl: avatar || undefined,
@@ -180,9 +181,7 @@ export async function enrichAdminPaymentAvatars(
       if (row.avatarUrl) return row;
       const avatar =
         (row.userId ? avatarMap.get(row.userId) : undefined) ||
-        (row.studentEmail
-          ? avatarMap.get(row.studentEmail.toLowerCase().trim())
-          : undefined);
+        (row.studentEmail ? avatarMap.get(row.studentEmail.toLowerCase().trim()) : undefined);
       return {
         ...row,
         avatarUrl: avatar || undefined,

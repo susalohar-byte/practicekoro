@@ -321,7 +321,8 @@ export const ExamDetail: React.FC = () => {
                     </span>
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Filter by curated package: each series neatly combines Full Mocks, Topic Tests & PYQ papers.
+                    Filter by curated package: each series neatly combines Full Mocks, Topic Tests &
+                    PYQ papers.
                   </p>
                 </div>
               </div>

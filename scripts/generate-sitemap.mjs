@@ -22,8 +22,7 @@ const DIST = join(ROOT, 'dist');
 const PUBLIC = join(ROOT, 'public');
 const SITE_URL = 'https://practicekoro.online';
 
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || 'https://prycanbnxuihxhskallw.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://prycanbnxuihxhskallw.supabase.co';
 const SUPABASE_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByeWNhbmJueHVpaHhoc2thbGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMTY1NTgsImV4cCI6MjEwNDg5MjU1OH0.HOzUGuRqD0Y9qWlGGhvHGenylTJ2Sky_G7E3PEO0EIw';
@@ -99,7 +98,8 @@ async function main() {
     if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
       console.log(`  ✓ Found ${rpcData.length} active questions via get_public_seo_questions RPC`);
       for (const q of rpcData) {
-        const text = q.questionBengaliText || q.question_bengali_text || q.questionText || q.question_text;
+        const text =
+          q.questionBengaliText || q.question_bengali_text || q.questionText || q.question_text;
         const slug = slugify(text);
         entries.push({
           url: `/questions/${q.id}/${encodeURI(slug)}`,

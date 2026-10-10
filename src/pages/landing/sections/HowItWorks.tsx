@@ -155,8 +155,12 @@ export const HowItWorks: React.FC = () => {
                   {step.graphic}
                 </div>
 
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">{step.title}</h3>
-                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{step.bengali}</p>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  {step.title}
+                </h3>
+                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                  {step.bengali}
+                </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-xs leading-relaxed">
                   {step.description}
                 </p>

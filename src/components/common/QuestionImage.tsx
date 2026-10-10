@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, X, Maximize2, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  X,
+  Maximize2,
+  ExternalLink,
+  Image as ImageIcon,
+} from 'lucide-react';
 
 export interface QuestionImageProps {
   /** The image URL or data URL. If undefined or null, nothing is rendered. */
@@ -158,9 +166,7 @@ export const QuestionImage: React.FC<QuestionImageProps> = ({
               <span className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
                 <ImageIcon className="w-4 h-4" />
               </span>
-              <span className="text-xs sm:text-sm font-bold text-slate-200">
-                Question Figure
-              </span>
+              <span className="text-xs sm:text-sm font-bold text-slate-200">Question Figure</span>
               <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
                 ({Math.round(zoomLevel * 100)}%)
               </span>
@@ -243,7 +249,11 @@ export const QuestionImage: React.FC<QuestionImageProps> = ({
 
           {/* Bottom Hint */}
           <div className="text-[11px] text-slate-400 py-1 text-center font-medium">
-            Tap outside or press <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">Esc</kbd> to close
+            Tap outside or press{' '}
+            <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">
+              Esc
+            </kbd>{' '}
+            to close
           </div>
         </div>
       )}

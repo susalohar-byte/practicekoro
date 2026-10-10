@@ -30,7 +30,10 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
   const isExam = q.sourceType === 'other' || Boolean(q.sourceExam);
   const isPyq = q.sourceType === 'pyq';
   return (
-    <tr key={q.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors ${isSelected ? 'bg-sky-50/50 dark:bg-sky-950/20' : ''}`}>
+    <tr
+      key={q.id}
+      className={`hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors ${isSelected ? 'bg-sky-50/50 dark:bg-sky-950/20' : ''}`}
+    >
       {/* Checkbox + Question Index */}
       <td className="px-3 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
@@ -47,7 +50,9 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
               {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
             </button>
           )}
-          <span className="font-bold text-slate-400 dark:text-slate-500 text-[11px]">{questionNumber}</span>
+          <span className="font-bold text-slate-400 dark:text-slate-500 text-[11px]">
+            {questionNumber}
+          </span>
         </div>
       </td>
 

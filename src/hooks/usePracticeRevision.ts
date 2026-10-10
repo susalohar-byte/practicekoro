@@ -42,9 +42,7 @@ export function useResolveMistake(userId?: string) {
       api.resolveMistake(mistakeId, nextState),
     onMutate: async ({ mistakeId, nextState }) => {
       await queryClient.cancelQueries({ queryKey: practiceRevisionKey(userId) });
-      const previous = queryClient.getQueryData<PracticeRevisionData>(
-        practiceRevisionKey(userId)
-      );
+      const previous = queryClient.getQueryData<PracticeRevisionData>(practiceRevisionKey(userId));
       queryClient.setQueryData<PracticeRevisionData>(practiceRevisionKey(userId), (old) =>
         old
           ? {
@@ -80,9 +78,7 @@ export function useRemoveBookmark(userId?: string) {
       api.removeBookmarks(userId!, [questionId]),
     onMutate: async ({ bookmarkId }) => {
       await queryClient.cancelQueries({ queryKey: practiceRevisionKey(userId) });
-      const previous = queryClient.getQueryData<PracticeRevisionData>(
-        practiceRevisionKey(userId)
-      );
+      const previous = queryClient.getQueryData<PracticeRevisionData>(practiceRevisionKey(userId));
       queryClient.setQueryData<PracticeRevisionData>(practiceRevisionKey(userId), (old) =>
         old ? { ...old, bookmarks: old.bookmarks.filter((b) => b.id !== bookmarkId) } : old
       );

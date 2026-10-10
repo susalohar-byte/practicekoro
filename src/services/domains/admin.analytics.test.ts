@@ -169,7 +169,9 @@ describe('Authoritative Analytics', () => {
     m.data.profiles = Array.from({ length: 7 }, (_, i) => ({ ...profile, id: `s${i}` }));
     m.data.test_attempts = [{ ...attempt, user_id: 's0' }];
     const x = await getAuthoritativeAnalytics('custom', '2026-10-07', '2026-10-07');
-    expect(m.calls.find(c => c.table === 'attempt_answers').columns).toContain('chapters:chapters!questions_chapter_id_fkey');
+    expect(m.calls.find((c) => c.table === 'attempt_answers').columns).toContain(
+      'chapters:chapters!questions_chapter_id_fkey'
+    );
     expect(x.studentPerformance.totalStudents).toBe(7);
     expect(x.studentPerformance.newStudents).toBe(7);
     expect(x.studentPerformance.testsAttempted).toBe(1);

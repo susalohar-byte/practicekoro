@@ -110,7 +110,8 @@ export const MyTests: React.FC = () => {
       const data = await api.getUserAttempts(user.id);
       if (version === requestVersion.current) setAttempts(data || []);
     } catch (err) {
-      if (version === requestVersion.current) setLoadError(getErrorMessage(err, 'Test history could not be loaded.'));
+      if (version === requestVersion.current)
+        setLoadError(getErrorMessage(err, 'Test history could not be loaded.'));
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
@@ -120,7 +121,9 @@ export const MyTests: React.FC = () => {
     setAttempts([]);
     void loadAttempts();
     const counter = requestVersion;
-    return () => { counter.current++; };
+    return () => {
+      counter.current++;
+    };
   }, [loadAttempts]);
 
   useEffect(() => {
@@ -128,54 +131,80 @@ export const MyTests: React.FC = () => {
     setSeriesLoading(true);
     setSeriesError('');
     setSeriesResults([]);
-    api.getStudentTestSeries().then(async (series) => {
-      const reports = await Promise.all(series.map(async (item) => {
-        try {
-          const analytics = await api.getTestSeriesAnalytics(item.id);
-          return { item, analytics };
-        } catch (error) {
-          console.error(`Failed to load results for test series ${item.id}:`, error);
-          return { item, analytics: null };
-        }
-      }));
-      if (!active) return;
-      if (reports.some(report => !report.analytics)) setSeriesError('Some series results could not be loaded. No zero scores have been substituted.');
-      setSeriesResults(reports.filter(report => report.analytics).map(({ item, analytics }, index) => {
-        const title = item.title.toLowerCase();
-        const emblemType: SeriesResultItem['emblemType'] = title.includes('kp')
-          ? 'kp_crest'
-          : title.includes('ssc')
-            ? 'ssc_red'
-            : 'generic';
-        const completedTests = analytics?.testsAttempted ?? 0;
-        const totalTests = analytics?.totalTests ?? item.testCount ?? item.testsCount ?? 0;
-        const avgScore = Math.round(analytics?.averageScorePercent ?? 0);
-        const color = index % 2 === 0 ? 'text-[#026BFC]' : 'text-[#10B981]';
-        return {
-          id: item.id,
-          title: item.title,
-          totalTests,
-          completedTests,
-          status: completedTests === 0 ? 'Not Started' : completedTests >= totalTests ? 'Completed' : 'In Progress',
-          isCompleted: completedTests > 0 && completedTests >= totalTests,
-          avgScore,
-          emblemType,
-          scoreBg: index % 2 === 0 ? 'bg-[#EFF6FF]' : 'bg-[#ECFDF5]',
-          scoreColor: color,
-        };
-      }));
-    }).catch((error) => {
-      console.error('Failed to load student test series:', error);
-      if (active) setSeriesError(getErrorMessage(error, 'Series results could not be loaded.'));
-    }).finally(() => { if (active) setSeriesLoading(false); });
-    return () => { active = false; };
+    api
+      .getStudentTestSeries()
+      .then(async (series) => {
+        const reports = await Promise.all(
+          series.map(async (item) => {
+            try {
+              const analytics = await api.getTestSeriesAnalytics(item.id);
+              return { item, analytics };
+            } catch (error) {
+              console.error(`Failed to load results for test series ${item.id}:`, error);
+              return { item, analytics: null };
+            }
+          })
+        );
+        if (!active) return;
+        if (reports.some((report) => !report.analytics))
+          setSeriesError(
+            'Some series results could not be loaded. No zero scores have been substituted.'
+          );
+        setSeriesResults(
+          reports
+            .filter((report) => report.analytics)
+            .map(({ item, analytics }, index) => {
+              const title = item.title.toLowerCase();
+              const emblemType: SeriesResultItem['emblemType'] = title.includes('kp')
+                ? 'kp_crest'
+                : title.includes('ssc')
+                  ? 'ssc_red'
+                  : 'generic';
+              const completedTests = analytics?.testsAttempted ?? 0;
+              const totalTests = analytics?.totalTests ?? item.testCount ?? item.testsCount ?? 0;
+              const avgScore = Math.round(analytics?.averageScorePercent ?? 0);
+              const color = index % 2 === 0 ? 'text-[#026BFC]' : 'text-[#10B981]';
+              return {
+                id: item.id,
+                title: item.title,
+                totalTests,
+                completedTests,
+                status:
+                  completedTests === 0
+                    ? 'Not Started'
+                    : completedTests >= totalTests
+                      ? 'Completed'
+                      : 'In Progress',
+                isCompleted: completedTests > 0 && completedTests >= totalTests,
+                avgScore,
+                emblemType,
+                scoreBg: index % 2 === 0 ? 'bg-[#EFF6FF]' : 'bg-[#ECFDF5]',
+                scoreColor: color,
+              };
+            })
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load student test series:', error);
+        if (active) setSeriesError(getErrorMessage(error, 'Series results could not be loaded.'));
+      })
+      .finally(() => {
+        if (active) setSeriesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [user?.id, seriesRetry]);
 
-  const filteredAttempts = useMemo(() => filterStudentAttempts(attempts, selectedTimeRange, selectedFilter), [attempts, selectedTimeRange, selectedFilter]);
+  const filteredAttempts = useMemo(
+    () => filterStudentAttempts(attempts, selectedTimeRange, selectedFilter),
+    [attempts, selectedTimeRange, selectedFilter]
+  );
 
   const subjectPerformance = useMemo<SubjectItem[]>(() => {
     const grouped = new Map<string, { scored: number; total: number; count: number }>();
-    filteredAttempts.filter((attempt) => attempt.subjectName)
+    filteredAttempts
+      .filter((attempt) => attempt.subjectName)
       .forEach((attempt) => {
         const current = grouped.get(attempt.subjectName!) || { scored: 0, total: 0, count: 0 };
         current.scored += attempt.score || 0;
@@ -184,10 +213,38 @@ export const MyTests: React.FC = () => {
         grouped.set(attempt.subjectName!, current);
       });
     const themes = [
-      { iconBg: 'bg-[#EBF3FF]', iconColor: 'text-[#2563EB]', progressColor: 'bg-[#10B981]', badgeBg: 'bg-[#ECFDF5]', badgeTextColor: 'text-[#10B981]', icon: BookOpen },
-      { iconBg: 'bg-[#E6F8EE]', iconColor: 'text-[#16A34A]', progressColor: 'bg-[#026BFC]', badgeBg: 'bg-[#EFF6FF]', badgeTextColor: 'text-[#026BFC]', icon: Calculator },
-      { iconBg: 'bg-[#FFE4E6]', iconColor: 'text-[#E11D48]', progressColor: 'bg-[#EF4444]', badgeBg: 'bg-[#FFF1F2]', badgeTextColor: 'text-[#EF4444]', icon: Brain },
-      { iconBg: 'bg-[#FEF3C7]', iconColor: 'text-[#D97706]', progressColor: 'bg-[#026BFC]', badgeBg: 'bg-[#EFF6FF]', badgeTextColor: 'text-[#026BFC]', icon: FlaskConical },
+      {
+        iconBg: 'bg-[#EBF3FF]',
+        iconColor: 'text-[#2563EB]',
+        progressColor: 'bg-[#10B981]',
+        badgeBg: 'bg-[#ECFDF5]',
+        badgeTextColor: 'text-[#10B981]',
+        icon: BookOpen,
+      },
+      {
+        iconBg: 'bg-[#E6F8EE]',
+        iconColor: 'text-[#16A34A]',
+        progressColor: 'bg-[#026BFC]',
+        badgeBg: 'bg-[#EFF6FF]',
+        badgeTextColor: 'text-[#026BFC]',
+        icon: Calculator,
+      },
+      {
+        iconBg: 'bg-[#FFE4E6]',
+        iconColor: 'text-[#E11D48]',
+        progressColor: 'bg-[#EF4444]',
+        badgeBg: 'bg-[#FFF1F2]',
+        badgeTextColor: 'text-[#EF4444]',
+        icon: Brain,
+      },
+      {
+        iconBg: 'bg-[#FEF3C7]',
+        iconColor: 'text-[#D97706]',
+        progressColor: 'bg-[#026BFC]',
+        badgeBg: 'bg-[#EFF6FF]',
+        badgeTextColor: 'text-[#026BFC]',
+        icon: FlaskConical,
+      },
     ];
     return Array.from(grouped.entries()).map(([title, scores], index) => {
       const percentage = scores.total > 0 ? Math.round((scores.scored / scores.total) * 100) : 0;
@@ -218,15 +275,20 @@ export const MyTests: React.FC = () => {
     });
 
     const totalQuestions = sumCorrect + sumWrong + sumSkipped;
-    const avgAcc = sumCorrect + sumWrong > 0 ? Math.round(100 * sumCorrect / (sumCorrect + sumWrong)) : 0;
+    const avgAcc =
+      sumCorrect + sumWrong > 0 ? Math.round((100 * sumCorrect) / (sumCorrect + sumWrong)) : 0;
     const hours = Math.round(sumTimeSec / 3600);
     const timeSpentStr = hours > 0 ? `${hours}h` : `${Math.round(sumTimeSec / 60)}m`;
     const chronological = [...completedAttempts].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-    const improvement = chronological.length > 1
-      ? Math.round((chronological[chronological.length - 1].accuracy || 0) - (chronological[0].accuracy || 0))
-      : 0;
+    const improvement =
+      chronological.length > 1
+        ? Math.round(
+            (chronological[chronological.length - 1].accuracy || 0) -
+              (chronological[0].accuracy || 0)
+          )
+        : 0;
     const latestRank = completedAttempts.find((attempt) => attempt.rank)?.rank;
 
     return {
@@ -245,7 +307,7 @@ export const MyTests: React.FC = () => {
   // Recent tests are drawn only from this student's saved attempts.
   const recentTestsList = useMemo<RecentTestItem[]>(() => {
     return (showAll ? filteredAttempts : filteredAttempts.slice(0, 10)).map((a) => {
-      const pct = Math.round((a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0));
+      const pct = Math.round(a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0);
       let emblem: RecentTestItem['emblemType'] = 'generic';
       const titleLower = (a.testTitle || '').toLowerCase();
       if (titleLower.includes('kp') || titleLower.includes('kolkata')) {
@@ -275,7 +337,16 @@ export const MyTests: React.FC = () => {
         id: a.id,
         testId: a.testId,
         title: a.testTitle || 'Mock Test',
-        type: a.testType === 'pyq' ? 'Previous Year Paper' : a.testType === 'full_mock' ? 'Full Length Test' : a.testType === 'subject_mock' ? 'Subject Test' : ['topic', 'chapter_mock'].includes(a.testType || '') ? 'Topic Practice Test' : 'Recorded Test',
+        type:
+          a.testType === 'pyq'
+            ? 'Previous Year Paper'
+            : a.testType === 'full_mock'
+              ? 'Full Length Test'
+              : a.testType === 'subject_mock'
+                ? 'Subject Test'
+                : ['topic', 'chapter_mock'].includes(a.testType || '')
+                  ? 'Topic Practice Test'
+                  : 'Recorded Test',
         questionsCount: `${a.totalQuestions || (a.correctCount || 0) + (a.wrongCount || 0) + (a.skippedCount || 0)} Questions`,
         date: dateStr,
         percentage: pct,
@@ -302,7 +373,11 @@ export const MyTests: React.FC = () => {
   const renderEmblem = (type: string) => {
     switch (type) {
       case 'generic':
-        return <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 flex items-center justify-center"><BookOpen className="w-5 h-5" aria-hidden="true" /></div>;
+        return (
+          <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 flex items-center justify-center">
+            <BookOpen className="w-5 h-5" aria-hidden="true" />
+          </div>
+        );
       case 'kp_crest':
         return (
           <div className="w-[46px] h-[46px] rounded-full bg-gradient-to-br from-[#3B1D9E] to-[#1E0B6E] border-[1.8px] border-[#C4B5FD] flex items-center justify-center shadow-xs">
@@ -350,7 +425,8 @@ export const MyTests: React.FC = () => {
   };
 
   if (loading) return <StudentLoading label="Loading your results" />;
-  if (loadError) return <StudentLoadError message={loadError} onRetry={() => void loadAttempts()} />;
+  if (loadError)
+    return <StudentLoadError message={loadError} onRetry={() => void loadAttempts()} />;
 
   return (
     <div className="space-y-4 pb-12 font-sans select-none">
@@ -366,11 +442,28 @@ export const MyTests: React.FC = () => {
 
       <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
         Reporting period
-        <select aria-label="Reporting period" value={selectedTimeRange} onChange={e => { setSelectedTimeRange(e.target.value as TimeRange); setShowAll(false); }} className="min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3">
-          {(['Last 3 Months', 'This Month', 'This Year', 'All Time'] as TimeRange[]).map(range => <option key={range}>{range}</option>)}
+        <select
+          aria-label="Reporting period"
+          value={selectedTimeRange}
+          onChange={(e) => {
+            setSelectedTimeRange(e.target.value as TimeRange);
+            setShowAll(false);
+          }}
+          className="min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3"
+        >
+          {(['Last 3 Months', 'This Month', 'This Year', 'All Time'] as TimeRange[]).map(
+            (range) => (
+              <option key={range}>{range}</option>
+            )
+          )}
         </select>
       </label>
-      {selectedFilter === 'Live Tests' && <p role="status" className="text-sm text-slate-600 dark:text-slate-300">Live-event results are not available in this report. Ordinary mock attempts are not shown as live tests.</p>}
+      {selectedFilter === 'Live Tests' && (
+        <p role="status" className="text-sm text-slate-600 dark:text-slate-300">
+          Live-event results are not available in this report. Ordinary mock attempts are not shown
+          as live tests.
+        </p>
+      )}
       {/* ── 2. FILTER PILLS (APP 1:1) ── */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
         {filters.map((filter) => {
@@ -380,7 +473,10 @@ export const MyTests: React.FC = () => {
               key={filter}
               type="button"
               aria-pressed={isSelected}
-              onClick={() => { setSelectedFilter(filter); setShowAll(false); }}
+              onClick={() => {
+                setSelectedFilter(filter);
+                setShowAll(false);
+              }}
               className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isSelected
                   ? 'bg-[#026BFC] text-white shadow-md shadow-[#026BFC]/25 border border-[#026BFC]'
@@ -406,264 +502,271 @@ export const MyTests: React.FC = () => {
           {/* ── 3. TOTAL PERFORMANCE CARD (APP 1:1) ── */}
           {(selectedFilter === 'Overview' || selectedFilter === 'Mock Tests') && (
             <div className="bg-white dark:bg-slate-900 rounded-[20px] p-4 sm:p-5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_3px_10px_rgba(11,31,91,0.03)] space-y-4 h-full flex flex-col justify-between">
-          {/* Header Row: Title & Subtitle + Time Dropdown */}
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
-                Total Performance
-              </h2>
-              <p className="text-[11px] font-medium text-[#64748B] dark:text-slate-400 mt-0.5">
-                Based on {computedMetrics.totalTests} tests across all exams
-              </p>
-            </div>
-
-
-          </div>
-
-          {/* Accuracy Donut Ring + 4 Colored Stat Badges */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
-            {/* 72% Accuracy Donut Ring */}
-            <div className="relative w-[90px] h-[90px] shrink-0 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#E2ECF8"
-                  strokeWidth="3.6"
-                  className="dark:stroke-slate-800"
-                />
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#026BFC"
-                  strokeWidth="3.6"
-                  strokeDasharray={`${(computedMetrics.accuracy / 100) * 88} 100`}
-                  strokeLinecap="round"
-                  className="transition-all duration-700 ease-out"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-[18px] font-black text-[#051A43] dark:text-white tracking-[-0.5px] leading-tight">
-                  {computedMetrics.accuracy}%
-                </span>
-                <span className="text-[8.5px] font-semibold text-[#64748B] dark:text-slate-400 leading-[1.1]">
-                  Overall
-                  <br />
-                  Accuracy
-                </span>
-              </div>
-            </div>
-
-            {/* 4 Colored Stat Tiles in responsive row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 w-full">
-              {/* Correct */}
-              <div className="bg-[#ECFDF5] dark:bg-emerald-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
-                <CheckCircle2 className="w-4 h-4 text-[#10B981] mb-1" />
-                <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
-                  {computedMetrics.correct}
-                </span>
-                <span className="text-[9px] font-semibold text-[#059669] dark:text-emerald-400 mt-0.5">
-                  Correct
-                </span>
-              </div>
-
-              {/* Wrong */}
-              <div className="bg-[#FFF1F2] dark:bg-rose-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
-                <XCircle className="w-4 h-4 text-[#EF4444] mb-1" />
-                <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
-                  {computedMetrics.wrong}
-                </span>
-                <span className="text-[9px] font-semibold text-[#DC2626] dark:text-rose-400 mt-0.5">
-                  Wrong
-                </span>
-              </div>
-
-              {/* Skipped */}
-              <div className="bg-[#F1F5F9] dark:bg-slate-800/80 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
-                <MinusCircle className="w-4 h-4 text-[#64748B] mb-1" />
-                <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
-                  {computedMetrics.skipped}
-                </span>
-                <span className="text-[9px] font-semibold text-[#64748B] dark:text-slate-400 mt-0.5">
-                  Skipped
-                </span>
-              </div>
-
-              {/* Time Spent */}
-              <div className="bg-[#EFF6FF] dark:bg-blue-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
-                <Clock className="w-4 h-4 text-[#026BFC] mb-1" />
-                <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
-                  {computedMetrics.timeSpent}
-                </span>
-                <span className="text-[9px] font-semibold text-[#026BFC] dark:text-blue-400 mt-0.5">
-                  Time Spent
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-[#EDF2F7] dark:border-slate-800 pt-3" />
-
-          {/* Bottom Summary Metric Row (Total Tests | Total Questions | Rank | Improvement) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Total Tests */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] dark:bg-blue-950/60 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-4 h-4 text-[#026BFC]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
-                  {computedMetrics.totalTests}
-                </div>
-                <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
-                  Total Tests
+              {/* Header Row: Title & Subtitle + Time Dropdown */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
+                    Total Performance
+                  </h2>
+                  <p className="text-[11px] font-medium text-[#64748B] dark:text-slate-400 mt-0.5">
+                    Based on {computedMetrics.totalTests} tests across all exams
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Total Questions */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] dark:bg-blue-950/60 flex items-center justify-center shrink-0">
-                <FileText className="w-4 h-4 text-[#026BFC]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
-                  {computedMetrics.totalQuestions}
-                </div>
-                <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
-                  Total Questions
-                </div>
-              </div>
-            </div>
-
-            {/* Your Rank */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#FEF3C7] dark:bg-amber-950/60 flex items-center justify-center shrink-0">
-                <Trophy className="w-4 h-4 text-[#F59E0B]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
-                  {computedMetrics.rank}
-                </div>
-                <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
-                  Your Rank
-                </div>
-              </div>
-            </div>
-
-            {/* Improvement */}
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#ECFDF5] dark:bg-emerald-950/60 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-4 h-4 text-[#10B981]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11.5px] font-black text-[#10B981] truncate">
-                  {computedMetrics.improvement}
-                </div>
-                <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
-                  Improvement
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── 4. SUBJECT-WISE PERFORMANCE CARD (APP 1:1) ── */}
-      {(selectedFilter === 'Overview' || selectedFilter === 'Practice Tests') && (
-        <div className="bg-white dark:bg-slate-900 rounded-[20px] p-4 sm:p-5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_3px_10px_rgba(11,31,91,0.03)] space-y-3.5 h-full flex flex-col justify-between">
-          {/* Header Row */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
-              Subject-wise Performance
-            </h2>
-
-            {/* Metric Toggle */}
-            <button
-              type="button"
-              onClick={() => setSelectedMetric(selectedMetric === 'Marks' ? 'Percentage' : 'Marks')}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-[#E2ECF8] dark:border-slate-700 text-[#051A43] dark:text-slate-200 text-[11px] font-bold shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <span>{selectedMetric}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#051A43] dark:text-slate-300" />
-            </button>
-          </div>
-
-          {/* Subject Rows */}
-          <div className="space-y-3">
-            {subjectPerformance.map((sub) => {
-              const progressPct = sub.total > 0 ? Math.max(0, Math.min(100, Math.round((sub.scored / sub.total) * 100))) : 0;
-              return (
-                <div
-                  key={sub.title}
-                  className="flex items-center gap-2.5 sm:gap-3 py-1 group hover:bg-slate-50/60 dark:hover:bg-slate-800/40 px-1 rounded-xl transition-colors cursor-pointer"
-                  onClick={() => navigate('/practice')}
-                >
-                  {/* Left Icon or Symbol */}
-                  <div
-                    className={`w-8 h-8 rounded-lg ${sub.iconBg} dark:bg-slate-800 flex items-center justify-center shrink-0`}
-                  >
-                    {sub.symbol ? (
-                      <div
-                        className={`w-5 h-5 rounded-[5px] ${sub.symbolBg} text-white flex items-center justify-center text-[11px] font-black leading-none`}
-                      >
-                        {sub.symbol}
-                      </div>
-                    ) : sub.icon ? (
-                      <sub.icon className={`w-[17px] h-[17px] ${sub.iconColor}`} />
-                    ) : null}
-                  </div>
-
-                  {/* Title */}
-                  <div className="w-24 sm:w-32 shrink-0 truncate">
-                    <span className="text-xs font-extrabold text-[#051A43] dark:text-white truncate block">
-                      {sub.title}
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="flex-1 h-[5px] bg-[#E2ECF8] dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${sub.progressColor} rounded-full transition-all duration-500`}
-                      style={{ width: `${progressPct}%` }}
+              {/* Accuracy Donut Ring + 4 Colored Stat Badges */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
+                {/* 72% Accuracy Donut Ring */}
+                <div className="relative w-[90px] h-[90px] shrink-0 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#E2ECF8"
+                      strokeWidth="3.6"
+                      className="dark:stroke-slate-800"
                     />
-                  </div>
-
-                  {/* Score Fraction */}
-                  <div className="w-12 text-right shrink-0">
-                    <span className="text-[10.5px] font-semibold text-[#475569] dark:text-slate-300">
-                      {selectedMetric === 'Marks' ? `${sub.scored} / ${sub.total}` : `${sub.percentage}%`}
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="14"
+                      fill="none"
+                      stroke="#026BFC"
+                      strokeWidth="3.6"
+                      strokeDasharray={`${(computedMetrics.accuracy / 100) * 88} 100`}
+                      strokeLinecap="round"
+                      className="transition-all duration-700 ease-out"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-[18px] font-black text-[#051A43] dark:text-white tracking-[-0.5px] leading-tight">
+                      {computedMetrics.accuracy}%
                     </span>
-                  </div>
-
-                  {/* Percentage Pill */}
-                  <div
-                    className={`w-11 py-0.5 rounded-md ${sub.badgeBg} dark:bg-slate-800 text-center shrink-0`}
-                  >
-                    <span className={`text-[11px] font-black ${sub.badgeTextColor}`}>
-                      {sub.percentage}%
+                    <span className="text-[8.5px] font-semibold text-[#64748B] dark:text-slate-400 leading-[1.1]">
+                      Overall
+                      <br />
+                      Accuracy
                     </span>
-                  </div>
-
-                  {/* Right chevron circle */}
-                  <div className="w-5 h-5 rounded-full bg-[#EFF6FF] dark:bg-slate-800 flex items-center justify-center text-[#026BFC] shrink-0 group-hover:translate-x-0.5 transition-transform">
-                    <ChevronRight className="w-3.5 h-3.5" />
                   </div>
                 </div>
-              );
-            })}
-            {subjectPerformance.length === 0 && (
-              <p className="py-4 text-center text-xs text-slate-500">Subject performance appears after you complete tests with subject data.</p>
-            )}
-          </div>
+
+                {/* 4 Colored Stat Tiles in responsive row */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 w-full">
+                  {/* Correct */}
+                  <div className="bg-[#ECFDF5] dark:bg-emerald-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
+                    <CheckCircle2 className="w-4 h-4 text-[#10B981] mb-1" />
+                    <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
+                      {computedMetrics.correct}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#059669] dark:text-emerald-400 mt-0.5">
+                      Correct
+                    </span>
+                  </div>
+
+                  {/* Wrong */}
+                  <div className="bg-[#FFF1F2] dark:bg-rose-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
+                    <XCircle className="w-4 h-4 text-[#EF4444] mb-1" />
+                    <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
+                      {computedMetrics.wrong}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#DC2626] dark:text-rose-400 mt-0.5">
+                      Wrong
+                    </span>
+                  </div>
+
+                  {/* Skipped */}
+                  <div className="bg-[#F1F5F9] dark:bg-slate-800/80 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
+                    <MinusCircle className="w-4 h-4 text-[#64748B] mb-1" />
+                    <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
+                      {computedMetrics.skipped}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#64748B] dark:text-slate-400 mt-0.5">
+                      Skipped
+                    </span>
+                  </div>
+
+                  {/* Time Spent */}
+                  <div className="bg-[#EFF6FF] dark:bg-blue-950/40 rounded-xl py-2 px-1.5 text-center flex flex-col items-center">
+                    <Clock className="w-4 h-4 text-[#026BFC] mb-1" />
+                    <span className="text-[13px] font-black text-[#051A43] dark:text-white tracking-[-0.2px]">
+                      {computedMetrics.timeSpent}
+                    </span>
+                    <span className="text-[9px] font-semibold text-[#026BFC] dark:text-blue-400 mt-0.5">
+                      Time Spent
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-[#EDF2F7] dark:border-slate-800 pt-3" />
+
+              {/* Bottom Summary Metric Row (Total Tests | Total Questions | Rank | Improvement) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Total Tests */}
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] dark:bg-blue-950/60 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-4 h-4 text-[#026BFC]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
+                      {computedMetrics.totalTests}
+                    </div>
+                    <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
+                      Total Tests
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Questions */}
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#EFF6FF] dark:bg-blue-950/60 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-[#026BFC]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
+                      {computedMetrics.totalQuestions}
+                    </div>
+                    <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
+                      Total Questions
+                    </div>
+                  </div>
+                </div>
+
+                {/* Your Rank */}
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#FEF3C7] dark:bg-amber-950/60 flex items-center justify-center shrink-0">
+                    <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11.5px] font-black text-[#051A43] dark:text-white truncate">
+                      {computedMetrics.rank}
+                    </div>
+                    <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
+                      Your Rank
+                    </div>
+                  </div>
+                </div>
+
+                {/* Improvement */}
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#ECFDF5] dark:bg-emerald-950/60 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-4 h-4 text-[#10B981]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11.5px] font-black text-[#10B981] truncate">
+                      {computedMetrics.improvement}
+                    </div>
+                    <div className="text-[9px] font-medium text-[#64748B] dark:text-slate-400 truncate">
+                      Improvement
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── 4. SUBJECT-WISE PERFORMANCE CARD (APP 1:1) ── */}
+          {(selectedFilter === 'Overview' || selectedFilter === 'Practice Tests') && (
+            <div className="bg-white dark:bg-slate-900 rounded-[20px] p-4 sm:p-5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_3px_10px_rgba(11,31,91,0.03)] space-y-3.5 h-full flex flex-col justify-between">
+              {/* Header Row */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
+                  Subject-wise Performance
+                </h2>
+
+                {/* Metric Toggle */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedMetric(selectedMetric === 'Marks' ? 'Percentage' : 'Marks')
+                  }
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-[#E2ECF8] dark:border-slate-700 text-[#051A43] dark:text-slate-200 text-[11px] font-bold shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <span>{selectedMetric}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#051A43] dark:text-slate-300" />
+                </button>
+              </div>
+
+              {/* Subject Rows */}
+              <div className="space-y-3">
+                {subjectPerformance.map((sub) => {
+                  const progressPct =
+                    sub.total > 0
+                      ? Math.max(0, Math.min(100, Math.round((sub.scored / sub.total) * 100)))
+                      : 0;
+                  return (
+                    <div
+                      key={sub.title}
+                      className="flex items-center gap-2.5 sm:gap-3 py-1 group hover:bg-slate-50/60 dark:hover:bg-slate-800/40 px-1 rounded-xl transition-colors cursor-pointer"
+                      onClick={() => navigate('/practice')}
+                    >
+                      {/* Left Icon or Symbol */}
+                      <div
+                        className={`w-8 h-8 rounded-lg ${sub.iconBg} dark:bg-slate-800 flex items-center justify-center shrink-0`}
+                      >
+                        {sub.symbol ? (
+                          <div
+                            className={`w-5 h-5 rounded-[5px] ${sub.symbolBg} text-white flex items-center justify-center text-[11px] font-black leading-none`}
+                          >
+                            {sub.symbol}
+                          </div>
+                        ) : sub.icon ? (
+                          <sub.icon className={`w-[17px] h-[17px] ${sub.iconColor}`} />
+                        ) : null}
+                      </div>
+
+                      {/* Title */}
+                      <div className="w-24 sm:w-32 shrink-0 truncate">
+                        <span className="text-xs font-extrabold text-[#051A43] dark:text-white truncate block">
+                          {sub.title}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="flex-1 h-[5px] bg-[#E2ECF8] dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${sub.progressColor} rounded-full transition-all duration-500`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+
+                      {/* Score Fraction */}
+                      <div className="w-12 text-right shrink-0">
+                        <span className="text-[10.5px] font-semibold text-[#475569] dark:text-slate-300">
+                          {selectedMetric === 'Marks'
+                            ? `${sub.scored} / ${sub.total}`
+                            : `${sub.percentage}%`}
+                        </span>
+                      </div>
+
+                      {/* Percentage Pill */}
+                      <div
+                        className={`w-11 py-0.5 rounded-md ${sub.badgeBg} dark:bg-slate-800 text-center shrink-0`}
+                      >
+                        <span className={`text-[11px] font-black ${sub.badgeTextColor}`}>
+                          {sub.percentage}%
+                        </span>
+                      </div>
+
+                      {/* Right chevron circle */}
+                      <div className="w-5 h-5 rounded-full bg-[#EFF6FF] dark:bg-slate-800 flex items-center justify-center text-[#026BFC] shrink-0 group-hover:translate-x-0.5 transition-transform">
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  );
+                })}
+                {subjectPerformance.length === 0 && (
+                  <p className="py-4 text-center text-xs text-slate-500">
+                    Subject performance appears after you complete tests with subject data.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-      </div>
       )}
 
       {/* ── 5. RECENT TESTS SECTION (APP 1:1) ── */}
@@ -678,7 +781,7 @@ export const MyTests: React.FC = () => {
             </h2>
             <button
               type="button"
-              onClick={() => setShowAll(prev => !prev)}
+              onClick={() => setShowAll((prev) => !prev)}
               className="flex items-center gap-1 text-[12.5px] font-bold text-[#026BFC] hover:underline cursor-pointer"
             >
               <span>{showAll ? 'Show Recent' : 'See All'}</span>
@@ -686,7 +789,11 @@ export const MyTests: React.FC = () => {
             </button>
           </div>
 
-          {recentTestsList.length === 0 && <p className="text-sm text-slate-500">No completed tests in this period and category.</p>}
+          {recentTestsList.length === 0 && (
+            <p className="text-sm text-slate-500">
+              No completed tests in this period and category.
+            </p>
+          )}
           {/* Cards List */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {recentTestsList.map((test) => (
@@ -694,7 +801,12 @@ export const MyTests: React.FC = () => {
                 key={test.id}
                 role="button"
                 tabIndex={0}
-                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleTestClick(test); } }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleTestClick(test);
+                  }
+                }}
                 onClick={() => handleTestClick(test)}
                 className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 flex items-center gap-3 cursor-pointer group"
               >
@@ -719,7 +831,9 @@ export const MyTests: React.FC = () => {
                 </div>
 
                 {/* Score badge */}
-                <div className={`px-2.5 py-1 rounded-xl ${test.scoreBg} dark:bg-slate-800 text-center shrink-0`}>
+                <div
+                  className={`px-2.5 py-1 rounded-xl ${test.scoreBg} dark:bg-slate-800 text-center shrink-0`}
+                >
                   <div className={`text-[13.5px] font-black ${test.scoreColor} leading-tight`}>
                     {test.percentage}%
                   </div>
@@ -738,8 +852,12 @@ export const MyTests: React.FC = () => {
         </div>
       )}
 
-      {seriesError && <StudentLoadError message={seriesError} onRetry={() => setSeriesRetry(v => v + 1)} />}
-      {seriesLoading && (selectedFilter === 'Test Series' || selectedFilter === 'Overview') && <StudentLoading label="Loading series results" />}
+      {seriesError && (
+        <StudentLoadError message={seriesError} onRetry={() => setSeriesRetry((v) => v + 1)} />
+      )}
+      {seriesLoading && (selectedFilter === 'Test Series' || selectedFilter === 'Overview') && (
+        <StudentLoading label="Loading series results" />
+      )}
       {/* ── 6. TEST SERIES RESULTS SECTION (APP 1:1) ── */}
       {(selectedFilter === 'Overview' || selectedFilter === 'Test Series') && (
         <div className="space-y-3 pt-2">
@@ -764,13 +882,24 @@ export const MyTests: React.FC = () => {
           {/* Series Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {seriesResults.map((series) => {
-              const progressPct = series.totalTests > 0 ? Math.max(0, Math.min(100, Math.round((series.completedTests / series.totalTests) * 100))) : 0;
+              const progressPct =
+                series.totalTests > 0
+                  ? Math.max(
+                      0,
+                      Math.min(100, Math.round((series.completedTests / series.totalTests) * 100))
+                    )
+                  : 0;
               return (
                 <div
                   key={series.id}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(`/test-series/${series.id}`); } }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      navigate(`/test-series/${series.id}`);
+                    }
+                  }}
                   onClick={() => navigate(`/test-series/${series.id}`)}
                   className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 flex items-center gap-3 cursor-pointer group"
                 >
@@ -820,7 +949,9 @@ export const MyTests: React.FC = () => {
                   </div>
 
                   {/* Right Avg Score Badge */}
-                  <div className={`px-2.5 py-1 rounded-xl ${series.scoreBg} dark:bg-slate-800 text-center shrink-0`}>
+                  <div
+                    className={`px-2.5 py-1 rounded-xl ${series.scoreBg} dark:bg-slate-800 text-center shrink-0`}
+                  >
                     <div className={`text-[13.5px] font-black ${series.scoreColor} leading-tight`}>
                       {series.avgScore}%
                     </div>
@@ -837,7 +968,9 @@ export const MyTests: React.FC = () => {
               );
             })}
             {!seriesLoading && !seriesError && seriesResults.length === 0 && (
-              <p className="col-span-full py-4 text-center text-xs text-slate-500">No published test series are available yet.</p>
+              <p className="col-span-full py-4 text-center text-xs text-slate-500">
+                No published test series are available yet.
+              </p>
             )}
           </div>
         </div>

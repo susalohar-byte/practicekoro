@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Shield, BookOpen, Clock, Sparkles, AlertCircle, Check, Upload, Trash2 } from 'lucide-react';
+import {
+  X,
+  Shield,
+  BookOpen,
+  Clock,
+  Sparkles,
+  AlertCircle,
+  Check,
+  Upload,
+  Trash2,
+} from 'lucide-react';
 import type { Exam, Subject, Chapter, MockTest } from '@/types';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';

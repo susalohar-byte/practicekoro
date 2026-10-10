@@ -491,39 +491,39 @@ export const AdminAuditLogs: React.FC = () => {
               ? 'Created'
               : log.action.toLowerCase().includes('delete') ||
                   log.action.toLowerCase().includes('revoke')
-              ? 'Deleted'
-              : log.action.toLowerCase().includes('refund')
-              ? 'Refunded'
-              : log.action.toLowerCase().includes('view')
-              ? 'Viewed'
-              : log.action.toLowerCase().includes('login')
-              ? 'Login'
-              : log.action.toLowerCase().includes('change')
-              ? 'Changed'
-              : 'Updated';
+                ? 'Deleted'
+                : log.action.toLowerCase().includes('refund')
+                  ? 'Refunded'
+                  : log.action.toLowerCase().includes('view')
+                    ? 'Viewed'
+                    : log.action.toLowerCase().includes('login')
+                      ? 'Login'
+                      : log.action.toLowerCase().includes('change')
+                        ? 'Changed'
+                        : 'Updated';
 
           const resourceFormatted: AuditLogItem['resource'] =
             log.entityType === 'question'
               ? 'Question'
               : log.entityType === 'test_series'
-              ? 'Test Series'
-              : log.entityType === 'test'
-              ? 'Mock Test'
-              : log.entityType === 'coupon'
-              ? 'Coupon'
-              : log.entityType === 'subscription'
-              ? 'Subscription'
-              : log.entityType === 'user' || log.entityType === 'student'
-              ? 'Student'
-              : log.entityType === 'payment'
-              ? 'Payment'
-              : log.entityType === 'settings'
-              ? 'Settings'
-              : log.entityType === 'subject'
-              ? 'Subject'
-              : log.entityType === 'banner'
-              ? 'Banner'
-              : 'System';
+                ? 'Test Series'
+                : log.entityType === 'test'
+                  ? 'Mock Test'
+                  : log.entityType === 'coupon'
+                    ? 'Coupon'
+                    : log.entityType === 'subscription'
+                      ? 'Subscription'
+                      : log.entityType === 'user' || log.entityType === 'student'
+                        ? 'Student'
+                        : log.entityType === 'payment'
+                          ? 'Payment'
+                          : log.entityType === 'settings'
+                            ? 'Settings'
+                            : log.entityType === 'subject'
+                              ? 'Subject'
+                              : log.entityType === 'banner'
+                                ? 'Banner'
+                                : 'System';
 
           const initials = (log.adminName || log.adminEmail || 'AD')
             .split(' ')
@@ -545,9 +545,12 @@ export const AdminAuditLogs: React.FC = () => {
             avatarTextColor: 'text-blue-600',
             action: actionFormatted,
             resource: resourceFormatted,
-            details: log.details?.source !== 'database_trigger' ? 'Legacy client log (unverified)' : log.entityName
-              ? `${log.action} ${log.entityName}`.slice(0, 30) + '...'
-              : log.action,
+            details:
+              log.details?.source !== 'database_trigger'
+                ? 'Legacy client log (unverified)'
+                : log.entityName
+                  ? `${log.action} ${log.entityName}`.slice(0, 30) + '...'
+                  : log.action,
             fullDetails: log.entityName
               ? `${log.action}: ${log.entityName}`
               : JSON.stringify(log.details || {}),
@@ -707,7 +710,9 @@ export const AdminAuditLogs: React.FC = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
       [headers.join(','), ...rows.map((e) => e.map(csvCell).join(','))].join('\n');
-    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent.replace(/^data:text\/csv;charset=utf-8,/, ''));
+    const encodedUri =
+      'data:text/csv;charset=utf-8,' +
+      encodeURIComponent(csvContent.replace(/^data:text\/csv;charset=utf-8,/, ''));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `practicekoro_audit_logs_${Date.now()}.csv`);
@@ -751,12 +756,17 @@ export const AdminAuditLogs: React.FC = () => {
       {/* ==================================================================== */}
       {/* 1. HEADER & TOP CONTROLS                                             */}
       {/* ==================================================================== */}
-      {loadError && <p role="alert" className="text-red-700">Audit logs unavailable: {loadError}</p>}
+      {loadError && (
+        <p role="alert" className="text-red-700">
+          Audit logs unavailable: {loadError}
+        </p>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Audit Logs</h1>
           <p className="text-xs text-slate-500 font-normal mt-1 max-w-2xl">
-            Database-trigger logs verify mutations. Legacy client logs are unverified; backend service actors are labeled separately.
+            Database-trigger logs verify mutations. Legacy client logs are unverified; backend
+            service actors are labeled separately.
           </p>
         </div>
 
@@ -1036,162 +1046,162 @@ export const AdminAuditLogs: React.FC = () => {
                     filteredLogs
                       .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
                       .map((row) => {
-                    const isSelected = Boolean(isDetailsPanelOpen && selectedLogId === row.id);
-                    const isChecked = selectedIds.includes(row.id);
+                        const isSelected = Boolean(isDetailsPanelOpen && selectedLogId === row.id);
+                        const isChecked = selectedIds.includes(row.id);
 
-                    return (
-                      <tr
-                        key={row.id}
-                        onClick={() => {
-                          setSelectedLogId(row.id);
-                          setIsDetailsPanelOpen(true);
-                        }}
-                        className={cn(
-                          'transition-colors cursor-pointer group',
-                          isSelected
-                            ? 'bg-blue-50/50 hover:bg-blue-50/70'
-                            : 'hover:bg-slate-50/60'
-                        )}
-                      >
-                        {/* Checkbox */}
-                        <td
-                          className="py-3 px-3 text-center"
-                          onClick={(e) => handleToggleRow(row.id, e)}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}}
-                            className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
-                          />
-                        </td>
+                        return (
+                          <tr
+                            key={row.id}
+                            onClick={() => {
+                              setSelectedLogId(row.id);
+                              setIsDetailsPanelOpen(true);
+                            }}
+                            className={cn(
+                              'transition-colors cursor-pointer group',
+                              isSelected
+                                ? 'bg-blue-50/50 hover:bg-blue-50/70'
+                                : 'hover:bg-slate-50/60'
+                            )}
+                          >
+                            {/* Checkbox */}
+                            <td
+                              className="py-3 px-3 text-center"
+                              onClick={(e) => handleToggleRow(row.id, e)}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {}}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
+                              />
+                            </td>
 
-                        {/* # */}
-                        <td className="py-3 px-2 text-center text-slate-500 font-normal">
-                          {row.num}
-                        </td>
+                            {/* # */}
+                            <td className="py-3 px-2 text-center text-slate-500 font-normal">
+                              {row.num}
+                            </td>
 
-                        {/* Date & Time */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <span className="font-normal text-slate-800 block">{row.date}</span>
+                            {/* Date & Time */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="font-normal text-slate-800 block">{row.date}</span>
                               <span className="text-[11px] text-slate-400 block mt-0.5">
                                 {row.time}
                               </span>
-                        </td>
+                            </td>
 
-                        {/* Admin */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {row.avatarType === 'photo' && row.avatarSrc ? (
-                              <img
-                                src={row.avatarSrc}
-                                alt={row.adminName}
-                                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-slate-100"
-                              />
-                            ) : (
-                              <div
+                            {/* Admin */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                {row.avatarType === 'photo' && row.avatarSrc ? (
+                                  <img
+                                    src={row.avatarSrc}
+                                    alt={row.adminName}
+                                    className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-slate-100"
+                                  />
+                                ) : (
+                                  <div
+                                    className={cn(
+                                      'w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0',
+                                      row.avatarBgColor || 'bg-blue-100',
+                                      row.avatarTextColor || 'text-blue-600'
+                                    )}
+                                  >
+                                    {row.avatarInitials}
+                                  </div>
+                                )}
+                                <span className="font-medium text-slate-900">{row.adminName}</span>
+                              </div>
+                            </td>
+
+                            {/* Action */}
+                            <td className="py-3 px-3 text-slate-700 font-medium whitespace-nowrap">
+                              {row.action}
+                            </td>
+
+                            {/* Resource */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span
                                 className={cn(
-                                  'w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0',
-                                  row.avatarBgColor || 'bg-blue-100',
-                                  row.avatarTextColor || 'text-blue-600'
+                                  'inline-block px-2 py-0.5 rounded text-[11px] font-medium',
+                                  getResourceBadge(row.resource)
                                 )}
                               >
-                                {row.avatarInitials}
-                              </div>
-                            )}
-                            <span className="font-medium text-slate-900">{row.adminName}</span>
-                          </div>
-                        </td>
+                                {row.resource}
+                              </span>
+                            </td>
 
-                        {/* Action */}
-                        <td className="py-3 px-3 text-slate-700 font-medium whitespace-nowrap">
-                          {row.action}
-                        </td>
+                            {/* Details */}
+                            <td className="py-3 px-3 text-slate-600 truncate max-w-[150px]">
+                              {row.details}
+                            </td>
 
-                        {/* Resource */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <span
-                            className={cn(
-                              'inline-block px-2 py-0.5 rounded text-[11px] font-medium',
-                              getResourceBadge(row.resource)
-                            )}
-                          >
-                            {row.resource}
-                          </span>
-                        </td>
+                            {/* IP Address */}
+                            <td className="py-3 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                              {row.ipAddress}
+                            </td>
 
-                        {/* Details */}
-                        <td className="py-3 px-3 text-slate-600 truncate max-w-[150px]">
-                          {row.details}
-                        </td>
+                            {/* Severity */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span
+                                className={cn(
+                                  'inline-block px-2.5 py-0.5 rounded text-[11px] font-medium',
+                                  getSeverityBadge(row.severity)
+                                )}
+                              >
+                                {row.severity}
+                              </span>
+                            </td>
 
-                        {/* IP Address */}
-                        <td className="py-3 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                          {row.ipAddress}
-                        </td>
-
-                        {/* Severity */}
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <span
-                            className={cn(
-                              'inline-block px-2.5 py-0.5 rounded text-[11px] font-medium',
-                              getSeverityBadge(row.severity)
-                            )}
-                          >
-                            {row.severity}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td
-                          className="py-3 px-3 text-center relative"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="relative inline-block text-left">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(activeMenuId === row.id ? null : row.id);
-                              }}
-                              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                            {/* Actions */}
+                            <td
+                              className="py-3 px-3 text-center relative"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {activeMenuId === row.id && (
-                              <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                              <div className="relative inline-block text-left">
                                 <button
-                                  onClick={() => {
-                                    setSelectedLogId(row.id);
-                                    setIsDetailsPanelOpen(true);
-                                    setActiveMenuId(null);
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuId(activeMenuId === row.id ? null : row.id);
                                   }}
-                                  className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
                                 >
-                                  <FileText className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>View Details</span>
+                                  <MoreHorizontal className="w-4 h-4" />
                                 </button>
 
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(row.id);
-                                    showToast('Copied Log ID.');
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>Copy Log ID</span>
-                                </button>
+                                {/* Dropdown Menu */}
+                                {activeMenuId === row.id && (
+                                  <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedLogId(row.id);
+                                        setIsDetailsPanelOpen(true);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>View Details</span>
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(row.id);
+                                        showToast('Copied Log ID.');
+                                        setActiveMenuId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>Copy Log ID</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                  )}
                 </tbody>
               </table>
             </div>

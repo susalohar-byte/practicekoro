@@ -10,15 +10,55 @@ export interface PresetIcon {
 }
 
 export const PRESET_SERIES_ICONS: PresetIcon[] = [
-  { id: 'wbp', name: 'West Bengal Police (WBP)', category: 'Police', url: '/images/exams/emblem_wbp.png' },
-  { id: 'kp', name: 'Kolkata Police (KP)', category: 'Police', url: '/images/exams/icon_kolkata_police.png' },
-  { id: 'wbpsc', name: 'WBPSC (Clerkship / Misc)', category: 'WBPSC', url: '/images/exams/emblem_wbpsc.png' },
+  {
+    id: 'wbp',
+    name: 'West Bengal Police (WBP)',
+    category: 'Police',
+    url: '/images/exams/emblem_wbp.png',
+  },
+  {
+    id: 'kp',
+    name: 'Kolkata Police (KP)',
+    category: 'Police',
+    url: '/images/exams/icon_kolkata_police.png',
+  },
+  {
+    id: 'wbpsc',
+    name: 'WBPSC (Clerkship / Misc)',
+    category: 'WBPSC',
+    url: '/images/exams/emblem_wbpsc.png',
+  },
   { id: 'wbcs', name: 'WBCS Executive', category: 'WBPSC', url: '/images/exams/wbcs_emblem.png' },
-  { id: 'wbssc', name: 'WBSSC Group C & D / SLST', category: 'Teaching', url: '/images/exams/emblem_wbssc.png' },
-  { id: 'tet', name: 'Primary TET / Teaching', category: 'Teaching', url: '/images/exams/emblem_tet.png' },
-  { id: 'railway', name: 'Indian Railways (RRB)', category: 'Central', url: '/images/exams/emblem_railway.png' },
-  { id: 'ssc', name: 'SSC (CGL, GD, MTS)', category: 'Central', url: '/images/exams/emblem_ssc.png' },
-  { id: 'practicekoro', name: 'PracticeKoro Official', category: 'General', url: '/logo-icon-circle.png' },
+  {
+    id: 'wbssc',
+    name: 'WBSSC Group C & D / SLST',
+    category: 'Teaching',
+    url: '/images/exams/emblem_wbssc.png',
+  },
+  {
+    id: 'tet',
+    name: 'Primary TET / Teaching',
+    category: 'Teaching',
+    url: '/images/exams/emblem_tet.png',
+  },
+  {
+    id: 'railway',
+    name: 'Indian Railways (RRB)',
+    category: 'Central',
+    url: '/images/exams/emblem_railway.png',
+  },
+  {
+    id: 'ssc',
+    name: 'SSC (CGL, GD, MTS)',
+    category: 'Central',
+    url: '/images/exams/emblem_ssc.png',
+  },
+  {
+    id: 'practicekoro',
+    name: 'PracticeKoro Official',
+    category: 'General',
+    url: '/logo-icon-circle.png',
+  },
 ];
 
 interface UploadSeriesIconModalProps {
@@ -38,7 +78,9 @@ export const UploadSeriesIconModal: React.FC<UploadSeriesIconModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'presets' | 'upload' | 'url'>('presets');
   const [selectedIcon, setSelectedIcon] = useState<string>(currentIconUrl || '');
-  const [customUrl, setCustomUrl] = useState<string>(currentIconUrl?.startsWith('http') ? currentIconUrl : '');
+  const [customUrl, setCustomUrl] = useState<string>(
+    currentIconUrl?.startsWith('http') ? currentIconUrl : ''
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -151,11 +193,14 @@ export const UploadSeriesIconModal: React.FC<UploadSeriesIconModalProps> = ({
     }
   };
 
-  const previewDisplayUrl = activeTab === 'url' ? (customUrl.trim() || '/images/exams/emblem_wbp.png') : (selectedIcon || '/images/exams/emblem_wbp.png');
+  const previewDisplayUrl =
+    activeTab === 'url'
+      ? customUrl.trim() || '/images/exams/emblem_wbp.png'
+      : selectedIcon || '/images/exams/emblem_wbp.png';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div 
+      <div
         className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -287,7 +332,11 @@ export const UploadSeriesIconModal: React.FC<UploadSeriesIconModalProps> = ({
                       }`}
                     >
                       <div className="w-10 h-10 rounded-xl bg-[#FFF4F0] dark:bg-slate-800 border border-[#FDE2D7] dark:border-slate-700 p-1.5 flex items-center justify-center shrink-0">
-                        <img src={preset.url} alt={preset.name} className="w-full h-full object-contain" />
+                        <img
+                          src={preset.url}
+                          alt={preset.name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-slate-900 dark:text-white truncate">

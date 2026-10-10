@@ -14,11 +14,7 @@ import type {
   PreparationStatusCode,
   StudentApplicableCutoff,
 } from '@/types';
-import {
-  CATEGORY_LABELS,
-  GENDER_LABELS,
-  PREPARATION_STATUS_LABELS,
-} from '@/types';
+import { CATEGORY_LABELS, GENDER_LABELS, PREPARATION_STATUS_LABELS } from '@/types';
 import {
   Bell,
   Edit2,
@@ -77,7 +73,8 @@ export const Profile: React.FC = () => {
   const [targetExamIdInput, setTargetExamIdInput] = useState('');
   const [targetExamTitleInput, setTargetExamTitleInput] = useState('');
   const [preferredSubjectsInput, setPreferredSubjectsInput] = useState<string[]>([]);
-  const [preparationStatusInput, setPreparationStatusInput] = useState<PreparationStatusCode>('BEGINNER');
+  const [preparationStatusInput, setPreparationStatusInput] =
+    useState<PreparationStatusCode>('BEGINNER');
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -618,8 +615,9 @@ export const Profile: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-[11px] text-blue-900 dark:text-blue-200 flex items-start gap-2.5">
               <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                Your <strong>Category</strong> and <strong>Gender</strong> are stored securely in standardized format.
-                They are used solely for calculating personalized exam cutoffs, ranking benchmarks, and demographic performance analytics.
+                Your <strong>Category</strong> and <strong>Gender</strong> are stored securely in
+                standardized format. They are used solely for calculating personalized exam cutoffs,
+                ranking benchmarks, and demographic performance analytics.
               </p>
             </div>
           </div>
@@ -720,9 +718,10 @@ export const Profile: React.FC = () => {
             <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
               <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <strong>Official vs Expected Distinction:</strong> PracticeKoro strictly differentiates
-                between verified official recruitment notifications and academic estimates.
-                Expected Cutoffs are predictive training benchmarks and never represent a government job guarantee.
+                <strong>Official vs Expected Distinction:</strong> PracticeKoro strictly
+                differentiates between verified official recruitment notifications and academic
+                estimates. Expected Cutoffs are predictive training benchmarks and never represent a
+                government job guarantee.
               </div>
             </div>
 
@@ -746,7 +745,8 @@ export const Profile: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Source: {applicableCutoff?.expectedCutoff?.source || 'PracticeKoro Academic Panel'}
+                  Source:{' '}
+                  {applicableCutoff?.expectedCutoff?.source || 'PracticeKoro Academic Panel'}
                 </p>
                 {applicableCutoff?.expectedCutoff?.notes && (
                   <p className="text-[10px] text-slate-400 italic mt-1">
@@ -774,7 +774,9 @@ export const Profile: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Source: {applicableCutoff?.previousOfficialCutoff?.source || 'WBPRB Official Notification'}
+                  Source:{' '}
+                  {applicableCutoff?.previousOfficialCutoff?.source ||
+                    'WBPRB Official Notification'}
                 </p>
                 {applicableCutoff?.previousOfficialCutoff?.verifiedBy && (
                   <p className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium mt-1">
@@ -919,32 +921,36 @@ export const Profile: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Tests Completed</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  Tests Completed
+                </span>
                 <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
                   {stats.testsTaken}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Mean Accuracy</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  Mean Accuracy
+                </span>
                 <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
                   {stats.avgScore}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Category Rank</span>
-                <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">
-                  #118
-                </p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  Category Rank
+                </span>
+                <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">#118</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">{userCategoryLabel}</p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">District Rank</span>
-                <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">
-                  #24
-                </p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  District Rank
+                </span>
+                <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">#24</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">{user?.district || 'Purulia'}</p>
               </div>
             </div>
@@ -1379,9 +1385,7 @@ export const Profile: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 rounded-[24px] max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-black text-[#051A43] dark:text-white">
-                Change Password
-              </h3>
+              <h3 className="text-lg font-black text-[#051A43] dark:text-white">Change Password</h3>
               <button
                 type="button"
                 onClick={() => setIsPasswordModalOpen(false)}
@@ -1451,9 +1455,7 @@ export const Profile: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 rounded-[24px] max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-black text-[#051A43] dark:text-white">
-                Send Feedback
-              </h3>
+              <h3 className="text-lg font-black text-[#051A43] dark:text-white">Send Feedback</h3>
               <button
                 type="button"
                 onClick={() => setIsFeedbackModalOpen(false)}
@@ -1503,9 +1505,7 @@ export const Profile: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 rounded-[24px] max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-black text-[#051A43] dark:text-white">
-                Notifications
-              </h3>
+              <h3 className="text-lg font-black text-[#051A43] dark:text-white">Notifications</h3>
               <button
                 type="button"
                 onClick={() => setIsNotificationsModalOpen(false)}

@@ -58,10 +58,7 @@ export interface QAPageJsonLdInput {
 export function generateQAPageJsonLd({ question, url }: QAPageJsonLdInput): object {
   const qText = question.questionBengaliText || question.questionText;
   const correctOptionKey = `option${question.correctOption}` as
-    | 'optionA'
-    | 'optionB'
-    | 'optionC'
-    | 'optionD';
+    'optionA' | 'optionB' | 'optionC' | 'optionD';
   const correctAnswer = question[correctOptionKey];
   const explanation =
     question.explanationBengali || question.explanation || `সঠিক উত্তর: ${correctAnswer}`;
@@ -154,19 +151,13 @@ export function questionPageTitle(question: Question): string {
 export function questionPageDescription(question: Question): string {
   const text = question.questionBengaliText || question.questionText;
   const correctOptionKey = `option${question.correctOption}` as
-    | 'optionA'
-    | 'optionB'
-    | 'optionC'
-    | 'optionD';
+    'optionA' | 'optionB' | 'optionC' | 'optionD';
   const correctAnswer = question[correctOptionKey];
-  const explanation =
-    question.explanationBengali || question.explanation || '';
+  const explanation = question.explanationBengali || question.explanation || '';
 
   const answerSnippet = `সঠিক উত্তরটি হল ${correctAnswer}। ${explanation}`;
   const truncated =
-    answerSnippet.length > 155
-      ? answerSnippet.substring(0, 155) + '...'
-      : answerSnippet;
+    answerSnippet.length > 155 ? answerSnippet.substring(0, 155) + '...' : answerSnippet;
 
   return `${text.substring(0, 100)}... 1 answer · Top answer: "${truncated}"`;
 }

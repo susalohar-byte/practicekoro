@@ -256,7 +256,9 @@ describe('AdminSettings & Maintenance Mode System', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Read-only: an active Super Admin is required to change platform settings/i)
+          screen.getByText(
+            /Read-only: an active Super Admin is required to change platform settings/i
+          )
         ).toBeInTheDocument();
       });
 
