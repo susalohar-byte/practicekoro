@@ -21,8 +21,11 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npx eslint src/
+      # `tsc --noEmit` against the root tsconfig (files: [], references only) checks
+      # nothing at all; the project's real typecheck is `tsc -b` inside npm run typecheck.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
 
   test:
     name: Unit Tests
@@ -34,7 +37,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npx vitest run --reporter=verbose
+      # Runs the suite and enforces the coverage floors in vitest.config.ts (src/, not src/utils).
+      - run: npm run test:coverage -- --reporter=verbose
 
   build:
     name: Production Build
