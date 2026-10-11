@@ -46,6 +46,7 @@ export interface AdminBannerItem {
   subtitle: string;
   description: string;
   bannerType: BannerType;
+  showTextOverlay?: boolean;
   linkUrl: string;
   openIn: OpenInTarget;
   devices: {
@@ -411,6 +412,7 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     subtitle: banner.subtitle || 'Promote mock tests and courses',
     description: banner.subtitle || banner.title,
     bannerType: bType,
+    showTextOverlay: Boolean(banner.showTextOverlay ?? (banner.bannerType === 'text_overlay')),
     linkUrl: banner.primaryCtaLink || '/test-series',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
@@ -802,6 +804,7 @@ export const AdminBanners: React.FC = () => {
     subtitle: '',
     description: '',
     bannerType: 'Test Series',
+    showTextOverlay: false,
     linkUrl: '/test-series',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
@@ -925,6 +928,23 @@ export const AdminBanners: React.FC = () => {
     return { total, active, scheduled, archived };
   }, [banners]);
 
+  // 1-Click quick toggle status (Enable/Disable banner)
+  const handleQuickToggleStatus = async (banner: AdminBannerItem) => {
+    try {
+      const nextIsActive = banner.status !== 'Active';
+      const updated = await bannerService.toggleBannerStatus(banner.id, nextIsActive);
+      const row = mapHeroBannerToAdminItem(updated, 0);
+      setBanners((prev) => prev.map((b) => (b.id === row.id ? row : b)));
+      if (editFormData && editFormData.id === banner.id) {
+        setEditFormData(row);
+      }
+      queryClient.invalidateQueries({ queryKey: ['hero-banners'] });
+      showToast('success', `Banner ${nextIsActive ? 'enabled' : 'disabled'}.`);
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Status update failed.');
+    }
+  };
+
   // Save changes from Right Panel
   const handleUpdateBanner = async () => {
     if (!editFormData || isUpdating) return;
@@ -940,9 +960,13 @@ export const AdminBanners: React.FC = () => {
         title: editFormData.title,
         subtitle: editFormData.description,
         primaryCtaLink: editFormData.linkUrl,
+        primaryCtaText: editFormData.ctaText,
+        badgeText: editFormData.badgeText,
         imageUrl: editFormData.imageUrl,
         displayOrder: editFormData.order,
         isActive: record.isActive,
+        showTextOverlay: Boolean(editFormData.showTextOverlay),
+        bannerType: editFormData.showTextOverlay ? 'text_overlay' : 'full_image',
       };
       // Only send schedule boundaries that actually changed ('' clears a date).
       if (record.startsAt !== (original?.startsAt || '')) updates.startsAt = record.startsAt;
@@ -1048,8 +1072,12 @@ export const AdminBanners: React.FC = () => {
         title: newBannerData.title,
         subtitle: newBannerData.subtitle,
         primaryCtaLink: newBannerData.linkUrl,
+        primaryCtaText: newBannerData.ctaText || 'Start Now',
+        badgeText: newBannerData.badgeText,
         imageUrl: newBannerData.imageUrl,
         isActive: record.isActive,
+        showTextOverlay: Boolean(newBannerData.showTextOverlay),
+        bannerType: newBannerData.showTextOverlay ? 'text_overlay' : 'full_image',
         ...(record.startsAt ? { startsAt: record.startsAt } : {}),
         ...(record.expiresAt ? { expiresAt: record.expiresAt } : {}),
         displayOrder: banners.length + 1,
@@ -1503,23 +1531,31 @@ export const AdminBanners: React.FC = () => {
                             )}
                           </td>
 
-                          {/* Status Badge */}
-                          <td className="py-3 px-2">
-                            {banner.status === 'Active' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#E6F8EE] text-[#15803D]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]" />
-                                Active
-                              </span>
-                            ) : banner.status === 'Scheduled' ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FEF3C7] text-[#D97706]">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
-                                Scheduled
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
-                                {banner.status}
-                              </span>
-                            )}
+                          {/* Status Badge (1-Click Toggle) */}
+                          <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickToggleStatus(banner)}
+                              title={`Click to ${banner.status === 'Active' ? 'disable' : 'enable'} banner`}
+                              className="focus:outline-none transition-transform hover:scale-105 cursor-pointer"
+                            >
+                              {banner.status === 'Active' ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#E6F8EE] text-[#15803D] hover:bg-[#d5f3e1] transition-colors">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]" />
+                                  Active (ON)
+                                </span>
+                              ) : banner.status === 'Scheduled' ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FEF3C7] text-[#D97706] hover:bg-[#fde68a] transition-colors">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                                  Scheduled
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                  Disabled (OFF)
+                                </span>
+                              )}
+                            </button>
                           </td>
 
                           {/* Order Index */}
@@ -1685,6 +1721,41 @@ export const AdminBanners: React.FC = () => {
               {/* TAB 1: DETAILS */}
               {activeTab === 'Details' && (
                 <div className="space-y-3.5 text-xs">
+                  {/* Homepage Visibility Status Card */}
+                  <div className="p-3 bg-blue-50/50 border border-blue-200/70 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 block">
+                        Homepage Banner Status
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        {editFormData.status === 'Active'
+                          ? 'Published & visible on student home'
+                          : 'Disabled / Hidden from student home'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditFormData((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                status: prev.status === 'Active' ? 'Draft' : 'Active',
+                              }
+                            : null
+                        )
+                      }
+                      className={cn(
+                        'px-3 py-1 text-xs font-semibold rounded-full transition-colors cursor-pointer',
+                        editFormData.status === 'Active'
+                          ? 'bg-[#15803D] text-white hover:bg-[#166534]'
+                          : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                      )}
+                    >
+                      {editFormData.status === 'Active' ? 'Enabled (ON)' : 'Disabled (OFF)'}
+                    </button>
+                  </div>
+
                   {/* Title */}
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">Title</label>
@@ -1742,6 +1813,67 @@ export const AdminBanners: React.FC = () => {
                         <span>Replace</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Optional Text Overlay Switch */}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 block">
+                          Optional Text Overlay
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Disabled by default. Displays clean banner artwork without text overlays.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editFormData.showTextOverlay)}
+                        onChange={(e) =>
+                          setEditFormData((prev) =>
+                            prev ? { ...prev, showTextOverlay: e.target.checked } : null
+                          )
+                        }
+                        className="w-4 h-4 rounded border-slate-300 text-[#026BFC] focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+
+                    {editFormData.showTextOverlay && (
+                      <div className="pt-2.5 border-t border-slate-200 space-y-2">
+                        <div>
+                          <label className="block text-slate-600 font-medium text-[11px] mb-1">
+                            Badge Text (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={editFormData.badgeText || ''}
+                            placeholder="e.g. SPECIAL OFFER"
+                            onChange={(e) =>
+                              setEditFormData((prev) =>
+                                prev ? { ...prev, badgeText: e.target.value } : null
+                              )
+                            }
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs text-slate-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-slate-600 font-medium text-[11px] mb-1">
+                            CTA Button Text (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={editFormData.ctaText || ''}
+                            placeholder="e.g. Start Practicing"
+                            onChange={(e) =>
+                              setEditFormData((prev) =>
+                                prev ? { ...prev, ctaText: e.target.value } : null
+                              )
+                            }
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs text-slate-800"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Type */}
@@ -2233,6 +2365,78 @@ export const AdminBanners: React.FC = () => {
                     <option value="Scheduled">Scheduled</option>
                     <option value="Draft">Draft</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Image Upload Row */}
+              <div>
+                <label className="block text-slate-600 font-medium mb-1">Banner Image</label>
+                <div className="flex items-center gap-3 p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div className="w-12 h-8 rounded overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                    <img
+                      src={newBannerData.imageUrl}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/exam_hero_banner.png';
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { url } = await bannerService.uploadBannerImage(file);
+                          setNewBannerData((prev) => ({
+                            ...prev,
+                            imageUrl: url,
+                            fileName: file.name,
+                          }));
+                          showToast('success', `Selected image: ${file.name}`);
+                        } catch {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setNewBannerData((prev) => ({
+                              ...prev,
+                              imageUrl: ev.target?.result as string,
+                              fileName: file.name,
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border file:border-blue-200 file:text-xs file:font-medium file:bg-white file:text-[#026BFC] hover:file:bg-blue-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Text Overlay Switch */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-slate-900 block">
+                      Optional Text Overlay
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Disabled by default. Displays clean banner artwork without text overlays.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newBannerData.showTextOverlay)}
+                    onChange={(e) =>
+                      setNewBannerData((prev) => ({
+                        ...prev,
+                        showTextOverlay: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 rounded border-slate-300 text-[#026BFC] focus:ring-0 cursor-pointer"
+                  />
                 </div>
               </div>
 

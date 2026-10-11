@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/components/pk_ui.dart';
 import '../../core/widgets/pk_bottom_spacing.dart';
 import '../../data/datasources/local_storage.dart';
@@ -78,6 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _userAvatarUrl;
   int _seriesIndex = 0;
   final ScrollController _seriesScrollController = ScrollController();
+  final PageController _heroBannerController = PageController();
+  int _currentBannerIndex = 0;
 
   @override
   void initState() {
@@ -93,6 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void dispose() {
     _seriesScrollController.removeListener(_onSeriesScroll);
     _seriesScrollController.dispose();
+    _heroBannerController.dispose();
     super.dispose();
   }
 
@@ -163,10 +167,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.watch(recentTestsProvider).asData?.value ?? const <MockTestModel>[];
     final subjects =
         ref.watch(subjectsProvider).asData?.value ?? const <SubjectModel>[];
-    final heroBanners =
+    final rawHeroBanners =
         ref.watch(heroBannersProvider).asData?.value ?? const <Map<String, dynamic>>[];
     final notifs =
         ref.watch(notificationsProvider).asData?.value ?? const <Map<String, dynamic>>[];
+
+    final activeBanners = rawHeroBanners.where((b) {
+      final active = b['is_active'] ?? b['isActive'];
+      if (active == false) return false;
+      final status = b['status'] as String?;
+      if (status == 'disabled' || status == 'inactive') return false;
+      final published = b['is_published'] ?? b['isPublished'];
+      if (published == false) return false;
+      return true;
+    }).toList();
 
     final attemptsById = <String, TestAttemptModel>{
       for (final a in LocalStorageService.getAttempts()) a.id: a,
@@ -193,11 +207,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(height: 14),
 
-              // 2. Hero Banner
-              _buildHeroBanner(heroBanners),
-              const SizedBox(height: 8),
-              _buildHeroDots(),
-              const SizedBox(height: 20),
+              // 2. Hero Banner (Display clean banner if active, hide completely if empty)
+              if (activeBanners.isNotEmpty) ...[
+                _buildHeroBanner(activeBanners),
+                if (activeBanners.length > 1) ...[
+                  const SizedBox(height: 8),
+                  _buildHeroDots(activeBanners.length),
+                ],
+                const SizedBox(height: 20),
+              ],
 
               // 3. Continue Your Practice
               _buildContinuePractice(inProgress),
@@ -406,36 +424,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 2. Hero Banner ────────────────────────────────────────────────────────
 
-  Widget _buildHeroBanner([List<Map<String, dynamic>> heroBanners = const []]) {
-    String? bannerImageUrl;
-    if (heroBanners.isNotEmpty) {
-      final b = heroBanners.first;
-      bannerImageUrl = (b['image_url'] ?? b['imageUrl'] ?? b['banner_url']) as String?;
+  Widget _buildHeroBanner(List<Map<String, dynamic>> banners) {
+    if (banners.isEmpty) return const SizedBox.shrink();
+
+    if (banners.length == 1) {
+      return _buildSingleBannerCard(banners.first);
     }
 
-    final resolvedUrl = ImageUrlHelper.resolveAdminImageUrl(bannerImageUrl);
+    return SizedBox(
+      height: 172,
+      child: PageView.builder(
+        controller: _heroBannerController,
+        itemCount: banners.length,
+        onPageChanged: (idx) {
+          if (mounted && _currentBannerIndex != idx) {
+            setState(() => _currentBannerIndex = idx);
+          }
+        },
+        itemBuilder: (context, index) {
+          return _buildSingleBannerCard(banners[index]);
+        },
+      ),
+    );
+  }
 
-    final ImageProvider bannerImage;
-    if (resolvedUrl != null &&
-        (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://'))) {
-      bannerImage = NetworkImage(resolvedUrl);
-    } else if (resolvedUrl != null && resolvedUrl.startsWith('assets/')) {
-      bannerImage = AssetImage(resolvedUrl);
-    } else {
-      bannerImage = const AssetImage('assets/images/dashboard/ref_hero_banner_clean.png');
-    }
+  Widget _buildSingleBannerCard(Map<String, dynamic> b) {
+    final rawUrl = (b['image_url'] ?? b['imageUrl'] ?? b['banner_url'] ?? b['bannerUrl']) as String?;
+    final resolvedUrl = ImageUrlHelper.resolveAdminImageUrl(rawUrl);
+
+    final showOverlay = (b['show_text_overlay'] ?? b['showTextOverlay'] ?? false) == true ||
+        (b['banner_type'] ?? b['bannerType']) == 'text_overlay';
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 185),
+      height: 172,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xFFD9EEFE),
-        image: DecorationImage(
-          image: bannerImage,
-          fit: BoxFit.cover,
-          alignment: Alignment.centerRight,
-        ),
-        border: Border.all(color: const Color(0xFFCCE0FF)),
+        color: const Color(0xFFEBF3FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFCCE0FF), width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0C0158FC),
@@ -445,8 +470,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 125, 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _handleBannerTap(b),
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildBannerImage(resolvedUrl),
+              if (showOverlay) _buildBannerTextOverlay(b),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBannerImage(String? resolvedUrl) {
+    if (resolvedUrl != null &&
+        (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://'))) {
+      return Image.network(
+        resolvedUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        alignment: Alignment.center,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFFF1F6FC),
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFF0158FC),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _buildBannerFallback(),
+      );
+    } else if (resolvedUrl != null && resolvedUrl.startsWith('assets/')) {
+      return Image.asset(
+        resolvedUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        alignment: Alignment.center,
+        errorBuilder: (context, error, stackTrace) => _buildBannerFallback(),
+      );
+    }
+    return _buildBannerFallback();
+  }
+
+  Widget _buildBannerFallback() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFE5F1FF), Color(0xFFD3E7FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/dashboard/ref_hero_banner_clean.png',
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) => const Icon(
+            Icons.image_outlined,
+            size: 36,
+            color: Color(0xFF8DA4C4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBannerTextOverlay(Map<String, dynamic> b) {
+    final title = (b['headline'] ?? b['title'] ?? 'Small Practice\nBig Results!') as String;
+    final subtitle = (b['subtitle'] ?? b['description'] ?? 'Turn your preparation into success with daily practice.') as String;
+    final badge = (b['badge_text'] ?? b['badgeText']) as String?;
+    final ctaText = (b['primary_cta_text'] ?? b['cta_text'] ?? b['ctaText'] ?? 'Start Practicing') as String;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 110, 12),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -457,7 +574,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const Text(
                   'Hello, ',
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F275E),
                   ),
@@ -465,7 +582,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text(
                   _firstName,
                   style: const TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F275E),
                   ),
@@ -473,70 +590,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const Text(
                   '! 👋',
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F275E),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Small Practice\nBig Results!',
-              style: TextStyle(
-                fontSize: 20,
+            const SizedBox(height: 4),
+            if (badge != null && badge.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                margin: const EdgeInsets.only(bottom: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0158FC).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0158FC),
+                  ),
+                ),
+              ),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF0B1B3F),
                 height: 1.15,
                 letterSpacing: -0.4,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Turn your preparation into success with daily practice.',
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
               maxLines: 2,
-              style: TextStyle(
-                fontSize: 11.5,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF4B5E80),
-                height: 1.3,
+                height: 1.25,
               ),
             ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () => _navigateToTab(2, '/practice'),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0158FC),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x330158FC),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Start Practicing',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 5),
-                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
-                    ],
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0158FC),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x330158FC),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
                   ),
-                ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    ctaText,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
+                ],
               ),
             ),
           ],
@@ -545,37 +675,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeroDots() {
+  void _handleBannerTap(Map<String, dynamic> b) {
+    final link = (b['primary_cta_link'] ??
+        b['primaryCtaLink'] ??
+        b['target_url'] ??
+        b['action_url'] ??
+        b['link']) as String?;
+
+    if (link == null || link.trim().isEmpty) {
+      _navigateToTab(2, '/practice');
+      return;
+    }
+
+    final trimmed = link.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      final uri = Uri.tryParse(trimmed);
+      if (uri != null) {
+        launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
+    // App routes
+    if (trimmed.startsWith('/')) {
+      if (trimmed == '/practice') {
+        _navigateToTab(2, '/practice');
+      } else if (trimmed == '/exams') {
+        _navigateToTab(1, '/exams');
+      } else if (trimmed == '/results') {
+        _navigateToTab(3, '/results');
+      } else if (trimmed == '/profile') {
+        _navigateToTab(4, '/profile');
+      } else {
+        context.push(trimmed);
+      }
+    } else {
+      context.push('/$trimmed');
+    }
+  }
+
+  Widget _buildHeroDots(int count) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 18,
+      children: List.generate(count, (index) {
+        final isSelected = index == _currentBannerIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          width: isSelected ? 18 : 5,
           height: 5,
           decoration: BoxDecoration(
-            color: const Color(0xFF0158FC),
+            color: isSelected ? const Color(0xFF0158FC) : const Color(0xFFCBD5E1),
             borderRadius: BorderRadius.circular(4),
           ),
-        ),
-        const SizedBox(width: 5),
-        Container(
-          width: 5,
-          height: 5,
-          decoration: const BoxDecoration(
-            color: Color(0xFFCBD5E1),
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 5),
-        Container(
-          width: 5,
-          height: 5,
-          decoration: const BoxDecoration(
-            color: Color(0xFFCBD5E1),
-            shape: BoxShape.circle,
-          ),
-        ),
-      ],
+        );
+      }),
     );
   }
 
@@ -922,13 +1077,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               children: [
                 const Icon(Icons.sensors_rounded, color: Color(0xFFEF4444), size: 18),
-                const SizedBox(width: 6),
-                const Text(
-                  'Live Mock Test',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F1E4A),
+                const Flexible(
+                  child: Text(
+                    'Live Mock Test',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1E4A),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

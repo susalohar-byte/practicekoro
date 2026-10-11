@@ -744,6 +744,10 @@ export interface RazorpayOrderResponse {
   durationDays: number;
   keyId: string;
   isRealRazorpayOrder?: boolean;
+  /** Plan price before any coupon (server-recorded). */
+  listPrice?: number;
+  discountAmount?: number;
+  couponCode?: string | null;
 }
 
 export interface RazorpayVerificationPayload {
@@ -1003,15 +1007,20 @@ export interface CouponUsageItem {
   usedAt: string;
 }
 
-export interface CouponValidationResult {
+/** Server-side coupon preview for one code and one plan (check_coupon_for_plan). */
+export interface CouponQuote {
   valid: boolean;
-  couponId?: string;
   code?: string;
-  discountType?: 'percentage' | 'fixed';
-  discountValue?: number;
+  listPrice?: number;
   discountAmount: number;
-  finalPrice: number;
+  finalAmount?: number;
   message: string;
+}
+
+/** Real discount totals from completed (non-refunded) coupon payments. */
+export interface CouponDiscountSummary {
+  totalDiscount: number;
+  redemptions: number;
 }
 
 export interface AdminAuditLog {
@@ -1298,6 +1307,7 @@ export interface HeroBanner {
   imageUrl?: string;
   mobileImageUrl?: string;
   bannerType?: 'full_image' | 'text_overlay';
+  showTextOverlay?: boolean;
   themeGradient?: BannerThemeColor;
   targetAudience?: BannerAudience;
   placement?: BannerPlacement;

@@ -369,10 +369,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Header + welcome banner
-      expect(find.text('Ananya'), findsOneWidget);
-      expect(find.text('Small Practice\nBig Results!'), findsOneWidget);
-      expect(find.text('Turn your preparation into success with daily practice.'), findsOneWidget);
+      // Header + clean banner
+      expect(find.text('PracticeKoro'), findsOneWidget);
+      // Clean banner by default: no text overlay on top of image
+      expect(find.text('Small Practice\nBig Results!'), findsNothing);
       expect(find.byTooltip('Search test series'), findsOneWidget);
       expect(find.byType(TextField), findsNothing); // no second search bar
 
@@ -748,7 +748,67 @@ void main() {
       expect(find.text("You haven't selected any exams yet."), findsOneWidget);
       expect(find.text('Attempt your first mock test to start tracking progress.'), findsOneWidget);
     });
+
+    testWidgets('HomeScreen banner renders text overlay when show_text_overlay is enabled', (tester) async {
+      tester.view.physicalSize = const Size(390, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final overlayRepo = _FakeBannerOverlayCatalogRepo();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(overlayRepo)],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Special Offer!'), findsOneWidget);
+      expect(find.text('Get 50% discount on all mock tests'), findsOneWidget);
+      expect(find.text('Claim Now'), findsOneWidget);
+    });
+
+    testWidgets('HomeScreen hides banner section completely when no active banners exist', (tester) async {
+      tester.view.physicalSize = const Size(390, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final emptyRepo = _FakeEmptyBannerCatalogRepo();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(emptyRepo)],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Special Offer!'), findsNothing);
+      expect(find.text('Small Practice\nBig Results!'), findsNothing);
+    });
   });
+}
+
+class _FakeBannerOverlayCatalogRepo extends _FakeCatalogRepo {
+  @override
+  Future<List<Map<String, dynamic>>> getHeroBanners() async => const [
+        {
+          'id': 'banner-overlay-1',
+          'image_url': 'assets/images/dashboard/ref_hero_banner_clean.png',
+          'is_active': true,
+          'is_published': true,
+          'show_text_overlay': true,
+          'headline': 'Special Offer!',
+          'subtitle': 'Get 50% discount on all mock tests',
+          'primary_cta_text': 'Claim Now',
+        },
+      ];
+}
+
+class _FakeEmptyBannerCatalogRepo extends _FakeCatalogRepo {
+  @override
+  Future<List<Map<String, dynamic>>> getHeroBanners() async => const [];
 }
 
 class _FakeSeriesRepo extends CatalogRepository {
@@ -803,4 +863,14 @@ class _FakeCatalogRepo extends CatalogRepository {
 
   @override
   Future<List<TestSeriesModel>> getPopularTestSeries() async => getTestSeries();
+
+  @override
+  Future<List<Map<String, dynamic>>> getHeroBanners() async => const [
+        {
+          'id': 'banner-hero-1',
+          'image_url': 'assets/images/dashboard/ref_hero_banner_clean.png',
+          'is_active': true,
+          'is_published': true,
+        },
+      ];
 }

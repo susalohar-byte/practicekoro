@@ -1460,6 +1460,21 @@ class CatalogRepository {
   Future<List<Map<String, dynamic>>> getHeroBanners() async {
     final client = _supabase;
     if (client != null) {
+      final now = DateTime.now();
+      bool isCampaignLive(Map<String, dynamic> b) {
+        final startsAt = b['starts_at'] ?? b['startsAt'];
+        if (startsAt != null) {
+          final s = DateTime.tryParse(startsAt.toString());
+          if (s != null && s.isAfter(now)) return false;
+        }
+        final expiresAt = b['expires_at'] ?? b['expiresAt'];
+        if (expiresAt != null) {
+          final e = DateTime.tryParse(expiresAt.toString());
+          if (e != null && e.isBefore(now)) return false;
+        }
+        return true;
+      }
+
       // 1. Try public.hero_banners table (active, ordered by display_order)
       try {
         final rows = await client
@@ -1468,7 +1483,7 @@ class CatalogRepository {
             .eq('is_active', true)
             .order('display_order', ascending: true);
         if (rows.isNotEmpty) {
-          final list = rows.whereType<Map<String, dynamic>>().toList();
+          final list = rows.whereType<Map<String, dynamic>>().where(isCampaignLive).toList();
           if (list.isNotEmpty) return list;
         }
       } catch (_) {}
@@ -1487,6 +1502,7 @@ class CatalogRepository {
             final list = raw
                 .whereType<Map<String, dynamic>>()
                 .where((b) => b['isActive'] != false && b['is_active'] != false)
+                .where(isCampaignLive)
                 .toList();
             list.sort((a, b) {
               final num oa = (a['displayOrder'] ?? a['display_order'] ?? a['order'] ?? 0) as num;
