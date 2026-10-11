@@ -107,9 +107,12 @@ export function deriveLiveTestStatus(
  * local timezone (IST for our admins), into a UTC ISO string.
  */
 export function localDateTimeToIso(date: string, time: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+    throw new Error('Invalid date or time.');
+  }
   const [y, m, d] = date.split('-').map(Number);
   const [hh, mm] = time.split(':').map(Number);
-  const local = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0);
+  const local = new Date(y, m - 1, d, hh, mm, 0, 0);
   if (isNaN(local.getTime())) throw new Error('Invalid date or time.');
   return local.toISOString();
 }

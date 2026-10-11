@@ -525,8 +525,6 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 </div>
               )}
 
-
-
               {/* Notification bell with real unread count */}
               <div ref={notifContainerRef} className="relative">
                 <button

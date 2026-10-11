@@ -126,7 +126,10 @@ describe('Schema-correct Dashboard item analysis', () => {
       correctCount: 1,
       wrongCount: 1,
       skippedCount: 1,
-      accuracyRate: 33.3,
+      // Skipped answers are excluded from accuracy (1 correct of 2 answered).
+      accuracyRate: 50,
+      failureRate: 50,
+      avgTimeSpentSeconds: 20,
     });
     expect(m.ranges).toEqual([
       [0, 499],
@@ -158,6 +161,12 @@ describe('Schema-correct Dashboard item analysis', () => {
     expect(r.questionId).toBe('q1');
     expect(r.examId).toBeUndefined();
     expect(r.examTitle).toBeUndefined();
+  });
+  it('reports no timing data as 0 instead of averaging untimed answers', async () => {
+    m.data.attempt_answers.forEach((a) => (a.time_spent_seconds = 0));
+    const [r] = await getItemAnalysis();
+    expect(r.avgTimeSpentSeconds).toBe(0);
+    expect(r.isTimeTrap).toBe(false);
   });
   it('applies exact reporting bounds and distinguishes an empty range from failed reads', async () => {
     expect(

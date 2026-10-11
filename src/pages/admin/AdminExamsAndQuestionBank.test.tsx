@@ -358,9 +358,9 @@ describe('AdminExams Drag & Drop Reordering Execution', () => {
 
     await waitFor(() => {
       expect(api.reorderExamCategories).toHaveBeenCalledWith([
-        { name: 'SSC & Central Govt.', orderIndex: 1 },
-        { name: 'WB Police (WBP / KP)', orderIndex: 2 },
-        { name: 'Teaching (TET / SLST)', orderIndex: 3 },
+        { id: 'cat_ssc', name: 'SSC & Central Govt.', orderIndex: 1 },
+        { id: 'cat_wbp', name: 'WB Police (WBP / KP)', orderIndex: 2 },
+        { id: 'cat_tet', name: 'Teaching (TET / SLST)', orderIndex: 3 },
       ]);
     });
   });

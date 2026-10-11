@@ -25,7 +25,6 @@ import {
   ChevronDown,
   Check,
   Award,
-  TrendingUp,
   Clock,
   ArrowRight,
   AlertTriangle,
@@ -1181,11 +1180,8 @@ export const AdminTestSeries: React.FC = () => {
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.total.toLocaleString('en-IN')}
             </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +20%
-            </span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">all statuses</p>
         </div>
 
         {/* Total Tests */}
@@ -1201,9 +1197,6 @@ export const AdminTestSeries: React.FC = () => {
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.totalTests.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +15%
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">across all series</p>
@@ -1229,9 +1222,6 @@ export const AdminTestSeries: React.FC = () => {
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.published.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +11%
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">active in apps</p>
@@ -1936,7 +1926,9 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.avgCompletion != null ? `${activeSeries.avgCompletion}%` : '—'}
+                        {activeSeries.avgCompletion != null
+                          ? `${activeSeries.avgCompletion}%`
+                          : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Avg. Completion</p>
@@ -2413,7 +2405,7 @@ export const AdminTestSeries: React.FC = () => {
                     <p className="text-[10px] font-bold text-slate-400">Total Attempts</p>
                     <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
                       {/* No per-series attempt metric is available from the backend yet. */}
-                      —
+                      {'—'}
                     </p>
                   </div>
 
@@ -2430,7 +2422,7 @@ export const AdminTestSeries: React.FC = () => {
                     <p className="text-[10px] font-bold text-slate-400">Average Score</p>
                     <p className="text-lg font-black text-blue-600 mt-0.5">
                       {/* No per-series average-score metric is available from the backend yet. */}
-                      —
+                      {'—'}
                     </p>
                   </div>
 
@@ -2444,19 +2436,21 @@ export const AdminTestSeries: React.FC = () => {
 
                 <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-[#F8FAFC] dark:bg-[#1E293B]/40 space-y-2">
                   <p className="font-extrabold text-slate-900 dark:text-white">Highlights</p>
+                  {/* Per-test attempt counts, time spent and pass ratio are not reported
+                      by the backend yet, so only real figures are listed here. */}
                   <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                    <span>Most Attempted Test:</span>
-                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
-                      {activeSeriesTests.length > 0 ? activeSeriesTests[0].title : '—'}
+                    <span>Tests in Series:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {activeSeriesTests.length.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
                     <span>Average Time Spent:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">48.2 Minutes</span>
+                    <span className="font-bold text-slate-900 dark:text-white">—</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
                     <span>Overall Pass Ratio:</span>
-                    <span className="font-bold text-emerald-600">68.4%</span>
+                    <span className="font-bold text-slate-900 dark:text-white">—</span>
                   </div>
                 </div>
               </div>

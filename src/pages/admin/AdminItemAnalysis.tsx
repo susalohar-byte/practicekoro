@@ -25,7 +25,8 @@ export const AdminItemAnalysis: React.FC = () => {
   const initialFilterType =
     (searchParams.get('filter') as ItemAnalysisFilterOptions['filterType']) || 'all';
 
-  const [items, setItems] = useState<QuestionItemAnalysis[]>([]);
+  const [allItems, setAllItems] = useState<QuestionItemAnalysis[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,21 +53,36 @@ export const AdminItemAnalysis: React.FC = () => {
           filterType,
           subjectId: selectedSubjectId || undefined,
           chapterId: selectedChapterId || undefined,
-          searchQuery: searchQuery || undefined,
         }),
         api.getAllAdminSubjects().catch(() => []),
         api.getAllAdminChapters().catch(() => []),
       ]);
-      setItems(analysisData);
+      setAllItems(analysisData);
       setSubjects(subs || []);
       setChapters(chaps || []);
+      setLoadError(null);
     } catch (err) {
       console.error('Failed to load item analysis data:', err);
+      setAllItems([]);
+      setLoadError(err instanceof Error ? err.message : 'Item analysis could not be loaded.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [filterType, selectedSubjectId, selectedChapterId, searchQuery]);
+  }, [filterType, selectedSubjectId, selectedChapterId]);
+
+  // Search is applied client-side so typing does not refetch every answer row.
+  const items = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allItems;
+    return allItems.filter(
+      (item) =>
+        item.questionText.toLowerCase().includes(q) ||
+        (item.questionBengali && item.questionBengali.toLowerCase().includes(q)) ||
+        (item.subjectName && item.subjectName.toLowerCase().includes(q)) ||
+        (item.chapterName && item.chapterName.toLowerCase().includes(q))
+    );
+  }, [allItems, searchQuery]);
 
   useEffect(() => {
     loadData();
@@ -88,11 +104,14 @@ export const AdminItemAnalysis: React.FC = () => {
   const totalAnalyzed = items.length;
   const highFailureCount = useMemo(() => items.filter((i) => i.isHighFailure).length, [items]);
   const timeTrapsCount = useMemo(() => items.filter((i) => i.isTimeTrap).length, [items]);
+  // Weighted by answered attempts (skipped answers excluded), not a mean of per-question rates.
   const avgPlatformAccuracy = useMemo(() => {
-    if (items.length === 0) return '0.0';
-    const sum = items.reduce((acc, curr) => acc + curr.accuracyRate, 0);
-    return (sum / items.length).toFixed(1);
+    const correct = items.reduce((acc, curr) => acc + curr.correctCount, 0);
+    const answered = items.reduce((acc, curr) => acc + curr.correctCount + curr.wrongCount, 0);
+    if (answered === 0) return '—';
+    return `${((correct / answered) * 100).toFixed(1)}%`;
   }, [items]);
+  const formatAvgTime = (seconds: number) => (seconds > 0 ? `${seconds}s` : '—');
 
   // Export CSV
   const handleExportCSV = () => {
@@ -130,7 +149,7 @@ export const AdminItemAnalysis: React.FC = () => {
       i.skippedCount,
       i.accuracyRate,
       i.failureRate,
-      i.avgTimeSpentSeconds,
+      i.avgTimeSpentSeconds > 0 ? i.avgTimeSpentSeconds : '',
       i.isHighFailure ? 'YES' : 'NO',
       i.isTimeTrap ? 'YES' : 'NO',
       i.correctOption,
@@ -217,7 +236,7 @@ export const AdminItemAnalysis: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">
-            {totalAnalyzed}
+            {loadError ? '—' : totalAnalyzed}
           </p>
           <p className="text-[11px] text-slate-400 mt-1">Item-level psychometric data recorded</p>
         </div>
@@ -241,7 +260,7 @@ export const AdminItemAnalysis: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-2 tracking-tight">
-            {highFailureCount}
+            {loadError ? '—' : highFailureCount}
           </p>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Questions failed by 80%+ examinees (Trap questions)
@@ -267,7 +286,7 @@ export const AdminItemAnalysis: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-2 tracking-tight">
-            {timeTrapsCount}
+            {loadError ? '—' : timeTrapsCount}
           </p>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Excessive solving duration compared to benchmark
@@ -285,7 +304,7 @@ export const AdminItemAnalysis: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-2 tracking-tight">
-            {avgPlatformAccuracy}%
+            {loadError ? '—' : avgPlatformAccuracy}
           </p>
           <p className="text-[11px] text-slate-400 mt-1">
             Average correctness across question attempts
@@ -408,6 +427,16 @@ export const AdminItemAnalysis: React.FC = () => {
       {/* ─── 4. ITEM ANALYSIS QUESTIONS LIST ─── */}
       {isLoading ? (
         <AdminSectionSkeleton label="Loading records…" variant="table" className="p-4" />
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="p-6 text-center bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900 rounded-2xl space-y-2"
+        >
+          <h3 className="text-sm font-bold text-rose-700 dark:text-rose-400">
+            Item analysis could not be loaded
+          </h3>
+          <p className="text-xs text-slate-500">{loadError}</p>
+        </div>
       ) : items.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
@@ -474,8 +503,8 @@ export const AdminItemAnalysis: React.FC = () => {
                       )}
                       {item.isTimeTrap && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1">
-                          <Clock className="w-3 h-3" />⏳ {item.avgTimeSpentSeconds}s Avg (Time
-                          Trap)
+                          <Clock className="w-3 h-3" />⏳ {formatAvgTime(item.avgTimeSpentSeconds)}{' '}
+                          Avg (Time Trap)
                         </span>
                       )}
                     </div>
@@ -587,7 +616,7 @@ export const AdminItemAnalysis: React.FC = () => {
                               : 'text-slate-800 dark:text-slate-200'
                           }`}
                         >
-                          {item.avgTimeSpentSeconds}s
+                          {formatAvgTime(item.avgTimeSpentSeconds)}
                         </span>
                         <span className="text-[10px] text-slate-400">per candidate</span>
                       </div>

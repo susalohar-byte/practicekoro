@@ -1,22 +1,27 @@
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Calendar,
-  Users,
-  FileText,
-  Target,
-  TrendingUp,
-  Info,
-  ChevronDown,
-  X,
-  ArrowRight,
-  Shield,
-  Check,
-} from 'lucide-react';
+import { Calendar, Users, FileText, Target, TrendingUp, Info, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import type { PlatformAnalyticsData } from '@/types';
+import type { DateRangePreset, PlatformAnalyticsData } from '@/types';
+import { analyticsRange } from '@/services/domains/admin.analytics';
+
+const RANGE_OPTIONS: { preset: DateRangePreset; label: string }[] = [
+  { preset: 'today', label: 'Today' },
+  { preset: 'yesterday', label: 'Yesterday' },
+  { preset: 'last_7_days', label: 'Last 7 Days' },
+  { preset: 'last_30_days', label: 'Last 30 Days' },
+  { preset: 'this_month', label: 'This Month' },
+  { preset: 'all_time', label: 'All Time' },
+];
+
+const formatKolkataDay = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -30,8 +35,6 @@ export interface WrongQuestionItem {
   subjectColor: string;
   wrongPercentage: number;
   totalAttempts: number;
-  correctOption: string;
-  explanation: string;
 }
 
 export interface TopicMetricItem {
@@ -43,41 +46,33 @@ export interface TopicMetricItem {
   attempts: number;
 }
 
-export interface ExamMetricItem {
-  rank: number;
-  exam: string;
-  logo: string;
-  students: number;
-  testsAttempted: number;
-  avgScore: number;
-}
-
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 export const AdminPerformance: React.FC = () => {
   const [pageLoading, setPageLoading] = useState(true);
-  const navigate = useNavigate();
 
   // Live Database State
   const [analyticsData, setAnalyticsData] = useState<PlatformAnalyticsData | null>(null);
-  const [examsList, setExamsList] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [rangePreset, setRangePreset] = useState<DateRangePreset>('this_month');
 
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
+      setPageLoading(true);
+      setLoadError(null);
       try {
-        const [overview, exams] = await Promise.all([
-          api.getPlatformAnalyticsOverview('this_month'),
-          api.getAllAdminExams(),
-        ]);
-        if (isMounted) {
-          setAnalyticsData(overview);
-          setExamsList(exams || []);
-        }
+        const overview = await api.getPlatformAnalyticsOverview(rangePreset);
+        if (isMounted) setAnalyticsData(overview);
       } catch (err) {
         console.warn('Failed to load performance analytics:', err);
+        if (isMounted) {
+          setAnalyticsData(null);
+          setLoadError(err instanceof Error ? err.message : 'Failed to load performance data.');
+        }
       } finally {
         if (isMounted) setPageLoading(false);
       }
@@ -86,22 +81,20 @@ export const AdminPerformance: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [rangePreset, reloadKey]);
 
-  // Date range modal
+  // Date range modal (label derived from the real Kolkata-day bounds of the loaded range)
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
-  const [dateRangeLabel, setDateRangeLabel] = useState('01 Sep 2026 → 30 Sep 2026');
-
-  // Chart dropdowns
-  const [trendGranularity, setTrendGranularity] = useState<'Daily' | 'Weekly' | 'Monthly'>('Daily');
-  const [subjectMetric, setSubjectMetric] = useState('Average Score');
-  const [distributionExam, setDistributionExam] = useState('All Exams');
+  const dateRangeLabel = useMemo(() => {
+    if (rangePreset === 'all_time') return 'All Time';
+    const b = analyticsRange(rangePreset);
+    return `${formatKolkataDay(b.startIso)} → ${formatKolkataDay(b.endIso)}`;
+  }, [rangePreset]);
 
   // Modals
   const [isWrongQuestionsModalOpen, setIsWrongQuestionsModalOpen] = useState(false);
   const [isWeakestTopicsModalOpen, setIsWeakestTopicsModalOpen] = useState(false);
   const [isTopTopicsModalOpen, setIsTopTopicsModalOpen] = useState(false);
-  const [isExamPerformanceModalOpen, setIsExamPerformanceModalOpen] = useState(false);
 
   // Computed live metrics
   const totalStudents = analyticsData?.studentPerformance?.totalStudents ?? 0;
@@ -127,8 +120,6 @@ export const AdminPerformance: React.FC = () => {
       subjectColor: colors[idx % colors.length],
       wrongPercentage: Math.round(q.failureRate),
       totalAttempts: q.totalAttempts,
-      correctOption: 'Option A',
-      explanation: 'Official explanation and solution rationale as recorded in the question bank.',
     }));
   }, [analyticsData]);
 
@@ -172,18 +163,6 @@ export const AdminPerformance: React.FC = () => {
     }));
   }, [analyticsData]);
 
-  // Exam performance from live exams list
-  const examPerformance: ExamMetricItem[] = useMemo(() => {
-    return examsList.slice(0, 5).map((ex, idx) => ({
-      rank: idx + 1,
-      exam: ex.title || ex.name || 'Exam',
-      logo: ex.icon || '/images/exams/emblem_wbp_shield.png',
-      students: ex.totalStudents || 0,
-      testsAttempted: ex.testsAttempted || 0,
-      avgScore: ex.avgScore || 0,
-    }));
-  }, [examsList]);
-
   // Subject data with vertical bars
   const subjectBars = useMemo(() => {
     const subs = analyticsData?.questionInsights?.weakestSubjects || [];
@@ -202,8 +181,20 @@ export const AdminPerformance: React.FC = () => {
     }));
   }, [analyticsData]);
 
-  // Heatmap hourly data: 7 days x 24 hours
-  const heatmapDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // Performance trend from real range buckets (attempts and answer accuracy)
+  const trend = analyticsData?.studentPerformance?.performanceTrend || [];
+  const maxTrendAttempts = Math.max(0, ...trend.map((t) => t.attemptsCount));
+  const trendPoint = (i: number, value: number, max: number) => ({
+    x: trend.length > 1 ? 35 + (i * 470) / (trend.length - 1) : 270,
+    y: max > 0 ? 160 - (value / max) * 140 : 160,
+  });
+  const trendPath = (key: 'attemptsCount' | 'averageAccuracy', max: number) =>
+    trend
+      .map((t, i) => {
+        const { x, y } = trendPoint(i, t[key], max);
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+      })
+      .join(' ');
 
   return withAdminSkeleton(
     pageLoading,
@@ -229,6 +220,24 @@ export const AdminPerformance: React.FC = () => {
           <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
         </button>
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-2xl p-4 border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-center justify-between"
+        >
+          <div>
+            <span className="font-bold mr-1">Performance data unavailable:</span> {loadError}
+          </div>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ==================================================================== */}
       {/* 2. SUMMARY METRIC CARDS (4 CARDS IN A ROW) */}
@@ -272,7 +281,7 @@ export const AdminPerformance: React.FC = () => {
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">All Submissions</p>
+            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Attempts started in range</p>
           </div>
         </div>
 
@@ -340,174 +349,88 @@ export const AdminPerformance: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                <span>Accuracy (%)</span>
+                <span>Answer Accuracy (%)</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" />
-                <span>Active Students</span>
-              </div>
-            </div>
-
-            {/* Dropdown */}
-            <div className="relative">
-              <select
-                value={trendGranularity}
-                onChange={(e) => setTrendGranularity(e.target.value as any)}
-                className="appearance-none bg-white border border-[#E2E8F0] rounded-lg pl-2.5 pr-6 py-1 text-[11px] font-semibold text-[#1E293B] focus:outline-none cursor-pointer"
-              >
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-              </select>
-              <ChevronDown className="w-3 h-3 text-[#94A3B8] absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
-          {/* SVG Line / Area Graph */}
-          <div className="relative h-[220px] w-full pt-4">
-            <svg viewBox="0 0 540 180" className="w-full h-full overflow-visible">
-              <defs>
-                <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563EB" stopOpacity="0.15" />
-                  <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-
-              {/* Grid Lines */}
-              <line x1="30" y1="20" x2="510" y2="20" stroke="#F1F5F9" strokeDasharray="3 3" />
-              <line x1="30" y1="55" x2="510" y2="55" stroke="#F1F5F9" strokeDasharray="3 3" />
-              <line x1="30" y1="90" x2="510" y2="90" stroke="#F1F5F9" strokeDasharray="3 3" />
-              <line x1="30" y1="125" x2="510" y2="125" stroke="#F1F5F9" strokeDasharray="3 3" />
-              <line x1="30" y1="160" x2="510" y2="160" stroke="#E2E8F0" />
-
-              {/* Y Axis Left labels */}
-              <text x="5" y="24" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                2,000
-              </text>
-              <text x="5" y="59" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                1,500
-              </text>
-              <text x="5" y="94" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                1,000
-              </text>
-              <text x="12" y="129" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                500
-              </text>
-              <text x="20" y="163" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                0
-              </text>
-
-              {/* Y Axis Right labels */}
-              <text x="515" y="24" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                100%
-              </text>
-              <text x="515" y="59" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                80%
-              </text>
-              <text x="515" y="94" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                60%
-              </text>
-              <text x="515" y="129" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                40%
-              </text>
-              <text x="515" y="148" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                20%
-              </text>
-              <text x="515" y="163" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
-                0%
-              </text>
-
-              {/* Curve 1: Accuracy (Green) */}
-              <path
-                d="M 35 48 C 75 52, 105 40, 145 28 C 185 35, 225 38, 265 28 C 305 32, 345 22, 385 36 C 425 40, 465 32, 505 24"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {[
-                { cx: 35, cy: 48 },
-                { cx: 105, cy: 40 },
-                { cx: 185, cy: 35 },
-                { cx: 265, cy: 28 },
-                { cx: 345, cy: 22 },
-                { cx: 425, cy: 40 },
-                { cx: 505, cy: 24 },
-              ].map((pt, i) => (
-                <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#10B981" />
-              ))}
-
-              {/* Curve 2: Tests Attempted (Blue) */}
-              <path
-                d="M 35 108 C 75 110, 105 92, 145 74 C 185 86, 225 90, 265 72 C 305 84, 345 72, 385 76 C 425 72, 465 68, 505 60"
-                fill="none"
-                stroke="#2563EB"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {[
-                { cx: 35, cy: 108 },
-                { cx: 105, cy: 92 },
-                { cx: 185, cy: 86 },
-                { cx: 265, cy: 72 },
-                { cx: 345, cy: 72 },
-                { cx: 425, cy: 72 },
-                { cx: 505, cy: 60 },
-              ].map((pt, i) => (
-                <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#2563EB" />
-              ))}
-
-              {/* Curve 3: Active Students (Purple) */}
-              <path
-                d="M 35 138 C 75 142, 105 134, 145 125 C 185 124, 225 126, 265 128 C 305 125, 345 120, 385 124 C 425 123, 465 120, 505 114"
-                fill="none"
-                stroke="#8B5CF6"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {[
-                { cx: 35, cy: 138 },
-                { cx: 105, cy: 134 },
-                { cx: 185, cy: 124 },
-                { cx: 265, cy: 128 },
-                { cx: 345, cy: 120 },
-                { cx: 425, cy: 123 },
-                { cx: 505, cy: 114 },
-              ].map((pt, i) => (
-                <circle key={i} cx={pt.cx} cy={pt.cy} r="3" fill="#8B5CF6" />
-              ))}
-            </svg>
-
-            {/* X Axis Labels */}
-            <div className="flex justify-between pl-8 pr-8 text-[9px] font-semibold text-[#94A3B8] -mt-1">
-              <span>1 Sep</span>
-              <span>5 Sep</span>
-              <span>10 Sep</span>
-              <span>15 Sep</span>
-              <span>20 Sep</span>
-              <span>25 Sep</span>
-              <span>30 Sep</span>
+          {/* SVG Line Graph from real range buckets */}
+          {trend.length === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-xs text-slate-400">
+              No attempts recorded in this range.
             </div>
-          </div>
+          ) : (
+            <div className="relative h-[220px] w-full pt-4">
+              <svg viewBox="0 0 540 180" className="w-full h-full overflow-visible">
+                {[20, 55, 90, 125].map((y) => (
+                  <line
+                    key={y}
+                    x1="30"
+                    y1={y}
+                    x2="510"
+                    y2={y}
+                    stroke="#F1F5F9"
+                    strokeDasharray="3 3"
+                  />
+                ))}
+                <line x1="30" y1="160" x2="510" y2="160" stroke="#E2E8F0" />
+                <text x="5" y="24" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
+                  {maxTrendAttempts.toLocaleString()}
+                </text>
+                <text x="20" y="163" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
+                  0
+                </text>
+                <text x="515" y="24" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
+                  100%
+                </text>
+                <text x="515" y="163" fill="#94A3B8" fontSize="9" fontFamily="sans-serif">
+                  0%
+                </text>
+                <path
+                  d={trendPath('averageAccuracy', 100)}
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={trendPath('attemptsCount', maxTrendAttempts)}
+                  fill="none"
+                  stroke="#2563EB"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                {trend.map((t, i) => {
+                  const acc = trendPoint(i, t.averageAccuracy, 100);
+                  const att = trendPoint(i, t.attemptsCount, maxTrendAttempts);
+                  return (
+                    <g key={t.date}>
+                      <circle cx={acc.x} cy={acc.y} r="3" fill="#10B981">
+                        <title>{`${t.label}: ${t.averageAccuracy}% accuracy`}</title>
+                      </circle>
+                      <circle cx={att.x} cy={att.y} r="3" fill="#2563EB">
+                        <title>{`${t.label}: ${t.attemptsCount} attempts`}</title>
+                      </circle>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* X Axis Labels */}
+              <div className="flex justify-between pl-8 pr-8 text-[9px] font-semibold text-[#94A3B8] -mt-1">
+                {trend.map((t) => (
+                  <span key={t.date}>{t.label}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT CHART: Subject-wise Performance (~40% / 5 cols) */}
         <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-xs flex flex-col justify-between">
           {/* Header */}
           <div className="flex items-center justify-between pb-2">
-            <h3 className="text-xs font-bold text-[#0F172A]">Subject-wise Performance</h3>
-            <div className="relative">
-              <select
-                value={subjectMetric}
-                onChange={(e) => setSubjectMetric(e.target.value)}
-                className="appearance-none bg-white border border-[#E2E8F0] rounded-lg pl-2.5 pr-6 py-1 text-[11px] font-semibold text-[#1E293B] focus:outline-none cursor-pointer"
-              >
-                <option>Average Score</option>
-                <option>Accuracy</option>
-                <option>Attempts</option>
-              </select>
-              <ChevronDown className="w-3 h-3 text-[#94A3B8] absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <h3 className="text-xs font-bold text-[#0F172A]">Subject-wise Accuracy</h3>
           </div>
 
           {/* Bar Chart Container */}
@@ -534,6 +457,11 @@ export const AdminPerformance: React.FC = () => {
 
             {/* Vertical Bars */}
             <div className="w-full h-full flex items-end justify-around pl-5 pr-1 z-10 pb-6">
+              {subjectBars.length === 0 && (
+                <p className="self-center text-xs text-slate-400">
+                  No answered questions in this range.
+                </p>
+              )}
               {subjectBars.map((bar) => (
                 <div key={bar.name} className="flex flex-col items-center h-full justify-end group">
                   <span className="text-[10px] font-bold text-slate-800 mb-1 group-hover:scale-110 transition-transform">
@@ -729,282 +657,6 @@ export const AdminPerformance: React.FC = () => {
       </div>
 
       {/* ==================================================================== */}
-      {/* 5. ROW 4: BOTTOM ANALYTICS CARDS (Exam-wise + Heatmap + Distribution) */}
-      {/* ==================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-        {/* Exam-wise Performance (~33% / 4 cols) */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="text-xs font-bold text-[#0F172A]">Exam-wise Performance</h3>
-            <button
-              onClick={() => setIsExamPerformanceModalOpen(true)}
-              className="text-[11px] font-semibold text-[#2563EB] hover:underline cursor-pointer"
-            >
-              View All
-            </button>
-          </div>
-
-          <div className="pt-2 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="text-[10px] text-slate-400 border-b border-slate-100">
-                  <th className="pb-1 font-bold w-4">#</th>
-                  <th className="pb-1 font-bold">Exam</th>
-                  <th className="pb-1 font-bold text-center">Students</th>
-                  <th className="pb-1 font-bold text-center">Tests Attempted</th>
-                  <th className="pb-1 font-bold text-right">Avg. Score</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {examPerformance.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400 text-xs">
-                      No exam metrics available yet.
-                    </td>
-                  </tr>
-                ) : (
-                  examPerformance.map((ex) => (
-                    <tr key={ex.rank} className="text-[11px]">
-                      <td className="py-2 font-bold text-slate-500">{ex.rank}</td>
-                      <td className="py-2">
-                        <div className="flex items-center gap-1.5">
-                          <img
-                            src={ex.logo}
-                            alt={ex.exam}
-                            className="w-4 h-4 rounded-full object-contain shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                          <span className="font-bold text-slate-800 truncate max-w-[90px]">
-                            {ex.exam}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2 text-center font-semibold text-slate-600">
-                        {ex.students.toLocaleString()}
-                      </td>
-                      <td className="py-2 text-center font-semibold text-slate-600">
-                        {ex.testsAttempted.toLocaleString()}
-                      </td>
-                      <td className="py-2 text-right">
-                        <span
-                          className={cn(
-                            'text-[10px] font-bold px-1.5 py-0.5 rounded',
-                            ex.avgScore >= 70
-                              ? 'bg-[#DCFCE7] text-[#16A34A]'
-                              : ex.avgScore >= 60
-                                ? 'bg-[#FEF3C7] text-[#D97706]'
-                                : 'bg-[#FFEDD5] text-[#EA580C]'
-                          )}
-                        >
-                          {ex.avgScore}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Student Activity Heatmap (~42% / 5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-xs flex flex-col justify-between">
-          <div className="pb-2 border-b border-slate-100">
-            <h3 className="text-xs font-bold text-[#0F172A]">Student Activity Heatmap</h3>
-          </div>
-
-          <div className="pt-2">
-            {/* Heatmap Grid */}
-            <div className="space-y-1">
-              {heatmapDays.map((day, dIdx) => (
-                <div key={day} className="flex items-center gap-1.5">
-                  <span className="w-6 text-[9px] font-bold text-slate-400">{day}</span>
-                  <div className="flex-1 grid grid-cols-24 gap-0.5 h-3.5">
-                    {Array.from({ length: 24 }).map((_, hIdx) => {
-                      // Generate heat map intensities matching screenshot (blue peaks from 9 AM to 10 PM)
-                      let heatClass = 'bg-blue-50';
-                      if (hIdx >= 8 && hIdx <= 22) {
-                        const intensity = (dIdx * 3 + hIdx * 7) % 5;
-                        if (intensity === 4) heatClass = 'bg-[#1D4ED8]';
-                        else if (intensity === 3) heatClass = 'bg-[#2563EB]';
-                        else if (intensity === 2) heatClass = 'bg-[#3B82F6]';
-                        else if (intensity === 1) heatClass = 'bg-[#60A5FA]';
-                        else heatClass = 'bg-[#93C5FD]';
-                      }
-
-                      return (
-                        <div
-                          key={hIdx}
-                          className={cn(
-                            'rounded-[2px] transition-colors hover:ring-1 hover:ring-blue-400',
-                            heatClass
-                          )}
-                          title={`${day} ${hIdx}:00`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Time ticks */}
-            <div className="flex justify-between pl-8 pr-1 text-[8px] font-semibold text-slate-400 pt-2">
-              <span>12 AM</span>
-              <span>4 AM</span>
-              <span>8 AM</span>
-              <span>12 PM</span>
-              <span>4 PM</span>
-              <span>8 PM</span>
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-1.5 text-[9px] font-semibold text-slate-500 pt-2 border-t border-slate-100 mt-2">
-              <span>Less Active</span>
-              <span className="w-2.5 h-2.5 rounded-xs bg-blue-50" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#93C5FD]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#60A5FA]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#2563EB]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#1D4ED8]" />
-              <span>More Active</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Distribution (~25% / 3 cols) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="text-xs font-bold text-[#0F172A]">Performance Distribution</h3>
-            <div className="relative">
-              <select
-                value={distributionExam}
-                onChange={(e) => setDistributionExam(e.target.value)}
-                className="appearance-none bg-white border border-[#E2E8F0] rounded-lg pl-2 pr-5 py-0.5 text-[10px] font-semibold text-[#1E293B] focus:outline-none cursor-pointer"
-              >
-                <option value="All Exams">All Exams</option>
-                <option value="WBP Constable">WBP Constable</option>
-                <option value="KP SI">KP SI</option>
-                <option value="WBCS">WBCS</option>
-              </select>
-              <ChevronDown className="w-3 h-3 text-[#94A3B8] absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-col items-center">
-            {/* Donut Chart SVG */}
-            <div className="relative w-28 h-28 my-1 flex items-center justify-center">
-              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                {/* 90-100%: 12% */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="4.5"
-                  strokeDasharray="12 88"
-                  strokeDashoffset="0"
-                />
-                {/* 70-89%: 28% */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#84CC16"
-                  strokeWidth="4.5"
-                  strokeDasharray="28 72"
-                  strokeDashoffset="-12"
-                />
-                {/* 50-69%: 34% */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#FBBF24"
-                  strokeWidth="4.5"
-                  strokeDasharray="34 66"
-                  strokeDashoffset="-40"
-                />
-                {/* 30-49%: 18% */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#F97316"
-                  strokeWidth="4.5"
-                  strokeDasharray="18 82"
-                  strokeDashoffset="-74"
-                />
-                {/* 0-29%: 8% */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="14"
-                  fill="none"
-                  stroke="#EF4444"
-                  strokeWidth="4.5"
-                  strokeDasharray="8 92"
-                  strokeDashoffset="-92"
-                />
-              </svg>
-
-              {/* Donut Center */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-xs font-black text-slate-900 leading-tight">
-                  {totalStudents.toLocaleString()}
-                </span>
-                <span className="text-[9px] text-slate-400 font-medium">Students</span>
-              </div>
-            </div>
-
-            {/* Legend with percentages */}
-            <div className="w-full space-y-1 text-[10px] font-semibold text-[#475569] pt-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                  <span>90% - 100%</span>
-                </div>
-                <span>12% (1,498)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#84CC16]" />
-                  <span>70% - 89%</span>
-                </div>
-                <span>28% (3,494)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#FBBF24]" />
-                  <span>50% - 69%</span>
-                </div>
-                <span>34% (4,241)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#F97316]" />
-                  <span>30% - 49%</span>
-                </div>
-                <span>18% (2,246)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
-                  <span>0% - 29%</span>
-                </div>
-                <span>8% (1,001)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ==================================================================== */}
       {/* 6. MODAL: DATE RANGE PICKER */}
       {/* ==================================================================== */}
       {isDateModalOpen && (
@@ -1024,30 +676,22 @@ export const AdminPerformance: React.FC = () => {
             </div>
 
             <div className="space-y-2 text-xs">
-              {[
-                '01 Sep 2026 → 30 Sep 2026',
-                'Today (30 Sep 2026)',
-                'Yesterday (29 Sep 2026)',
-                'Last 7 Days (24 Sep → 30 Sep 2026)',
-                'Last 30 Days (01 Sep → 30 Sep 2026)',
-                'August 2026 (01 Aug → 31 Aug 2026)',
-                'All Time',
-              ].map((range) => (
+              {RANGE_OPTIONS.map((range) => (
                 <button
-                  key={range}
+                  key={range.preset}
                   onClick={() => {
-                    setDateRangeLabel(range);
+                    setRangePreset(range.preset);
                     setIsDateModalOpen(false);
                   }}
                   className={cn(
                     'w-full text-left px-3.5 py-2.5 rounded-xl border font-semibold transition-colors flex items-center justify-between',
-                    dateRangeLabel === range
+                    rangePreset === range.preset
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   )}
                 >
-                  <span>{range}</span>
-                  {dateRangeLabel === range && <Check className="w-4 h-4 text-blue-600" />}
+                  <span>{range.label}</span>
+                  {rangePreset === range.preset && <Check className="w-4 h-4 text-blue-600" />}
                 </button>
               ))}
             </div>
@@ -1109,15 +753,6 @@ export const AdminPerformance: React.FC = () => {
                         {q.wrongPercentage}% Failed
                       </span>
                     </div>
-
-                    <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900">
-                      <span className="font-bold">Correct Answer:</span> {q.correctOption}
-                    </div>
-
-                    <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-700">
-                      <span className="font-bold block text-slate-900 mb-0.5">Explanation:</span>
-                      <p>{q.explanation}</p>
-                    </div>
                   </div>
                 ))
               )}
@@ -1165,7 +800,7 @@ export const AdminPerformance: React.FC = () => {
                     <div>
                       <p className="font-bold text-slate-900 text-xs">{t.topic}</p>
                       <p className="text-[10px] text-slate-500">
-                        {t.subject} • {t.attempts.toLocaleString()} Attempts
+                        {t.subject} • {t.attempts.toLocaleString()} Answers
                       </p>
                     </div>
                     <span className="bg-rose-100 text-rose-800 font-black text-xs px-2 py-0.5 rounded">
@@ -1218,7 +853,7 @@ export const AdminPerformance: React.FC = () => {
                     <div>
                       <p className="font-bold text-slate-900 text-xs">{t.topic}</p>
                       <p className="text-[10px] text-slate-500">
-                        {t.subject} • {t.attempts.toLocaleString()} Attempts
+                        {t.subject} • {t.attempts.toLocaleString()} Answers
                       </p>
                     </div>
                     <span className="bg-emerald-100 text-emerald-800 font-black text-xs px-2 py-0.5 rounded">
@@ -1232,76 +867,6 @@ export const AdminPerformance: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setIsTopTopicsModalOpen(false)}
-                className="bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ==================================================================== */}
-      {/* 10. MODAL: EXAM PERFORMANCE FULL VIEW */}
-      {/* ==================================================================== */}
-      {isExamPerformanceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900">
-                  All Exams Performance Metrics
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsExamPerformanceModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {examPerformance.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">No exams found.</div>
-              ) : (
-                examPerformance.map((ex) => (
-                  <div
-                    key={ex.rank}
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <img src={ex.logo} alt={ex.exam} className="w-6 h-6 object-contain" />
-                      <div>
-                        <p className="font-bold text-slate-900 text-xs">{ex.exam}</p>
-                        <p className="text-[10px] text-slate-500">
-                          {ex.students.toLocaleString()} Students •{' '}
-                          {ex.testsAttempted.toLocaleString()} Attempts
-                        </p>
-                      </div>
-                    </div>
-                    <span className="bg-emerald-100 text-emerald-800 font-black text-xs px-2 py-0.5 rounded">
-                      {ex.avgScore}% Avg
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <button
-                onClick={() => {
-                  setIsExamPerformanceModalOpen(false);
-                  navigate('/admin/exams');
-                }}
-                className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <span>Manage Exams</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setIsExamPerformanceModalOpen(false)}
                 className="bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold"
               >
                 Close

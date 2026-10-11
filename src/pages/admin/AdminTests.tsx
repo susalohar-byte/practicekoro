@@ -462,9 +462,7 @@ export const AdminTests: React.FC = () => {
       }
       setTests(freshTests);
       // Keep the open details panel in sync (e.g. totals recomputed after Manage Questions).
-      setSelectedTest((prev) =>
-        prev ? (freshTests.find((t) => t.id === prev.id) ?? prev) : prev
-      );
+      setSelectedTest((prev) => (prev ? (freshTests.find((t) => t.id === prev.id) ?? prev) : prev));
 
       setExams(examsData || []);
       setSubjects(subjectsData || []);

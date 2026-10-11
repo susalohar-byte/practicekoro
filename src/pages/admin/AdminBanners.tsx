@@ -362,7 +362,11 @@ export function bannerStatusToRecord(
   }
   if (status === 'Archived') {
     const expired = expiresAt && new Date(expiresAt).getTime() < now;
-    return { isActive: false, startsAt, expiresAt: expired ? expiresAt : new Date(now).toISOString() };
+    return {
+      isActive: false,
+      startsAt,
+      expiresAt: expired ? expiresAt : new Date(now).toISOString(),
+    };
   }
   return { isActive: status === 'Active', startsAt, expiresAt };
 }

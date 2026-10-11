@@ -444,6 +444,8 @@ export async function getItemAnalysis(
   filters?: ItemAnalysisFilterOptions
 ): Promise<QuestionItemAnalysis[]> {
   let items: QuestionItemAnalysis[] = [];
+  // Item rows are aggregated per question across tests; a per-test filter is not available.
+  if (filters?.testId) throw new Error('Filtering item analysis by test is not supported.');
 
   if (isSupabaseConfigured) {
     const answersData = await readCompleteQuery(() => {
@@ -466,6 +468,7 @@ export async function getItemAnalysis(
           wrong: number;
           skipped: number;
           totalTime: number;
+          timedCount: number;
           optionsCount: { A: number; B: number; C: number; D: number };
         }
       >();
@@ -480,13 +483,18 @@ export async function getItemAnalysis(
             wrong: 0,
             skipped: 0,
             totalTime: 0,
+            timedCount: 0,
             optionsCount: { A: 0, B: 0, C: 0, D: 0 },
           });
         }
 
         const qStats = questionMap.get(qId)!;
         qStats.total += 1;
-        qStats.totalTime += Number(row.time_spent_seconds || 0);
+        const seconds = Number(row.time_spent_seconds || 0);
+        if (seconds > 0) {
+          qStats.totalTime += seconds;
+          qStats.timedCount += 1;
+        }
 
         if (!row.selected_option) {
           qStats.skipped += 1;
@@ -504,9 +512,12 @@ export async function getItemAnalysis(
       });
 
       items = Array.from(questionMap.entries()).map(([qId, s]) => {
-        const accuracyRate = s.total > 0 ? Number(((s.correct / s.total) * 100).toFixed(1)) : 0;
-        const failureRate = s.total > 0 ? Number(((s.wrong / s.total) * 100).toFixed(1)) : 0;
-        const avgTimeSpentSeconds = s.total > 0 ? Math.round(s.totalTime / s.total) : 0;
+        // Skipped answers (selected_option NULL) are excluded, consistent with Analytics.
+        const answered = s.correct + s.wrong;
+        const accuracyRate = answered > 0 ? Number(((s.correct / answered) * 100).toFixed(1)) : 0;
+        const failureRate = answered > 0 ? Number(((s.wrong / answered) * 100).toFixed(1)) : 0;
+        // 0 means no timing data was recorded for this question.
+        const avgTimeSpentSeconds = s.timedCount > 0 ? Math.round(s.totalTime / s.timedCount) : 0;
         const isHighFailure = failureRate >= 80;
         const isTimeTrap = avgTimeSpentSeconds >= 90;
 
@@ -605,9 +616,6 @@ export async function getItemAnalysis(
     }
     if (filters.examId) {
       result = result.filter((item) => item.examId === filters.examId);
-    }
-    if (filters.testId) {
-      result = result.filter((item) => item.testId === filters.testId);
     }
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase().trim();

@@ -43,54 +43,57 @@ export async function getExamContentCounts(): Promise<
     return counts;
   }
 
-  try {
-    const { data: tests, error: testsError } = await supabase
-      .from('tests')
-      .select('id, exam_id, test_type');
-    if (testsError) throw new Error(testsError.message);
+  // Read every page (PostgREST caps responses at 1000 rows) and let errors propagate:
+  // silently returning partial/empty counts would show invented zeros.
+  const [tests, assoc, allExams] = await Promise.all([
+    readCompleteQuery(() =>
+      supabase
+        .from('tests')
+        .select('id, exam_id, test_type', { count: 'exact' })
+        .order('id', { ascending: true })
+    ) as Promise<{ id: string; exam_id: string | null; test_type: string | null }[]>,
+    readCompleteQuery(() =>
+      supabase
+        .from('test_exams')
+        .select('test_id, exam_id', { count: 'exact' })
+        .order('test_id', { ascending: true })
+        .order('exam_id', { ascending: true })
+    ) as Promise<{ test_id: string; exam_id: string }[]>,
+    readCompleteQuery(() =>
+      supabase.from('exams').select('id', { count: 'exact' }).order('id', { ascending: true })
+    ) as Promise<{ id: string }[]>,
+  ]);
 
-    const { data: assoc, error: assocError } = await supabase
-      .from('test_exams')
-      .select('test_id, exam_id');
-    if (assocError) throw new Error(assocError.message);
+  // Total topic tests available across the platform (common for all exams)
+  const commonTopicCount = tests.filter((t) => classify(t.test_type) === 'topic').length;
+  const testTypeById = new Map(tests.map((t) => [t.id, t.test_type]));
 
-    // Total topic tests available across the platform (common for all exams)
-    const commonTopicCount = (tests ?? []).filter(
-      (t: any) => classify(t.test_type) === 'topic'
-    ).length;
-
-    const seen = new Set<string>();
-    for (const row of tests ?? []) {
-      const kind = classify(row.test_type);
-      if (!kind) continue;
-      if (kind !== 'topic') {
+  const seen = new Set<string>();
+  for (const row of tests) {
+    const kind = classify(row.test_type);
+    if (!kind) continue;
+    if (kind !== 'topic') {
+      bump(row.exam_id, kind);
+    }
+    if (row.exam_id) seen.add(`${row.id}:${row.exam_id}`);
+  }
+  // Extra exam links from the junction (skip duplicates of the owning exam_id)
+  for (const row of assoc) {
+    const kind = classify(testTypeById.get(row.test_id));
+    if (!kind) continue;
+    if (kind !== 'topic') {
+      const key = `${row.test_id}:${row.exam_id}`;
+      if (!seen.has(key)) {
         bump(row.exam_id, kind);
-      }
-      if (row.exam_id) seen.add(`${row.id}:${row.exam_id}`);
-    }
-    // Extra exam links from the junction (skip duplicates of the owning exam_id)
-    for (const row of assoc ?? []) {
-      const kind = classify((tests ?? []).find((t) => t.id === row.test_id)?.test_type);
-      if (!kind) continue;
-      if (kind !== 'topic') {
-        const key = `${row.test_id}:${row.exam_id}`;
-        if (!seen.has(key)) {
-          bump(row.exam_id, kind);
-          seen.add(key);
-        }
+        seen.add(key);
       }
     }
+  }
 
-    // Ensure every exam receives the common topic count
-    const { data: allExams, error: examsError } = await supabase.from('exams').select('id');
-    if (examsError) throw new Error(examsError.message);
-
-    for (const ex of allExams ?? []) {
-      counts[ex.id] = counts[ex.id] || { fullMock: 0, pyq: 0, topic: 0 };
-      counts[ex.id].topic = commonTopicCount;
-    }
-  } catch (err) {
-    console.warn('getExamContentCounts failed:', err);
+  // Ensure every exam receives the common topic count
+  for (const ex of allExams) {
+    counts[ex.id] = counts[ex.id] || { fullMock: 0, pyq: 0, topic: 0 };
+    counts[ex.id].topic = commonTopicCount;
   }
   return counts;
 }

@@ -333,13 +333,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildHeroBanner() {
     return Container(
-      constraints: const BoxConstraints(minHeight: 180),
+      constraints: const BoxConstraints(minHeight: 185),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE8F2FF), Color(0xFFD6E8FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: const Color(0xFFD9EEFE),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/dashboard/ref_hero_banner_clean.png'),
+          fit: BoxFit.cover,
+          alignment: Alignment.centerRight,
         ),
         border: Border.all(color: const Color(0xFFCCE0FF)),
         boxShadow: const [
@@ -351,125 +352,102 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Mascot Illustration on Right
-          Positioned(
-            right: -2,
-            bottom: 0,
-            top: 0,
-            width: 156,
-            child: Image.asset(
-              'assets/images/dashboard/ref_hero_mascot.png',
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomRight,
-              errorBuilder: (_, _, _) => Image.asset(
-                'assets/images/dashboard/hero_nimo_desk.png',
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomRight,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-          ),
-          // Left Content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 140, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 125, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Hello, ',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F275E),
-                      ),
-                    ),
-                    Text(
-                      _firstName,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F275E),
-                      ),
-                    ),
-                    const Text(
-                      '! 👋',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F275E),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
                 const Text(
-                  'Small Practice\nBig Results!',
+                  'Hello, ',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0B1B3F),
-                    height: 1.15,
-                    letterSpacing: -0.4,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F275E),
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Turn your preparation into success with daily practice.',
-                  maxLines: 2,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4B5E80),
-                    height: 1.3,
+                Text(
+                  _firstName,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F275E),
                   ),
                 ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () => _navigateToTab(2, '/practice'),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0158FC),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x330158FC),
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: const FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Start Practicing',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
-                        ],
-                      ),
-                    ),
+                const Text(
+                  '! 👋',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F275E),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            const Text(
+              'Small Practice\nBig Results!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0B1B3F),
+                height: 1.15,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Turn your preparation into success with daily practice.',
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF4B5E80),
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => _navigateToTab(2, '/practice'),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0158FC),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x330158FC),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Start Practicing',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 5),
+                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -779,20 +757,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final examConfigs = [
       (
         title: 'WBP Constable',
+        displayTitle: 'WBP\nConstable',
         tests: '25 Tests',
-        asset: 'assets/images/dashboard/exam_wbp_cap.png',
+        asset: 'assets/images/dashboard/exam_card_wbp_art.png',
         slug: 'wbp-constable',
       ),
       (
         title: 'WBSSC Group C & D',
+        displayTitle: 'WBSSC\nGroup C & D',
         tests: '30 Tests',
-        asset: 'assets/images/dashboard/exam_wbssc_building.png',
+        asset: 'assets/images/dashboard/exam_card_wbssc_art.png',
         slug: 'wbssc-group-c-d',
       ),
       (
         title: 'Railway NTPC',
+        displayTitle: 'Railway\nNTPC',
         tests: '40 Tests',
-        asset: 'assets/images/dashboard/exam_railway_train.png',
+        asset: 'assets/images/dashboard/exam_card_railway_art.png',
         slug: 'railway-ntpc',
       ),
     ];
@@ -852,56 +833,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (i > 0) const SizedBox(width: 10),
               Expanded(
                 child: InkWell(
-                  onTap: () => context.push('/test-series?exam=${examConfigs[i].slug}&title=${Uri.encodeComponent(examConfigs[i].title)}'),
+                  onTap: () => context.push(
+                    '/test-series?exam=${examConfigs[i].slug}&title=${Uri.encodeComponent(examConfigs[i].title)}',
+                  ),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
-                    height: 142,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                     decoration: PK.cardBox(r: 16),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SizedBox(
-                          height: 58,
-                          child: Center(
-                            child: Image.asset(
-                              examConfigs[i].asset,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => const Icon(
-                                Icons.school_rounded,
-                                size: 36,
-                                color: Color(0xFF0158FC),
-                              ),
+                          height: 64,
+                          width: double.infinity,
+                          child: Image.asset(
+                            examConfigs[i].asset,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              color: const Color(0xFFEFF6FF),
+                              child: const Icon(Icons.school_rounded, color: PK.blue, size: 28),
                             ),
                           ),
                         ),
-                        Text(
-                          examConfigs[i].title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F1E4A),
-                            height: 1.15,
-                          ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
-                            const SizedBox(width: 4),
-                            Text(
-                              examConfigs[i].tests,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF64748B),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+                          child: Column(
+                            children: [
+                              Text(
+                                examConfigs[i].displayTitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F1E4A),
+                                  height: 1.15,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    examConfigs[i].tests,
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -952,15 +939,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
+    final defaultSeriesBanners = [
+      'assets/images/dashboard/series_card_wbp_art.png',
+      'assets/images/dashboard/series_card_wbssc_art.png',
+      'assets/images/dashboard/series_card_railway_art.png',
+    ];
+
     final cardItems = [
       for (var i = 0; i < series.length.clamp(0, 5); i++) ...[
         (
           title: series[i].title,
           sub: PK.seriesLabel(series[i].title, series[i].description, series[i].examTitle),
           isPopular: series[i].isPopular,
-          tests: '${series[i].testCount} Tests',
-          qs: series[i].questionCount > 0 ? '${PK.formatCount(series[i].questionCount)} Qs' : '1,525 Qs',
-          banner: series[i].bannerUrl ?? (i % 2 == 0 ? 'assets/images/dashboard/series_wbp.png' : 'assets/images/dashboard/series_wbssc.png'),
+          tests: '${series[i].testCount > 0 ? series[i].testCount : (i == 0 ? 25 : (i == 1 ? 30 : 40))} Tests',
+          qs: series[i].questionCount > 0
+              ? '${PK.formatCount(series[i].questionCount)} Qs'
+              : (i == 0 ? '12,500+ Qs' : (i == 1 ? '15,000+ Qs' : '1,525 Qs')),
+          banner: series[i].bannerUrl ?? defaultSeriesBanners[i % defaultSeriesBanners.length],
           id: series[i].id,
         )
       ]
@@ -1075,7 +1070,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1110,13 +1105,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ),
                                 ),
                                 Container(
-                                  width: 28,
-                                  height: 28,
+                                  width: 32,
+                                  height: 32,
                                   decoration: const BoxDecoration(
                                     color: Color(0xFF0158FC),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
                                 ),
                               ],
                             ),
@@ -1129,8 +1124,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   item.tests,
                                   style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                                 ),
-                                const SizedBox(width: 10),
-                                const Icon(Icons.help_outline_rounded, size: 11.5, color: Color(0xFF64748B)),
+                                const SizedBox(width: 12),
+                                const Icon(Icons.assignment_outlined, size: 11.5, color: Color(0xFF64748B)),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
@@ -1835,59 +1830,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildMotivationalBanner() {
     return Container(
+      constraints: const BoxConstraints(minHeight: 140),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE8F3FF), Color(0xFFD6E9FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: const Color(0xFFD9EBFF),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/dashboard/motivation_banner_clean.png'),
+          fit: BoxFit.cover,
+          alignment: Alignment.centerRight,
         ),
         border: Border.all(color: const Color(0xFFCCE2FF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0C0158FC),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
+      padding: const EdgeInsets.fromLTRB(16, 16, 125, 16),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Mascot with Trophy on Right
-          Positioned(
-            right: 0,
-            bottom: 0,
-            top: 0,
-            width: 130,
-            child: Image.asset(
-              'assets/images/dashboard/motivation_nimo_trophy.png',
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomRight,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          Text(
+            'Consistent\nPractice Creates\nBig Results!',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0A2569),
+              height: 1.15,
+              letterSpacing: -0.3,
             ),
           ),
-          // Left Content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 125, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Consistent\nPractice Creates\nBig Results!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0A2569),
-                    height: 1.15,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Stay focused. Keep practicing.\nYour goal is closer than you think.',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4B5E80),
-                    height: 1.35,
-                  ),
-                ),
-              ],
+          SizedBox(height: 6),
+          Text(
+            'Stay focused. Keep practicing.\nYour goal is closer than you think.',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF4B5E80),
+              height: 1.3,
             ),
           ),
         ],

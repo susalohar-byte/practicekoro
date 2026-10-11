@@ -273,10 +273,7 @@ export const AdminTestAttempts: React.FC = () => {
 
   // Dynamic question breakdown for selected attempt
   // Only real answer rows are shown; nothing is generated when answers are not loaded.
-  const questionsList = useMemo(
-    () => selectedAttempt?.questions ?? [],
-    [selectedAttempt]
-  );
+  const questionsList = useMemo(() => selectedAttempt?.questions ?? [], [selectedAttempt]);
   const modalQuestionsList = activeModalAttempt?.questions ?? [];
 
   // Outside click handler for row actions dropdown
@@ -1262,7 +1259,8 @@ export const AdminTestAttempts: React.FC = () => {
                     <div className="text-xs font-extrabold text-[#0F172A] flex items-center justify-center gap-1">
                       <Target className="w-3.5 h-3.5 text-emerald-600" />
                       <span>
-                        {selectedAttempt.score}/{selectedAttempt.totalMarks > 0 ? selectedAttempt.totalMarks : '—'}
+                        {selectedAttempt.score}/
+                        {selectedAttempt.totalMarks > 0 ? selectedAttempt.totalMarks : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] text-[#64748B] mt-0.5">Score</p>
@@ -1715,7 +1713,8 @@ export const AdminTestAttempts: React.FC = () => {
               <div className="p-2 bg-white rounded-xl border border-blue-100">
                 <p className="text-slate-500 text-[10px]">Total Score</p>
                 <p className="text-sm font-black text-slate-900 mt-0.5">
-                  {activeModalAttempt.score} / {activeModalAttempt.totalMarks > 0 ? activeModalAttempt.totalMarks : '—'}
+                  {activeModalAttempt.score} /{' '}
+                  {activeModalAttempt.totalMarks > 0 ? activeModalAttempt.totalMarks : '—'}
                 </p>
               </div>
               <div className="p-2 bg-white rounded-xl border border-blue-100">

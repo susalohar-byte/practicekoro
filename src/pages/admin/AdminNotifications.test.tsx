@@ -127,4 +127,29 @@ describe('AdminNotifications Page', () => {
 
     expect(api.sendNotificationNow).toHaveBeenCalledWith('n3');
   });
+
+  it('opens a scheduled notice on the Schedule tab when editing so it is not published', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    render(<AdminNotifications />);
+    const row = (await screen.findByText('Scheduled Festival Greeting')).closest('tr')!;
+    fireEvent.click(within(row).getByRole('button'));
+    fireEvent.click(await screen.findByRole('button', { name: /Edit Notice/i }));
+    expect(screen.getByText('Schedule Date & Time')).toBeInTheDocument();
+  });
+
+  it('duplicates with the raw backend audience rather than the UI label', async () => {
+    vi.mocked(api.createNotification).mockResolvedValue({
+      success: true,
+      notification: { id: 'copy' },
+    } as any);
+    render(<AdminNotifications />);
+    const row = (await screen.findByText('General Update for All')).closest('tr')!;
+    fireEvent.click(within(row).getByRole('button'));
+    fireEvent.click(await screen.findByRole('button', { name: /Duplicate Notice/i }));
+    await waitFor(() =>
+      expect(api.createNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ targetAudience: 'all', status: 'draft' })
+      )
+    );
+  });
 });

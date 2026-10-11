@@ -62,6 +62,7 @@ export interface SubscriptionRecord {
   paymentMethod: 'Razorpay' | 'UPI' | 'PhonePe' | 'Credit Card' | '—';
   startDate: string;
   endDate: string;
+  expiresAtIso?: string;
   status: 'Active' | 'Expired';
   statusBadgeClass: string;
   daysLeft?: number;
@@ -116,6 +117,7 @@ export function mapAdminSubscriptionRow(d: AdminSubscriptionRow): SubscriptionRe
     paymentMethod: method,
     startDate: formatDate(d.startsAt),
     endDate: formatDate(d.expiresAt),
+    expiresAtIso: d.expiresAt,
     status: isAct ? 'Active' : 'Expired',
     statusBadgeClass: isAct ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-[#FEE2E2] text-[#DC2626]',
     daysLeft: Number.isFinite(new Date(d.expiresAt).getTime())
@@ -519,6 +521,8 @@ export const AdminSubscriptions: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false);
+  // 'today' starts the new plan period now; 'stack' adds it after the current expiry.
+  const [changePlanStart, setChangePlanStart] = useState<'today' | 'stack'>('today');
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   // Available database plans
@@ -773,7 +777,11 @@ export const AdminSubscriptions: React.FC = () => {
     if (!selectedSubscription || isSubmitting) return;
     try {
       setIsSubmitting(true);
-      const res = await api.changeSubscriptionPlan(selectedSubscription.id, plan.id);
+      const res = await api.changeSubscriptionPlan(
+        selectedSubscription.id,
+        plan.id,
+        changePlanStart
+      );
       if (!res.success) {
         showToast(res.error || 'Failed to update plan.', 'error');
         return;
@@ -1532,7 +1540,10 @@ export const AdminSubscriptions: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => setIsChangePlanModalOpen(true)}
+                    onClick={() => {
+                      setChangePlanStart('today');
+                      setIsChangePlanModalOpen(true);
+                    }}
                     className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50 font-medium shrink-0 cursor-pointer shadow-2xs"
                   >
                     Change Plan
@@ -1921,20 +1932,55 @@ export const AdminSubscriptions: React.FC = () => {
               <strong>{selectedSubscription.studentName}</strong>
             </p>
 
+            <div
+              role="radiogroup"
+              aria-label="New plan period"
+              className="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl bg-slate-100 text-[11px] font-semibold"
+            >
+              {(
+                [
+                  ['today', 'Start today'],
+                  ['stack', 'Add to remaining time'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={changePlanStart === value}
+                  disabled={isSubmitting}
+                  onClick={() => setChangePlanStart(value)}
+                  className={`py-1.5 rounded-lg transition-colors cursor-pointer ${
+                    changePlanStart === value
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-2.5 mb-5 text-left text-xs">
               {availablePlans.length === 0 ? (
                 <div className="p-3 text-center text-slate-400">No active plans available</div>
               ) : (
                 availablePlans.map((plan) => {
                   const duration = plan.durationDays || 30;
-                  const futureDate = new Date(Date.now() + duration * 86400000).toLocaleDateString(
-                    'en-GB',
-                    {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    }
-                  );
+                  // Mirrors changeSubscriptionPlan: stacking only applies while time remains.
+                  const currentExpiry = Date.parse(selectedSubscription.expiresAtIso || '');
+                  const base =
+                    changePlanStart === 'stack' &&
+                    Number.isFinite(currentExpiry) &&
+                    currentExpiry > Date.now()
+                      ? new Date(currentExpiry)
+                      : new Date();
+                  base.setDate(base.getDate() + duration);
+                  const futureDate = base.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  });
                   return (
                     <button
                       key={plan.id}

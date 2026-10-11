@@ -861,8 +861,7 @@ export const AdminQuestionBank: React.FC = () => {
       setDrawerTopic(
         activeQuestion.topicName ||
           activeQuestion.chapterName ||
-          topics.find((t) => t.id === (activeQuestion.chapterId || activeQuestion.topicId))
-            ?.name ||
+          topics.find((t) => t.id === (activeQuestion.chapterId || activeQuestion.topicId))?.name ||
           ''
       );
       setDrawerType(questionBankType(activeQuestion));
@@ -1011,8 +1010,7 @@ export const AdminQuestionBank: React.FC = () => {
       (q) => q.uploadMode === 'exam' || Boolean(q.sourceExam)
     ).length;
     const subjectQuestions = questions.filter(
-      (q) =>
-        q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
+      (q) => q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
     ).length;
     const published = questions.filter((q) => questionBankStatus(q) === 'published').length;
     const draft = questions.filter((q) => questionBankStatus(q) === 'draft').length;
@@ -1162,9 +1160,8 @@ export const AdminQuestionBank: React.FC = () => {
         ? subjects.find((s) => s.name === drawerSubject)?.id
         : undefined;
       const chapterId = drawerTopic
-        ? topics.find(
-            (t) => t.name === drawerTopic && (!subjectId || t.subjectId === subjectId)
-          )?.id
+        ? topics.find((t) => t.name === drawerTopic && (!subjectId || t.subjectId === subjectId))
+            ?.id
         : undefined;
       // Only send the fields this drawer edits; untouched columns keep their stored values.
       const updatedQuestion: Partial<Question> = {
@@ -1182,7 +1179,8 @@ export const AdminQuestionBank: React.FC = () => {
         explanation: editExplanation.trim(),
         explanationBengali: editExplanationBengali.trim(),
       };
-      if (subjectId && subjectId !== activeQuestion.subjectId) updatedQuestion.subjectId = subjectId;
+      if (subjectId && subjectId !== activeQuestion.subjectId)
+        updatedQuestion.subjectId = subjectId;
       if (chapterId && chapterId !== (activeQuestion.chapterId || activeQuestion.topicId))
         updatedQuestion.chapterId = chapterId;
       if (drawerType !== originalType) {
@@ -1496,7 +1494,9 @@ export const AdminQuestionBank: React.FC = () => {
       // Columns up to and including correct_answer are required in each template.
       const requiredColumns = modeIdx(importMode, 'correct') + 1;
       const findSubject = (name: string) =>
-        name ? subjects.find((sub) => sub.name.trim().toLowerCase() === name.toLowerCase()) : undefined;
+        name
+          ? subjects.find((sub) => sub.name.trim().toLowerCase() === name.toLowerCase())
+          : undefined;
       const findTopic = (name: string, subjectId?: string) =>
         name
           ? topics.find(
@@ -2917,7 +2917,7 @@ export const AdminQuestionBank: React.FC = () => {
                       >
                         <option value="">—</option>
                         {withCurrentOption(
-                          exams.map((ex) => ex.name),
+                          exams.map((ex) => ex.title),
                           drawerExam
                         ).map((name) => (
                           <option key={name} value={name}>

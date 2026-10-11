@@ -147,4 +147,67 @@ Answer: (b) 20 Ohm
     expect(result.valid[1].imageUrl).toBe('https://example.com/geometry/angle.webp');
     expect(result.valid[1].questionText).toBe('নিচের জ্যামিতিক চিত্রটি লক্ষ্য করুন:');
   });
+
+  it('does not read the first letter of a word answer as an option letter', () => {
+    const result = parseQuestionsTxt(`1. What is the capital of India?
+(a) Mumbai
+(b) Kolkata
+(c) Chennai
+(d) Delhi
+
+Answer: Delhi`);
+    expect(result.valid).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toMatch(/correct answer/i);
+  });
+
+  it('still accepts standalone answer letters with trailing option text', () => {
+    const result = parseQuestionsTxt(`1. What is the capital of India?
+(a) Mumbai
+(b) Kolkata
+(c) Chennai
+(d) Delhi
+
+Answer: d) Delhi`);
+    expect(result.errors).toHaveLength(0);
+    expect(result.valid[0].correctOption).toBe('D');
+
+    const bare = parseQuestionsTxt(`1. 2 + 2 = ?
+(a) 3
+(b) 4
+(c) 5
+(d) 6
+Ans: B`);
+    expect(bare.valid[0].correctOption).toBe('B');
+  });
+
+  it('keeps question lines that start with "Note" in the question text', () => {
+    const result = parseQuestionsTxt(`1. Read carefully.
+Note that x = 5 and y = 2. Find x + y.
+(a) 6
+(b) 7
+(c) 8
+(d) 9
+
+Answer: (b)
+
+Notes: x + y = 7`);
+    expect(result.errors).toHaveLength(0);
+    const q = result.valid[0];
+    expect(q.questionText).toContain('Note that x = 5 and y = 2. Find x + y.');
+    expect(q.correctOption).toBe('B');
+    expect(q.explanation).toBe('x + y = 7');
+  });
+
+  it('accepts a bare explanation heading line', () => {
+    const result = parseQuestionsTxt(`1. 2 + 2 = ?
+(a) 3
+(b) 4
+(c) 5
+(d) 6
+Answer: (b)
+Explanation
+Two plus two is four.`);
+    expect(result.valid[0].explanation).toBe('Two plus two is four.');
+  });
 });

@@ -160,30 +160,30 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
         try {
           await api.createTest({
-          title: row.title,
-          testType,
-          examId: foundExamId,
-          subjectId: foundSubId,
-          chapterId: foundChapId,
-          durationMinutes: Number(row.durationminutes || 90),
-          totalMarks: Number(row.totalmarks || 100),
-          passingMarks: Number(row.passingmarks || 40),
-          negativeMarking: Number(row.negativemarking || 0.25),
-          // Imported tests have no questions yet, so they are created as drafts and published
-          // from Settings once questions are assigned (publishing is validated there).
-          status: 'draft',
-          isPremium: row.ispremium === 'true',
-          year: row.year ? Number(row.year) : undefined,
-          paperName: row.papername || undefined,
-          iconUrl: row.iconurl || row.icon_url || row.icon || undefined,
-          totalQuestions: 0,
-          orderIndex: 0,
-          slug: row.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, ''),
-          isActive: false,
-        });
+            title: row.title,
+            testType,
+            examId: foundExamId,
+            subjectId: foundSubId,
+            chapterId: foundChapId,
+            durationMinutes: Number(row.durationminutes || 90),
+            totalMarks: Number(row.totalmarks || 100),
+            passingMarks: Number(row.passingmarks || 40),
+            negativeMarking: Number(row.negativemarking || 0.25),
+            // Imported tests have no questions yet, so they are created as drafts and published
+            // from Settings once questions are assigned (publishing is validated there).
+            status: 'draft',
+            isPremium: row.ispremium === 'true',
+            year: row.year ? Number(row.year) : undefined,
+            paperName: row.papername || undefined,
+            iconUrl: row.iconurl || row.icon_url || row.icon || undefined,
+            totalQuestions: 0,
+            orderIndex: 0,
+            slug: row.title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)/g, ''),
+            isActive: false,
+          });
           createdCount++;
         } catch (rowErr) {
           // Keep going: report every failed row instead of aborting the whole import.

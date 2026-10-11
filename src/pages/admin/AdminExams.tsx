@@ -556,7 +556,7 @@ export const AdminExams: React.FC = () => {
   const [exams, setExams] = useState<EnrichedExamRow[]>(
     isSupabaseConfigured ? [] : CANONICAL_EXAMS_PRESET
   );
-  const [, setDbTests] = useState<MockTest[]>([]);
+  const [dbTests, setDbTests] = useState<MockTest[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [testSeriesList, setTestSeriesList] = useState<TestSeries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -781,7 +781,8 @@ export const AdminExams: React.FC = () => {
           categoryLabel: dbEx.category,
           subjectsCount: allSubjects.filter((x) => x.examId === dbEx.id).length,
           testSeriesCount: (allSeries || []).filter((x) => x.examId === dbEx.id).length,
-          totalTestsCount: dbEx.testsCount ?? (allTests || []).filter((x) => x.examId === dbEx.id).length,
+          totalTestsCount:
+            dbEx.testsCount ?? (allTests || []).filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,
           enrollmentsFormatted: 'Unavailable',
           statusLabel: dbEx.isActive ? 'Published' : 'Draft',
@@ -862,7 +863,11 @@ export const AdminExams: React.FC = () => {
         if (isRealCategory) {
           if (catNorm !== targetNorm) return false;
         } else {
-          if (targetNorm === 'state govt' && !catNorm.includes('state') && !catNorm.includes('wb')) {
+          if (
+            targetNorm === 'state govt' &&
+            !catNorm.includes('state') &&
+            !catNorm.includes('wb')
+          ) {
             return false;
           }
           if (

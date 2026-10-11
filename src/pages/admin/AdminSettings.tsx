@@ -1980,8 +1980,8 @@ export const AdminSettings: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <p className="text-xs text-amber-700">
                     SMTP credentials (username and password) must be configured as server (Edge
-                    Function) secrets and are not stored here. Saved
-                    values are reference metadata only; this page does not enable mail delivery.
+                    Function) secrets and are not stored here. Saved values are reference metadata
+                    only; this page does not enable mail delivery.
                   </p>
                 </div>
 

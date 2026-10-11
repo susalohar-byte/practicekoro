@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: false,
@@ -21,6 +21,8 @@ import {
   joinLiveTestEvent,
   recordLiveTestSubmission,
   getLiveTestLeaderboard,
+  localDateTimeToIso,
+  isoToLocalDateTimeParts,
 } from './admin.liveTests';
 import { localLiveTests, localLiveTestParticipations, localTests } from './localStore';
 
@@ -90,6 +92,51 @@ describe('admin.liveTests domain — Live Mock Test lifecycle', () => {
       const future = new Date(Date.now() + 3600 * 1000).toISOString();
       expect(deriveLiveTestStatus('cancelled', future, 60)).toBe('cancelled');
       expect(deriveLiveTestStatus('ended', future, 60)).toBe('ended');
+    });
+
+    it('keeps an explicitly started (live) event live only until its window closes', () => {
+      const started10mAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const started2hAgo = new Date(Date.now() - 120 * 60 * 1000).toISOString();
+      expect(deriveLiveTestStatus('live', started10mAgo, 60)).toBe('live');
+      expect(deriveLiveTestStatus('live', started2hAgo, 60)).toBe('ended');
+    });
+
+    it('still respects explicit cancelled/ended over a live window', () => {
+      const started10mAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      expect(deriveLiveTestStatus('cancelled', started10mAgo, 60)).toBe('cancelled');
+      expect(deriveLiveTestStatus('ended', started10mAgo, 60)).toBe('ended');
+    });
+  });
+
+  describe('local date/time <-> ISO conversion', () => {
+    const originalTz = process.env.TZ;
+    afterEach(() => {
+      process.env.TZ = originalTz;
+    });
+
+    it('interprets the admin input as local (IST) time, not UTC', () => {
+      process.env.TZ = 'Asia/Kolkata';
+      expect(localDateTimeToIso('2026-10-15', '10:00')).toBe('2026-10-15T04:30:00.000Z');
+    });
+
+    it('splits a stored UTC timestamp back into local (IST) date and time parts', () => {
+      process.env.TZ = 'Asia/Kolkata';
+      expect(isoToLocalDateTimeParts('2026-10-15T04:30:00.000Z')).toEqual({
+        date: '2026-10-15',
+        time: '10:00',
+      });
+      // Crosses midnight: 20:00 UTC is 01:30 the next day in IST
+      expect(isoToLocalDateTimeParts('2026-10-15T20:00:00.000Z')).toEqual({
+        date: '2026-10-16',
+        time: '01:30',
+      });
+    });
+
+    it('round-trips in any timezone and rejects invalid input', () => {
+      const iso = localDateTimeToIso('2026-03-01', '23:45');
+      expect(isoToLocalDateTimeParts(iso)).toEqual({ date: '2026-03-01', time: '23:45' });
+      expect(isoToLocalDateTimeParts('not-a-date')).toBeNull();
+      expect(() => localDateTimeToIso('', 'xx')).toThrow();
     });
   });
 
@@ -162,6 +209,34 @@ describe('admin.liveTests domain — Live Mock Test lifecycle', () => {
       const active = await getActiveLiveTest();
       expect(active?.id).toBe(liveEvent.id);
       expect(active?.status).toBe('live');
+    });
+
+    it('stores Draft as an unpublished event that does not lock the test', async () => {
+      const startAt = new Date(Date.now() + 3600 * 1000).toISOString();
+      const draft = await scheduleLiveTest({
+        testId: 'mock-test-wbp-1',
+        startAt,
+        status: 'draft',
+      });
+      expect(draft.status).toBe('draft');
+      expect(draft.isPublished).toBe(false);
+      expect(await isTestLockedForEditing('mock-test-wbp-1')).toBe(false);
+      expect(await getActiveLiveTest()).toBeNull();
+
+      const published = await updateLiveTest(draft.id, { status: 'upcoming' });
+      expect(published.status).toBe('upcoming');
+      expect(published.isPublished).toBe(true);
+    });
+
+    it('honours a chosen status when scheduling', async () => {
+      const startAt = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const live = await scheduleLiveTest({
+        testId: 'mock-test-wbp-1',
+        startAt,
+        status: 'live',
+      });
+      expect(live.status).toBe('live');
+      expect(live.isPublished).toBe(true);
     });
 
     it('updates, cancels, and deletes live tests properly', async () => {

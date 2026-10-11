@@ -3,7 +3,9 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api } from '@/services/api';
 import { AdminStudents } from './AdminStudents';
 vi.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'staff', fullName: 'Fixture Staff', email: 'staff@example.test' } }),
+  useAuth: () => ({
+    user: { id: 'staff', fullName: 'Fixture Staff', email: 'staff@example.test' },
+  }),
 }));
 vi.mock('@/services/api', () => ({
   api: {

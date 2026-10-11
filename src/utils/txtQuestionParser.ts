@@ -211,12 +211,15 @@ export function parseQuestionsTxt(
 
     // Answer pattern:
     // "সঠিক উত্তর: (a) ..." or "সঠিক উত্তর : a" or "Ans: (a)" or "Answer: a" or "Correct: (a)"
+    // The bare letter must stand alone ("Answer: Delhi" must not read as D).
     const answerRegex =
-      /^\s*(?:সঠিক\s*উত্তর|উত্তর|Answer|Ans|Correct\s*Answer|Correct\s*Option)\s*[:\-–—]\s*(?:\(([a-dA-D])\)|([a-dA-D]))/i;
+      /^\s*(?:সঠিক\s*উত্তর|উত্তর|Answer|Ans|Correct\s*Answer|Correct\s*Option)\s*[:\-–—]\s*(?:\(([a-dA-D])\)|([a-dA-D])(?![A-Za-z0-9\u0980-\u09FF]))/i;
     // Explanation pattern:
     // "Explanation:" or "ব্যাখ্যা:" or "ব্যাখ্যা : " or "Short Notes:" or "শর্ট নোটস:"
+    // Either a bare heading line ("Explanation") or heading + separator ("Note: ...");
+    // a question line that merely starts with "Note"/"Notes" is not a heading.
     const explanationRegex =
-      /^\s*(?:Explanation|ব্যাখ্যা|Short\s*Notes|শর্ট\s*নোটস|Note|Notes)\s*[:\-–—]?\s*(.*)$/i;
+      /^\s*(?:Explanation|ব্যাখ্যা|Short\s*Notes|শর্ট\s*নোটস|Notes?)\s*(?:[:\-–—]\s*(.*))?$/i;
 
     // Image/Diagram/Figure pattern:
     // "[Image: https://...]" or "Image: https://..." or "Figure: https://..." or "Diagram: https://..." or "ছবি: https://..." or "চিত্র: https://..."
@@ -324,7 +327,7 @@ export function parseQuestionsTxt(
     // Secondary search for Answer if not caught by line-start regex
     if (!correctOption) {
       const inlineAnsMatch = block.match(
-        /(?:সঠিক\s*উত্তর|উত্তর|Answer|Ans|Correct)\s*[:\-–—]\s*(?:\(([a-dA-D])\)|([a-dA-D]))/i
+        /(?:সঠিক\s*উত্তর|উত্তর|Answer|Ans|Correct)\s*[:\-–—]\s*(?:\(([a-dA-D])\)|([a-dA-D])(?![A-Za-z0-9\u0980-\u09FF]))/i
       );
       if (inlineAnsMatch) {
         correctOption = (inlineAnsMatch[1] || inlineAnsMatch[2]).toUpperCase() as

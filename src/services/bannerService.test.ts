@@ -211,7 +211,7 @@ describe('bannerService Enterprise Architecture', () => {
       expect(titles).not.toContain('Catalog Only Banner');
     });
 
-    it('never shows another audience\'s banners when the audience filter yields none', async () => {
+    it("never shows another audience's banners when the audience filter yields none", async () => {
       localStorage.clear();
       await bannerService.createBanner({
         title: 'Exclusive Pro Marathon',

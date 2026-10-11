@@ -180,4 +180,35 @@ describe('Authoritative Analytics', () => {
       'permission denied'
     );
   });
+  it('counts only completed attempts for tests and trend scores', () => {
+    const x = aggregateAnalytics(
+      analyticsRange('custom', '2026-10-07', '2026-10-07'),
+      [profile],
+      [
+        attempt,
+        { ...attempt, id: 'open', status: 'in_progress', score: 0 },
+        { ...attempt, id: 'gone', status: 'abandoned', score: 0 },
+      ],
+      [],
+      [],
+      []
+    );
+    expect(x.studentRankings[0]).toMatchObject({ totalTests: 1, totalScore: 2 });
+    const bucket = x.studentPerformance.performanceTrend.find((t) => t.attemptsCount > 0)!;
+    expect(bucket.averageScore).toBe(2);
+  });
+  it('computes current-month revenue from its own rows, not the selected range', () => {
+    const now = new Date().toISOString();
+    const x = aggregateAnalytics(
+      analyticsRange('custom', '2026-10-07', '2026-10-07'),
+      [profile],
+      [],
+      [],
+      [],
+      [],
+      [{ id: 'm', amount: 50, refund_amount: 0, status: 'completed', created_at: now }]
+    );
+    expect(x.revenue.totalRevenue).toBe(0);
+    expect(x.revenue.monthlyRevenue).toBe(50);
+  });
 });

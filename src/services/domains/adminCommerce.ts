@@ -955,7 +955,8 @@ export const adminCommerceApi = {
 
   async changeSubscriptionPlan(
     subscriptionId: string | number,
-    newPlanId: string
+    newPlanId: string,
+    start: 'today' | 'stack' = 'today'
   ): Promise<{ success: boolean; newExpiresAt?: string; planTitle?: string; error?: string }> {
     if (isSupabaseConfigured) {
       try {
@@ -985,9 +986,13 @@ export const adminCommerceApi = {
         const durationDays = Number(plan.duration_days);
         if (!Number.isInteger(durationDays) || durationDays <= 0)
           return { success: false, error: 'Plan duration must be positive.' };
-        // The new plan's period starts today, matching the expiry previewed to the admin
-        // (stacking it onto the remaining time silently granted extra days).
-        const baseDate = new Date();
+        // 'today' starts the new plan period now; 'stack' adds it after the current
+        // expiry while time remains. The admin's Change Plan preview uses the same rule.
+        const currentExpiry = Date.parse(sub.expires_at || '');
+        const baseDate =
+          start === 'stack' && Number.isFinite(currentExpiry) && currentExpiry > Date.now()
+            ? new Date(currentExpiry)
+            : new Date();
         baseDate.setDate(baseDate.getDate() + durationDays);
         const newExpiresAt = baseDate.toISOString();
 
@@ -1273,6 +1278,7 @@ export const adminCommerceApi = {
           timeTaken: timeSec ? `${Math.max(1, timeMin)} min` : '—',
           timeTakenSeconds: timeSec,
           status: d.status === 'completed' ? 'Completed' : 'Not Completed',
+          createdAt: d.created_at,
           attemptedAtDate: dateStr,
           attemptedAtTime: timeStr,
           startedAt: d.start_time ? new Date(d.start_time).toLocaleString('en-GB') : dateStr,

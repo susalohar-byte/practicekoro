@@ -3,7 +3,13 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { AdminAnalytics, analyticsCsv } from './AdminAnalytics';
 import { api } from '@/services/api';
 import type { PlatformAnalyticsData } from '@/types';
-vi.mock('@/services/api', () => ({ api: { getPlatformAnalyticsOverview: vi.fn() } }));
+vi.mock('@/services/api', () => ({
+  api: {
+    getPlatformAnalyticsOverview: vi.fn(),
+    createNotification: vi.fn(),
+    createTargetedNotification: vi.fn(),
+  },
+}));
 const data: PlatformAnalyticsData = {
   studentPerformance: {
     totalStudents: 12,
@@ -18,7 +24,7 @@ const data: PlatformAnalyticsData = {
   questionInsights: { weakestSubjects: [], weakestTopics: [], mostWrongQuestions: [] },
   revenue: {
     totalRevenue: 80,
-    monthlyRevenue: 80,
+    monthlyRevenue: 30,
     paidStudents: 1,
     activeSubscriptions: 2,
     revenueTrend: [],
@@ -81,5 +87,61 @@ describe('Analytics truthful UI', () => {
     expect(csv).toContain('"New students","2","selected period"');
     expect(csv).toContain('"Total students","12","Current student profiles"');
     expect(csv).toContain('"Retained revenue (INR)","80","selected period"');
+  });
+  it('shows real zeros and no invented trends, categories or plan splits', async () => {
+    vi.mocked(api.getPlatformAnalyticsOverview).mockResolvedValue({
+      ...data,
+      studentPerformance: { ...data.studentPerformance, totalStudents: 0, activeStudents: 0 },
+    });
+    render(<AdminAnalytics />);
+    await screen.findByText('₹80');
+    expect(screen.queryByText('12,486')).not.toBeInTheDocument();
+    expect(screen.queryByText('↑ 18%')).not.toBeInTheDocument();
+    expect(screen.queryByText('WBP Constable')).not.toBeInTheDocument();
+    expect(screen.queryByText('6 Months Mock Test')).not.toBeInTheDocument();
+    expect(screen.queryByText('Device Usage')).not.toBeInTheDocument();
+    expect(screen.getByText('₹30')).toBeInTheDocument();
+  });
+  it('reports a failed practice pack dispatch and targets only active students', async () => {
+    const topic = {
+      chapterId: 'c1',
+      chapterName: 'Polity',
+      subjectName: 'GK',
+      totalQuestionsAttempted: 4,
+      accuracyRate: 25,
+    };
+    vi.mocked(api.getPlatformAnalyticsOverview).mockResolvedValue({
+      ...data,
+      studentRankings: [
+        {
+          rank: 1,
+          userId: 'u1',
+          name: 'A',
+          email: 'a@example.test',
+          totalTests: 1,
+          questionsAttempted: 4,
+          correctCount: 1,
+          accuracy: 25,
+          totalScore: 1,
+          isPro: false,
+        },
+      ],
+      questionInsights: { ...data.questionInsights, weakestTopics: [topic] },
+    } as PlatformAnalyticsData);
+    vi.mocked((api as any).createTargetedNotification).mockResolvedValue({
+      success: false,
+      error: 'denied',
+    });
+    render(<AdminAnalytics />);
+    await screen.findByText('₹80');
+    fireEvent.change(screen.getByDisplayValue('Select a topic to target...'), {
+      target: { value: 'c1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Dispatch Topic Practice Pack/ }));
+    expect(await screen.findByText(/Practice pack was not sent: denied/)).toBeInTheDocument();
+    expect((api as any).createTargetedNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ['u1'] })
+    );
+    expect(api.createNotification).not.toHaveBeenCalled();
   });
 });

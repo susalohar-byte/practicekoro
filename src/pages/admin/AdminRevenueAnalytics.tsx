@@ -32,22 +32,23 @@ import {
 } from 'lucide-react';
 import type { DateRangePreset, AdminPaymentRow, PlatformAnalyticsData } from '@/types';
 import { cn } from '@/lib/utils';
+import { getKolkataDateString } from '@/services/domains/admin.dashboard';
 
 export const AdminRevenueAnalytics: React.FC = () => {
   const [preset, setPreset] = useState<DateRangePreset>('this_month');
-  const [customStartDate, setCustomStartDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d.toISOString().slice(0, 10);
-  });
-  const [customEndDate, setCustomEndDate] = useState<string>(() => {
-    return new Date().toISOString().slice(0, 10);
-  });
+  // Default custom range: first day of the current Kolkata month through Kolkata today.
+  const [customStartDate, setCustomStartDate] = useState<string>(
+    () => `${getKolkataDateString(new Date()).slice(0, 7)}-01`
+  );
+  const [customEndDate, setCustomEndDate] = useState<string>(() =>
+    getKolkataDateString(new Date())
+  );
 
   const [analyticsData, setAnalyticsData] = useState<PlatformAnalyticsData | null>(null);
   const [payments, setPayments] = useState<AdminPaymentRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Student Leaderboard / Rank Modal State
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
@@ -65,6 +66,7 @@ export const AdminRevenueAnalytics: React.FC = () => {
     async (selectedPreset: DateRangePreset, start?: string, end?: string) => {
       try {
         setIsLoading(true);
+        setLoadError(null);
         const [overview, paymentsData] = await Promise.all([
           api.getPlatformAnalyticsOverview(
             selectedPreset,
@@ -78,6 +80,10 @@ export const AdminRevenueAnalytics: React.FC = () => {
         setPayments(paymentsData || []);
       } catch (err) {
         console.error('Failed to load platform analytics:', err);
+        // Never leave previous-range figures on screen as if they matched the new range.
+        setAnalyticsData(null);
+        setPayments([]);
+        setLoadError(err instanceof Error ? err.message : 'Failed to load analytics.');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -286,6 +292,25 @@ export const AdminRevenueAnalytics: React.FC = () => {
         </div>
       </div>
 
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-2xl p-4 border border-rose-200 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs flex items-center justify-between"
+        >
+          <div>
+            <span className="font-bold mr-1">Analytics unavailable:</span> {loadError}
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold inline-flex items-center gap-1 text-xs shadow-xs"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
       {/* Sub-Navigation Tabs across Subscriptions, Coupons, Revenue */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
         <Link
@@ -401,7 +426,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : (analyticsData?.studentPerformance.totalStudents ?? 0).toLocaleString('en-IN')}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.studentPerformance.totalStudents ?? 0).toLocaleString('en-IN')}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Registered Aspirants</p>
           </div>
@@ -417,7 +444,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
               {isLoading
                 ? '...'
-                : (analyticsData?.studentPerformance.activeStudents ?? 0).toLocaleString('en-IN')}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.studentPerformance.activeStudents ?? 0).toLocaleString('en-IN')}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Attempted Tests</p>
           </div>
@@ -433,7 +462,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : (analyticsData?.studentPerformance.testsAttempted ?? 0).toLocaleString('en-IN')}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.studentPerformance.testsAttempted ?? 0).toLocaleString('en-IN')}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Full & Sectional Mocks</p>
           </div>
@@ -449,9 +480,11 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : (analyticsData?.studentPerformance.questionsAnswered ?? 0).toLocaleString(
-                    'en-IN'
-                  )}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.studentPerformance.questionsAnswered ?? 0).toLocaleString(
+                      'en-IN'
+                    )}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Total Question Responses</p>
           </div>
@@ -466,7 +499,11 @@ export const AdminRevenueAnalytics: React.FC = () => {
             </div>
             <div className="text-2xl font-black text-slate-900 dark:text-white flex items-baseline gap-1">
               <span>
-                {isLoading ? '...' : `${analyticsData?.studentPerformance.overallAccuracy ?? 0}%`}
+                {isLoading
+                  ? '...'
+                  : !analyticsData
+                    ? '—'
+                    : `${analyticsData.studentPerformance.overallAccuracy}%`}
               </span>
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Platform Average</p>
@@ -488,9 +525,11 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-xl font-black text-slate-900 dark:text-white truncate">
               {isLoading
                 ? '...'
-                : analyticsData?.studentPerformance.topStudent
-                  ? `#1 ${analyticsData.studentPerformance.topStudent.name.split(' ')[0]}`
-                  : 'Top Ranks'}
+                : !analyticsData
+                  ? '—'
+                  : analyticsData?.studentPerformance.topStudent
+                    ? `#1 ${analyticsData.studentPerformance.topStudent.name.split(' ')[0]}`
+                    : 'Top Ranks'}
             </div>
             <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
               <span>Click to view all ranks ({analyticsData?.studentRankings.length || 0})</span>
@@ -709,7 +748,7 @@ export const AdminRevenueAnalytics: React.FC = () => {
                 Revenue & Subscriptions
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Gross collections, active subscription passes, and payment transactions
+                Net collections, active subscription passes, and payment transactions
               </p>
             </div>
           </div>
@@ -736,9 +775,11 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : `₹${(analyticsData?.revenue.totalRevenue ?? 0).toLocaleString('en-IN')}`}
+                : !analyticsData
+                  ? '—'
+                  : `₹${(analyticsData?.revenue.totalRevenue ?? 0).toLocaleString('en-IN')}`}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">All-time Gross Income</p>
+            <p className="text-[10px] text-slate-400 mt-1">Net revenue (selected range)</p>
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -751,9 +792,11 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : `₹${(analyticsData?.revenue.monthlyRevenue ?? 0).toLocaleString('en-IN')}`}
+                : !analyticsData
+                  ? '—'
+                  : `₹${(analyticsData?.revenue.monthlyRevenue ?? 0).toLocaleString('en-IN')}`}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Current Calendar Month</p>
+            <p className="text-[10px] text-slate-400 mt-1">Net revenue, current calendar month</p>
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -766,7 +809,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-slate-900 dark:text-white">
               {isLoading
                 ? '...'
-                : (analyticsData?.revenue.paidStudents ?? 0).toLocaleString('en-IN')}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.revenue.paidStudents ?? 0).toLocaleString('en-IN')}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Converted Subscribers</p>
           </div>
@@ -781,7 +826,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
             <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
               {isLoading
                 ? '...'
-                : (analyticsData?.revenue.activeSubscriptions ?? 0).toLocaleString('en-IN')}
+                : !analyticsData
+                  ? '—'
+                  : (analyticsData?.revenue.activeSubscriptions ?? 0).toLocaleString('en-IN')}
             </div>
             <p className="text-[10px] text-slate-400 mt-1">Live Student Passes</p>
           </div>

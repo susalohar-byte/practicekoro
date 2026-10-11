@@ -233,6 +233,11 @@ const AdminAnalytics = lazyWithRetry(() =>
     default: module.AdminAnalytics,
   }))
 );
+const AdminItemAnalysis = lazyWithRetry(() =>
+  import('@/pages/admin/AdminItemAnalysis').then((module) => ({
+    default: module.AdminItemAnalysis,
+  }))
+);
 const AdminLiveTests = lazyWithRetry(() =>
   import('@/pages/admin/AdminLiveTests').then((module) => ({
     default: module.AdminLiveTests,
@@ -676,6 +681,14 @@ export const App: React.FC = () => {
               </AdminRoute>
             }
           />
+          <Route
+            path="item-analysis"
+            element={
+              <AdminRoute requiredPermission="canManageTests">
+                <AdminItemAnalysis />
+              </AdminRoute>
+            }
+          />
           <Route path="analytics-insights" element={<Navigate to="/admin/analytics" replace />} />
           <Route path="insights" element={<Navigate to="/admin/analytics" replace />} />
 
@@ -726,7 +739,6 @@ export const App: React.FC = () => {
           <Route path="revenue" element={<Navigate to="/admin/payments" replace />} />
           <Route path="revenue-analytics" element={<Navigate to="/admin/payments" replace />} />
           <Route path="financials" element={<Navigate to="/admin/payments" replace />} />
-          <Route path="item-analysis" element={<Navigate to="/admin/analytics" replace />} />
           <Route path="discounts" element={<Navigate to="/admin/coupons" replace />} />
           <Route path="pro-users" element={<Navigate to="/admin/subscriptions" replace />} />
         </Route>

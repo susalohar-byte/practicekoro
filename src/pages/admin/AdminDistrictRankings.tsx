@@ -135,7 +135,9 @@ export const AdminDistrictRankings: React.FC = () => {
     const scored = districtsList.filter((d) => d.avgPercentage !== null && d.attemptsCount > 0);
     const weight = scored.reduce((sum, d) => sum + d.attemptsCount, 0);
     if (!weight) return null;
-    return scored.reduce((sum, d) => sum + (d.avgPercentage as number) * d.attemptsCount, 0) / weight;
+    return (
+      scored.reduce((sum, d) => sum + (d.avgPercentage as number) * d.attemptsCount, 0) / weight
+    );
   }, [districtsList]);
   const rankedDistrictsCount = useMemo(
     () => districtsList.filter((d) => d.rank !== null).length,
@@ -190,9 +192,7 @@ export const AdminDistrictRankings: React.FC = () => {
       d.topStudentName || '—',
       formatPercent(d.topStudentScore),
     ]);
-    const csvContent = [headers.join(','), ...rows.map((e) => e.map(csvCell).join(','))].join(
-      '\n'
-    );
+    const csvContent = [headers.join(','), ...rows.map((e) => e.map(csvCell).join(','))].join('\n');
     const examTitle = exams.find((e) => e.id === selectedExam)?.title || 'All_Exams';
     const link = document.createElement('a');
     link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent));
@@ -468,9 +468,7 @@ export const AdminDistrictRankings: React.FC = () => {
                             </div>
                           )}
                           {(district.rank === null || district.rank > 3) && (
-                            <span className="font-bold text-[#64748B]">
-                              {district.rank ?? '—'}
-                            </span>
+                            <span className="font-bold text-[#64748B]">{district.rank ?? '—'}</span>
                           )}
                         </td>
                         <td className="py-3 px-3">

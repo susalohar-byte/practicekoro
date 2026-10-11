@@ -379,7 +379,6 @@ export const AdminStaff: React.FC = () => {
   const [formStatus, setFormStatus] = useState<AdminUserStatus>('Active');
   const formWelcomeEmail = false;
 
-
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
@@ -456,7 +455,10 @@ export const AdminStaff: React.FC = () => {
       }
       showToast(`Password recovery email initiated for ${email}`);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to send password recovery email.', true);
+      showToast(
+        err instanceof Error ? err.message : 'Failed to send password recovery email.',
+        true
+      );
     } finally {
       setIsWorking(false);
     }
