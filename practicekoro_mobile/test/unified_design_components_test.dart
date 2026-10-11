@@ -432,7 +432,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // On Home: Mascot image is NOT rendered
-      expect(find.image(const AssetImage('assets/images/mascot_with_crown_tight.png')), findsNothing);
+      expect(find.image(const AssetImage('assets/images/mascot_nav_transparent.png')), findsNothing);
 
       // Tap on Practice tab
       await tester.tap(find.text('Practice'));
@@ -441,7 +441,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Mascot image is now rendered!
-      expect(find.image(const AssetImage('assets/images/mascot_with_crown_tight.png')), findsOneWidget);
+      expect(find.image(const AssetImage('assets/images/mascot_nav_transparent.png')), findsOneWidget);
 
       // Tap on Test Series tab
       await tester.tap(find.text('Test Series'));
@@ -450,7 +450,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Mascot image is hidden again
-      expect(find.image(const AssetImage('assets/images/mascot_with_crown_tight.png')), findsNothing);
+      expect(find.image(const AssetImage('assets/images/mascot_nav_transparent.png')), findsNothing);
     });
 
     testWidgets('ExamsCatalogScreen renders clean search bar and filter dropdown', (tester) async {

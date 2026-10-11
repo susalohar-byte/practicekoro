@@ -41,6 +41,14 @@ class _NavItemData {
 
 class _MainScaffoldState extends State<MainScaffold>
     with TickerProviderStateMixin {
+  // Geometry of assets/images/mascot_nav_transparent.png (px): the yellow disc
+  // is drawn at [mascotSize] and the crown overhangs its upper-right rim.
+  static const double _mascotAssetWidth = 301;
+  static const double _mascotAssetHeight = 298;
+  static const double _mascotDiscDiameter = 276;
+  static const double _mascotDiscCenterX = 144;
+  static const double _mascotDiscCenterY = 154;
+
   late int _currentIndex;
   late AnimationController _practiceAnimController;
   late CurvedAnimation _practiceCurvedAnimation;
@@ -433,68 +441,86 @@ class _MainScaffoldState extends State<MainScaffold>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Circular Mascot Frame with Crown and Sparkles
-                            Stack(
-                              clipBehavior: Clip.none,
-                              alignment: Alignment.center,
-                              children: [
-                                // Circular Mascot Container with Warm Gold Glow
-                                Container(
-                                  width: mascotSize,
-                                  height: mascotSize,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFFFD84D).withValues(alpha: 0.55),
-                                        blurRadius: 18,
-                                        spreadRadius: 2,
-                                        offset: const Offset(0, 6),
+                            // Transparent Mascot (disc + crown on rim) with White Ring, Glow and Sparkle
+                            SizedBox(
+                              width: mascotSize * _mascotAssetWidth / _mascotDiscDiameter,
+                              height: mascotSize * _mascotAssetHeight / _mascotDiscDiameter,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  // White ring + warm gold glow, centred exactly behind the mascot disc
+                                  Positioned(
+                                    left: mascotSize * _mascotDiscCenterX / _mascotDiscDiameter - mascotSize / 2 - 2.5,
+                                    top: mascotSize * _mascotDiscCenterY / _mascotDiscDiameter - mascotSize / 2 - 2.5,
+                                    child: Container(
+                                      width: mascotSize + 5,
+                                      height: mascotSize + 5,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFFFD84D).withValues(alpha: 0.5),
+                                            blurRadius: 16,
+                                            spreadRadius: 1,
+                                            offset: const Offset(0, 5),
+                                          ),
+                                          BoxShadow(
+                                            color: const Color(0xFF0F172A).withValues(alpha: 0.14),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                      BoxShadow(
-                                        color: const Color(0xFF0F172A).withValues(alpha: 0.12),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                  child: ClipOval(
+
+                                  // Mascot artwork: fully transparent PNG, no clipping so the crown stays whole
+                                  Positioned.fill(
                                     child: Image.asset(
-                                      'assets/images/mascot_with_crown_tight.png',
-                                      fit: BoxFit.contain,
+                                      'assets/images/mascot_nav_transparent.png',
+                                      fit: BoxFit.fill,
+                                      filterQuality: FilterQuality.medium,
                                       errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: const Color(0xFFFFDE31),
-                                          padding: const EdgeInsets.all(4),
-                                          child: Image.asset(
-                                            'assets/images/student_avatar.png',
-                                            fit: BoxFit.contain,
+                                        return Align(
+                                          alignment: Alignment.bottomLeft,
+                                          child: ClipOval(
+                                            child: Container(
+                                              width: mascotSize,
+                                              height: mascotSize,
+                                              color: const Color(0xFFFFDE31),
+                                              padding: const EdgeInsets.all(4),
+                                              child: Image.asset(
+                                                'assets/images/student_avatar.png',
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
                                           ),
                                         );
                                       },
                                     ),
                                   ),
-                                ),
 
-                                // Sparkle Star on bottom-left of mascot circle with spring pop
-                                Positioned(
-                                  left: -7,
-                                  bottom: 4,
-                                  child: Transform.scale(
-                                    scale: (progress * 1.15).clamp(0.0, 1.0),
-                                    child: Transform.rotate(
-                                      angle: -0.15 + 0.25 * progress,
-                                      child: const CustomPaint(
-                                        size: Size(13, 13),
-                                        painter: _SparkleStarPainter(),
+                                  // Sparkle Star on bottom-left of mascot circle with spring pop
+                                  Positioned(
+                                    left: -7,
+                                    bottom: 4,
+                                    child: Transform.scale(
+                                      scale: (progress * 1.15).clamp(0.0, 1.0),
+                                      child: Transform.rotate(
+                                        angle: -0.15 + 0.25 * progress,
+                                        child: const CustomPaint(
+                                          size: Size(13, 13),
+                                          painter: _SparkleStarPainter(),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
 
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 2),
 
                             // Yellow Organic Pill for "Practice" Label
                             Container(
