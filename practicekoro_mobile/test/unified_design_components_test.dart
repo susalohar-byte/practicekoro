@@ -11,6 +11,7 @@ import 'package:practicekoro_mobile/features/leaderboard/leaderboard_screen.dart
 import 'package:practicekoro_mobile/features/result_analytics/results_hub_screen.dart';
 import 'package:practicekoro_mobile/features/result_analytics/result_screen.dart';
 import 'package:practicekoro_mobile/data/models/attempt_model.dart';
+import 'package:practicekoro_mobile/data/models/exam_model.dart';
 import 'package:practicekoro_mobile/data/models/test_model.dart';
 import 'package:practicekoro_mobile/data/models/test_series_model.dart';
 import 'package:practicekoro_mobile/data/repositories/catalog_repository.dart';
@@ -353,81 +354,67 @@ void main() {
       expect(sizedBox.height, equals(110.0));
     });
 
-    testWidgets('Home page renders the reference sections with a single search bar', (tester) async {
-      tester.view.physicalSize = const Size(420, 3200);
+    testWidgets('Home page renders the minimal redesign with real catalogue data', (tester) async {
+      tester.view.physicalSize = const Size(420, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
       await LocalStorageService.saveUserName('Ananya');
+      await LocalStorageService.saveTargetExamsList(['WBP Constable']);
 
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(_FakeCatalogRepo())],
+          child: const MaterialApp(home: HomeScreen()),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Header + hero
-      expect(find.text('Hi, Ananya 👋'), findsOneWidget);
-      expect(find.text('Consistent Practice,\nBig Results!'), findsOneWidget);
-      expect(find.text('Small steps today, big success tomorrow.'), findsOneWidget);
-      expect(find.text('Start Practicing'), findsOneWidget);
+      // Header + welcome banner
+      expect(find.text('Ananya'), findsOneWidget);
+      expect(find.text('Practice Today.\nImprove Every Day.'), findsOneWidget);
+      expect(find.text('Build confidence with consistent practice.'), findsOneWidget);
+      expect(find.byTooltip('Search test series'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing); // no second search bar
 
-      // Exactly one search field on the page
-      expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Search for tests, topics, exams...'), findsOneWidget);
-
-      // Quick actions (no Official PYQ, no Live Tests)
-      expect(find.text('Quick Actions'), findsOneWidget);
-      for (final label in ['Audio Book', 'Topic Test', 'Rank', 'Saved Questions']) {
-        expect(find.text(label), findsWidgets);
+      // Exactly the four quick actions; no Audio Book anywhere
+      for (final label in ['Topic Test', 'Test Series', 'Rank', 'Saved Questions']) {
+        expect(find.text(label), findsWidgets, reason: label);
       }
-      expect(find.text('Official PYQ'), findsNothing);
+      expect(find.textContaining('Audio'), findsNothing);
 
-      // Sections in the reference order
+      // Sections in order, from real data
       for (final title in [
         'Continue Your Practice',
         'Your Exams',
         'Popular Test Series',
+        'Practice by Topic',
         'Your Progress',
-        'Keep Going!',
-        'Featured for You',
-        'Recently Added Tests',
-        'Recommended for You',
-        'Keep Showing Up!',
       ]) {
         expect(find.text(title), findsOneWidget, reason: title);
       }
-      expect(find.text('Most attempted and recommended'), findsOneWidget);
+      expect(find.text('Manage'), findsOneWidget);
       expect(find.text('Add Exam'), findsOneWidget);
+      expect(find.text('Railway NTPC'), findsOneWidget); // popular carousel
+      expect(find.text('POPULAR'), findsOneWidget); // only the admin-flagged series
+      expect(find.text('1,525 Qs'), findsOneWidget);
     });
 
     testWidgets('Home page shows empty states instead of sample catalogue data', (tester) async {
-      tester.view.physicalSize = const Size(420, 3200);
+      tester.view.physicalSize = const Size(420, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
       await LocalStorageService.clearUserSession();
 
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: HomeScreen(),
-          ),
-        ),
+        const ProviderScope(child: MaterialApp(home: HomeScreen())),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No practice in progress yet'), findsOneWidget);
-      expect(find.text('Test series will appear here once they are published.'), findsOneWidget);
-      expect(find.text('New tests will appear here as soon as they are published.'), findsOneWidget);
-      expect(find.text('Complete your first test to start tracking progress.'), findsOneWidget);
-
-      // Formerly hard-coded sample content must not render offline.
+      expect(find.text('No practice in progress'), findsOneWidget);
+      expect(find.text('No test series yet'), findsOneWidget);
+      expect(find.text('Complete a test to start tracking'), findsOneWidget);
       expect(find.text('KP Constable'), findsNothing);
-      expect(find.text('Most Popular'), findsNothing);
-      expect(find.text("Today's Challenge"), findsNothing);
-      expect(find.text('18 / 30 Questions'), findsNothing);
+      expect(find.text('POPULAR'), findsNothing);
     });
 
     testWidgets('MainScaffold renders redesigned pill navbar with 5 items and active circular highlight', (tester) async {
@@ -489,33 +476,76 @@ void main() {
       expect(find.image(const AssetImage('assets/images/mascot_nav_transparent.png')), findsNothing);
     });
 
-    testWidgets('ExamsCatalogScreen renders clean search bar and filter dropdown', (tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
+    testWidgets('Test Series page searches and filters real series', (tester) async {
+      tester.view.physicalSize = const Size(420, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: ExamsCatalogScreen(),
-          ),
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(_FakeCatalogRepo())],
+          child: const MaterialApp(home: ExamsCatalogScreen()),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Verify search icon and placeholder
-      expect(find.byIcon(Icons.search_rounded), findsWidgets);
-      expect(find.text('Search test series...'), findsOneWidget);
+      expect(find.text('Test Series'), findsOneWidget);
+      expect(find.text('Find the right tests for your preparation.'), findsOneWidget);
+      for (final f in ['All', 'Full Mock', 'Topic Test', 'Official PYQ']) {
+        expect(find.text(f), findsOneWidget, reason: f);
+      }
+      // Featured = the admin-flagged series; the rest are listed below it
+      expect(find.text('Featured'), findsOneWidget);
+      expect(find.text('View Series'), findsOneWidget);
+      expect(find.text('More test series (2)'), findsOneWidget);
 
-      // Verify All Exams filter button
-      expect(find.text('All Exams'), findsWidgets);
-      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsWidgets);
-
-      // Verify typing into search input
-      await tester.enterText(find.byType(TextField).first, 'WBP');
+      // Search
+      await tester.enterText(find.byType(TextField), 'ntpc');
       await tester.pumpAndSettle();
-      expect(find.text('WBP'), findsWidgets);
+      expect(find.text('Railway NTPC'), findsOneWidget);
+      expect(find.text('WBPSC Clerkship'), findsNothing);
+      expect(find.text('Featured'), findsNothing);
+
+      // No match -> empty state with a clear action
+      await tester.enterText(find.byType(TextField), 'zzz');
+      await tester.pumpAndSettle();
+      expect(find.text('No test series found'), findsOneWidget);
+      await tester.tap(find.text('Clear filters'));
+      await tester.pumpAndSettle();
+      expect(find.text('Featured'), findsOneWidget);
+
+      // Type filter uses the series' real test classification
+      await tester.ensureVisible(find.text('Official PYQ'));
+      await tester.tap(find.text('Official PYQ'));
+      await tester.pumpAndSettle();
+      expect(find.text('WBPSC Clerkship'), findsOneWidget);
+      expect(find.text('Railway NTPC'), findsNothing);
+    });
+
+    testWidgets('Test Series page filters by the exam relation, not fuzzy titles', (tester) async {
+      tester.view.physicalSize = const Size(420, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(_FakeCatalogRepo())],
+          child: const MaterialApp(home: ExamsCatalogScreen(initialExam: 'railway-ntpc', initialExamTitle: 'Railway NTPC')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 series · Railway NTPC'), findsOneWidget);
+      expect(find.text('WBP Constable'), findsNothing);
+    });
+
+    testWidgets('Test Series page shows an empty state instead of sample series', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: ExamsCatalogScreen())),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No test series yet'), findsOneWidget);
+      expect(find.text('WBP Constable'), findsNothing);
     });
 
     testWidgets('PracticeScreen renders PKSearchFilterBar with subject or chapter placeholder', (tester) async {
@@ -570,36 +600,6 @@ void main() {
       // Pump 1 second of animation without throwing
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(SplashScreen), findsOneWidget);
-    });
-
-    testWidgets('ExamsCatalogScreen renders complete Test Series section matching reference with dynamic stats and square icons', (tester) async {
-      // 1. Desktop test
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
-
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: ExamsCatalogScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Verify Test Series header, Category Pills and Structured hero banner matching approved reference
-      expect(find.text('Test Series'), findsWidgets);
-      expect(find.image(const AssetImage('assets/images/test_series_success_banner_exact.png')), findsOneWidget);
-      expect(find.text('All'), findsWidgets);
-      expect(find.text('Full Mock'), findsWidgets);
-
-      // Verify search and All Exams filter
-      expect(find.text('Search test series...'), findsOneWidget);
-      expect(find.text('All Exams'), findsWidgets);
-
-      // Verify Test Series cards
-      expect(find.text('WBP Constable'), findsWidgets);
-      expect(find.text('Railway NTPC'), findsWidgets);
     });
 
     testWidgets('ProfileScreen renders approved 3-screen Profile UI matching reference across all breakpoints', (tester) async {
@@ -783,4 +783,24 @@ class _FakeSeriesRepo extends CatalogRepository {
         const MockTestModel(id: 't3', title: 'Topic Test – Reasoning', slug: 't3', testType: 'topic', durationMinutes: 30, totalQuestions: 30, totalMarks: 30, isPremium: true),
         const MockTestModel(id: 'p1', title: 'PYQ 2024 (Set 1)', slug: 'p1', testType: 'pyq', durationMinutes: 90, totalQuestions: 85, totalMarks: 100),
       ];
+}
+
+
+class _FakeCatalogRepo extends CatalogRepository {
+  @override
+  Future<List<ExamModel>> getExams() async => const [
+        ExamModel(id: 'e1', title: 'WBP Constable', slug: 'wbp-constable', category: 'State'),
+        ExamModel(id: 'e2', title: 'Railway NTPC', slug: 'railway-ntpc', category: 'Central'),
+        ExamModel(id: 'e3', title: 'WBPSC Clerkship', slug: 'wbpsc-clerkship', category: 'State'),
+      ];
+
+  @override
+  Future<List<TestSeriesModel>> getTestSeries({String? examId}) async => const [
+        TestSeriesModel(id: 's1', examId: 'e1', title: 'WBP Constable', slug: 'wbp-constable', examTitle: 'WBP Constable', isPopular: true, testCount: 25, fullMockCount: 10, topicTestCount: 10, pyqTestCount: 5, questionCount: 1525),
+        TestSeriesModel(id: 's2', examId: 'e2', title: 'Railway NTPC', slug: 'railway-ntpc', examTitle: 'Railway NTPC', isPremium: true, testCount: 40, fullMockCount: 30, topicTestCount: 10),
+        TestSeriesModel(id: 's3', examId: 'e3', title: 'WBPSC Clerkship', slug: 'wbpsc-clerkship', examTitle: 'WBPSC Clerkship', isPremium: true, testCount: 18, fullMockCount: 8, topicTestCount: 6, pyqTestCount: 4),
+      ];
+
+  @override
+  Future<List<TestSeriesModel>> getPopularTestSeries() async => getTestSeries();
 }

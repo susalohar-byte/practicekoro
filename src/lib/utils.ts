@@ -39,13 +39,21 @@ export function isStudentNavActive(pathname: string, label: string): boolean {
     return p.startsWith('/results') || p.startsWith('/my-tests') || p.includes('/results/');
   }
 
-  if (label === 'Exams' || label === 'Test Series') {
+  if (label === 'Test Series') {
     if (p.includes('/results/')) return false;
-    return p.startsWith('/test-series') || p.startsWith('/exams') || p.startsWith('/tests');
+    return p.startsWith('/test-series') || p.startsWith('/tests');
+  }
+
+  if (label === 'My Exams') {
+    return p.startsWith('/exams');
   }
 
   if (label === 'Practice') {
-    return p.startsWith('/practice');
+    return p.startsWith('/practice') && !pathname.includes('tab=mistakes');
+  }
+
+  if (label === 'Notes') {
+    return pathname.includes('tab=mistakes') || pathname.includes('tab=notes');
   }
 
   if (label === 'Live Tests' || label === 'Live Test') {
@@ -61,7 +69,11 @@ export function isStudentNavActive(pathname: string, label: string): boolean {
   }
 
   if (label === 'Profile') {
-    return p.startsWith('/profile') || p.startsWith('/settings');
+    return p.startsWith('/profile');
+  }
+
+  if (label === 'Settings') {
+    return p.startsWith('/settings');
   }
 
   if (label === 'Help & Support' || label === 'Support') {
@@ -70,3 +82,4 @@ export function isStudentNavActive(pathname: string, label: string): boolean {
 
   return false;
 }
+

@@ -104,7 +104,30 @@ export const subscriptionApi = {
     }
 
     // Fallback/Local mock mode
+    const isPro = localStorage.getItem('practicekoro_is_pro') === 'true';
     const plan = MOCK_SUBSCRIPTION_PLANS.find((p) => p.id === planId) || MOCK_SUBSCRIPTION_PLANS[0];
+
+    if (isPro) {
+      let currentPrice = 299;
+      let activePlanId = 'pro_1_year';
+      try {
+        const saved = localStorage.getItem('practicekoro_sub_details');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.planId) activePlanId = parsed.planId;
+          const found = MOCK_SUBSCRIPTION_PLANS.find((p) => p.id === parsed.planId);
+          if (found) currentPrice = found.price;
+        }
+      } catch {
+        // ignore
+      }
+      if (plan.id === activePlanId || plan.price <= currentPrice) {
+        throw new Error(
+          'You already have an active pass for this plan. Repurchasing or extending the same package is not permitted until your current validity expires.'
+        );
+      }
+    }
+
     const mockOrderId = `order_${Math.random().toString(36).substring(2, 10)}`;
     const mockPaymentId = `pay_mock_${Date.now()}`;
     return {

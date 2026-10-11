@@ -127,6 +127,19 @@ class LocalStorageService {
     return null;
   }
 
+  static String? getProPlanId() {
+    return _prefs?.getString('pk_pro_plan_id');
+  }
+
+  static int? getProPlanPrice() {
+    return _prefs?.getInt('pk_pro_plan_price');
+  }
+
+  static Future<void> setProPlanDetails({String? planId, int? planPrice}) async {
+    if (planId != null) await _prefs?.setString('pk_pro_plan_id', planId);
+    if (planPrice != null) await _prefs?.setInt('pk_pro_plan_price', planPrice);
+  }
+
   static String? getUserId() {
     return _prefs?.getString('pk_user_id');
   }

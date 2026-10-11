@@ -143,6 +143,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
       if (verified) {
         await LocalStorageService.setProUser(true);
+        await LocalStorageService.setProPlanDetails(
+          planId: widget.planId,
+          planPrice: widget.originalPrice,
+        );
         _showSuccessDialog();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

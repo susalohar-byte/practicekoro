@@ -109,6 +109,11 @@ final authUserIdProvider = StreamProvider<String?>((ref) {
   }
 });
 
+/// Published exams from the catalogue (shared by Home and the Test Series filter).
+final examsProvider = FutureProvider<List<ExamModel>>((ref) async {
+  return ref.watch(catalogRepositoryProvider).getExams();
+});
+
 final recentTestsProvider = FutureProvider<List<MockTestModel>>((ref) async {
   return ref.watch(catalogRepositoryProvider).getRecentTests();
 });

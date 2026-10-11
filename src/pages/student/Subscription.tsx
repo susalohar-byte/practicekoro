@@ -1,5 +1,5 @@
 import { getErrorMessage } from '@/lib/errors';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,7 @@ import { api } from '@/services/api';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { cn } from '@/lib/utils';
 import {
   Crown,
   CheckCircle2,
@@ -111,9 +112,77 @@ export const Subscription: React.FC = () => {
     (!activeSub && subscriptionDetails?.hasSubscription);
   const daysLeft = subscriptionDetails?.daysRemaining ?? 0;
 
+  // Paid plans filter (exclude free plan)
+  const paidPlans = useMemo(() => plans.filter((p) => p.price > 0), [plans]);
+
+  // Current active plan of the student
+  const currentPlanId = subscriptionDetails?.planId;
+  const currentPlan = useMemo(
+    () =>
+      plans.find((p) => p.id === currentPlanId) ||
+      (activeSub ? paidPlans.find((p) => p.id === 'pro_1_year') || paidPlans[0] : null),
+    [plans, currentPlanId, activeSub, paidPlans]
+  );
+  const currentPlanPrice = currentPlan?.price ?? (activeSub ? 299 : 0);
+
+  // Active / Selected plan reference
+  const activePlan =
+    selectedPlan ||
+    (activeSub && currentPlan ? currentPlan : null) ||
+    paidPlans.find((p) => p.id === 'pro_1_year') ||
+    paidPlans[0] ||
+    plans[0] || {
+      id: 'pro_1_year',
+      title: '1-Year All-Access Pro Pass',
+      price: 299,
+      durationDays: 365,
+      description: 'Universal mock test access across all West Bengal competitive exams.',
+      features: [
+        'Unlock all premium mock tests',
+        'Access every premium test series',
+        'Practice across supported exams',
+        'Re-attempt tests whenever available',
+        'Review detailed solutions and analysis',
+        'Mistakes Notebook integration for focused revision',
+      ],
+    };
+
+  // Higher-tier plans available for upgrading
+  const higherTierPlans = useMemo(() => {
+    if (!activeSub) return [];
+    return paidPlans.filter((p) => p.price > currentPlanPrice);
+  }, [activeSub, paidPlans, currentPlanPrice]);
+
+  const hasHigherPlan = higherTierPlans.length > 0;
+
+  // Plan comparison states for active subscribers
+  const isSelectedSamePlan =
+    !!activeSub &&
+    (activePlan.id === currentPlanId ||
+      (!currentPlanId && activePlan.id === (currentPlan?.id ?? 'pro_1_year')));
+  const isSelectedLowerTier =
+    !!activeSub && !isSelectedSamePlan && activePlan.price <= currentPlanPrice;
+  const isSelectedHigherTier = !!activeSub && activePlan.price > currentPlanPrice;
+
+  const formattedExpiry = subscriptionDetails?.expiresAt
+    ? new Date(subscriptionDetails.expiresAt).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Active';
+
   const handleInitiateCheckout = async (plan: SubscriptionPlan) => {
     if (!user) {
       navigate('/login', { state: { from: { pathname: '/subscription' } } });
+      return;
+    }
+
+    // Enforce that active pass cannot be repurchased or extended until validity ends
+    if (activeSub && plan.price <= currentPlanPrice) {
+      setErrorMessage(
+        'You already have an active subscription for this plan. Repurchasing or extending the same package is not permitted until your current validity expires.'
+      );
       return;
     }
 
@@ -236,24 +305,7 @@ export const Subscription: React.FC = () => {
     }
   };
 
-  // Primary plan reference
-  const activePlan = selectedPlan ||
-    plans.find((p) => p.id === 'pro_1_year') ||
-    plans[0] || {
-      id: 'pro_1_year',
-      title: '1-Year All-Access Pro Pass',
-      price: 299,
-      durationDays: 365,
-      description: 'Universal mock test access across all West Bengal competitive exams.',
-      features: [
-        'Unlock all premium mock tests',
-        'Access every premium test series',
-        'Practice across supported exams',
-        'Re-attempt tests whenever available',
-        'Review detailed solutions and analysis',
-        'Mistakes Notebook integration for focused revision',
-      ],
-    };
+
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pk-student-page">
@@ -361,21 +413,21 @@ export const Subscription: React.FC = () => {
                 Start Practicing
               </Button>
 
-              <Button
-                variant="outline"
-                size="md"
-                className="bg-white/10 text-white hover:bg-white/20 border-white/25 font-bold text-xs shadow-xs"
-                disabled={paymentStatus === 'preparing' || paymentStatus === 'processing'}
-                onClick={() => handleInitiateCheckout(activePlan as SubscriptionPlan)}
-                leftIcon={<RotateCcw className="w-3.5 h-3.5 text-amber-300" />}
-              >
-                {paymentStatus === 'preparing'
-                  ? 'Preparing checkout…'
-                  : `Extend Pass (+365 Days) — ₹${activePlan.price}`}
-              </Button>
-              <span className="text-[11px] text-blue-200/70 text-center lg:text-right">
-                Seamless renewal: adds 365 days to your existing expiry date.
-              </span>
+              {hasHigherPlan && (
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="bg-white/10 text-white hover:bg-white/20 border-white/25 font-bold text-xs shadow-xs"
+                  onClick={() => {
+                    if (higherTierPlans[0]) setSelectedPlan(higherTierPlans[0]);
+                    const el = document.getElementById('pricing-plans-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-300" />}
+                >
+                  Upgrade Options Available
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>
@@ -465,7 +517,45 @@ export const Subscription: React.FC = () => {
       {/* =========================================================================
           PRIMARY PRO PASS PRICING & BENEFIT SHOWCASE (REDESIGNED CARD)
           ========================================================================= */}
-      <div className="max-w-2xl mx-auto">
+      <div id="pricing-plans-section" className="max-w-2xl mx-auto">
+        {paidPlans.length > 1 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+            {paidPlans.map((p) => {
+              const isCurrent =
+                activeSub && (p.id === currentPlanId || (!currentPlanId && p.id === currentPlan?.id));
+              const isUpgrade = activeSub && p.price > currentPlanPrice;
+              const isSelected = activePlan.id === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPlan(p)}
+                  className={cn(
+                    'px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer',
+                    isSelected
+                      ? 'bg-[#0158FC] text-white border-[#0158FC] shadow-md shadow-blue-500/25'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                  )}
+                >
+                  <span>
+                    {p.title} — ₹{p.price}
+                  </span>
+                  {isCurrent && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-600 dark:text-emerald-300">
+                      ACTIVE
+                    </span>
+                  )}
+                  {isUpgrade && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-300">
+                      UPGRADE
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -487,13 +577,29 @@ export const Subscription: React.FC = () => {
                     {activePlan.title}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Validity: {activePlan.durationDays} Days (1 Full Year of Complete Access)
+                    Validity: {activePlan.durationDays} Days ({activePlan.description || 'Complete Access'})
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/60 font-black text-xs uppercase tracking-wider shrink-0 shadow-2xs">
-                ALL-ACCESS PASS
-              </span>
+              {activeSub ? (
+                isSelectedSamePlan ? (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700/60 font-black text-xs uppercase tracking-wider shrink-0 shadow-2xs">
+                    CURRENT ACTIVE PLAN
+                  </span>
+                ) : isSelectedHigherTier ? (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-700/60 font-black text-xs uppercase tracking-wider shrink-0 shadow-2xs">
+                    UPGRADE OPTION
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold text-xs uppercase tracking-wider shrink-0 shadow-2xs">
+                    LOWER TIER
+                  </span>
+                )
+              ) : (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/60 font-black text-xs uppercase tracking-wider shrink-0 shadow-2xs">
+                  ALL-ACCESS PASS
+                </span>
+              )}
             </div>
 
             {/* Pricing Showcase */}
@@ -509,7 +615,7 @@ export const Subscription: React.FC = () => {
                     </span>
                   )}
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    / 365 Days
+                    / {activePlan.durationDays} Days
                   </span>
                 </div>
 
@@ -520,7 +626,7 @@ export const Subscription: React.FC = () => {
                   </p>
                 ) : (
                   <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-                    ⚡ Equivalent to just ₹0.81 / day • Single One-Time Payment
+                    ⚡ Single One-Time Payment • Complete Mock Access
                   </p>
                 )}
               </div>
@@ -538,8 +644,8 @@ export const Subscription: React.FC = () => {
                 One Pass. Everything Premium.
               </p>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px] sm:text-xs">
-                Instead of selling individual tests or separate exam packages, one ₹299 Pro Pass
-                unlocks the entire mock-test library, chapter drills, and PYQs for 365 days.
+                Instead of selling individual tests or separate exam packages, one Pro Pass
+                unlocks the entire mock-test library, chapter drills, and PYQs for {activePlan.durationDays} days.
               </p>
             </div>
 
@@ -576,99 +682,194 @@ export const Subscription: React.FC = () => {
               </div>
             </div>
 
-            {/* Coupon Code Redemption Box */}
-            <div className="pt-2">
-              {appliedCoupon ? (
-                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs text-emerald-950 dark:text-emerald-200">
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <div>
-                      <span className="font-mono font-black">{appliedCoupon.code}</span> applied:
-                      <span className="font-bold ml-1 text-emerald-700 dark:text-emerald-300">
-                        ₹{appliedCoupon.discountAmount} Off
-                      </span>
+            {/* Action & Checkout Area */}
+            {activeSub ? (
+              isSelectedSamePlan ? (
+                /* CURRENT ACTIVE PLAN: Repurchase & Extension Disabled */
+                <div className="pt-2 space-y-3">
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-900 dark:text-emerald-200 text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Plan Currently Active</span>
                     </div>
+                    <p className="text-slate-600 dark:text-slate-300 text-[11px] sm:text-xs leading-relaxed">
+                      You already have this pass active on your account until{' '}
+                      <strong className="text-slate-900 dark:text-white font-black">
+                        {formattedExpiry}
+                      </strong>{' '}
+                      ({daysLeft} days remaining). Repurchasing or extending the same package is disabled until your current validity expires.
+                      {hasHigherPlan
+                        ? ' You can upgrade to a higher-tier package if needed.'
+                        : ' You are currently enjoying complete universal access!'}
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setAppliedCoupon(null)}
-                    className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full font-black text-sm py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700 shadow-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                    disabled
+                    leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
                   >
-                    Remove
-                  </button>
+                    Plan Currently Active — Repurchase Disabled
+                  </Button>
+
+                  <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#0158FC]" />
+                    <span>Valid until {formattedExpiry} • Renewal opens upon expiry</span>
+                  </div>
+                </div>
+              ) : isSelectedLowerTier ? (
+                /* LOWER TIER PLAN: Downgrade Disabled */
+                <div className="pt-2 space-y-3">
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-300">
+                      <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Lower Tier Package</span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                      Your current active plan ({currentPlan?.title || 'Pro Pass'}) has equal or higher tier access. Downgrading to a lower package is not permitted while your pass is active.
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full font-black text-sm py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700 shadow-none hover:bg-slate-100 dark:hover:bg-slate-800"
+                    disabled
+                    leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
+                  >
+                    Lower Tier Plan — Unavailable While Active
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="relative grow">
-                      <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        disabled
-                        placeholder="Coupon checkout unavailable"
-                        value={couponInput}
-                        onChange={(e) => {
-                          setCouponInput(e.target.value.toUpperCase());
-                          setCouponError('');
-                        }}
-                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold uppercase placeholder:normal-case placeholder:font-normal text-slate-900 dark:text-white focus:outline-none focus:border-[#0158FC]"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleApplyCoupon}
-                      disabled
-                      className="text-xs font-bold shrink-0 cursor-pointer"
-                    >
-                      {isValidatingCoupon ? 'Checking…' : 'Apply'}
-                    </Button>
+                /* HIGHER TIER PLAN: Upgrade Allowed */
+                <div className="pt-2 space-y-3">
+                  <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 text-xs flex items-center gap-2.5">
+                    <Sparkles className="w-4 h-4 text-[#0158FC] dark:text-blue-400 shrink-0" />
+                    <span>
+                      Upgrading from <strong>{currentPlan?.title || 'Current Plan'}</strong> to{' '}
+                      <strong>{activePlan.title}</strong> will switch your pass to the higher tier immediately.
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Coupon checkout is unavailable. Purchases use the listed plan price.
-                  </p>
-                  {couponError && (
-                    <p className="text-[11px] font-semibold text-rose-600 pl-1">{couponError}</p>
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full font-black text-sm shadow-lg shadow-blue-500/25 py-3.5 rounded-2xl bg-[#0158FC] hover:bg-[#0047cc] text-white hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+                    disabled={paymentStatus === 'preparing' || paymentStatus === 'processing'}
+                    isLoading={paymentStatus === 'preparing' || paymentStatus === 'processing'}
+                    onClick={() => handleInitiateCheckout(activePlan as SubscriptionPlan)}
+                    leftIcon={<Sparkles className="w-4 h-4 text-amber-300" />}
+                  >
+                    {paymentStatus === 'preparing'
+                      ? 'Preparing secure checkout…'
+                      : `Upgrade to ${activePlan.title} — ₹${appliedCoupon ? appliedCoupon.finalPrice : activePlan.price}`}
+                  </Button>
+
+                  <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 dark:text-slate-500 pt-1">
+                    <span className="flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-emerald-500" /> Razorpay 256-Bit SSL
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Instant Upgrade Activation
+                    </span>
+                  </div>
+                </div>
+              )
+            ) : (
+              /* NON-SUBSCRIBED / EXPIRED: Normal Checkout Flow */
+              <>
+                {/* Coupon Code Redemption Box */}
+                <div className="pt-2">
+                  {appliedCoupon ? (
+                    <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs text-emerald-950 dark:text-emerald-200">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <div>
+                          <span className="font-mono font-black">{appliedCoupon.code}</span> applied:
+                          <span className="font-bold ml-1 text-emerald-700 dark:text-emerald-300">
+                            ₹{appliedCoupon.discountAmount} Off
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAppliedCoupon(null)}
+                        className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="relative grow">
+                          <Tag className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            disabled
+                            placeholder="Coupon checkout unavailable"
+                            value={couponInput}
+                            onChange={(e) => {
+                              setCouponInput(e.target.value.toUpperCase());
+                              setCouponError('');
+                            }}
+                            className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold uppercase placeholder:normal-case placeholder:font-normal text-slate-900 dark:text-white focus:outline-none focus:border-[#0158FC]"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleApplyCoupon}
+                          disabled
+                          className="text-xs font-bold shrink-0 cursor-pointer"
+                        >
+                          {isValidatingCoupon ? 'Checking…' : 'Apply'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Coupon checkout is unavailable. Purchases use the listed plan price.
+                      </p>
+                      {couponError && (
+                        <p className="text-[11px] font-semibold text-rose-600 pl-1">{couponError}</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Primary CTA Button */}
-            <div className="pt-2 space-y-2.5">
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full font-black text-sm shadow-lg shadow-blue-500/25 py-3.5 rounded-2xl bg-[#0158FC] hover:bg-[#0047cc] text-white hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
-                disabled={paymentStatus === 'preparing' || paymentStatus === 'processing'}
-                isLoading={paymentStatus === 'preparing' || paymentStatus === 'processing'}
-                onClick={() => handleInitiateCheckout(activePlan as SubscriptionPlan)}
-                leftIcon={
-                  activeSub ? (
-                    <RotateCcw className="w-4 h-4" />
-                  ) : (
-                    <Zap className="w-4 h-4 fill-current text-amber-300" />
-                  )
-                }
-              >
-                {paymentStatus === 'preparing'
-                  ? 'Preparing secure checkout…'
-                  : activeSub
-                    ? `Extend Pass (+365 Days) — ₹${appliedCoupon ? appliedCoupon.finalPrice : activePlan.price}`
-                    : `Get All-Access Pro Pass — ₹${appliedCoupon ? appliedCoupon.finalPrice : activePlan.price}`}
-              </Button>
+                {/* Primary CTA Button */}
+                <div className="pt-2 space-y-2.5">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full font-black text-sm shadow-lg shadow-blue-500/25 py-3.5 rounded-2xl bg-[#0158FC] hover:bg-[#0047cc] text-white hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+                    disabled={paymentStatus === 'preparing' || paymentStatus === 'processing'}
+                    isLoading={paymentStatus === 'preparing' || paymentStatus === 'processing'}
+                    onClick={() => handleInitiateCheckout(activePlan as SubscriptionPlan)}
+                    leftIcon={<Zap className="w-4 h-4 fill-current text-amber-300" />}
+                  >
+                    {paymentStatus === 'preparing'
+                      ? 'Preparing secure checkout…'
+                      : isExpired
+                        ? `Renew Pro Pass — ₹${appliedCoupon ? appliedCoupon.finalPrice : activePlan.price}`
+                        : `Get All-Access Pro Pass — ₹${appliedCoupon ? appliedCoupon.finalPrice : activePlan.price}`}
+                  </Button>
 
-              <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 dark:text-slate-500 pt-1">
-                <span className="flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-emerald-500" /> Razorpay 256-Bit SSL
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Instant Activation
-                </span>
-              </div>
-            </div>
+                  <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 dark:text-slate-500 pt-1">
+                    <span className="flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-emerald-500" /> Razorpay 256-Bit SSL
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Instant Activation
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       </div>
@@ -750,7 +951,7 @@ export const Subscription: React.FC = () => {
 
             <div className="space-y-1">
               <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                {successInfo.isRenewal ? 'Pass Extended Successfully!' : 'Pro Pass Activated 🎉'}
+                {successInfo.isRenewal ? 'Pro Pass Upgraded Successfully!' : 'Pro Pass Activated 🎉'}
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Your payment was verified by the server. All premium tests are now fully unlocked.

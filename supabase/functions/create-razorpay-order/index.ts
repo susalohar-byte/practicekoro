@@ -137,6 +137,46 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // 5. Check if user already has an active subscription
+  // Disallow repurchasing the same package or downgrading while validity remains
+  const { data: activeSub } = await serviceClient
+    .from('subscriptions')
+    .select('id, plan_id, status, expires_at, subscription_plans(price, title)')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeSub) {
+    const currentPrice = Number((activeSub as any)?.subscription_plans?.price ?? 0);
+    if (activeSub.plan_id === plan.id) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'You already have an active pass for this plan. Repurchasing or extending the same package is not permitted until your current validity expires.',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    if (priceNum <= currentPrice) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'You already have an active subscription. You can only upgrade to a higher-tier plan while your pass is active.',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  }
+
   // New checkout must honor the saved gateway switch even when credentials exist in env.
   // Existing payment verification/webhooks remain available when checkout is disabled.
   const keyId = Deno.env.get('RAZORPAY_KEY_ID')?.trim();

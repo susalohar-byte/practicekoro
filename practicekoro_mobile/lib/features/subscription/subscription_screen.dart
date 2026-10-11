@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/datasources/local_storage.dart';
 import '../../data/repositories/catalog_repository.dart';
 
 /// Screen 12: Subscription Screen ("Go Premium")
@@ -58,6 +59,21 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       ];
     }
 
+    final isPro = LocalStorageService.isProUser();
+    final expiryDate = LocalStorageService.getProExpiryDate();
+    final isExpired = expiryDate != null && DateTime.now().isAfter(expiryDate);
+    final hasActiveSub = isPro && !isExpired;
+    final activePlanId = LocalStorageService.getProPlanId();
+    final activePlanPrice = LocalStorageService.getProPlanPrice() ?? (hasActiveSub ? 299 : 0);
+
+    final p0Price = plans[0]['numericPrice'] as int;
+    final isP0Current = hasActiveSub && (plans[0]['id'] == activePlanId || p0Price <= activePlanPrice);
+    final isP0Upgrade = hasActiveSub && p0Price > activePlanPrice;
+
+    final p1Price = plans[1]['numericPrice'] as int;
+    final isP1Current = hasActiveSub && (plans[1]['id'] == activePlanId || p1Price <= activePlanPrice);
+    final isP1Upgrade = hasActiveSub && p1Price > activePlanPrice;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -87,6 +103,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             children: [
+              // Active Subscription Banner (if pass is active)
+              if (hasActiveSub) _buildActiveSubscriptionBanner(expiryDate),
+
               // 1. Hero Pitch Section (Screen 12)
               _buildHeroPitchCard(),
               const SizedBox(height: 20),
@@ -103,13 +122,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       discount: plans[0]['discount'] as String,
                       isPopular: plans[0]['isPopular'] as bool,
                       isSelected: _selectedPlan == 0,
-                      onSelect: () {
-                        setState(() => _selectedPlan = 0);
-                        final p = plans[0];
-                        context.push(
-                          '/payment?planId=${p['id']}&price=${p['numericPrice']}&title=${Uri.encodeComponent(p['title'] as String)}',
-                        );
-                      },
+                      isCurrentPlan: isP0Current,
+                      isUpgrade: isP0Upgrade,
+                      onSelect: (hasActiveSub && !isP0Upgrade)
+                          ? null
+                          : () {
+                              setState(() => _selectedPlan = 0);
+                              final p = plans[0];
+                              context.push(
+                                '/payment?planId=${p['id']}&price=${p['numericPrice']}&title=${Uri.encodeComponent(p['title'] as String)}',
+                              );
+                            },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -121,13 +144,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       discount: plans[1]['discount'] as String,
                       isPopular: plans[1]['isPopular'] as bool,
                       isSelected: _selectedPlan == 1,
-                      onSelect: () {
-                        setState(() => _selectedPlan = 1);
-                        final p = plans[1];
-                        context.push(
-                          '/payment?planId=${p['id']}&price=${p['numericPrice']}&title=${Uri.encodeComponent(p['title'] as String)}',
-                        );
-                      },
+                      isCurrentPlan: isP1Current,
+                      isUpgrade: isP1Upgrade,
+                      onSelect: (hasActiveSub && !isP1Upgrade)
+                          ? null
+                          : () {
+                              setState(() => _selectedPlan = 1);
+                              final p = plans[1];
+                              context.push(
+                                '/payment?planId=${p['id']}&price=${p['numericPrice']}&title=${Uri.encodeComponent(p['title'] as String)}',
+                              );
+                            },
                     ),
                   ),
                 ],
@@ -136,6 +163,93 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Active Subscription Banner
+  Widget _buildActiveSubscriptionBanner(DateTime? expiry) {
+    final dateStr = expiry != null
+        ? '${expiry.day}/${expiry.month}/${expiry.year}'
+        : 'Active';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF026BFC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A026BFC),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: Color(0xFF34D399), size: 12),
+                    SizedBox(width: 4),
+                    Text(
+                      'PRO PASS ACTIVE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF34D399),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Valid until: $dateStr',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF93C5FD),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Universal Access Unlocked',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'All mock tests, topics, PYQs, and solutions are active. Repurchasing the same package is disabled until your validity expires. You can upgrade to a higher plan anytime.',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFE2E8F0),
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -218,7 +332,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     required String discount,
     required bool isPopular,
     required bool isSelected,
-    required VoidCallback onSelect,
+    required bool isCurrentPlan,
+    required bool isUpgrade,
+    required VoidCallback? onSelect,
   }) {
     final features = [
       'All Mock Tests',
@@ -227,6 +343,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       'PYQs',
       'Detailed Analysis',
     ];
+
+    final isBorderHighlighted = isCurrentPlan || isUpgrade || isPopular;
+    final borderColor = isCurrentPlan
+        ? const Color(0xFF10B981)
+        : (isUpgrade ? const Color(0xFF026BFC) : (isPopular ? const Color(0xFFF43F5E) : const Color(0xFFE2E8F0)));
 
     return Stack(
       clipBehavior: Clip.none,
@@ -237,14 +358,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isPopular ? const Color(0xFFF43F5E) : const Color(0xFFE2E8F0),
-              width: isPopular ? 1.5 : 1.0,
+              color: borderColor,
+              width: isBorderHighlighted ? 1.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: isPopular
-                    ? const Color(0xFFF43F5E).withValues(alpha: 0.08)
-                    : const Color(0x06000000),
+                color: borderColor.withValues(alpha: 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -253,7 +372,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isPopular) const SizedBox(height: 6),
+              if (isPopular || isCurrentPlan || isUpgrade) const SizedBox(height: 6),
               Text(
                 title,
                 style: const TextStyle(
@@ -325,31 +444,83 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     ),
                   )),
               const SizedBox(height: 14),
-              // Select Plan Button
+              // Plan Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: onSelect,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isPopular ? const Color(0xFF026BFC) : const Color(0xFF0D9488),
-                    foregroundColor: Colors.white,
+                    backgroundColor: isCurrentPlan
+                        ? const Color(0xFFF1F5F9)
+                        : (isUpgrade
+                            ? const Color(0xFF026BFC)
+                            : (isPopular ? const Color(0xFF026BFC) : const Color(0xFF0D9488))),
+                    foregroundColor: isCurrentPlan ? const Color(0xFF94A3B8) : Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Select Plan',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  child: Text(
+                    isCurrentPlan
+                        ? 'Current Plan Active'
+                        : (isUpgrade ? 'Upgrade Plan' : 'Select Plan'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isCurrentPlan ? const Color(0xFF64748B) : Colors.white,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        // Most Popular Pill
-        if (isPopular)
+        // Pill on top of card
+        if (isCurrentPlan)
+          Positioned(
+            top: -10,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Current Plan',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          )
+        else if (isUpgrade)
+          Positioned(
+            top: -10,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF026BFC),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Upgrade Available',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          )
+        else if (isPopular)
           Positioned(
             top: -10,
             right: 14,

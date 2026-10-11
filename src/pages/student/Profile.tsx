@@ -867,7 +867,7 @@ export const Profile: React.FC = () => {
                 onClick={() => navigate('/subscription')}
                 className="px-4 py-2.5 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
               >
-                {isPro || subscriptionDetails?.isActive ? 'Renew / Extend' : 'Upgrade to Pro'}
+                {isPro || subscriptionDetails?.isActive ? 'View Membership' : 'Upgrade to Pro'}
               </button>
             </div>
 

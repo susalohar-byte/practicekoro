@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { StudentSupportModal } from '@/components/student/StudentSupportModal';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -380,8 +379,8 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                         if (!isSearchOpen) setIsSearchOpen(true);
                       }}
                       onFocus={() => setIsSearchOpen(true)}
-                      placeholder="Search tests, exams, topics... (⌘K)"
-                      className="w-full h-10 pl-10 pr-10 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-transparent text-[13px] font-medium text-[#121A4D] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#3142D6]/40 focus:bg-white focus:ring-4 focus:ring-[#3142D6]/10 dark:focus:bg-slate-800 transition-all"
+                      placeholder="Search for tests, topics, exams..."
+                      className="w-full h-10 pl-10 pr-12 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-[13px] font-medium text-[#121A4D] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#026BFC] focus:bg-white focus:ring-4 focus:ring-[#026BFC]/10 dark:focus:bg-slate-800 transition-all"
                     />
                     {searchQuery ? (
                       <button
@@ -392,8 +391,8 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                         <X className="w-3.5 h-3.5" />
                       </button>
                     ) : (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
-                        ⌘K
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 select-none">
+                        ⌘ K
                       </span>
                     )}
                   </form>
@@ -524,40 +523,21 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 </div>
               )}
 
-              {/* Pro Pass Pill */}
-              <Link
-                to="/subscription"
-                className={cn(
-                  'hidden sm:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold transition-all select-none',
-                  isPro
-                    ? 'bg-[#FEF3C7] dark:bg-amber-950/60 text-[#D97706] border border-[#FDE68A] dark:border-amber-800'
-                    : 'bg-gradient-to-r from-[#1E2A8A] to-[#3142D6] text-white hover:brightness-110 shadow-[0_4px_12px_rgba(49,66,214,0.3)]'
-                )}
-              >
-                <Crown
-                  className={cn(
-                    'w-3.5 h-3.5',
-                    isPro ? 'fill-[#D97706] text-[#D97706]' : 'text-amber-300 fill-amber-300'
-                  )}
-                />
-                <span>{isPro ? 'Pro Active' : 'Upgrade to Pro'}</span>
-              </Link>
+
 
               {/* Notification bell with real unread count */}
               <div ref={notifContainerRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#121A4D] dark:text-slate-200 hover:border-[#3142D6]/40 hover:bg-slate-50 transition-all cursor-pointer relative"
+                  className="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all cursor-pointer relative"
                   title="Notifications"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-4 h-4 text-[#051A43] dark:text-slate-200" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#F43F5E] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
+                  <Bell className="w-[18px] h-[18px] text-slate-600 dark:text-slate-200" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                    {unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : '3'}
+                  </span>
                 </button>
 
                 {/* Notifications Dropdown Panel */}
@@ -632,44 +612,24 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 )}
               </div>
 
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
-              {/* Candidate Profile Avatar Chip */}
+              {/* Candidate Profile Chip matching exact reference UI */}
               <div ref={profileContainerRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-2 p-0.5 sm:pl-1 sm:pr-2 sm:py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#3142D6]/40 hover:bg-slate-50 transition-all cursor-pointer group"
+                  className="flex items-center gap-2 px-1.5 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer group"
                 >
-                  <div className="relative shrink-0">
-                    <img
-                      src={user?.avatarUrl || '/images/student_avatar_hd.png'}
-                      alt={user?.fullName || 'Candidate'}
-                      className="w-8 h-8 rounded-lg object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = '/images/student_avatar_hd.png';
-                      }}
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                  <div className="w-8 h-8 rounded-full bg-[#026BFC] text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
+                    {user?.fullName ? user.fullName.trim()[0].toUpperCase() : 'R'}
                   </div>
 
-                  <div className="hidden lg:block text-left pr-1">
-                    <p className="text-xs font-bold text-[#051A43] dark:text-white truncate max-w-[100px] leading-tight">
-                      {user?.fullName?.split(' ')[0] || 'Candidate'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none mt-0.5">
-                      {isPro ? (
-                        <span className="text-amber-500 font-bold">Pro Pass</span>
-                      ) : (
-                        <span>Student</span>
-                      )}
-                    </p>
-                  </div>
+                  <span className="text-[13.5px] font-bold text-[#0B1B3F] dark:text-white truncate max-w-[120px]">
+                    {user?.fullName?.split(' ')[0] || 'Rahul'}
+                  </span>
 
                   <ChevronDown
                     className={cn(
-                      'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 hidden sm:block',
+                      'w-4 h-4 text-slate-500 transition-transform duration-200',
                       profileDropdownOpen && 'rotate-180'
                     )}
                   />
