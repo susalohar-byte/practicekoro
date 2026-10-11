@@ -9,6 +9,8 @@ import 'package:practicekoro_mobile/core/components/pk_section_header.dart';
 import 'package:practicekoro_mobile/data/datasources/local_storage.dart';
 import 'package:practicekoro_mobile/features/leaderboard/leaderboard_screen.dart';
 import 'package:practicekoro_mobile/features/result_analytics/results_hub_screen.dart';
+import 'package:practicekoro_mobile/features/result_analytics/result_screen.dart';
+import 'package:practicekoro_mobile/data/models/attempt_model.dart';
 import 'package:practicekoro_mobile/features/profile/settings_screen.dart';
 import 'package:practicekoro_mobile/features/profile/support_screen.dart';
 import 'package:practicekoro_mobile/core/widgets/pk_bottom_spacing.dart';
@@ -157,6 +159,61 @@ void main() {
       expect(find.text('All Tests'), findsOneWidget);
       expect(find.text('Rankings'), findsOneWidget);
       expect(find.text('Total Performance'), findsOneWidget);
+    });
+
+    testWidgets('ResultScreen renders redesigned result from a saved attempt', (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await LocalStorageService.saveAttempt(TestAttemptModel(
+        id: 'att-result-test',
+        userId: 'user-1',
+        testId: 'test-1',
+        testTitle: 'WBP Constable Mock 1',
+        score: 64,
+        totalMarks: 100,
+        percentage: 64,
+        accuracy: 80,
+        correctCount: 40,
+        wrongCount: 10,
+        skippedCount: 50,
+        timeSpentSeconds: 1500,
+        totalQuestions: 100,
+        negativeMarksDeducted: 2.5,
+        completedAt: DateTime(2026, 10, 11, 9, 30),
+        testSeriesTitle: 'WBP Constable Series',
+      ));
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(home: ResultScreen(attemptId: 'att-result-test')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('WBP Constable Mock 1'), findsOneWidget);
+      expect(find.text('WBP Constable Series'), findsOneWidget);
+      expect(find.text('64'), findsOneWidget);
+      expect(find.text('Good effort!'), findsOneWidget);
+      expect(find.text('Answer Breakdown'), findsOneWidget);
+      expect(find.text('80%'), findsOneWidget);
+      expect(find.text('-2.5'), findsOneWidget);
+      expect(find.text('View Detailed Analysis'), findsOneWidget);
+    });
+
+    testWidgets('ResultScreen shows empty state instead of sample data for unknown attempt', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(home: ResultScreen(attemptId: 'missing-attempt')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Result not found'), findsOneWidget);
+      expect(find.text('72'), findsNothing);
     });
 
     testWidgets('LeaderboardScreen renders test series rankings and header without dummy data', (tester) async {
