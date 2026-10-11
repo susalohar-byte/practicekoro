@@ -13,7 +13,7 @@ vi.mock('@/services/api', () => ({
   api: {
     getAllAdminExams: mocks.load,
     getAllAdminTests: async () => [],
-    getSubjects: async () => [],
+    getAllAdminSubjects: async () => [],
     getTestSeries: async () => [],
     getExamCategories: async () => [],
     createExam: mocks.create,

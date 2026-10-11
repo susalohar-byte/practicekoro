@@ -11,6 +11,8 @@ import {
   type SubjectReportingData,
 } from '@/utils/adminSubjectModel';
 import { parseSubjectImport, subjectCsvTemplate } from '@/utils/adminSubjectImport';
+import { Link, useSearchParams } from 'react-router-dom';
+import { subjectAvailableForExam, applyExamImportScope } from '@/utils/examSubjectLinks';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
 import {
@@ -42,7 +44,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import type { Subject, Chapter, MockTest } from '@/types';
+import type { Subject, Chapter, MockTest, Exam } from '@/types';
 import { cn } from '@/lib/utils';
 import { getPageNumbers } from '@/utils/pagination';
 import { getErrorMessage } from '@/lib/errors';
@@ -786,6 +788,28 @@ const CANONICAL_SUBJECTS_PRESET: EnrichedSubjectRow[] = [
 ];
 
 export const AdminSubjects: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const scopeExamId = searchParams.get('examId') || '';
+  const requestedSubjectId = searchParams.get('subjectId') || '';
+  const [scopeExam, setScopeExam] = useState<Exam | null>(null);
+  const [scopeError, setScopeError] = useState('');
+  const [scopeLoading, setScopeLoading] = useState(!!scopeExamId);
+  const openedSubjectRoute = useRef('');
+  useEffect(() => {
+    let cancelled = false;
+    setScopeExam(null); setScopeError(''); setScopeLoading(!!scopeExamId);
+    if (scopeExamId) {
+      void api.getAllAdminExams().then(rows => {
+        if (cancelled) return;
+        const exam = rows.find(row => row.id === scopeExamId);
+        if (!exam) throw new Error('The selected exam no longer exists or is not accessible.');
+        setScopeExam(exam);
+      }).catch(error => { if (!cancelled) setScopeError(getErrorMessage(error, 'Exam scope could not be verified.')); })
+        .finally(() => { if (!cancelled) setScopeLoading(false); });
+    }
+    return () => { cancelled = true; };
+  }, [scopeExamId]);
+
   // Data States
   const [subjectsList, setSubjectsList] = useState<EnrichedSubjectRow[]>(
     isSupabaseConfigured ? [] : CANONICAL_SUBJECTS_PRESET
@@ -900,9 +924,29 @@ export const AdminSubjects: React.FC = () => {
       requests.current++;
     };
   }, [loadData]);
+  const scopedSubjects = useMemo(() => scopeExamId
+    ? (scopeLoading || scopeError ? [] : subjectsList.filter(subject => subjectAvailableForExam(subject, scopeExamId)))
+    : subjectsList, [subjectsList, scopeExamId, scopeLoading, scopeError]);
+  const scopedTopics = useMemo(() => {
+    const ids = new Set(scopedSubjects.map(subject => subject.id));
+    return chapters.filter(chapter => ids.has(chapter.subjectId));
+  }, [chapters, scopedSubjects]);
+  useEffect(() => {
+    setCurrentPage(1); setSearchTerm(''); setSelectedCategory('all'); setSelectedStatus('all'); setAppliedFilters({search:'',category:'all',status:'all'}); setSelectedSubjectIds(new Set()); setSelectedSubject(null); setShowDetailsPanel(false); setIsModalOpen(false); setIsImportModalOpen(false); setIsOrderModalOpen(false);
+  }, [scopeExamId]);
+  useEffect(() => { openedSubjectRoute.current = ''; }, [scopeExamId, requestedSubjectId]);
+  useEffect(() => {
+    if (isLoading || scopeLoading || scopeError || !requestedSubjectId) return;
+    const key = `${scopeExamId}:${requestedSubjectId}`;
+    if (openedSubjectRoute.current === key) return;
+    const subject = scopedSubjects.find(row => row.id === requestedSubjectId);
+    if (!subject) return;
+    openedSubjectRoute.current = key;
+    setSelectedSubject(subject); setDetailsTab('overview'); setShowDetailsPanel(true);
+  }, [isLoading, scopeLoading, scopeError, requestedSubjectId, scopeExamId, scopedSubjects]);
   const summary = useMemo(
-    () => subjectSummary(subjectsList, chapters, tests, report),
-    [subjectsList, chapters, tests, report]
+    () => subjectSummary(scopedSubjects, chapters, tests, report),
+    [scopedSubjects, chapters, tests, report]
   );
   const nextOrder = () => subjectsList.reduce((max, s) => Math.max(max, s.orderIndex), 0) + 1;
   const addSavedRow = (saved: Subject) => {
@@ -949,7 +993,7 @@ export const AdminSubjects: React.FC = () => {
 
   // Filtered Subjects
   const filteredSubjects = useMemo(() => {
-    return subjectsList.filter((s) => {
+    return scopedSubjects.filter((s) => {
       const q = appliedFilters.search.toLowerCase().trim();
       if (q) {
         const matchName = s.name.toLowerCase().includes(q);
@@ -971,7 +1015,7 @@ export const AdminSubjects: React.FC = () => {
 
       return true;
     });
-  }, [subjectsList, appliedFilters]);
+  }, [scopedSubjects, appliedFilters]);
 
   // Pagination calculation
   const totalItems = filteredSubjects.length;
@@ -1016,7 +1060,7 @@ export const AdminSubjects: React.FC = () => {
 
   // Create / Edit modal handlers
   const handleOpenCreateModal = () => {
-    if (mutationLock.current || uploadLock.current || isLoading) return;
+    if (mutationLock.current || uploadLock.current || isLoading || scopeLoading || scopeError) return;
     setEditingSubject(null);
     setFormName('');
     setFormSlug('');
@@ -1030,7 +1074,7 @@ export const AdminSubjects: React.FC = () => {
   };
 
   const handleOpenEditModal = (sub: EnrichedSubjectRow) => {
-    if (mutationLock.current || uploadLock.current || isLoading) return;
+    if (mutationLock.current || uploadLock.current || isLoading || scopeLoading || scopeError) return;
     setEditingSubject(sub);
     setFormName(sub.name);
     setFormSlug(sub.slug);
@@ -1044,7 +1088,7 @@ export const AdminSubjects: React.FC = () => {
 
   const handleSaveSubject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mutationLock.current || uploadLock.current || isLoading) return;
+    if (mutationLock.current || uploadLock.current || isLoading || scopeLoading || scopeError) return;
     try {
       const slug =
         formSlug.trim() ||
@@ -1052,7 +1096,10 @@ export const AdminSubjects: React.FC = () => {
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
+      if (!editingSubject && scopeExamId && scopeExam?.id !== scopeExamId) throw new Error('Verify the exam before creating a linked subject.');
+      const subjectScopeId = editingSubject ? editingSubject.examId : scopeExam?.id;
       const input = {
+        ...(!editingSubject && subjectScopeId ? { examId: subjectScopeId } : {}),
         name: formName.trim(),
         slug,
         category: formCategory,
@@ -1066,7 +1113,7 @@ export const AdminSubjects: React.FC = () => {
         subjectsList.some(
           (s) =>
             s.id !== editingSubject?.id &&
-            (s.examId || '') === (editingSubject?.examId || '') &&
+            (s.examId || '') === (subjectScopeId || '') &&
             s.slug.toLowerCase().trim() === slug
         )
       )
@@ -1078,6 +1125,7 @@ export const AdminSubjects: React.FC = () => {
       const saved = editingSubject
         ? await api.updateSubject(editingSubject.id, input)
         : await api.createSubject({ ...input, iconName: input.iconName || 'BookOpen' });
+      if (!editingSubject && subjectScopeId && saved?.examId !== subjectScopeId) throw new Error('The backend did not confirm the selected exam association. Refresh before retrying.');
       if (editingSubject && saved?.id !== editingSubject.id)
         throw new Error('The backend did not confirm the selected subject.');
       const row = addSavedRow(saved);
@@ -1098,7 +1146,7 @@ export const AdminSubjects: React.FC = () => {
     }
   };
   const handleDeleteSubject = async (id: string) => {
-    if (mutationLock.current || uploadLock.current) return;
+    if (mutationLock.current || uploadLock.current || scopeLoading || scopeError) return;
     mutationLock.current = true;
     setIsSaving(true);
     setActionError('');
@@ -1123,7 +1171,7 @@ export const AdminSubjects: React.FC = () => {
     }
   };
   const handleDuplicateSubject = async (sub: EnrichedSubjectRow) => {
-    if (mutationLock.current || uploadLock.current) return;
+    if (mutationLock.current || uploadLock.current || scopeLoading || scopeError) return;
     mutationLock.current = true;
     setIsSaving(true);
     setActionError('');
@@ -1134,7 +1182,7 @@ export const AdminSubjects: React.FC = () => {
         category: sub.category,
         description: sub.description,
         iconName: sub.iconName,
-        examId: sub.examId,
+        examId: scopeExamId || sub.examId,
         orderIndex: nextOrder(),
         isActive: false,
       });
@@ -1173,7 +1221,9 @@ export const AdminSubjects: React.FC = () => {
     setImportError('');
     try {
       if (file.size > 5 * 1024 * 1024) throw new Error('Import file must be at most 5 MB.');
-      const rows = parseSubjectImport(await file.text(), file.name, nextOrder());
+      const parsed = parseSubjectImport(await file.text(), file.name, nextOrder());
+      if (scopeExamId && scopeExam?.id !== scopeExamId) throw new Error('Verify the selected exam before importing subjects.');
+      const rows = applyExamImportScope(parsed, scopeExamId);
       if (readId !== importReadId.current) return;
       if (
         rows.some((r) =>
@@ -1194,7 +1244,7 @@ export const AdminSubjects: React.FC = () => {
     }
   };
   const runImport = async () => {
-    if (mutationLock.current || isReadingImport || !importRows.length) return;
+    if (mutationLock.current || isReadingImport || !importRows.length || scopeLoading || scopeError) return;
     mutationLock.current = true;
     setIsSaving(true);
     setImportError('');
@@ -1223,7 +1273,7 @@ export const AdminSubjects: React.FC = () => {
   };
   const saveOrder = async () => {
     if (mutationLock.current) return;
-    const changed = subjectsList.filter((s) => String(s.orderIndex) !== orderDraft[s.id]);
+    const changed = scopedSubjects.filter((s) => String(s.orderIndex) !== orderDraft[s.id]);
     if (!changed.length) {
       setOrderError('No order changes to save.');
       return;
@@ -1311,6 +1361,14 @@ export const AdminSubjects: React.FC = () => {
         </div>
       )}
 
+      {scopeExamId && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-800 dark:bg-blue-950/30">
+          {scopeLoading ? <p role="status">Verifying selected exam…</p> : scopeError ? <p role="alert" className="text-red-700 dark:text-red-300">{scopeError}</p> : <p><strong>{scopeExam?.title}</strong>: exam-specific and shared subjects. New subjects and imports will belong to this exam. Editing shared subjects affects all exams.</p>}
+          <Link to={`/admin/exams?${new URLSearchParams({examId:scopeExamId,tab:"subjects"})}`} className="mr-4 inline-flex min-h-11 items-center font-semibold text-blue-700 dark:text-blue-300">Back to Exams</Link>
+          <Link to="/admin/subjects" className="inline-flex min-h-11 items-center font-semibold text-blue-700 dark:text-blue-300">Clear exam scope</Link>
+        </div>
+      )}
+
       {/* 1. Page Header with Title and Top Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -1326,7 +1384,7 @@ export const AdminSubjects: React.FC = () => {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             type="button"
-            disabled={isSaving || isLoading || !!loadError}
+            disabled={isSaving || isLoading || !!loadError || scopeLoading || !!scopeError}
             onClick={() => {
               setImportError('');
               setImportSummary('');
@@ -1341,10 +1399,10 @@ export const AdminSubjects: React.FC = () => {
 
           <button
             type="button"
-            disabled={isSaving || isLoading || !!loadError}
+            disabled={isSaving || isLoading || !!loadError || scopeLoading || !!scopeError}
             onClick={() => {
               setOrderDraft(
-                Object.fromEntries(subjectsList.map((s) => [s.id, String(s.orderIndex)]))
+                Object.fromEntries(scopedSubjects.map((s) => [s.id, String(s.orderIndex)]))
               );
               setOrderError('');
               setIsOrderModalOpen(true);
@@ -1357,7 +1415,7 @@ export const AdminSubjects: React.FC = () => {
 
           <button
             type="button"
-            disabled={isSaving || isLoading || !!loadError}
+            disabled={isSaving || isLoading || !!loadError || scopeLoading || !!scopeError}
             onClick={handleOpenCreateModal}
             className="h-9 px-4 rounded-xl bg-[#026BFC] hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
           >
@@ -1382,7 +1440,7 @@ export const AdminSubjects: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {isLoading || loadError ? 'Unavailable' : subjectsList.length}
+                    {isLoading || loadError || scopeLoading || scopeError ? 'Unavailable' : scopedSubjects.length}
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-0.5">Current database records</p>
@@ -1400,7 +1458,7 @@ export const AdminSubjects: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {isLoading || loadError ? 'Unavailable' : chapters.length}
+                    {isLoading || loadError || scopeLoading || scopeError ? 'Unavailable' : scopedTopics.length}
                   </span>
                 </div>
               </div>
@@ -1417,7 +1475,7 @@ export const AdminSubjects: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {isLoading || loadError ? 'Unavailable' : summary.topicTests}
+                    {isLoading || loadError || scopeLoading || scopeError ? 'Unavailable' : summary.topicTests}
                   </span>
                 </div>
               </div>
@@ -1434,7 +1492,7 @@ export const AdminSubjects: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {isLoading || loadError ? 'Unavailable' : (summary.attempts ?? 'Unavailable')}
+                    {isLoading || loadError || scopeLoading || scopeError ? 'Unavailable' : (summary.attempts ?? 'Unavailable')}
                   </span>
                 </div>
               </div>
@@ -1451,7 +1509,7 @@ export const AdminSubjects: React.FC = () => {
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {isLoading || loadError ? 'Unavailable' : summary.accuracy}
+                    {isLoading || loadError || scopeLoading || scopeError ? 'Unavailable' : summary.accuracy}
                   </span>
                 </div>
               </div>
@@ -2277,11 +2335,11 @@ export const AdminSubjects: React.FC = () => {
           >
             <h2 className="font-bold">Subject Order</h2>
             <p className="text-xs text-slate-500">
-              Lower numeric values display first. All subjects are shown. Changes save per record;
+              Lower numeric values display first. Subjects in this scope are shown. Shared-subject order applies to all exams. Changes save per record;
               failures are reported without claiming the whole batch succeeded.
             </p>
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {subjectsList.map((sub) => (
+              {scopedSubjects.map((sub) => (
                 <label key={sub.id} className="flex items-center justify-between text-xs gap-3">
                   <span>{sub.name}</span>
                   <input
@@ -2311,7 +2369,7 @@ export const AdminSubjects: React.FC = () => {
               >
                 Close
               </Button>
-              <Button disabled={isSaving || !subjectsList.length} onClick={() => void saveOrder()}>
+              <Button disabled={isSaving || !scopedSubjects.length || scopeLoading || !!scopeError} onClick={() => void saveOrder()}>
                 {isSaving ? 'Saving…' : 'Save Order'}
               </Button>
             </div>
@@ -2353,6 +2411,11 @@ export const AdminSubjects: React.FC = () => {
 
             <form onSubmit={handleSaveSubject} className="space-y-3.5 text-xs">
               <fieldset disabled={isSaving || isUploadingIcon} className="space-y-3.5">
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-relaxed dark:border-blue-800 dark:bg-blue-950/30">
+                  <p className="font-semibold">Subject scope: {editingSubject ? (editingSubject.examId ? (scopeExam?.id === editingSubject.examId ? scopeExam.title : `Exam-specific (${editingSubject.examId})`) : 'Shared · all exams') : scopeExam?.title || 'Shared · all exams'}</p>
+                  <p>{editingSubject ? 'The existing association is preserved. Shared subject edits affect every exam; this form does not move existing topics or tests.' : scopeExam ? 'This subject will be linked to the selected exam when saved.' : 'A shared subject is available in all exams. Create from an exam’s Manage Subjects action for an exam-specific subject.'}</p>
+                </div>
+
                 <div>
                   <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Subject Name *

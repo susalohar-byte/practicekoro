@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render as testingRender, screen, waitFor, within } from '@testing-library/react';
 const m = vi.hoisted(() => ({
   api: {
     getAllAdminSubjects: vi.fn(),
@@ -14,6 +14,9 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/supabase', () => ({ isSupabaseConfigured: true }));
 vi.mock('@/services/api', () => ({ api: m.api }));
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactElement } from 'react';
+const render = (ui: ReactElement) => testingRender(<MemoryRouter>{ui}</MemoryRouter>);
 import { AdminSubjects } from './AdminSubjects';
 const subject = {
   id: 'real-math',

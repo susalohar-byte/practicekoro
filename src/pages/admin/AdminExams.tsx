@@ -1,5 +1,9 @@
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { ExamLinkedSubjects } from '@/components/admin/ExamLinkedSubjects';
+import { subjectsForExam } from '@/utils/examSubjectLinks';
+import { EXAMS_UPDATED_EVENT } from '@/lib/dataSync';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
 import {
@@ -71,7 +75,7 @@ export function saveExamLogoCache(examId: string, logoUrl: string) {
 interface EnrichedExamRow extends Exam {
   subtitle?: string;
   categoryLabel?: string;
-  subjectsCount: number;
+  subjectsCount: number | undefined;
   testSeriesCount: number;
   totalTestsCount: number;
   enrollmentsCount: number;
@@ -550,12 +554,18 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
 ];
 
 export const AdminExams: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const routeExamId = searchParams.get('examId') || '';
+  const routeTab = searchParams.get('tab');
+  const openedRoute = useRef('');
   // Data States
   const [exams, setExams] = useState<EnrichedExamRow[]>(
     isSupabaseConfigured ? [] : CANONICAL_EXAMS_PRESET
   );
   const [, setDbTests] = useState<MockTest[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectLoadError, setSubjectLoadError] = useState('');
+  const loadRequest = useRef(0);
   const [testSeriesList, setTestSeriesList] = useState<TestSeries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -736,19 +746,22 @@ export const AdminExams: React.FC = () => {
 
   // Load authoritative records; presets only enrich matching backend identities.
   const loadData = useCallback(async () => {
+    const token = ++loadRequest.current;
     try {
       setIsLoading(true);
       setLoadError('');
       const [rawExams, allTests, allSubjects, allSeries, dbCats] = await Promise.all([
         api.getAllAdminExams(),
         api.getAllAdminTests().catch(() => []),
-        api.getSubjects().catch(() => []),
+        api.getAllAdminSubjects().then(data => ({ data, error: '' })).catch(error => ({ data: [] as Subject[], error: getErrorMessage(error, 'Linked subjects could not be loaded.') })),
         api.getTestSeries().catch(() => []),
         api.getExamCategories().catch(() => []),
       ]);
 
+      if (token !== loadRequest.current) return;
       setDbTests(allTests || []);
-      setSubjects(allSubjects || []);
+      setSubjects(allSubjects.data);
+      setSubjectLoadError(allSubjects.error);
       setTestSeriesList(allSeries || []);
 
       if (dbCats && dbCats.length > 0) {
@@ -771,7 +784,7 @@ export const AdminExams: React.FC = () => {
           shortName: dbEx.shortName || dbEx.title.split(' ')[0],
           subtitle: dbEx.subtitle || dbEx.description || '',
           categoryLabel: dbEx.category,
-          subjectsCount: allSubjects.filter((x) => x.examId === dbEx.id).length,
+          subjectsCount: allSubjects.error ? undefined : subjectsForExam(allSubjects.data, dbEx.id).length,
           testSeriesCount: allSeries.filter((x) => x.examId === dbEx.id).length,
           totalTestsCount: dbEx.testsCount ?? allTests.filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,
@@ -792,15 +805,29 @@ export const AdminExams: React.FC = () => {
       });
     } catch (err) {
       console.error('Error loading exams data:', err);
-      setLoadError(getErrorMessage(err, 'Exams could not be loaded.'));
+      if (token === loadRequest.current) setLoadError(getErrorMessage(err, 'Exams could not be loaded.'));
     } finally {
-      setIsLoading(false);
+      if (token === loadRequest.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    const refresh = () => { void loadData(); };
+    window.addEventListener(EXAMS_UPDATED_EVENT, refresh);
+    window.addEventListener('focus', refresh);
+    const requests = loadRequest;
+    return () => { requests.current++; window.removeEventListener(EXAMS_UPDATED_EVENT, refresh); window.removeEventListener('focus', refresh); };
   }, [loadData]);
+
+  useEffect(() => { openedRoute.current = ''; }, [routeExamId]);
+  useEffect(() => {
+    if (!routeExamId || isLoading || openedRoute.current === routeExamId) return;
+    const exam = exams.find(row => row.id === routeExamId);
+    if (!exam) return;
+    openedRoute.current = routeExamId;
+    setSelectedExam(exam); setShowDetailsPanel(true); setDetailsTab(routeTab === 'subjects' ? 'subjects' : 'overview');
+  }, [routeExamId, routeTab, exams, isLoading]);
 
   // Auto-dismiss success notification
   useEffect(() => {
@@ -1517,7 +1544,7 @@ export const AdminExams: React.FC = () => {
 
                           {/* Subjects Count */}
                           <td className="py-3.5 px-2 text-center text-slate-600 dark:text-slate-300 font-medium">
-                            {e.subjectsCount}
+                            {e.subjectsCount ?? 'Unavailable'}
                           </td>
 
                           {/* Test Series Count */}
@@ -1862,12 +1889,12 @@ export const AdminExams: React.FC = () => {
               </div>
             </div>
 
-            {/* Horizontal Tabs: Overview, Subjects (10), Test Series (5), Settings */}
-            <div className="flex items-center gap-4 border-b border-slate-200/80 dark:border-slate-800 text-xs font-medium pt-0.5">
+            {/* Tabs use authoritative counts, including real zero and unavailable states. */}
+            <div className="flex items-center gap-4 overflow-x-auto border-b border-slate-200/80 dark:border-slate-800 text-xs font-medium pt-0.5">
               {(
                 [
                   { key: 'overview', label: 'Overview' },
-                  { key: 'subjects', label: `Subjects (${selectedExam.subjectsCount || 10})` },
+                  { key: 'subjects', label: `Subjects (${selectedExam.subjectsCount ?? 'Unavailable'})` },
                   {
                     key: 'test_series',
                     label: `Test Series (${selectedExam.testSeriesCount || 5})`,
@@ -1906,7 +1933,7 @@ export const AdminExams: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-                        {selectedExam.subjectsCount}
+                        {selectedExam.subjectsCount ?? 'Unavailable'}
                       </span>
                       <span className="text-[9.5px] text-slate-400 block truncate">Subjects</span>
                     </div>
@@ -2032,7 +2059,7 @@ export const AdminExams: React.FC = () => {
 
                     <span className="text-slate-400">Total Subjects</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                      {selectedExam.subjectsCount}
+                      {selectedExam.subjectsCount ?? 'Unavailable'}
                     </span>
 
                     <span className="text-slate-400">Total Test Series</span>
@@ -2106,53 +2133,7 @@ export const AdminExams: React.FC = () => {
 
             {/* TAB CONTENT: SUBJECTS */}
             {detailsTab === 'subjects' && (
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    Linked Subjects ({selectedExam.subjectsCount})
-                  </span>
-                  <a
-                    href="/admin/subjects"
-                    className="text-xs text-[#026BFC] hover:underline font-semibold"
-                  >
-                    Manage Subjects
-                  </a>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Subjects associated with {selectedExam.title} for topic tests and syllabus
-                  coverage:
-                </p>
-                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                  {(subjects.length > 0
-                    ? subjects.slice(0, selectedExam.subjectsCount)
-                    : [
-                        { id: '1', name: 'General Awareness & GK', orderIndex: 1 },
-                        { id: '2', name: 'Elementary Mathematics', orderIndex: 2 },
-                        { id: '3', name: 'Reasoning & Logical Analysis', orderIndex: 3 },
-                        { id: '4', name: 'English Grammar & Comprehension', orderIndex: 4 },
-                        { id: '5', name: 'General Science & Physics', orderIndex: 5 },
-                        { id: '6', name: 'Indian History & Freedom Struggle', orderIndex: 6 },
-                        { id: '7', name: 'Geography of India & West Bengal', orderIndex: 7 },
-                        { id: '8', name: 'Indian Constitution & Polity', orderIndex: 8 },
-                        { id: '9', name: 'Current Affairs & Sports', orderIndex: 9 },
-                        { id: '10', name: 'Bengali Language & Grammar', orderIndex: 10 },
-                      ]
-                  ).map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {sub.name}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-400">Active</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ExamLinkedSubjects exam={selectedExam} subjects={subjects} error={subjectLoadError} loading={isLoading} onRetry={() => void loadData()} />
             )}
 
             {/* TAB CONTENT: TEST SERIES */}
