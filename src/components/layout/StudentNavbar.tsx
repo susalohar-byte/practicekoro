@@ -49,52 +49,49 @@ const SEARCHABLE_ITEMS: SearchItem[] = [
   {
     id: 'wbp-constable',
     title: 'WBP Constable',
-    subtitle: 'West Bengal Police Recruitment • 120+ Tests',
+    subtitle: 'West Bengal Police Recruitment',
     category: 'Exam',
     path: '/exams/wbp-constable',
-    badge: 'Hot',
   },
   {
     id: 'kp-constable',
     title: 'KP Constable',
-    subtitle: 'Kolkata Police Recruitment • 100+ Tests',
+    subtitle: 'Kolkata Police Recruitment',
     category: 'Exam',
     path: '/exams/kp-constable',
-    badge: 'Popular',
   },
   {
     id: 'ssc-gd',
     title: 'SSC GD Constable',
-    subtitle: 'Staff Selection Commission • 150+ Tests',
+    subtitle: 'Staff Selection Commission',
     category: 'Exam',
     path: '/exams/ssc-gd',
-    badge: 'Bestseller',
   },
   {
     id: 'railway-ntpc',
     title: 'Railway NTPC',
-    subtitle: 'RRB Non-Technical Popular Categories • 60+ Tests',
+    subtitle: 'RRB Non-Technical Popular Categories',
     category: 'Exam',
     path: '/exams/railway-ntpc',
   },
   {
     id: 'wb-tet',
     title: 'WB Primary TET',
-    subtitle: 'West Bengal Board of Primary Education • 45+ Tests',
+    subtitle: 'West Bengal Board of Primary Education',
     category: 'Exam',
     path: '/exams/primary-tet',
   },
   {
     id: 'wbssc',
     title: 'WBSSC Group C & D',
-    subtitle: 'School Service Commission • 50+ Tests',
+    subtitle: 'School Service Commission',
     category: 'Exam',
     path: '/exams/wbssc',
   },
   {
     id: 'wbpsc-clerkship',
     title: 'WBPSC Clerkship',
-    subtitle: 'Public Service Commission • 20+ Tests',
+    subtitle: 'Public Service Commission',
     category: 'Exam',
     path: '/exams/wbpsc-clerkship',
   },
@@ -103,42 +100,42 @@ const SEARCHABLE_ITEMS: SearchItem[] = [
   {
     id: 'math',
     title: 'Mathematics',
-    subtitle: 'Arithmetic, Algebra, Geometry • 30 Chapters',
+    subtitle: 'Arithmetic, Algebra, Geometry',
     category: 'Subject',
     path: '/practice?subject=math',
   },
   {
     id: 'reasoning',
     title: 'Reasoning',
-    subtitle: 'Logical, Verbal, Non-Verbal • 30 Chapters',
+    subtitle: 'Logical, Verbal, Non-Verbal',
     category: 'Subject',
     path: '/practice?subject=reasoning',
   },
   {
     id: 'gk',
     title: 'General Knowledge',
-    subtitle: 'History, Geography, Polity • 25 Chapters',
+    subtitle: 'History, Geography, Polity',
     category: 'Subject',
     path: '/practice?subject=gk',
   },
   {
     id: 'english',
     title: 'English Language',
-    subtitle: 'Grammar, Vocab, Comprehension • 20 Chapters',
+    subtitle: 'Grammar, Vocab, Comprehension',
     category: 'Subject',
     path: '/practice?subject=english',
   },
   {
     id: 'bengali',
     title: 'Bengali Language',
-    subtitle: 'Sahitya, Byakaran, Comprehension • 15 Chapters',
+    subtitle: 'Sahitya, Byakaran, Comprehension',
     category: 'Subject',
     path: '/practice?subject=bengali',
   },
   {
     id: 'science',
     title: 'General Science',
-    subtitle: 'Physics, Chemistry, Biology • 25 Chapters',
+    subtitle: 'Physics, Chemistry, Biology',
     category: 'Subject',
     path: '/practice?subject=science',
   },
@@ -312,15 +309,14 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
     }
   };
 
-  const unreadCount =
-    notifications.length > 0 ? notifications.filter((n) => !readNotifIds.includes(n.id)).length : 3; // Default 3 unread updates matching mobile app
+  const unreadCount = notifications.filter((n) => !readNotifIds.includes(n.id)).length;
 
   return (
     <>
       <header
         className={cn(
-          'sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#E2EAF8] dark:border-slate-800 transition-all select-none',
-          embedded ? 'border-b-0' : 'shadow-[0_2px_12px_rgba(10,46,101,0.03)]'
+          'sticky top-0 z-30 bg-white/85 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800 select-none',
+          embedded && 'border-b-0'
         )}
       >
         <div className="w-full px-3.5 sm:px-6 lg:px-8">
@@ -339,11 +335,13 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 </button>
 
                 <Link to="/dashboard" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[10px] bg-[#026BFC] flex items-center justify-center text-white font-black text-lg shadow-xs">
-                    P
-                  </div>
-                  <span className="text-lg font-black tracking-tight text-[#051A43] dark:text-white">
-                    Practice<span className="text-[#026BFC]">Koro</span>
+                  <img
+                    src="/logo-circle.png"
+                    alt=""
+                    className="w-8 h-8 rounded-[10px] object-cover shadow-xs"
+                  />
+                  <span className="hidden min-[420px]:inline text-lg font-black tracking-tight text-[#121A4D] dark:text-white">
+                    Practice<span className="text-[#3142D6] dark:text-[#8FB3FF]">Koro</span>
                   </span>
                 </Link>
               </div>
@@ -372,7 +370,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                   className="hidden lg:block relative w-80 xl:w-96 focus-within:w-96 xl:focus-within:w-[420px] transition-all duration-200"
                 >
                   <form onSubmit={handleSearchSubmit} className="relative">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       ref={searchInputRef}
                       type="text"
@@ -383,7 +381,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                       }}
                       onFocus={() => setIsSearchOpen(true)}
                       placeholder="Search tests, exams, topics... (⌘K)"
-                      className="w-full pl-9 pr-8 py-2 rounded-full bg-[#F1F5FC] dark:bg-slate-800/80 border border-[#E2ECF8] dark:border-slate-700/80 text-xs font-semibold text-[#051A43] dark:text-white placeholder:text-[#94A3B8] focus:outline-none focus:border-[#026BFC] focus:bg-white dark:focus:bg-slate-800 transition-all shadow-2xs"
+                      className="w-full h-10 pl-10 pr-10 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-transparent text-[13px] font-medium text-[#121A4D] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#3142D6]/40 focus:bg-white focus:ring-4 focus:ring-[#3142D6]/10 dark:focus:bg-slate-800 transition-all"
                     />
                     {searchQuery ? (
                       <button
@@ -460,7 +458,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
             {/* 2. CENTER: Clean empty space (NO primary navigation in header) */}
             <div className="flex-1" />
 
-            {/* 3. RIGHT ACTIONS: NOTIFICATIONS BELL '3', PRO PASS, THEME, AVATAR */}
+            {/* 3. RIGHT ACTIONS: PRO PASS, NOTIFICATIONS, THEME, AVATAR */}
             <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
               {/* Mobile Search Button */}
               {showSearch && (
@@ -530,10 +528,10 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
               <Link
                 to="/subscription"
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none',
+                  'hidden sm:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold transition-all select-none',
                   isPro
                     ? 'bg-[#FEF3C7] dark:bg-amber-950/60 text-[#D97706] border border-[#FDE68A] dark:border-amber-800'
-                    : 'bg-gradient-to-r from-[#026BFC] to-[#0158FC] text-white hover:brightness-105 shadow-blue-500/20'
+                    : 'bg-gradient-to-r from-[#1E2A8A] to-[#3142D6] text-white hover:brightness-110 shadow-[0_4px_12px_rgba(49,66,214,0.3)]'
                 )}
               >
                 <Crown
@@ -545,19 +543,19 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 <span>{isPro ? 'Pro Active' : 'Upgrade to Pro'}</span>
               </Link>
 
-              {/* Notification Bell with red badge '3' */}
+              {/* Notification bell with real unread count */}
               <div ref={notifContainerRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-slate-800 border border-[#E2ECF8] dark:border-slate-700 flex items-center justify-center text-[#051A43] dark:text-slate-200 shadow-2xs hover:border-[#026BFC]/50 transition-all cursor-pointer relative"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#121A4D] dark:text-slate-200 hover:border-[#3142D6]/40 hover:bg-slate-50 transition-all cursor-pointer relative"
                   title="Notifications"
                   aria-label="Notifications"
                 >
                   <Bell className="w-4 h-4 text-[#051A43] dark:text-slate-200" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#EF4444] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                      {unreadCount}
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#F43F5E] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
@@ -642,13 +640,13 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                 <button
                   type="button"
                   onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-2 p-0.5 sm:px-2 sm:py-1 rounded-full border border-[#E2ECF8] dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#026BFC]/50 transition-all cursor-pointer shadow-2xs group"
+                  className="flex items-center gap-2 p-0.5 sm:pl-1 sm:pr-2 sm:py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#3142D6]/40 hover:bg-slate-50 transition-all cursor-pointer group"
                 >
                   <div className="relative shrink-0">
                     <img
                       src={user?.avatarUrl || '/images/student_avatar_hd.png'}
                       alt={user?.fullName || 'Candidate'}
-                      className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full object-cover border border-white dark:border-slate-700"
+                      className="w-8 h-8 rounded-lg object-cover"
                       onError={(e) => {
                         e.currentTarget.src = '/images/student_avatar_hd.png';
                       }}

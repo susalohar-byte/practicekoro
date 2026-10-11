@@ -2,7 +2,8 @@
 
 .pk-student-page {
   --pk-page-max: 1360px;
-  background-color: var(--pk-background);
+  /* Pages sit directly on the AppLayout canvas. */
+  background-color: transparent;
   min-height: 100%;
 }
 

@@ -16,6 +16,7 @@ import { ShortNotesBox } from '@/components/common/ShortNotesBox';
 import { MathText } from '@/components/common/MathText';
 import { isMathematicsQuestion } from '@/utils/shortNotes';
 import { TopicTests } from '@/pages/student/TopicTests';
+import { PageHeader, SectionTitle, FilterChip, studentCard } from '@/components/student/StudentUI';
 import {
   AlertTriangle,
   Bookmark,
@@ -573,8 +574,10 @@ export const Practice: React.FC = () => {
           ========================================================================= */}
       {!isPracticing && (
         <>
-          {/* Breadcrumb Row */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          {/* Breadcrumb Row (sub-views only; the practice home has its own header) */}
+          <div
+            className={`flex items-center gap-1.5 text-xs text-slate-500 font-medium ${activeTab === 'dashboard' ? 'hidden' : ''}`}
+          >
             <button
               onClick={() => handleTabChange('dashboard')}
               className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
@@ -811,50 +814,40 @@ export const Practice: React.FC = () => {
               });
 
               return (
-                <div className="space-y-4 sm:space-y-5">
-                  {/* ── 1. TITLE & SUBTITLE (App Practice Header) ── */}
-                  <div>
-                    <h1 className="text-2xl sm:text-[28px] font-black text-[#051A43] dark:text-white tracking-tight leading-tight">
-                      Practice
-                    </h1>
-                    <p className="text-xs sm:text-[13px] text-[#64748B] dark:text-slate-400 font-medium mt-1">
-                      Subject-wise practice to strengthen your preparation
-                    </p>
+                <div className="space-y-6">
+                  {/* ── 1. PAGE HEADER ── */}
+                  <PageHeader
+                    eyebrow="Subject-wise practice"
+                    title="Practice"
+                    subtitle="Strengthen every subject with chapter tests, quick drills and revision."
+                    icon={Zap}
+                  />
 
-                    {/* ── 2. SUBJECT CATEGORY FILTER PILLS ── */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 mt-3 scrollbar-none">
-                      {subjectFilters.map((filter) => {
-                        const isSelected = selectedFilter === filter;
-                        return (
-                          <button
-                            key={filter}
-                            type="button"
-                            onClick={() => {
-                              const newParams = new URLSearchParams(searchParams);
-                              if (filter === 'All Subjects') {
-                                newParams.delete('subject_filter');
-                              } else {
-                                newParams.set('subject_filter', filter);
-                              }
-                              setSearchParams(newParams);
-                            }}
-                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                              isSelected
-                                ? 'bg-[#026BFC] text-white shadow-xs'
-                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                            }`}
-                          >
-                            {filter}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {/* ── 2. SUBJECT FILTER CHIPS ── */}
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+                    {subjectFilters.map((filter) => (
+                      <FilterChip
+                        key={filter}
+                        active={selectedFilter === filter}
+                        onClick={() => {
+                          const newParams = new URLSearchParams(searchParams);
+                          if (filter === 'All Subjects') {
+                            newParams.delete('subject_filter');
+                          } else {
+                            newParams.set('subject_filter', filter);
+                          }
+                          setSearchParams(newParams);
+                        }}
+                      >
+                        {filter}
+                      </FilterChip>
+                    ))}
                   </div>
 
                   {/* ── 3. SEARCH BAR (App PKSearchFilterBar) ── */}
                   <div className="space-y-2">
-                    <div className="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs px-3.5 py-2">
-                      <Crosshair className="w-4 h-4 text-[#026BFC] shrink-0 mr-2.5" />
+                    <div className="relative flex items-center h-11 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 focus-within:border-[#3142D6]/50 focus-within:ring-4 focus-within:ring-[#3142D6]/10 transition-all">
+                      <Crosshair className="w-4 h-4 text-[#3142D6] shrink-0 mr-2.5" />
                       <input
                         type="text"
                         value={searchParams.get('q') || ''}
@@ -869,7 +862,7 @@ export const Practice: React.FC = () => {
                           setSearchParams(newParams);
                         }}
                         placeholder="Search subject or chapter..."
-                        className="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
+                        className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
                       />
                       {query && (
                         <button
@@ -920,24 +913,30 @@ export const Practice: React.FC = () => {
 
                   {/* ── 4. SECTION 1: SUBJECTS (2-Column Grid on Mobile, 3-4 Column on Desktop) ── */}
                   <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-[#026BFC]" />
-                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                          Subjects
-                        </h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleTabChange('topics')}
-                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                      >
-                        <span>See All</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <SectionTitle
+                      title="Subjects"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('topics')}
+                          className="text-[13px] font-bold text-[#3142D6] dark:text-[#8FB3FF] hover:underline flex items-center gap-1"
+                        >
+                          <span>See All</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      }
+                    />
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    {filteredSubjects.length === 0 && (
+                      <div
+                        className={`${studentCard} px-5 py-6 text-sm font-medium text-slate-500 dark:text-slate-400`}
+                      >
+                        {query || selectedFilter !== 'All Subjects'
+                          ? 'No subjects match your search.'
+                          : 'Subjects will appear here once they are published.'}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                       {filteredSubjects.map((sub) => {
                         const Icon = sub.icon;
                         return (
@@ -945,12 +944,12 @@ export const Practice: React.FC = () => {
                             type="button"
                             key={sub.id}
                             onClick={() => handleTabChange('topics')}
-                            className="w-full h-16 px-3 py-2 text-left rounded-2xl bg-white dark:bg-slate-900 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:border-[#0877FF]/40 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
+                            className={`${studentCard} w-full h-[72px] px-3.5 text-left hover:-translate-y-0.5 hover:border-[#3142D6]/30 transition-all flex items-center justify-between group cursor-pointer`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               {/* Icon or Symbol Box */}
                               <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${sub.iconBg} ${sub.iconColor}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${sub.iconBg} ${sub.iconColor}`}
                               >
                                 {sub.iconUrl ? (
                                   <img
@@ -991,30 +990,34 @@ export const Practice: React.FC = () => {
 
                   {/* ── 5. SECTION 2: CONTINUE PRACTICE ── */}
                   <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-[#026BFC]" />
-                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                          Continue Practice
-                        </h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleTabChange('topics')}
-                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                      >
-                        <span>See All</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <SectionTitle
+                      title="Continue Practice"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('topics')}
+                          className="text-[13px] font-bold text-[#3142D6] dark:text-[#8FB3FF] hover:underline flex items-center gap-1"
+                        >
+                          <span>See All</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      }
+                    />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {continueItemsList.length === 0 && (
+                      <div
+                        className={`${studentCard} px-5 py-6 text-sm font-medium text-slate-500 dark:text-slate-400`}
+                      >
+                        Nothing in progress. Start a chapter test and you can pick it up here.
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                       {continueItemsList.map((item) => {
                         const Icon = item.icon;
                         return (
                           <div
                             key={item.id}
-                            className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex flex-col justify-between"
+                            className={`${studentCard} p-4 hover:border-[#3142D6]/30 transition-all flex flex-col justify-between`}
                           >
                             <div className="flex items-start gap-2.5 mb-2">
                               <div
@@ -1041,7 +1044,7 @@ export const Practice: React.FC = () => {
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                 <div
-                                  className="h-full bg-[#026BFC] rounded-full"
+                                  className="h-full bg-gradient-to-r from-[#3142D6] to-[#0158FC] rounded-full"
                                   style={{ width: `${item.pct}%` }}
                                 />
                               </div>
@@ -1052,7 +1055,7 @@ export const Practice: React.FC = () => {
                               onClick={() =>
                                 navigate(`/exams/${item.testId}/runner?attemptId=${item.id}`)
                               }
-                              className="mt-2 w-full py-1.5 rounded-lg bg-[#026BFC] hover:bg-[#0256CA] text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-all"
+                              className="mt-3 w-full h-9 rounded-xl bg-[#1E2A8A] hover:bg-[#3142D6] text-white text-[13px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"
                             >
                               <span>Continue</span>
                               <ArrowRight className="w-3.5 h-3.5" />
@@ -1065,37 +1068,34 @@ export const Practice: React.FC = () => {
 
                   {/* ── 6. SECTION 3: QUICK PRACTICE ── */}
                   <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-[#026BFC]" />
-                        <h2 className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight">
-                          Quick Practice
-                        </h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleTabChange('topics')}
-                        className="text-xs sm:text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
-                      >
-                        <span>See All</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <SectionTitle
+                      title="Quick Practice"
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('topics')}
+                          className="text-[13px] font-bold text-[#3142D6] dark:text-[#8FB3FF] hover:underline flex items-center gap-1"
+                        >
+                          <span>See All</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      }
+                    />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {quickItemsList.map((item) => {
                         const Icon = item.icon;
                         return (
                           <div
                             key={item.id}
                             onClick={() => handleTabChange('topics')}
-                            className="h-14 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-[#026BFC]/60 transition-all flex items-center justify-between group cursor-pointer"
+                            className={`${studentCard} h-[72px] px-4 hover:-translate-y-0.5 hover:border-[#3142D6]/30 transition-all flex items-center justify-between group cursor-pointer`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconBg}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg}`}
                               >
-                                <Icon className="w-4 h-4" />
+                                <Icon className="w-5 h-5" />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-xs sm:text-sm font-bold text-[#051A43] dark:text-white truncate group-hover:text-[#026BFC] transition-colors leading-tight">
