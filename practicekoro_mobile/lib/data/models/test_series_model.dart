@@ -15,6 +15,8 @@ class TestSeriesModel {
   final int fullMockCount;
   final int topicTestCount;
   final int pyqTestCount;
+  final int questionCount;
+  final String? bannerUrl;
   final String? examCategory;
 
   const TestSeriesModel({
@@ -34,6 +36,8 @@ class TestSeriesModel {
     this.fullMockCount = 0,
     this.topicTestCount = 0,
     this.pyqTestCount = 0,
+    this.questionCount = 0,
+    this.bannerUrl,
     this.examCategory,
   });
 
@@ -62,6 +66,8 @@ class TestSeriesModel {
       fullMockCount: fCount,
       topicTestCount: tCount,
       pyqTestCount: pCount,
+      questionCount: (json['question_count'] as num?)?.toInt() ?? 0,
+      bannerUrl: json['banner_url'] as String?,
     );
   }
 
@@ -73,6 +79,8 @@ class TestSeriesModel {
       'slug': slug,
       'description': description,
       'icon_url': iconUrl,
+      'banner_url': bannerUrl,
+      'question_count': questionCount,
       'is_premium': isPremium,
       'is_popular': isPopular,
       'order_index': orderIndex,

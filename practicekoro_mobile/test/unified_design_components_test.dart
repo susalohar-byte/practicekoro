@@ -11,6 +11,10 @@ import 'package:practicekoro_mobile/features/leaderboard/leaderboard_screen.dart
 import 'package:practicekoro_mobile/features/result_analytics/results_hub_screen.dart';
 import 'package:practicekoro_mobile/features/result_analytics/result_screen.dart';
 import 'package:practicekoro_mobile/data/models/attempt_model.dart';
+import 'package:practicekoro_mobile/data/models/test_model.dart';
+import 'package:practicekoro_mobile/data/models/test_series_model.dart';
+import 'package:practicekoro_mobile/data/repositories/catalog_repository.dart';
+import 'package:practicekoro_mobile/features/exams/test_series_detail_screen.dart';
 import 'package:practicekoro_mobile/features/profile/settings_screen.dart';
 import 'package:practicekoro_mobile/features/profile/support_screen.dart';
 import 'package:practicekoro_mobile/core/widgets/pk_bottom_spacing.dart';
@@ -349,10 +353,11 @@ void main() {
       expect(sizedBox.height, equals(110.0));
     });
 
-    testWidgets('Popular Test Series section renders compact landscape cards', (tester) async {
-      tester.view.physicalSize = const Size(420, 1400);
+    testWidgets('Home page renders the reference sections with a single search bar', (tester) async {
+      tester.view.physicalSize = const Size(420, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
+      await LocalStorageService.saveUserName('Ananya');
 
       await tester.pumpWidget(
         const ProviderScope(
@@ -361,25 +366,48 @@ void main() {
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Header verification
-      expect(find.text('🔥 '), findsWidgets);
-      expect(find.text('View All →'), findsWidgets);
+      // Header + hero
+      expect(find.text('Hi, Ananya 👋'), findsOneWidget);
+      expect(find.text('Consistent Practice,\nBig Results!'), findsOneWidget);
+      expect(find.text('Small steps today, big success tomorrow.'), findsOneWidget);
+      expect(find.text('Start Practicing'), findsOneWidget);
 
-      // Verify Test Series titles
-      expect(find.text('WBP Constable'), findsWidgets);
-      expect(find.text('KP Constable'), findsWidgets);
+      // Exactly one search field on the page
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Search for tests, topics, exams...'), findsOneWidget);
 
-      // Verify badges
-      expect(find.text('Most Popular'), findsWidgets);
+      // Quick actions (no Official PYQ, no Live Tests)
+      expect(find.text('Quick Actions'), findsOneWidget);
+      for (final label in ['Audio Book', 'Topic Test', 'Rank', 'Saved Questions']) {
+        expect(find.text(label), findsWidgets);
+      }
+      expect(find.text('Official PYQ'), findsNothing);
+
+      // Sections in the reference order
+      for (final title in [
+        'Continue Your Practice',
+        'Your Exams',
+        'Popular Test Series',
+        'Your Progress',
+        'Keep Going!',
+        'Featured for You',
+        'Recently Added Tests',
+        'Recommended for You',
+        'Keep Showing Up!',
+      ]) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+      expect(find.text('Most attempted and recommended'), findsOneWidget);
+      expect(find.text('Add Exam'), findsOneWidget);
     });
 
-    testWidgets('Home page renders Continue Practice and Daily Practice sections', (tester) async {
-      tester.view.physicalSize = const Size(1200, 2400);
+    testWidgets('Home page shows empty states instead of sample catalogue data', (tester) async {
+      tester.view.physicalSize = const Size(420, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
+      await LocalStorageService.clearUserSession();
 
       await tester.pumpWidget(
         const ProviderScope(
@@ -388,19 +416,18 @@ void main() {
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // 1. Continue Practice Section
-      expect(find.text('Continue Practice'), findsOneWidget);
-      expect(find.text('General Science'), findsWidgets);
-      expect(find.text('History'), findsWidgets);
-      expect(find.text('Mathematics'), findsWidgets);
+      expect(find.text('No practice in progress yet'), findsOneWidget);
+      expect(find.text('Test series will appear here once they are published.'), findsOneWidget);
+      expect(find.text('New tests will appear here as soon as they are published.'), findsOneWidget);
+      expect(find.text('Complete your first test to start tracking progress.'), findsOneWidget);
 
-      // 2. Daily Practice Section
-      expect(find.text('🎯 Daily Practice'), findsOneWidget);
-      expect(find.text("Today's Challenge"), findsOneWidget);
-      expect(find.text('Start Now'), findsOneWidget);
+      // Formerly hard-coded sample content must not render offline.
+      expect(find.text('KP Constable'), findsNothing);
+      expect(find.text('Most Popular'), findsNothing);
+      expect(find.text("Today's Challenge"), findsNothing);
+      expect(find.text('18 / 30 Questions'), findsNothing);
     });
 
     testWidgets('MainScaffold renders redesigned pill navbar with 5 items and active circular highlight', (tester) async {
@@ -562,7 +589,7 @@ void main() {
 
       // Verify Test Series header, Category Pills and Structured hero banner matching approved reference
       expect(find.text('Test Series'), findsWidgets);
-      expect(find.textContaining('Structured'), findsWidgets);
+      expect(find.image(const AssetImage('assets/images/test_series_success_banner_exact.png')), findsOneWidget);
       expect(find.text('All'), findsWidgets);
       expect(find.text('Full Mock'), findsWidgets);
 
@@ -644,6 +671,65 @@ void main() {
       tester.view.resetPhysicalSize();
     });
 
+    testWidgets('TestSeriesDetailScreen shows a not-found state instead of a guessed series', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: TestSeriesDetailScreen(seriesId: 'no-such-series'))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test series not found'), findsOneWidget);
+      expect(find.text('WBP Constable'), findsNothing);
+      expect(find.text('Full Mock Test 1'), findsNothing);
+    });
+
+    testWidgets('Test Series details -> Start Test Series -> test list with access rules', (tester) async {
+      tester.view.physicalSize = const Size(393, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+      await LocalStorageService.setProUser(false);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [catalogRepositoryProvider.overrideWithValue(_FakeSeriesRepo())],
+          child: const MaterialApp(home: TestSeriesDetailScreen(seriesId: 'wbp-constable')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Screen 2: title, subtitle, real stats, no Bilingual stat
+      expect(find.text('WBP Constable'), findsOneWidget);
+      expect(find.text('Complete Test Series'), findsOneWidget);
+      expect(find.text('Tests'), findsOneWidget);
+      expect(find.text('425'), findsOneWidget); // 85*3 + 25 + 30 + 30 + 85
+      expect(find.text('Questions'), findsOneWidget);
+      expect(find.textContaining('Bilingual'), findsNothing);
+      expect(find.text('Overview'), findsOneWidget);
+      expect(find.text('Tests (7)'), findsOneWidget);
+      expect(find.text('Syllabus'), findsOneWidget);
+      expect(find.text('FAQ'), findsOneWidget);
+
+      // Start Test Series -> Screen 3
+      await tester.tap(find.text('Start Test Series'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('All Tests'), findsOneWidget);
+      expect(find.text('Full Mock (3)'), findsOneWidget);
+      expect(find.text('Topic Test (3)'), findsOneWidget);
+      expect(find.text('PYQ (1)'), findsOneWidget);
+      expect(find.text('Complete Test Series (7 Tests)'), findsOneWidget);
+      // 3 free tests get Start Test; 4 paid tests get a lock instead
+      expect(find.text('Start Test'), findsNWidgets(3));
+      expect(find.byIcon(Icons.lock_outline_rounded), findsNWidgets(4));
+      expect(find.text('FREE'), findsNWidgets(3));
+      expect(find.text('PAID'), findsNWidgets(4));
+
+      await tester.tap(find.text('Full Mock (3)'));
+      await tester.pumpAndSettle();
+      expect(find.text('Full Mock Test 1'), findsOneWidget);
+      expect(find.text('PYQ 2024 (Set 1)'), findsNothing);
+      expect(find.text('Start Test'), findsOneWidget);
+    });
+
     testWidgets('ProfileScreen shows empty states instead of sample student data', (tester) async {
       await LocalStorageService.clearUserSession();
       tester.view.physicalSize = const Size(390, 1000);
@@ -665,3 +751,36 @@ void main() {
   });
 }
 
+class _FakeSeriesRepo extends CatalogRepository {
+  @override
+  Future<TestSeriesModel?> getTestSeriesById(String id) async => const TestSeriesModel(
+        id: 'wbp-constable',
+        examId: 'wbp',
+        title: 'WBP Constable',
+        slug: 'wbp-constable',
+        examTitle: 'WBP Constable',
+        testCount: 7,
+        fullMockCount: 3,
+        topicTestCount: 3,
+        pyqTestCount: 1,
+      );
+
+  @override
+  Future<List<MockTestModel>> getTestsForSeries(String id) async => [
+        for (var i = 1; i <= 3; i++)
+          MockTestModel(
+            id: 'fm$i',
+            title: 'Full Mock Test $i',
+            slug: 'fm$i',
+            testType: 'full_mock',
+            durationMinutes: 90,
+            totalQuestions: 85,
+            totalMarks: 100,
+            isPremium: i > 1,
+          ),
+        const MockTestModel(id: 't1', title: 'Topic Test – General Awareness', slug: 't1', testType: 'topic', durationMinutes: 25, totalQuestions: 25, totalMarks: 25),
+        const MockTestModel(id: 't2', title: 'Topic Test – Mathematics', slug: 't2', testType: 'topic', durationMinutes: 30, totalQuestions: 30, totalMarks: 30, isPremium: true),
+        const MockTestModel(id: 't3', title: 'Topic Test – Reasoning', slug: 't3', testType: 'topic', durationMinutes: 30, totalQuestions: 30, totalMarks: 30, isPremium: true),
+        const MockTestModel(id: 'p1', title: 'PYQ 2024 (Set 1)', slug: 'p1', testType: 'pyq', durationMinutes: 90, totalQuestions: 85, totalMarks: 100),
+      ];
+}

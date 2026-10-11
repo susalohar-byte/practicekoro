@@ -443,9 +443,14 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
               : 'Complete Test Series',
           'examTitle': s.examTitle ?? s.title,
           'isPaid': s.isPremium,
-          'mocks': s.fullMockCount > 0 ? s.fullMockCount : (s.testCount > 0 ? s.testCount : 12),
-          'topics': s.topicTestCount > 0 ? s.topicTestCount : 48,
-          'pyqs': s.pyqTestCount > 0 ? s.pyqTestCount : 15,
+          'mocks': s.fullMockCount,
+          'topics': s.topicTestCount,
+          'pyqs': s.pyqTestCount,
+          'testCount': s.testCount,
+          // Real total from the series' published tests; null hides the stat.
+          'questionCount': s.questionCount > 0
+              ? '${s.questionCount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},')} Qs'
+              : null,
           'isPopular': s.isPopular,
           'badgeText': s.isPopular ? 'Most Popular' : null,
           'badgeType': s.isPopular ? 'popular' : null,
@@ -840,16 +845,14 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
 
   // 4. Structured Test Series for Your Success! Hero Banner matching Screen 1
   Widget _buildHeroBanner() {
+    // The banner artwork already contains the headline, mascot and decorations, so it is
+    // shown whole at its own aspect ratio (285x115) rather than cropped or recomposed.
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 10, 14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE0F2FE), Color(0xFFEFF6FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFFE0F2FE),
         border: Border.all(color: const Color(0xFFBAE6FD), width: 1),
         boxShadow: const [
           BoxShadow(
@@ -859,16 +862,20 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Expanded(
+      child: AspectRatio(
+        aspectRatio: 285 / 115,
+        child: Image.asset(
+          'assets/images/test_series_success_banner_exact.png',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (context, error, stackTrace) => const Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Structured\nTest Series for\nYour Success!',
+                  'Structured Test Series for Your Success!',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -879,7 +886,7 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
                 ),
                 SizedBox(height: 7),
                 Text(
-                  'Exam-focused tests,\nreal exam pattern, better results.',
+                  'Exam-focused tests, real exam pattern, better results.',
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
@@ -890,23 +897,7 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/images/mascot_banner_student.png',
-              width: 106,
-              height: 98,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Image.asset(
-                'assets/images/student.png',
-                width: 90,
-                height: 90,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1022,8 +1013,7 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
         ((item['mocks'] as int? ?? 10) +
             (item['topics'] as int? ?? 10) +
             (item['pyqs'] as int? ?? 5));
-    final questionCount = item['questionCount'] as String? ??
-        '${(testCount * 500).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}+ Qs';
+    final questionCount = item['questionCount'] as String?;
 
     final emblemAsset = ExamAssets.getEmblemAsset(id) ??
         ExamAssets.getEmblemAsset(title) ??
@@ -1168,21 +1158,23 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
                               color: Color(0xFF64748B),
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          const Icon(
-                            Icons.track_changes_rounded,
-                            size: 13,
-                            color: Color(0xFF94A3B8),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            questionCount.contains('Qs') ? questionCount : '$questionCount Qs',
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
+                          if (questionCount != null) ...[
+                            const SizedBox(width: 14),
+                            const Icon(
+                              Icons.track_changes_rounded,
+                              size: 13,
+                              color: Color(0xFF94A3B8),
                             ),
-                          ),
+                            const SizedBox(width: 4),
+                            Text(
+                              questionCount.contains('Qs') ? questionCount : '$questionCount Qs',
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],

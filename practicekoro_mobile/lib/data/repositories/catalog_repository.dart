@@ -109,6 +109,10 @@ final authUserIdProvider = StreamProvider<String?>((ref) {
   }
 });
 
+final recentTestsProvider = FutureProvider<List<MockTestModel>>((ref) async {
+  return ref.watch(catalogRepositoryProvider).getRecentTests();
+});
+
 final inProgressAttemptsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(authUserIdProvider);
   final repo = ref.watch(catalogRepositoryProvider);
@@ -230,6 +234,33 @@ class CatalogRepository {
     return (response as List<dynamic>)
         .map((item) => MockTestModel.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Most recently published tests, for the Home "Recently Added Tests" section.
+  Future<List<MockTestModel>> getRecentTests({int limit = 5}) async {
+    final client = _supabase;
+    if (client == null) return const [];
+    try {
+      final response = await client
+          .from('tests')
+          .select('*, exams(title), subjects(name), test_series(title)')
+          .eq('is_active', true)
+          .eq('status', 'published')
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return (response as List<dynamic>).map((row) {
+        final m = Map<String, dynamic>.from(row as Map);
+        final exam = m['exams'] as Map?;
+        final subject = m['subjects'] as Map?;
+        return MockTestModel.fromJson({
+          ...m,
+          'exam_title': m['exam_title'] ?? exam?['title'],
+          'subject_name': m['subject_name'] ?? subject?['name'],
+        });
+      }).toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<MockTestModel?> getTestById(String testId) async {
@@ -718,7 +749,7 @@ class CatalogRepository {
       try {
         var query = client
             .from('test_series')
-            .select('*, exams:exam_id(id, title, category, slug, icon_name), tests(id, test_type, is_active, status)')
+            .select('*, exams:exam_id(id, title, category, slug, icon_name), tests(id, test_type, is_active, status, total_questions)')
             .eq('is_active', true);
         if (examId != null) {
           query = query.eq('exam_id', examId);
@@ -742,6 +773,10 @@ class CatalogRepository {
               final ty = t['test_type'] as String?;
               return ty == 'topic' || ty == 'chapter_mock' || ty == 'subject_mock';
             }).length;
+            final qCount = activeTests.fold<int>(
+              0,
+              (sum, t) => sum + ((t['total_questions'] as num?)?.toInt() ?? 0),
+            );
 
             return TestSeriesModel(
               id: m['id'] as String,
@@ -761,6 +796,8 @@ class CatalogRepository {
               fullMockCount: fCount,
               topicTestCount: tCount,
               pyqTestCount: pCount,
+              questionCount: qCount,
+              bannerUrl: m['banner_url'] as String?,
             );
           }).toList();
         }
@@ -801,7 +838,7 @@ class CatalogRepository {
       try {
         final row = await client
             .from('test_series')
-            .select('*, exams:exam_id(id, title, category, slug, icon_name), tests(id, test_type, is_active, status)')
+            .select('*, exams:exam_id(id, title, category, slug, icon_name), tests(id, test_type, is_active, status, total_questions)')
             .or('id.eq.$seriesId,slug.eq.$seriesId')
             .eq('is_active', true)
             .maybeSingle();
@@ -818,12 +855,9 @@ class CatalogRepository {
       final cId = (card['id'] as String? ?? '').toLowerCase();
       final tsId = (card['testSeriesId'] as String? ?? '').toLowerCase();
       final cRoute = (card['route'] as String? ?? '').toLowerCase();
-      if (cId == lowerTarget ||
-          tsId == lowerTarget ||
-          cRoute.endsWith('/$lowerTarget') ||
-          (lowerTarget.contains('wbp') && cId.contains('wbp')) ||
-          (lowerTarget.contains('kp') && cId.contains('kp')) ||
-          (lowerTarget.contains('ssc') && cId.contains('ssc'))) {
+      // Only an exact id/route match may stand in for a missing series row; keyword
+      // guesses used to surface the wrong exam's series.
+      if (cId == lowerTarget || tsId == lowerTarget || cRoute.endsWith('/$lowerTarget')) {
         return TestSeriesModel(
           id: (card['testSeriesId'] as String?)?.isNotEmpty == true
               ? card['testSeriesId'] as String
@@ -841,10 +875,12 @@ class CatalogRepository {
           isPopular: true,
           orderIndex: (card['orderIndex'] as num?)?.toInt() ?? 0,
           isActive: true,
-          testCount: (card['fullMockCount'] as num?)?.toInt() ?? 40,
-          fullMockCount: (card['fullMockCount'] as num?)?.toInt() ?? 40,
-          topicTestCount: (card['topicTestCount'] as num?)?.toInt() ?? 120,
-          pyqTestCount: (card['pyqTestCount'] as num?)?.toInt() ?? 25,
+          testCount: ((card['fullMockCount'] as num?)?.toInt() ?? 0) +
+              ((card['topicTestCount'] as num?)?.toInt() ?? 0) +
+              ((card['pyqTestCount'] as num?)?.toInt() ?? 0),
+          fullMockCount: (card['fullMockCount'] as num?)?.toInt() ?? 0,
+          topicTestCount: (card['topicTestCount'] as num?)?.toInt() ?? 0,
+          pyqTestCount: (card['pyqTestCount'] as num?)?.toInt() ?? 0,
         );
       }
     }
