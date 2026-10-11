@@ -34,6 +34,8 @@ import { getPageNumbers } from '@/utils/pagination';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
 
 const STORAGE_KEY_CATEGORIES = 'practicekoro_exam_categories';
+// Offline-only grouping buckets kept for the local demo categories.
+const LEGACY_FILTER_BUCKETS = new Set(['state govt', 'central govt', 'other']);
 const DEFAULT_EXAM_CATEGORIES = [
   'State Govt',
   'Central Govt',
@@ -604,6 +606,9 @@ export const AdminExams: React.FC = () => {
     }
     return DEFAULT_EXAM_CATEGORIES;
   });
+  const [kpiLoadFailed, setKpiLoadFailed] = useState({ tests: false, series: false });
+  // Backend ids by category name (required to persist a reorder).
+  const [categoryIds, setCategoryIds] = useState<Record<string, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
 
@@ -741,17 +746,20 @@ export const AdminExams: React.FC = () => {
       setLoadError('');
       const [rawExams, allTests, allSubjects, allSeries, dbCats] = await Promise.all([
         api.getAllAdminExams(),
-        api.getAllAdminTests().catch(() => []),
+        api.getAllAdminTests().catch(() => null),
         api.getSubjects().catch(() => []),
-        api.getTestSeries().catch(() => []),
+        api.getTestSeries().catch(() => null),
         api.getExamCategories().catch(() => []),
       ]);
 
+      // A failed count source shows "—" instead of a misleading zero.
+      setKpiLoadFailed({ tests: allTests === null, series: allSeries === null });
       setDbTests(allTests || []);
       setSubjects(allSubjects || []);
       setTestSeriesList(allSeries || []);
 
       if (dbCats && dbCats.length > 0) {
+        setCategoryIds(Object.fromEntries(dbCats.map((c) => [c.name, c.id])));
         const catNames = dbCats
           .map((c) => c.name)
           .filter((name) => !LEGACY_EXAM_CATEGORY_NAMES.has(name.toLowerCase()));
@@ -772,8 +780,8 @@ export const AdminExams: React.FC = () => {
           subtitle: dbEx.subtitle || dbEx.description || '',
           categoryLabel: dbEx.category,
           subjectsCount: allSubjects.filter((x) => x.examId === dbEx.id).length,
-          testSeriesCount: allSeries.filter((x) => x.examId === dbEx.id).length,
-          totalTestsCount: dbEx.testsCount ?? allTests.filter((x) => x.examId === dbEx.id).length,
+          testSeriesCount: (allSeries || []).filter((x) => x.examId === dbEx.id).length,
+          totalTestsCount: dbEx.testsCount ?? (allTests || []).filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,
           enrollmentsFormatted: 'Unavailable',
           statusLabel: dbEx.isActive ? 'Published' : 'Draft',
@@ -843,21 +851,34 @@ export const AdminExams: React.FC = () => {
       }
 
       if (appliedFilters.category !== 'all') {
-        const catNorm = e.category.toLowerCase();
-        const targetNorm = appliedFilters.category.toLowerCase();
-        if (targetNorm === 'state govt' && !catNorm.includes('state') && !catNorm.includes('wb')) {
-          return false;
-        }
-        if (
-          targetNorm === 'central govt' &&
-          !catNorm.includes('central') &&
-          !catNorm.includes('ssc') &&
-          !catNorm.includes('rail')
-        ) {
-          return false;
-        }
-        if (targetNorm === 'other' && (catNorm.includes('state') || catNorm.includes('central'))) {
-          return false;
+        const catNorm = (e.category || '').trim().toLowerCase();
+        const targetNorm = appliedFilters.category.trim().toLowerCase();
+        // Real (backend) categories match exactly; the legacy local buckets below
+        // only apply in offline mode to categories without a backend record.
+        const isRealCategory =
+          isSupabaseConfigured ||
+          Boolean(categoryIds[appliedFilters.category]) ||
+          !LEGACY_FILTER_BUCKETS.has(targetNorm);
+        if (isRealCategory) {
+          if (catNorm !== targetNorm) return false;
+        } else {
+          if (targetNorm === 'state govt' && !catNorm.includes('state') && !catNorm.includes('wb')) {
+            return false;
+          }
+          if (
+            targetNorm === 'central govt' &&
+            !catNorm.includes('central') &&
+            !catNorm.includes('ssc') &&
+            !catNorm.includes('rail')
+          ) {
+            return false;
+          }
+          if (
+            targetNorm === 'other' &&
+            (catNorm.includes('state') || catNorm.includes('central'))
+          ) {
+            return false;
+          }
         }
       }
 
@@ -872,7 +893,7 @@ export const AdminExams: React.FC = () => {
 
       return true;
     });
-  }, [exams, appliedFilters]);
+  }, [exams, appliedFilters, categoryIds]);
 
   // Pagination calculation
   const totalItems = filteredExams.length;
@@ -1065,6 +1086,7 @@ export const AdminExams: React.FC = () => {
     try {
       const saved = await api.createExamCategory(newCategoryInput.trim(), categories.length);
       setCategories((prev) => [...new Set([...prev, saved.name])]);
+      if (saved.id) setCategoryIds((prev) => ({ ...prev, [saved.name]: saved.id }));
       setNewCategoryInput('');
       setActionSuccessMessage('Category saved.');
     } catch (err) {
@@ -1151,7 +1173,7 @@ export const AdminExams: React.FC = () => {
       </div>
 
       {/* 2. Top 5 KPI Cards in Single Row matching reference screenshot */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         {/* Card 1: Total Exams */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-2xl bg-[#EBF3FF] dark:bg-blue-950/50 text-[#026BFC] flex items-center justify-center shrink-0">
@@ -1165,11 +1187,7 @@ export const AdminExams: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {exams.length}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 20%
-              </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
           </div>
         </div>
 
@@ -1186,9 +1204,6 @@ export const AdminExams: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {exams.filter((e) => e.isActive).length}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 14%
-              </span>
             </div>
           </div>
         </div>
@@ -1204,10 +1219,7 @@ export const AdminExams: React.FC = () => {
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                {testSeriesList.length || 42}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 28%
+                {kpiLoadFailed.series ? '—' : testSeriesList.length}
               </span>
             </div>
           </div>
@@ -1224,30 +1236,7 @@ export const AdminExams: React.FC = () => {
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                248
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 32%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 5: Total Enrollments */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5 col-span-2 sm:col-span-1">
-          <div className="w-11 h-11 rounded-2xl bg-[#F3E8FF] dark:bg-purple-950/50 text-[#9333EA] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 leading-tight">
-              Total Enrollments
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                1,24,860
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 26%
+                {kpiLoadFailed.tests ? '—' : dbTests.length}
               </span>
             </div>
           </div>
@@ -1274,20 +1263,27 @@ export const AdminExams: React.FC = () => {
                 e.preventDefault();
                 const fromIdx = Number(e.dataTransfer.getData('text/plain'));
                 if (isNaN(fromIdx) || fromIdx === idx) return;
+                const previous = categories;
                 const updated = [...categories];
                 const [moved] = updated.splice(fromIdx, 1);
                 updated.splice(idx, 0, moved);
                 setCategories(updated);
                 try {
                   await api.reorderExamCategories(
-                    updated.map((c, i) => ({ name: c, orderIndex: i + 1 }))
+                    updated.map((c, i) => ({ id: categoryIds[c], name: c, orderIndex: i + 1 }))
                   );
                   setActionSuccessMessage('Categories reordered.');
                 } catch (err) {
-                  console.warn('Reorder failed:', err);
+                  setCategories(previous);
+                  setFormError(getErrorMessage(err, 'Category order could not be saved.'));
                 }
               }}
-              onClick={() => setSelectedCategory(selectedCategory === cat ? 'all' : cat)}
+              onClick={() => {
+                const next = selectedCategory === cat ? 'all' : cat;
+                setSelectedCategory(next);
+                setAppliedFilters((prev) => ({ ...prev, category: next }));
+                setCurrentPage(1);
+              }}
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 cursor-pointer transition-all border flex items-center gap-1.5 select-none',
                 selectedCategory === cat
@@ -1305,7 +1301,11 @@ export const AdminExams: React.FC = () => {
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                 )}
               >
-                {exams.filter((e) => e.category.toLowerCase().includes(cat.toLowerCase())).length}
+                {
+                  exams.filter(
+                    (e) => (e.category || '').trim().toLowerCase() === cat.trim().toLowerCase()
+                  ).length
+                }
               </span>
             </div>
           ))}

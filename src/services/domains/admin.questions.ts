@@ -10,6 +10,7 @@ function databaseQuestionType(type?: string): string {
 import { deleteAdminRecord, requireSavedRow } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { mapQuestionRow } from './admin.shared';
+import { loadAllPages } from '@/utils/loadAllPages';
 import {
   localQuestions,
   localTestQuestions,
@@ -124,57 +125,30 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
     }
   }
 
-  let query = supabase
-    .from('questions')
-    .select(
-      `
+  // PostgREST caps a single response at 1000 rows, so read every page with a
+  // stable order (created_at desc, id desc) until the server returns an empty page.
+  const rows = await loadAllPages<any>(async (limit, offset) => {
+    let query = supabase
+      .from('questions')
+      .select(
+        `
       *,
       subjects:subject_id (id, name),
       chapters:chapter_id (id, name)
     `
-    )
-    .order('created_at', { ascending: false });
-
-  if (testQuestionIds && testQuestionIds.length > 0) {
-    query = query.in('id', testQuestionIds);
-  }
-  if (filters?.subjectId) query = query.eq('subject_id', filters.subjectId);
-  const chapId = filters?.topicId || filters?.chapterId;
-  if (chapId) query = query.or(`chapter_id.eq.${chapId},topic_id.eq.${chapId}`);
-  if (filters?.difficulty) query = query.eq('difficulty', filters.difficulty);
-  if (filters?.sourceType) {
-    if (filters.sourceType === 'full_mock' || filters.sourceType === 'other') {
-      query = query.in('source_type', ['other', 'full_mock']);
-    } else {
-      query = query.eq('source_type', filters.sourceType);
+      )
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + limit - 1);
+    query = applyQuestionListFilters(query, filters, testQuestionIds);
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(error.message);
     }
-  }
-  if (filters?.sourceExam) query = query.eq('source_exam', filters.sourceExam);
-  if (filters?.status) query = query.eq('status', filters.status);
+    return (data || []) as any[];
+  }, 1000);
 
-  if (filters?.hasImage === 'with_image') {
-    query = query.not('image_url', 'is', null).neq('image_url', '');
-  } else if (filters?.hasImage === 'without_image') {
-    query = query.or('image_url.is.null,image_url.eq.""');
-  }
-
-  if (filters?.search && filters.search.trim()) {
-    const term = filters.search.trim();
-    query = query.or(
-      `question_text.ilike.%${term}%,question_bengali_text.ilike.%${term}%,explanation.ilike.%${term}%,explanation_bengali.ilike.%${term}%`
-    );
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  return data.map((q: any) => mapQuestionRow(q));
+  return rows.map((q: any) => mapQuestionRow(q));
 }
 
 /**
@@ -274,6 +248,7 @@ export async function getAllAdminQuestionIds(filters?: AdminQuestionFilters): Pr
       .from('questions')
       .select('id')
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .range(from, from + CHUNK - 1);
     query = applyQuestionListFilters(query, filters, testQuestionIds);
     const { data, error } = await query;
@@ -512,7 +487,7 @@ export async function createQuestion(qData: Omit<Question, 'id'>): Promise<Quest
       section: qData.section || null,
       subtopic: qData.subtopic || null,
       is_active: qData.isActive ?? true,
-      status: qData.status || 'active',
+      status: databaseQuestionStatus(qData.status),
     })
     .select(
       `

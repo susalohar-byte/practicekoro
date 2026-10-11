@@ -105,11 +105,15 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
   const [route, setRoute] = useState(card?.route || '/test-series');
   const [isActive, setIsActive] = useState(card?.isActive !== false);
   const [testSeriesId, setTestSeriesId] = useState(card?.testSeriesId || '');
-  const [fullMockCount, setFullMockCount] = useState<number>(card?.fullMockCount ?? 40);
-  const [topicTestCount, setTopicTestCount] = useState<number>(card?.topicTestCount ?? 120);
-  const [pyqTestCount, setPyqTestCount] = useState<number>(card?.pyqTestCount ?? 25);
+  const [fullMockCount, setFullMockCount] = useState<number>(card?.fullMockCount ?? 0);
+  const [topicTestCount, setTopicTestCount] = useState<number>(card?.topicTestCount ?? 0);
+  const [pyqTestCount, setPyqTestCount] = useState<number>(card?.pyqTestCount ?? 0);
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  // Last saved/selected (non-preview) URLs, restored if an upload fails so a blob: preview URL
+  // is never persisted.
+  const [bgBeforeUpload, setBgBeforeUpload] = useState(cardBgImage);
+  const [logoBeforeUpload, setLogoBeforeUpload] = useState(cardLogoUrl);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -125,9 +129,11 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       setRoute(card.route || '/test-series');
       setIsActive(card.isActive !== false);
       setTestSeriesId(card.testSeriesId || '');
-      setFullMockCount(card.fullMockCount ?? 40);
-      setTopicTestCount(card.topicTestCount ?? 120);
-      setPyqTestCount(card.pyqTestCount ?? 25);
+      setFullMockCount(card.fullMockCount ?? 0);
+      setTopicTestCount(card.topicTestCount ?? 0);
+      setPyqTestCount(card.pyqTestCount ?? 0);
+      setBgBeforeUpload(card.cardBgImage || '/images/series_wbp_bg.png');
+      setLogoBeforeUpload(card.cardLogoUrl || '/images/exams/emblem_series_wbp.png');
       setBackgroundFile(null);
       setLogoFile(null);
       setError('');
@@ -147,9 +153,9 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       if (found.iconUrl) {
         setCardLogoUrl(found.iconUrl);
       }
-      setFullMockCount(found.fullMockCount ?? 40);
-      setTopicTestCount(found.topicTestCount ?? 120);
-      setPyqTestCount(found.pyqTestCount ?? 25);
+      setFullMockCount(found.fullMockCount ?? 0);
+      setTopicTestCount(found.topicTestCount ?? 0);
+      setPyqTestCount(found.pyqTestCount ?? 0);
     }
   };
 
@@ -166,6 +172,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       setError('Please choose a valid image file (PNG, JPG, WEBP).');
       return;
     }
+    if (!cardBgImage.startsWith('blob:')) setBgBeforeUpload(cardBgImage);
     setBackgroundFile(file);
     const previewUrl = URL.createObjectURL(file);
     setCardBgImage(previewUrl);
@@ -179,6 +186,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       setError('Please choose a valid image file (PNG, JPG, SVG).');
       return;
     }
+    if (!cardLogoUrl.startsWith('blob:')) setLogoBeforeUpload(cardLogoUrl);
     setLogoFile(file);
     const previewUrl = URL.createObjectURL(file);
     setCardLogoUrl(previewUrl);
@@ -204,7 +212,13 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
         try {
           finalBgUrl = await api.uploadPopularTestSeriesImage(backgroundFile, id, 'background');
         } catch (uploadErr) {
-          console.warn('Background upload failed, keeping current:', uploadErr);
+          setCardBgImage(bgBeforeUpload);
+          setBackgroundFile(null);
+          throw new Error(
+            `Background image upload failed: ${
+              uploadErr instanceof Error ? uploadErr.message : 'unknown error'
+            }`
+          );
         }
       }
 
@@ -212,7 +226,11 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
         try {
           finalLogoUrl = await api.uploadPopularTestSeriesImage(logoFile, id, 'logo');
         } catch (uploadErr) {
-          console.warn('Logo upload failed, keeping current:', uploadErr);
+          setCardLogoUrl(logoBeforeUpload);
+          setLogoFile(null);
+          throw new Error(
+            `Logo upload failed: ${uploadErr instanceof Error ? uploadErr.message : 'unknown error'}`
+          );
         }
       }
 

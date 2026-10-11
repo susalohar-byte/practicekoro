@@ -1,5 +1,5 @@
 import { AdminSectionSkeleton } from './AdminSkeleton';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Edit2,
@@ -81,7 +81,35 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
 
-  // Load questions and attempts when test changes or tab changes
+  const testId = test?.id;
+
+  const loadQuestions = useCallback(async () => {
+    if (!testId) return;
+    setIsLoadingQuestions(true);
+    try {
+      const data = await api.getTestAssignedQuestions(testId);
+      setAssignedQuestions(data);
+    } catch (err) {
+      console.error('Failed to load test questions:', err);
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  }, [testId]);
+
+  const loadAttempts = useCallback(async () => {
+    if (!testId) return;
+    setIsLoadingAttempts(true);
+    try {
+      const data = await api.getTestAttempts(testId);
+      setAttempts(data || []);
+    } catch (err) {
+      console.error('Failed to load test attempts:', err);
+    } finally {
+      setIsLoadingAttempts(false);
+    }
+  }, [testId]);
+
+  // Re-sync the settings form whenever the test data changes
   useEffect(() => {
     if (!test || !isOpen) return;
 
@@ -96,36 +124,14 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       isPremium: Boolean(test.isPremium),
       status: test.status || 'draft',
     });
+  }, [test, isOpen]);
 
+  // Load questions and attempts when the test changes or the drawer opens
+  useEffect(() => {
+    if (!testId || !isOpen) return;
     loadQuestions();
     loadAttempts();
-  }, [test?.id, test?.iconUrl, isOpen]);
-
-  const loadQuestions = async () => {
-    if (!test) return;
-    setIsLoadingQuestions(true);
-    try {
-      const data = await api.getTestAssignedQuestions(test.id);
-      setAssignedQuestions(data);
-    } catch (err) {
-      console.error('Failed to load test questions:', err);
-    } finally {
-      setIsLoadingQuestions(false);
-    }
-  };
-
-  const loadAttempts = async () => {
-    if (!test) return;
-    setIsLoadingAttempts(true);
-    try {
-      const data = await api.getTestAttempts(test.id);
-      setAttempts(data || []);
-    } catch (err) {
-      console.error('Failed to load test attempts:', err);
-    } finally {
-      setIsLoadingAttempts(false);
-    }
-  };
+  }, [testId, isOpen, loadQuestions, loadAttempts]);
 
   if (!isOpen || !test) return null;
 

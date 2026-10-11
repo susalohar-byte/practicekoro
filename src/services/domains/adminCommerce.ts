@@ -628,7 +628,19 @@ export const adminCommerceApi = {
   },
 
   async getAdminStudentDetails(userId: string): Promise<AdminStudentDetails | null> {
-    const students = await this.getAdminStudents();
+    // The student list is paged (newest 200 by default), so narrow it to this
+    // student's email first; otherwise older students would never be found.
+    let search: string | undefined;
+    if (isSupabaseConfigured) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .maybeSingle();
+      if (profileError) throw new Error(profileError.message);
+      search = profile?.email || undefined;
+    }
+    const students = await this.getAdminStudents(search);
     const student = students.find((s) => s.id === userId);
     if (!student) return null;
 
@@ -973,8 +985,9 @@ export const adminCommerceApi = {
         const durationDays = Number(plan.duration_days);
         if (!Number.isInteger(durationDays) || durationDays <= 0)
           return { success: false, error: 'Plan duration must be positive.' };
-        const currentExpiry = new Date(sub.expires_at || Date.now());
-        const baseDate = currentExpiry.getTime() > Date.now() ? currentExpiry : new Date();
+        // The new plan's period starts today, matching the expiry previewed to the admin
+        // (stacking it onto the remaining time silently granted extra days).
+        const baseDate = new Date();
         baseDate.setDate(baseDate.getDate() + durationDays);
         const newExpiresAt = baseDate.toISOString();
 
@@ -1191,7 +1204,6 @@ export const adminCommerceApi = {
           rank,
           percentile,
           created_at,
-          profiles:user_id(id, full_name, email, avatar_url),
           tests:test_id(id, title, test_type, exam_id, total_questions, duration_minutes, exams:exam_id(title))
         `
         )
@@ -1203,8 +1215,20 @@ export const adminCommerceApi = {
         throw error || new Error('Failed to fetch test attempts page');
       }
 
+      // test_attempts.user_id references auth.users, so profiles are looked up separately.
+      const userIds = [...new Set(data.map((d: any) => d.user_id).filter(Boolean))];
+      const profilesById = new Map<string, any>();
+      if (userIds.length) {
+        const { data: profileRows, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, avatar_url')
+          .in('id', userIds);
+        if (profileError) throw profileError;
+        (profileRows || []).forEach((p: any) => profilesById.set(p.id, p));
+      }
+
       return data.map((d: any) => {
-        const profile = d.profiles || {};
+        const profile = profilesById.get(d.user_id) || {};
         const test = d.tests || {};
         const exam = test.exams || {};
 
@@ -1224,7 +1248,9 @@ export const adminCommerceApi = {
         });
 
         let displayType = 'Full Mock';
-        if (test.test_type === 'topic_test' || test.test_type === 'topic') {
+        if (
+          ['topic_test', 'topic', 'chapter_mock', 'subject_mock'].includes(test.test_type || '')
+        ) {
           displayType = 'Topic Test';
         } else if (test.test_type === 'pyq' || test.test_type === 'previous_year') {
           displayType = 'Official PYQ';
@@ -1232,19 +1258,19 @@ export const adminCommerceApi = {
 
         return {
           id: d.id,
-          studentId: profile.id ? `PK${profile.id.slice(0, 6).toUpperCase()}` : 'PK100000',
-          studentName: profile.full_name || 'Student Aspirant',
+          studentId: d.user_id ? `PK${String(d.user_id).slice(0, 6).toUpperCase()}` : '—',
+          studentName: profile.full_name || profile.email?.split('@')[0] || 'Unknown student',
           studentEmail: profile.email || '',
           studentAvatar: profile.avatar_url || undefined,
           studentInitials: profile.full_name ? profile.full_name.slice(0, 2).toUpperCase() : 'ST',
           studentAvatarColor: 'bg-blue-600',
-          testName: test.title || 'Practice Test',
-          exam: exam.title || 'Competitive Exam',
+          testName: test.title || 'Deleted test',
+          exam: exam.title || '—',
           type: displayType,
           score: Number(d.score || 0),
-          totalMarks: Number(d.total_marks || 100),
+          totalMarks: Number(d.total_marks ?? 0),
           accuracy: Number(d.accuracy || 0),
-          timeTaken: `${timeMin || 1} min`,
+          timeTaken: timeSec ? `${Math.max(1, timeMin)} min` : '—',
           timeTakenSeconds: timeSec,
           status: d.status === 'completed' ? 'Completed' : 'Not Completed',
           attemptedAtDate: dateStr,
@@ -1253,8 +1279,7 @@ export const adminCommerceApi = {
           submittedAt: d.end_time ? new Date(d.end_time).toLocaleString('en-GB') : dateStr,
           totalQuestions: Number(
             test.total_questions ||
-              (d.correct_count || 0) + (d.wrong_count || 0) + (d.skipped_count || 0) ||
-              100
+              (d.correct_count || 0) + (d.wrong_count || 0) + (d.skipped_count || 0)
           ),
           correctAnswers: Number(d.correct_count || 0),
           wrongAnswers: Number(d.wrong_count || 0),
@@ -1269,8 +1294,9 @@ export const adminCommerceApi = {
       }
       return await loadAllPages(fetchPage, 100);
     } catch (err) {
+      // Surface the failure; an empty list would read as "no attempts".
       console.warn('Failed to load admin test attempts from database:', err);
-      return [];
+      throw err instanceof Error ? err : new Error('Failed to load test attempts');
     }
   },
 
@@ -1281,62 +1307,74 @@ export const adminCommerceApi = {
 
     try {
       // 1. Fetch completed test attempts, profiles, tests, exams, and subjects in parallel
-      const [attemptsRes, profilesRes, testsRes, examsRes, subjectsRes] = await Promise.all([
-        supabase
-          .from('test_attempts')
-          .select(
-            'id, user_id, test_id, status, score, total_marks, correct_count, wrong_count, skipped_count, accuracy, time_spent_seconds, created_at, end_time'
-          )
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('profiles')
-          .select('id, full_name, email, phone, avatar_url, district, role, created_at'),
-        supabase
-          .from('tests')
-          .select('id, title, test_type, exam_id, subject_id, total_questions, total_marks'),
-        supabase.from('exams').select('id, title'),
-        supabase.from('subjects').select('id, name'),
+      // Read every row (PostgREST caps unpaged reads), and fail loudly on errors.
+      const [rawAttempts, profileRows, testRows, examRows, subjectRows] = await Promise.all([
+        readCompleteQuery(() =>
+          supabase
+            .from('test_attempts')
+            .select(
+              'id, user_id, test_id, status, score, total_marks, correct_count, wrong_count, skipped_count, accuracy, time_spent_seconds, created_at, end_time',
+              { count: 'exact' }
+            )
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: true })
+        ),
+        readCompleteQuery(() =>
+          supabase
+            .from('profiles')
+            .select('id, full_name, email, phone, avatar_url, district, role, created_at', {
+              count: 'exact',
+            })
+            .order('id', { ascending: true })
+        ),
+        readCompleteQuery(() =>
+          supabase
+            .from('tests')
+            .select('id, title, test_type, exam_id, subject_id, total_questions, total_marks', {
+              count: 'exact',
+            })
+            .order('id', { ascending: true })
+        ),
+        readCompleteQuery(() =>
+          supabase
+            .from('exams')
+            .select('id, title', { count: 'exact' })
+            .order('id', { ascending: true })
+        ),
+        readCompleteQuery(() =>
+          supabase
+            .from('subjects')
+            .select('id, name', { count: 'exact' })
+            .order('id', { ascending: true })
+        ),
       ]);
 
-      const rawAttempts = Array.isArray(attemptsRes.data) ? attemptsRes.data : [];
       const profilesMap = new Map<string, any>();
-      if (Array.isArray(profilesRes.data)) {
-        profilesRes.data.forEach((p) => {
-          if (p.id) profilesMap.set(p.id, p);
-        });
-      }
+      profileRows.forEach((p: any) => {
+        if (p.id) profilesMap.set(p.id, p);
+      });
 
       const testsMap = new Map<string, any>();
-      if (Array.isArray(testsRes.data)) {
-        testsRes.data.forEach((t) => {
-          if (t.id) testsMap.set(t.id, t);
-        });
-      }
+      testRows.forEach((t: any) => {
+        if (t.id) testsMap.set(t.id, t);
+      });
 
       const examsMap = new Map<string, string>();
-      if (Array.isArray(examsRes.data)) {
-        examsRes.data.forEach((e) => {
-          if (e.id) examsMap.set(e.id, e.title || '');
-        });
-      }
+      examRows.forEach((e: any) => {
+        if (e.id) examsMap.set(e.id, e.title || '');
+      });
 
       const subjectsMap = new Map<string, string>();
-      if (Array.isArray(subjectsRes.data)) {
-        subjectsRes.data.forEach((s) => {
-          if (s.id) subjectsMap.set(s.id, s.name || '');
-        });
-      }
+      subjectRows.forEach((s: any) => {
+        if (s.id) subjectsMap.set(s.id, s.name || '');
+      });
 
-      // Filter attempts where status is 'completed' (or score is present)
-      let completedAttempts = rawAttempts.filter(
-        (a: any) => a.status === 'completed' || (a.score !== null && a.score !== undefined)
-      );
-
-      // Filter out admin users from attempts
-      completedAttempts = completedAttempts.filter((a: any) => {
+      // Only students are ranked: staff (admin/instructor) and unknown accounts are excluded.
+      let completedAttempts = rawAttempts.filter((a: any) => {
         const p = profilesMap.get(a.user_id);
-        if (!p) return true;
-        if (p.role === 'admin') return false;
+        if (!p) return false;
+        if (p.role && p.role !== 'student') return false;
         if (p.email && isAdminEmail(p.email)) return false;
         return true;
       });
@@ -1388,11 +1426,7 @@ export const adminCommerceApi = {
           const examTitle = (test?.exam_id ? examsMap.get(test.exam_id) || '' : '')
             .toLowerCase()
             .trim();
-          return (
-            examTitle.includes(examTerm) ||
-            examTerm.includes(examTitle) ||
-            test?.exam_id === filters.exam
-          );
+          return test?.exam_id === filters.exam || (!!examTitle && examTitle.includes(examTerm));
         });
       }
 
@@ -1405,9 +1439,7 @@ export const adminCommerceApi = {
             .toLowerCase()
             .trim();
           return (
-            subjName.includes(subjTerm) ||
-            subjTerm.includes(subjName) ||
-            test?.subject_id === filters.subject
+            test?.subject_id === filters.subject || (!!subjName && subjName.includes(subjTerm))
           );
         });
       }
@@ -1480,9 +1512,10 @@ export const adminCommerceApi = {
       userAttemptsMap.forEach((userAttempts, userId) => {
         const profile = profilesMap.get(userId) || userAttempts[0]?.profiles || {};
         const rawName = (profile.full_name || '').trim();
-        const name = rawName || (profile.email ? profile.email.split('@')[0] : 'Aspirant Student');
-        const district = profile.district || 'West Bengal';
-        const location = profile.district ? `${profile.district}, West Bengal` : 'West Bengal';
+        const name = rawName || (profile.email ? profile.email.split('@')[0] : 'Unknown student');
+        const districtName = (profile.district || '').trim();
+        const district = districtName || 'Not specified';
+        const location = districtName ? `${districtName}, West Bengal` : 'Not specified';
         const avatar = profile.avatar_url || undefined;
         const initials = getInitials(name);
         const initialsBg = 'bg-emerald-100 text-emerald-600 border border-emerald-200';
@@ -1511,7 +1544,7 @@ export const adminCommerceApi = {
         userAttempts.forEach((att: any, idx: number) => {
           const test = testsMap.get(att.test_id);
           const sc = Number(att.score || 0);
-          const max = Number(att.total_marks || test?.total_marks || 100);
+          const max = Number(att.total_marks || test?.total_marks || 0);
           const cor = Number(att.correct_count || 0);
           const wr = Number(att.wrong_count || 0);
           const sk = Number(att.skipped_count || 0);
@@ -1531,7 +1564,7 @@ export const adminCommerceApi = {
           const subj =
             (test?.subject_id ? subjectsMap.get(test.subject_id) : '') ||
             (test?.exam_id ? examsMap.get(test.exam_id) : '') ||
-            'General Knowledge';
+            'Other';
 
           if (!subjectMap.has(subj)) {
             subjectMap.set(subj, { totalScore: 0, totalMarks: 0, count: 0 });
@@ -1543,7 +1576,7 @@ export const adminCommerceApi = {
 
           if (recentAttempts.length < 3) {
             recentAttempts.push({
-              title: test?.title || 'Practice Mock Test',
+              title: test?.title || 'Deleted test',
               scorePercent: perc,
               timeAgo: formatTimeAgo(att.end_time || att.created_at),
               iconBg:
@@ -1556,7 +1589,7 @@ export const adminCommerceApi = {
           }
         });
 
-        const questionsAnswered = totalCorrect + totalWrong + totalSkipped || testsAttempted * 25;
+        const questionsAnswered = totalCorrect + totalWrong + totalSkipped;
         const avgScore = Math.round((totalScore / Math.max(1, totalMaxMarks)) * 100);
         const accuracy =
           totalCorrect + totalWrong > 0
@@ -1581,14 +1614,6 @@ export const adminCommerceApi = {
           });
           colorIdx++;
         });
-
-        if (subjectPerformance.length === 0) {
-          subjectPerformance.push({
-            subject: 'General Knowledge',
-            scorePercent: avgScore,
-            barColor: 'bg-blue-600',
-          });
-        }
 
         const studentId = profile.id
           ? `PK${profile.id
@@ -1646,7 +1671,7 @@ export const adminCommerceApi = {
       return students;
     } catch (err) {
       console.warn('Failed to calculate admin rankings:', err);
-      return [];
+      throw err instanceof Error ? err : new Error('Failed to load rankings');
     }
   },
 
@@ -1953,8 +1978,9 @@ export const adminCommerceApi = {
       notes,
     } = params;
 
-    // 1. If Gateway mode requested and Supabase is configured
-    if (refundMode === 'gateway' && isSupabaseConfigured) {
+    // Refunds change payment rows, which only the trusted server function may write
+    // (payments are service-role only), so both modes go through the Edge Function.
+    if (isSupabaseConfigured) {
       try {
         const { data: edgeData, error: edgeError } = await supabase.functions.invoke(
           'process-razorpay-refund',
@@ -1963,14 +1989,16 @@ export const adminCommerceApi = {
               paymentId,
               refundAmount,
               reason: refundReason,
-              notes: { remarks: notes },
+              notes: notes ? { remarks: notes } : undefined,
               revokeSubscription,
+              mode: refundMode,
+              refundId: refundMode === 'manual' ? refundId?.trim() || undefined : undefined,
             },
           }
         );
 
         if (edgeError) {
-          let detail = edgeError.message || 'Razorpay refund processing failed';
+          let detail = edgeError.message || 'Refund processing failed';
           try {
             if (
               (edgeError as any)?.context &&
@@ -1984,42 +2012,32 @@ export const adminCommerceApi = {
           }
           return {
             success: false,
-            error: `${detail}. You may execute the refund in the Razorpay Dashboard and record it using "Record Manual Refund".`,
+            error:
+              refundMode === 'gateway'
+                ? `${detail}. If you refund it in the Razorpay Dashboard instead, record it using "Record Manual Refund".`
+                : detail,
           };
         }
 
-        if (edgeData && !edgeData.success) {
+        if (!edgeData?.success || !edgeData.refundId) {
           return {
             success: false,
-            error: edgeData.error || 'Gateway refund could not be completed',
+            error: edgeData?.error || 'Refund could not be completed',
           };
         }
-
-        const generatedRefundId = edgeData?.refundId || `rfnd_${Date.now()}`;
-
-        // Sync local cache and fallback stores
-        await this.markPaymentRefunded(
-          paymentId,
-          refundAmount,
-          generatedRefundId,
-          refundReason,
-          revokeSubscription
-        );
 
         return {
           success: true,
-          refundId: generatedRefundId,
+          refundId: edgeData.refundId,
           refundAmount,
           status: 'refunded',
-          revokedSubscription: revokeSubscription,
-          gatewayResponse: edgeData?.gatewayResponse,
+          revokedSubscription: Boolean(edgeData.revokedSubscription),
+          gatewayResponse: edgeData.gatewayResponse,
         };
       } catch (err: any) {
         return {
           success: false,
-          error:
-            err?.message ||
-            'Failed to connect to Razorpay Refund service. You can use Record Manual Refund.',
+          error: err?.message || 'Failed to connect to the refund service.',
         };
       }
     }

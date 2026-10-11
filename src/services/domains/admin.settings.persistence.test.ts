@@ -76,6 +76,13 @@ describe('Confirmed Settings persistence', () => {
     expect((await updateAppSettings([{ id: 'smtp_password', value: 'fixture' }])).success).toBe(
       false
     );
+    for (const id of [
+      'gateway_fast2sms_api_key',
+      'gateway_fcm_server_key',
+      'smtp_username',
+      'smtp_user',
+    ])
+      expect((await updateAppSettings([{ id, value: 'fixture' }])).success).toBe(false);
     expect(
       (
         await updateAppSettings([

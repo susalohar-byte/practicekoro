@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPageNumbers, calculatePaginationRange } from '@/utils/pagination';
+import { getDateRangeBounds, getKolkataDateString } from '@/services/domains/admin.dashboard';
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -88,6 +89,8 @@ export interface AdminTestAttempt {
   attemptedAtTime: string; // "10:42 AM"
   startedAt: string; // "30 Sep 2026, 09:54 AM"
   submittedAt: string; // "30 Sep 2026, 10:42 AM"
+  /** ISO created_at timestamp, when provided by the service. */
+  createdAt?: string;
   totalQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
@@ -96,627 +99,22 @@ export interface AdminTestAttempt {
   sectionAnalysis?: SectionAnalysisItem[];
 }
 
-// Sample questions generator for Answer Sheet modal & tab
-const generateMockQuestions = (
-  totalQuestions: number,
-  correctCount: number,
-  wrongCount: number,
-  skippedCount: number
-): QuestionBreakdownItem[] => {
-  const sampleData = [
-    {
-      q: 'Which Article of the Indian Constitution deals with the Right to Equality?',
-      qBn: 'ভারতের সংবিধানের কোন ধারাটি সাম্যের অধিকার সম্পর্কিত?',
-      subject: 'Indian Polity',
-      opts: [
-        { key: 'A' as const, text: 'Article 14-18', textBn: 'ধারা ১৪-১৮' },
-        { key: 'B' as const, text: 'Article 19-22', textBn: 'ধারা ১৯-২২' },
-        { key: 'C' as const, text: 'Article 23-24', textBn: 'ধারা ২৩-২৪' },
-        { key: 'D' as const, text: 'Article 25-28', textBn: 'ধারা ২৫-২৮' },
-      ],
-      correct: 'A' as const,
-      exp: 'Articles 14 to 18 of the Indian Constitution guarantee the fundamental Right to Equality before law and equal protection of laws.',
-    },
-    {
-      q: 'Who was the founder of the Brahmo Samaj in Bengal?',
-      qBn: 'বাংলায় ব্রাহ্মসমাজ কে প্রতিষ্ঠা করেন?',
-      subject: 'History of India',
-      opts: [
-        { key: 'A' as const, text: 'Swami Vivekananda', textBn: 'স্বামী বিবেকানন্দ' },
-        { key: 'B' as const, text: 'Raja Ram Mohan Roy', textBn: 'রাজা রামমোহন রায়' },
-        { key: 'C' as const, text: 'Ishwar Chandra Vidyasagar', textBn: 'ঈশ্বরচন্দ্র বিদ্যাসাগর' },
-        { key: 'D' as const, text: 'Keshab Chandra Sen', textBn: 'কেশবচন্দ্র সেন' },
-      ],
-      correct: 'B' as const,
-      exp: 'Raja Ram Mohan Roy founded the Brahmo Sabha in 1828, which was later renamed Brahmo Samaj.',
-    },
-    {
-      q: 'If A : B = 3 : 4 and B : C = 8 : 9, then what is the ratio of A : C?',
-      qBn: 'যদি A : B = 3 : 4 এবং B : C = 8 : 9 হয়, তবে A : C এর অনুপাত কত?',
-      subject: 'Mathematics',
-      opts: [
-        { key: 'A' as const, text: '1 : 2', textBn: '১ : ২' },
-        { key: 'B' as const, text: '2 : 3', textBn: '২ : ৩' },
-        { key: 'C' as const, text: '3 : 2', textBn: '৩ : ২' },
-        { key: 'D' as const, text: '4 : 5', textBn: '৪ : ৫' },
-      ],
-      correct: 'B' as const,
-      exp: 'A/C = (A/B) * (B/C) = (3/4) * (8/9) = 24/36 = 2/3. So ratio is 2 : 3.',
-    },
-    {
-      q: 'Find the missing number in series: 2, 6, 12, 20, 30, ?',
-      qBn: 'সিরিজের পরবর্তী সংখ্যাটি কত: ২, ৬, ১২, ২০, ৩০, ?',
-      subject: 'Reasoning',
-      opts: [
-        { key: 'A' as const, text: '40', textBn: '৪০' },
-        { key: 'B' as const, text: '42', textBn: '৪২' },
-        { key: 'C' as const, text: '44', textBn: '৪৪' },
-        { key: 'D' as const, text: '48', textBn: '৪৮' },
-      ],
-      correct: 'B' as const,
-      exp: 'Differences are +4, +6, +8, +10, +12. Therefore 30 + 12 = 42.',
-    },
-    {
-      q: 'Which river is known as the "Sorrow of Bengal"?',
-      qBn: 'কোন নদীকে "বাংলার দুঃখ" বলা হতো?',
-      subject: 'Geography',
-      opts: [
-        { key: 'A' as const, text: 'Hooghly', textBn: 'হুগলি' },
-        { key: 'B' as const, text: 'Teesta', textBn: 'তিস্তা' },
-        { key: 'C' as const, text: 'Damodar', textBn: 'দামোদর' },
-        { key: 'D' as const, text: 'Rupnarayan', textBn: 'রূপনারায়ণ' },
-      ],
-      correct: 'C' as const,
-      exp: 'Damodar River was historically known as Sorrow of Bengal due to frequent ravaging floods.',
-    },
-  ];
+const DATE_RANGE_OPTIONS = [
+  'All Time',
+  'Today',
+  'Yesterday',
+  'Last 7 Days',
+  'Last 30 Days',
+  'This Month',
+  'Custom Range',
+] as const;
+type DateRangeFilter = (typeof DATE_RANGE_OPTIONS)[number];
 
-  const items: QuestionBreakdownItem[] = [];
-  let curCorrect = 0;
-  let curWrong = 0;
-  let curSkipped = 0;
-
-  for (let i = 1; i <= Math.min(totalQuestions, 25); i++) {
-    const template = sampleData[(i - 1) % sampleData.length];
-    let st: 'correct' | 'wrong' | 'skipped' = 'correct';
-
-    if (curCorrect < correctCount && (i % 5 !== 0 || curWrong >= wrongCount)) {
-      st = 'correct';
-      curCorrect++;
-    } else if (curWrong < wrongCount) {
-      st = 'wrong';
-      curWrong++;
-    } else if (curSkipped < skippedCount) {
-      st = 'skipped';
-      curSkipped++;
-    }
-
-    const wrongKey = template.correct === 'A' ? 'B' : template.correct === 'B' ? 'C' : 'A';
-    const chosen = st === 'correct' ? template.correct : st === 'wrong' ? wrongKey : null;
-
-    items.push({
-      id: i,
-      questionText: `${i}. ${template.q}`,
-      questionTextBn: `${i}. ${template.qBn}`,
-      subject: template.subject,
-      options: template.opts,
-      selectedOption: chosen,
-      correctOption: template.correct,
-      status: st,
-      marks: st === 'correct' ? 1 : st === 'wrong' ? -0.25 : 0,
-      timeSpentSec: st === 'skipped' ? 12 : 35 + ((i * 7) % 30),
-      explanation: template.exp,
-    });
-  }
-
-  return items;
-};
-
-// Default seeded attempts strictly matching screenshot media_1791197748654.jpg
-export const INITIAL_ATTEMPTS: AdminTestAttempt[] = [
-  {
-    id: 'att_1',
-    studentId: 'PK100245',
-    studentName: 'Sneha Khatun',
-    studentEmail: 'sneha.khatun@practicekoro.in',
-    studentInitials: 'SK',
-    studentAvatarColor: 'bg-blue-600',
-    testName: 'WBP Constable Full Mock 1',
-    exam: 'WBP Constable',
-    type: 'Full Mock',
-    score: 72,
-    totalMarks: 100,
-    accuracy: 80,
-    timeTaken: '48 min',
-    timeTakenSeconds: 2880,
-    status: 'Completed',
-    attemptedAtDate: '30 Sep 2026',
-    attemptedAtTime: '10:42 AM',
-    startedAt: '30 Sep 2026, 09:54 AM',
-    submittedAt: '30 Sep 2026, 10:42 AM',
-    totalQuestions: 85,
-    correctAnswers: 70,
-    wrongAnswers: 12,
-    skippedAnswers: 3,
-    sectionAnalysis: [
-      {
-        sectionName: 'General Awareness',
-        totalQuestions: 25,
-        attempted: 24,
-        correct: 20,
-        wrong: 4,
-        marksScored: 19,
-        maxMarks: 25,
-        accuracy: 83.3,
-        timeSpentMin: 12,
-      },
-      {
-        sectionName: 'Elementary Mathematics',
-        totalQuestions: 25,
-        attempted: 25,
-        correct: 21,
-        wrong: 4,
-        marksScored: 20,
-        maxMarks: 25,
-        accuracy: 84.0,
-        timeSpentMin: 18,
-      },
-      {
-        sectionName: 'Reasoning & Logic',
-        totalQuestions: 25,
-        attempted: 24,
-        correct: 21,
-        wrong: 3,
-        marksScored: 20.25,
-        maxMarks: 25,
-        accuracy: 87.5,
-        timeSpentMin: 14,
-      },
-      {
-        sectionName: 'English Language',
-        totalQuestions: 10,
-        attempted: 9,
-        correct: 8,
-        wrong: 1,
-        marksScored: 7.75,
-        maxMarks: 10,
-        accuracy: 88.9,
-        timeSpentMin: 4,
-      },
-    ],
-  },
-  {
-    id: 'att_2',
-    studentId: 'PK100312',
-    studentName: 'Rohit Kumar',
-    studentEmail: 'rohit.kumar@practicekoro.in',
-    studentAvatar: '/images/leaderboard_rohit.jpg',
-    testName: 'Modern India - Test 01',
-    exam: 'WBP Constable',
-    type: 'Topic Test',
-    score: 18,
-    totalMarks: 30,
-    accuracy: 60,
-    timeTaken: '22 min',
-    timeTakenSeconds: 1320,
-    status: 'Completed',
-    attemptedAtDate: '30 Sep 2026',
-    attemptedAtTime: '09:18 AM',
-    startedAt: '30 Sep 2026, 08:56 AM',
-    submittedAt: '30 Sep 2026, 09:18 AM',
-    totalQuestions: 30,
-    correctAnswers: 18,
-    wrongAnswers: 8,
-    skippedAnswers: 4,
-    sectionAnalysis: [
-      {
-        sectionName: 'Modern Indian History',
-        totalQuestions: 30,
-        attempted: 26,
-        correct: 18,
-        wrong: 8,
-        marksScored: 16,
-        maxMarks: 30,
-        accuracy: 69.2,
-        timeSpentMin: 22,
-      },
-    ],
-  },
-  {
-    id: 'att_3',
-    studentId: 'PK100198',
-    studentName: 'Arijit Pal',
-    studentEmail: 'arijit.pal@practicekoro.in',
-    studentInitials: 'AP',
-    studentAvatarColor: 'bg-blue-500',
-    testName: 'WBP Constable PYQ 2024',
-    exam: 'WBP Constable',
-    type: 'Official PYQ',
-    score: 64,
-    totalMarks: 85,
-    accuracy: 75,
-    timeTaken: '55 min',
-    timeTakenSeconds: 3300,
-    status: 'Completed',
-    attemptedAtDate: '29 Sep 2026',
-    attemptedAtTime: '06:45 PM',
-    startedAt: '29 Sep 2026, 05:50 PM',
-    submittedAt: '29 Sep 2026, 06:45 PM',
-    totalQuestions: 85,
-    correctAnswers: 64,
-    wrongAnswers: 15,
-    skippedAnswers: 6,
-    sectionAnalysis: [
-      {
-        sectionName: 'GK & Current Affairs',
-        totalQuestions: 40,
-        attempted: 36,
-        correct: 30,
-        wrong: 6,
-        marksScored: 28.5,
-        maxMarks: 40,
-        accuracy: 83.3,
-        timeSpentMin: 20,
-      },
-      {
-        sectionName: 'Mathematics & Reasoning',
-        totalQuestions: 45,
-        attempted: 43,
-        correct: 34,
-        wrong: 9,
-        marksScored: 31.75,
-        maxMarks: 45,
-        accuracy: 79.0,
-        timeSpentMin: 35,
-      },
-    ],
-  },
-  {
-    id: 'att_4',
-    studentId: 'PK100276',
-    studentName: 'Moumita Das',
-    studentEmail: 'moumita.das@practicekoro.in',
-    studentAvatar: '/images/avatar_mousumi.jpg',
-    testName: 'Indian Polity - Test 02',
-    exam: 'WBCS',
-    type: 'Topic Test',
-    score: 21,
-    totalMarks: 30,
-    accuracy: 70,
-    timeTaken: '26 min',
-    timeTakenSeconds: 1560,
-    status: 'Completed',
-    attemptedAtDate: '29 Sep 2026',
-    attemptedAtTime: '04:12 PM',
-    startedAt: '29 Sep 2026, 03:46 PM',
-    submittedAt: '29 Sep 2026, 04:12 PM',
-    totalQuestions: 30,
-    correctAnswers: 21,
-    wrongAnswers: 6,
-    skippedAnswers: 3,
-    sectionAnalysis: [
-      {
-        sectionName: 'Indian Constitution & Polity',
-        totalQuestions: 30,
-        attempted: 27,
-        correct: 21,
-        wrong: 6,
-        marksScored: 19.5,
-        maxMarks: 30,
-        accuracy: 77.7,
-        timeSpentMin: 26,
-      },
-    ],
-  },
-  {
-    id: 'att_5',
-    studentId: 'PK100301',
-    studentName: 'Subhankar Bera',
-    studentEmail: 'subhankar.bera@practicekoro.in',
-    studentInitials: 'SB',
-    studentAvatarColor: 'bg-amber-400',
-    testName: 'Reasoning Full Mock 1',
-    exam: 'KP SI',
-    type: 'Full Mock',
-    score: 58,
-    totalMarks: 100,
-    accuracy: 62,
-    timeTaken: '52 min',
-    timeTakenSeconds: 3120,
-    status: 'Not Completed',
-    attemptedAtDate: '29 Sep 2026',
-    attemptedAtTime: '12:33 PM',
-    startedAt: '29 Sep 2026, 11:41 AM',
-    submittedAt: '29 Sep 2026, 12:33 PM',
-    totalQuestions: 100,
-    correctAnswers: 58,
-    wrongAnswers: 25,
-    skippedAnswers: 17,
-    sectionAnalysis: [
-      {
-        sectionName: 'General Studies',
-        totalQuestions: 50,
-        attempted: 45,
-        correct: 30,
-        wrong: 15,
-        marksScored: 26.25,
-        maxMarks: 50,
-        accuracy: 66.6,
-        timeSpentMin: 25,
-      },
-      {
-        sectionName: 'Logical & Analytical Reasoning',
-        totalQuestions: 50,
-        attempted: 38,
-        correct: 28,
-        wrong: 10,
-        marksScored: 25.5,
-        maxMarks: 50,
-        accuracy: 73.6,
-        timeSpentMin: 27,
-      },
-    ],
-  },
-  {
-    id: 'att_6',
-    studentId: 'PK100188',
-    studentName: 'Puja Namata',
-    studentEmail: 'puja.namata@practicekoro.in',
-    studentAvatar: '/images/avatar_tania.jpg',
-    testName: 'Heat & Temperature - Test 01',
-    exam: 'Railways Group D',
-    type: 'Topic Test',
-    score: 24,
-    totalMarks: 30,
-    accuracy: 80,
-    timeTaken: '20 min',
-    timeTakenSeconds: 1200,
-    status: 'Completed',
-    attemptedAtDate: '28 Sep 2026',
-    attemptedAtTime: '11:20 AM',
-    startedAt: '28 Sep 2026, 11:00 AM',
-    submittedAt: '28 Sep 2026, 11:20 AM',
-    totalQuestions: 30,
-    correctAnswers: 24,
-    wrongAnswers: 4,
-    skippedAnswers: 2,
-    sectionAnalysis: [
-      {
-        sectionName: 'Physics (Thermal Sciences)',
-        totalQuestions: 30,
-        attempted: 28,
-        correct: 24,
-        wrong: 4,
-        marksScored: 23,
-        maxMarks: 30,
-        accuracy: 85.7,
-        timeSpentMin: 20,
-      },
-    ],
-  },
-  {
-    id: 'att_7',
-    studentId: 'PK100312',
-    studentName: 'Rohit Kumar',
-    studentEmail: 'rohit.kumar@practicekoro.in',
-    studentAvatar: '/images/leaderboard_rohit.jpg',
-    testName: 'WBP Constable PYQ 2023',
-    exam: 'WBP Constable',
-    type: 'Official PYQ',
-    score: 66,
-    totalMarks: 85,
-    accuracy: 78,
-    timeTaken: '57 min',
-    timeTakenSeconds: 3420,
-    status: 'Completed',
-    attemptedAtDate: '28 Sep 2026',
-    attemptedAtTime: '05:14 AM',
-    startedAt: '28 Sep 2026, 04:17 AM',
-    submittedAt: '28 Sep 2026, 05:14 AM',
-    totalQuestions: 85,
-    correctAnswers: 66,
-    wrongAnswers: 13,
-    skippedAnswers: 6,
-    sectionAnalysis: [
-      {
-        sectionName: 'General Awareness',
-        totalQuestions: 40,
-        attempted: 38,
-        correct: 32,
-        wrong: 6,
-        marksScored: 30.5,
-        maxMarks: 40,
-        accuracy: 84.2,
-        timeSpentMin: 24,
-      },
-      {
-        sectionName: 'Math & Reasoning',
-        totalQuestions: 45,
-        attempted: 41,
-        correct: 34,
-        wrong: 7,
-        marksScored: 32.25,
-        maxMarks: 45,
-        accuracy: 82.9,
-        timeSpentMin: 33,
-      },
-    ],
-  },
-  {
-    id: 'att_8',
-    studentId: 'PK100276',
-    studentName: 'Rekha Khatun',
-    studentEmail: 'rekha.khatun@practicekoro.in',
-    studentInitials: 'SK',
-    studentAvatarColor: 'bg-blue-600',
-    testName: 'Blood Relations - Test 01',
-    exam: 'KP SI',
-    type: 'Topic Test',
-    score: 12,
-    totalMarks: 30,
-    accuracy: 40,
-    timeTaken: '18 min',
-    timeTakenSeconds: 1080,
-    status: 'Completed',
-    attemptedAtDate: '28 Sep 2026',
-    attemptedAtTime: '03:08 PM',
-    startedAt: '28 Sep 2026, 02:50 PM',
-    submittedAt: '28 Sep 2026, 03:08 PM',
-    totalQuestions: 30,
-    correctAnswers: 12,
-    wrongAnswers: 14,
-    skippedAnswers: 4,
-    sectionAnalysis: [
-      {
-        sectionName: 'Verbal Reasoning (Relations)',
-        totalQuestions: 30,
-        attempted: 26,
-        correct: 12,
-        wrong: 14,
-        marksScored: 8.5,
-        maxMarks: 30,
-        accuracy: 46.1,
-        timeSpentMin: 18,
-      },
-    ],
-  },
-  {
-    id: 'att_9',
-    studentId: 'PK100245',
-    studentName: 'Sneha Khatun',
-    studentEmail: 'sneha.khatun@practicekoro.in',
-    studentAvatar: '/images/avatar_sneha.jpg',
-    testName: 'Geography Full Mock 1',
-    exam: 'WBP Constable',
-    type: 'Full Mock',
-    score: 76,
-    totalMarks: 100,
-    accuracy: 82,
-    timeTaken: '50 min',
-    timeTakenSeconds: 3000,
-    status: 'Completed',
-    attemptedAtDate: '27 Sep 2026',
-    attemptedAtTime: '10:32 AM',
-    startedAt: '27 Sep 2026, 09:42 AM',
-    submittedAt: '27 Sep 2026, 10:32 AM',
-    totalQuestions: 85,
-    correctAnswers: 71,
-    wrongAnswers: 11,
-    skippedAnswers: 3,
-    sectionAnalysis: [
-      {
-        sectionName: 'Geography of West Bengal & India',
-        totalQuestions: 40,
-        attempted: 39,
-        correct: 35,
-        wrong: 4,
-        marksScored: 34,
-        maxMarks: 40,
-        accuracy: 89.7,
-        timeSpentMin: 22,
-      },
-      {
-        sectionName: 'General Aptitude',
-        totalQuestions: 45,
-        attempted: 43,
-        correct: 36,
-        wrong: 7,
-        marksScored: 34.25,
-        maxMarks: 45,
-        accuracy: 83.7,
-        timeSpentMin: 28,
-      },
-    ],
-  },
-  {
-    id: 'att_10',
-    studentId: 'PK100099',
-    studentName: 'Admin Test',
-    studentEmail: 'admin.qa@practicekoro.in',
-    studentInitials: 'AT',
-    studentAvatarColor: 'bg-teal-500',
-    testName: 'Environment - Test 01',
-    exam: 'WB Primary TET',
-    type: 'Topic Test',
-    score: 16,
-    totalMarks: 30,
-    accuracy: 53,
-    timeTaken: '24 min',
-    timeTakenSeconds: 1440,
-    status: 'Not Completed',
-    attemptedAtDate: '27 Sep 2026',
-    attemptedAtTime: '09:10 AM',
-    startedAt: '27 Sep 2026, 08:46 AM',
-    submittedAt: '27 Sep 2026, 09:10 AM',
-    totalQuestions: 30,
-    correctAnswers: 16,
-    wrongAnswers: 10,
-    skippedAnswers: 4,
-    sectionAnalysis: [
-      {
-        sectionName: 'Environmental Studies',
-        totalQuestions: 30,
-        attempted: 26,
-        correct: 16,
-        wrong: 10,
-        marksScored: 13.5,
-        maxMarks: 30,
-        accuracy: 61.5,
-        timeSpentMin: 24,
-      },
-    ],
-  },
-  // Additional pages records
-  {
-    id: 'att_11',
-    studentId: 'PK100222',
-    studentName: 'Debabrata Sen',
-    studentEmail: 'debabrata.sen@practicekoro.in',
-    studentInitials: 'DS',
-    studentAvatarColor: 'bg-indigo-600',
-    testName: 'WBP Constable Full Mock 2',
-    exam: 'WBP Constable',
-    type: 'Full Mock',
-    score: 68,
-    totalMarks: 100,
-    accuracy: 74,
-    timeTaken: '53 min',
-    timeTakenSeconds: 3180,
-    status: 'Completed',
-    attemptedAtDate: '26 Sep 2026',
-    attemptedAtTime: '11:15 AM',
-    startedAt: '26 Sep 2026, 10:22 AM',
-    submittedAt: '26 Sep 2026, 11:15 AM',
-    totalQuestions: 85,
-    correctAnswers: 65,
-    wrongAnswers: 16,
-    skippedAnswers: 4,
-  },
-  {
-    id: 'att_12',
-    studentId: 'PK100344',
-    studentName: 'Tanushree Ghosh',
-    studentEmail: 'tanushree.g@practicekoro.in',
-    studentAvatar: '/images/avatar_tania.jpg',
-    testName: 'Percentages & Profit Loss - Test 01',
-    exam: 'SSC CGL',
-    type: 'Topic Test',
-    score: 26,
-    totalMarks: 30,
-    accuracy: 92,
-    timeTaken: '19 min',
-    timeTakenSeconds: 1140,
-    status: 'Completed',
-    attemptedAtDate: '26 Sep 2026',
-    attemptedAtTime: '04:40 PM',
-    startedAt: '26 Sep 2026, 04:21 PM',
-    submittedAt: '26 Sep 2026, 04:40 PM',
-    totalQuestions: 30,
-    correctAnswers: 26,
-    wrongAnswers: 2,
-    skippedAnswers: 2,
-  },
-];
+/** Attempt instant: the ISO created_at when provided, else the displayed local date/time. */
+const attemptTimestamp = (att: AdminTestAttempt) =>
+  att.createdAt
+    ? Date.parse(att.createdAt)
+    : Date.parse(`${att.attemptedAtDate} ${att.attemptedAtTime || ''}`.trim());
 
 const STORAGE_KEY = 'practicekoro_test_attempts_v1';
 
@@ -752,9 +150,12 @@ export const AdminTestAttempts: React.FC = () => {
   }, [attempts]);
 
   // Load real test attempts from Supabase database
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let isMounted = true;
     setPageLoading(true);
+    setLoadError(null);
     api
       .getAllAdminTestAttempts()
       .then((remote) => {
@@ -771,6 +172,10 @@ export const AdminTestAttempts: React.FC = () => {
       })
       .catch((err) => {
         console.warn('Failed to fetch real test attempts from database:', err);
+        if (!isMounted) return;
+        // Never keep showing stale cached rows as if they were the current records.
+        setAttempts([]);
+        setLoadError(err instanceof Error ? err.message : 'Failed to load test attempts.');
       })
       .finally(() => {
         if (isMounted) setPageLoading(false);
@@ -778,7 +183,7 @@ export const AdminTestAttempts: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   // Selected attempt for right panel (Neutral initial state)
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
@@ -793,11 +198,37 @@ export const AdminTestAttempts: React.FC = () => {
   const [filterExam, setFilterExam] = useState('All Exams');
   const [filterType, setFilterType] = useState('All Types');
   const [filterResult, setFilterResult] = useState('All Results');
-  const [filterDateRange, setFilterDateRange] = useState('All Time');
+  const [filterDateRange, setFilterDateRange] = useState<DateRangeFilter>('All Time');
+  const [customStartDate, setCustomStartDate] = useState(() => getKolkataDateString(new Date()));
+  const [customEndDate, setCustomEndDate] = useState(() => getKolkataDateString(new Date()));
 
   // Date Range Pill & Modal
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
-  const [activeDateRangeLabel, setActiveDateRangeLabel] = useState('01 Sep 2026 → 30 Sep 2026');
+  const [draftDateRange, setDraftDateRange] = useState<DateRangeFilter>('All Time');
+  const [draftStartDate, setDraftStartDate] = useState(customStartDate);
+  const [draftEndDate, setDraftEndDate] = useState(customEndDate);
+  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  // Kolkata-day bounds for the active date filter (null = all time)
+  const dateBounds = useMemo(() => {
+    if (filterDateRange === 'All Time') return null;
+    try {
+      return getDateRangeBounds(filterDateRange, customStartDate, customEndDate);
+    } catch {
+      return null;
+    }
+  }, [filterDateRange, customStartDate, customEndDate]);
+  const activeDateRangeLabel = useMemo(() => {
+    if (!dateBounds) return 'All Time';
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleDateString('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    return `${fmt(dateBounds.startIso)} → ${fmt(dateBounds.endIso)}`;
+  }, [dateBounds]);
 
   // Table row multi-selection
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
@@ -821,14 +252,13 @@ export const AdminTestAttempts: React.FC = () => {
   const notCompletedCount = useMemo(() => {
     return attempts.filter((a) => a.status === 'Not Completed').length;
   }, [attempts]);
+  // Completed attempts with real total marks only: score / total marks, never accuracy.
   const averageScore = useMemo(() => {
-    if (totalAttemptsCount === 0) return 0;
-    const sum = attempts.reduce(
-      (acc, a) => acc + (a.accuracy || (a.totalMarks ? (a.score / a.totalMarks) * 100 : 0)),
-      0
-    );
-    return Math.round(sum / totalAttemptsCount);
-  }, [attempts, totalAttemptsCount]);
+    const scored = attempts.filter((a) => a.status === 'Completed' && a.totalMarks > 0);
+    if (scored.length === 0) return null;
+    const sum = scored.reduce((acc, a) => acc + (a.score / a.totalMarks) * 100, 0);
+    return Math.round(sum / scored.length);
+  }, [attempts]);
   const averageTimeMin = useMemo(() => {
     if (totalAttemptsCount === 0) return 0;
     const sumSec = attempts.reduce((acc, a) => acc + (a.timeTakenSeconds || 0), 0);
@@ -842,18 +272,12 @@ export const AdminTestAttempts: React.FC = () => {
   }, [attempts, selectedAttemptId]);
 
   // Dynamic question breakdown for selected attempt
-  const questionsList = useMemo(() => {
-    if (!selectedAttempt) return [];
-    if (selectedAttempt.questions && selectedAttempt.questions.length > 0) {
-      return selectedAttempt.questions;
-    }
-    return generateMockQuestions(
-      selectedAttempt.totalQuestions,
-      selectedAttempt.correctAnswers,
-      selectedAttempt.wrongAnswers,
-      selectedAttempt.skippedAnswers
-    );
-  }, [selectedAttempt]);
+  // Only real answer rows are shown; nothing is generated when answers are not loaded.
+  const questionsList = useMemo(
+    () => selectedAttempt?.questions ?? [],
+    [selectedAttempt]
+  );
+  const modalQuestionsList = activeModalAttempt?.questions ?? [];
 
   // Outside click handler for row actions dropdown
   const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -883,22 +307,17 @@ export const AdminTestAttempts: React.FC = () => {
       const matchesResult = filterResult === 'All Results' || att.status === filterResult;
 
       let matchesDate = true;
-      if (filterDateRange === 'September 2026') {
-        matchesDate = att.attemptedAtDate.includes('Sep 2026');
-      } else if (filterDateRange === 'August 2026') {
-        matchesDate = att.attemptedAtDate.includes('Aug 2026');
-      } else if (filterDateRange === 'Today') {
-        const todayStr = new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
-        matchesDate = att.attemptedAtDate === todayStr || att.attemptedAtDate === '30 Sep 2026';
+      if (dateBounds) {
+        const at = attemptTimestamp(att);
+        matchesDate =
+          Number.isFinite(at) &&
+          at >= Date.parse(dateBounds.startIso) &&
+          at <= Date.parse(dateBounds.endIso);
       }
 
       return matchesSearch && matchesExam && matchesType && matchesResult && matchesDate;
     });
-  }, [attempts, searchTerm, filterExam, filterType, filterResult, filterDateRange]);
+  }, [attempts, searchTerm, filterExam, filterType, filterResult, dateBounds]);
 
   // Pagination calculation
   const paginationRange = useMemo(
@@ -916,7 +335,7 @@ export const AdminTestAttempts: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
     setSelectedRowIds(new Set());
-  }, [searchTerm, filterExam, filterType, filterResult, filterDateRange, pageSize]);
+  }, [searchTerm, filterExam, filterType, filterResult, dateBounds, pageSize]);
 
   // Paginated records
   const paginatedAttempts = useMemo(() => {
@@ -1101,7 +520,13 @@ export const AdminTestAttempts: React.FC = () => {
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           {/* Date Range Selector Pill */}
           <button
-            onClick={() => setIsDateModalOpen(true)}
+            onClick={() => {
+              setDraftDateRange(filterDateRange);
+              setDraftStartDate(customStartDate);
+              setDraftEndDate(customEndDate);
+              setDateRangeError(null);
+              setIsDateModalOpen(true);
+            }}
             className="bg-white border border-[#E2E8F0] rounded-xl px-3.5 py-2 text-xs font-semibold text-[#1E293B] shadow-2xs flex items-center gap-2 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
@@ -1118,6 +543,24 @@ export const AdminTestAttempts: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-2xl p-4 border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-center justify-between"
+        >
+          <div>
+            <span className="font-bold mr-1">Test attempts unavailable:</span> {loadError}
+          </div>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ==================================================================== */}
       {/* 2. SUMMARY METRIC CARDS (5 CARDS IN A ROW) */}
@@ -1188,10 +631,12 @@ export const AdminTestAttempts: React.FC = () => {
             <p className="text-[11px] font-semibold text-[#64748B]">Average Score</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
-                {averageScore}%
+                {averageScore === null ? '—' : `${averageScore}%`}
               </span>
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Overall test accuracy</p>
+            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">
+              Completed attempts · score / total marks
+            </p>
           </div>
         </div>
 
@@ -1305,15 +750,18 @@ export const AdminTestAttempts: React.FC = () => {
             <select
               value={filterDateRange}
               onChange={(e) => {
-                setFilterDateRange(e.target.value);
+                setFilterDateRange(e.target.value as DateRangeFilter);
                 setCurrentPage(1);
               }}
               className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7"
             >
-              <option value="All Time">All Time</option>
-              <option value="September 2026">September 2026</option>
-              <option value="August 2026">August 2026</option>
-              <option value="Today">Today</option>
+              {DATE_RANGE_OPTIONS.filter(
+                (o) => o !== 'Custom Range' || filterDateRange === 'Custom Range'
+              ).map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -1485,7 +933,7 @@ export const AdminTestAttempts: React.FC = () => {
 
                         {/* Score */}
                         <td className="py-3 px-3 font-bold text-[#1E293B]">
-                          {attempt.score} / {attempt.totalMarks}
+                          {attempt.score} / {attempt.totalMarks > 0 ? attempt.totalMarks : '—'}
                         </td>
 
                         {/* Accuracy */}
@@ -1814,7 +1262,7 @@ export const AdminTestAttempts: React.FC = () => {
                     <div className="text-xs font-extrabold text-[#0F172A] flex items-center justify-center gap-1">
                       <Target className="w-3.5 h-3.5 text-emerald-600" />
                       <span>
-                        {selectedAttempt.score}/{selectedAttempt.totalMarks}
+                        {selectedAttempt.score}/{selectedAttempt.totalMarks > 0 ? selectedAttempt.totalMarks : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] text-[#64748B] mt-0.5">Score</p>
@@ -2000,6 +1448,11 @@ export const AdminTestAttempts: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 text-xs">
+                  {questionsList.length === 0 && (
+                    <p className="py-6 text-center text-slate-400">
+                      Answer details are unavailable for this attempt.
+                    </p>
+                  )}
                   {questionsList
                     .filter((q) =>
                       answersTabFilter === 'all' ? true : q.status === answersTabFilter
@@ -2186,37 +1639,74 @@ export const AdminTestAttempts: React.FC = () => {
             </div>
 
             <div className="space-y-2 text-xs">
-              {[
-                '01 Sep 2026 → 30 Sep 2026',
-                'Today (30 Sep 2026)',
-                'Yesterday (29 Sep 2026)',
-                'Last 7 Days (24 Sep → 30 Sep 2026)',
-                'Last 30 Days (01 Sep → 30 Sep 2026)',
-                'August 2026 (01 Aug → 31 Aug 2026)',
-                'All Time',
-              ].map((range) => (
+              {DATE_RANGE_OPTIONS.map((range) => (
                 <button
                   key={range}
                   onClick={() => {
-                    setActiveDateRangeLabel(range);
-                    setIsDateModalOpen(false);
+                    setDraftDateRange(range);
+                    setDateRangeError(null);
                   }}
                   className={cn(
                     'w-full text-left px-3.5 py-2.5 rounded-xl border font-semibold transition-colors flex items-center justify-between',
-                    activeDateRangeLabel === range
+                    draftDateRange === range
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   )}
                 >
                   <span>{range}</span>
-                  {activeDateRangeLabel === range && <Check className="w-4 h-4 text-blue-600" />}
+                  {draftDateRange === range && <Check className="w-4 h-4 text-blue-600" />}
                 </button>
               ))}
+              {draftDateRange === 'Custom Range' && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <label className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500">From</span>
+                    <input
+                      type="date"
+                      aria-label="From date"
+                      value={draftStartDate}
+                      onChange={(e) => setDraftStartDate(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-500">To</span>
+                    <input
+                      type="date"
+                      aria-label="To date"
+                      value={draftEndDate}
+                      onChange={(e) => setDraftEndDate(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </label>
+                </div>
+              )}
+              {dateRangeError && (
+                <p role="alert" className="text-rose-600 font-semibold">
+                  {dateRangeError}
+                </p>
+              )}
             </div>
 
             <div className="pt-2 flex justify-end">
               <button
-                onClick={() => setIsDateModalOpen(false)}
+                onClick={() => {
+                  if (draftDateRange === 'Custom Range') {
+                    try {
+                      getDateRangeBounds('Custom Range', draftStartDate, draftEndDate);
+                    } catch (err) {
+                      setDateRangeError(
+                        err instanceof Error ? err.message : 'Choose a valid date range.'
+                      );
+                      return;
+                    }
+                    setCustomStartDate(draftStartDate);
+                    setCustomEndDate(draftEndDate);
+                  }
+                  setFilterDateRange(draftDateRange);
+                  setCurrentPage(1);
+                  setIsDateModalOpen(false);
+                }}
                 className="bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
               >
                 Apply Range
@@ -2265,7 +1755,7 @@ export const AdminTestAttempts: React.FC = () => {
               <div className="p-2 bg-white rounded-xl border border-blue-100">
                 <p className="text-slate-500 text-[10px]">Total Score</p>
                 <p className="text-sm font-black text-slate-900 mt-0.5">
-                  {activeModalAttempt.score} / {activeModalAttempt.totalMarks}
+                  {activeModalAttempt.score} / {activeModalAttempt.totalMarks > 0 ? activeModalAttempt.totalMarks : '—'}
                 </p>
               </div>
               <div className="p-2 bg-white rounded-xl border border-blue-100">
@@ -2296,7 +1786,12 @@ export const AdminTestAttempts: React.FC = () => {
 
             {/* Questions Scrollable Body */}
             <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              {questionsList.map((q) => (
+              {modalQuestionsList.length === 0 && (
+                <p className="py-10 text-center text-xs text-slate-400">
+                  Answer details are unavailable for this attempt.
+                </p>
+              )}
+              {modalQuestionsList.map((q) => (
                 <div
                   key={q.id}
                   className={cn(
@@ -2431,7 +1926,7 @@ export const AdminTestAttempts: React.FC = () => {
                 <div className="p-3 bg-white border border-slate-200 rounded-xl">
                   <span className="text-slate-500 text-[11px]">Total Marks</span>
                   <p className="font-black text-slate-900 text-sm mt-0.5">
-                    {activeModalAttempt.totalMarks} Marks
+                    {activeModalAttempt.totalMarks > 0 ? activeModalAttempt.totalMarks : '—'} Marks
                   </p>
                 </div>
                 <div className="p-3 bg-white border border-slate-200 rounded-xl">

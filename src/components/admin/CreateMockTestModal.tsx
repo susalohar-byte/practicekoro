@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Shield,
@@ -52,33 +52,60 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
   const [passingMarks, setPassingMarks] = useState(40);
   const [negativeMarking, setNegativeMarking] = useState(0.25);
   const [isPremium, setIsPremium] = useState(false);
-  const [status, setStatus] = useState<'draft' | 'published'>('published');
+  // New tests have no questions yet, so they start as drafts; publish from Settings once
+  // questions are assigned (publishing is validated there).
+  const [status, setStatus] = useState<'draft' | 'published'>('draft');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync mode defaults when testType changes
+  // Start every "create" from a clean form for the requested mode.
   useEffect(() => {
-    if (testType === 'full_mock') {
-      setDurationMinutes(90);
-      setTotalMarks(100);
-      setPassingMarks(40);
-      setNegativeMarking(0.25);
-      if (exams.length > 0 && !examId) setExamId(exams[0].id);
-    } else if (testType === 'topic') {
-      setDurationMinutes(30);
-      setTotalMarks(25);
-      setPassingMarks(10);
-      setNegativeMarking(0.25);
-      if (subjects.length > 0 && !subjectId) setSubjectId(subjects[0].id);
-    } else if (testType === 'pyq') {
-      setDurationMinutes(60);
-      setTotalMarks(85);
-      setPassingMarks(35);
-      setNegativeMarking(0.25);
-      if (exams.length > 0 && !examId) setExamId(exams[0].id);
-    }
-  }, [testType, exams, subjects]);
+    if (!isOpen) return;
+    setTestType(initialType);
+    setTitle('');
+    setDescription('');
+    setIconUrl('');
+    setExamId('');
+    setSubjectId('');
+    setChapterId('');
+    setYear(new Date().getFullYear());
+    setPaperName('Prelims');
+    setIsPremium(false);
+    setStatus('draft');
+    setError(null);
+  }, [isOpen, initialType]);
+
+  const applyTypeDefaults = useCallback(
+    (type: 'full_mock' | 'topic' | 'pyq') => {
+      if (type === 'full_mock') {
+        setDurationMinutes(90);
+        setTotalMarks(100);
+        setPassingMarks(40);
+        setNegativeMarking(0.25);
+        setExamId((prev) => prev || exams[0]?.id || '');
+      } else if (type === 'topic') {
+        setDurationMinutes(30);
+        setTotalMarks(25);
+        setPassingMarks(10);
+        setNegativeMarking(0.25);
+        setSubjectId((prev) => prev || subjects[0]?.id || '');
+      } else if (type === 'pyq') {
+        setDurationMinutes(60);
+        setTotalMarks(85);
+        setPassingMarks(35);
+        setNegativeMarking(0.25);
+        setExamId((prev) => prev || exams[0]?.id || '');
+      }
+    },
+    [exams, subjects]
+  );
+
+  // Sync mode defaults when testType changes (and when the modal is opened)
+  useEffect(() => {
+    if (!isOpen) return;
+    applyTypeDefaults(testType);
+  }, [isOpen, testType, applyTypeDefaults]);
 
   // Filter topics based on selected subject
   const availableChapters = chapters.filter((c) => !subjectId || c.subjectId === subjectId);
@@ -622,8 +649,10 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                 onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
-                <option value="published">Published (Ready for practice)</option>
                 <option value="draft">Draft (Hidden from students)</option>
+                <option value="published" disabled>
+                  Published (add questions first, then publish from Settings)
+                </option>
               </select>
             </div>
 

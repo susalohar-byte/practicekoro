@@ -1,5 +1,5 @@
 import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FileText,
@@ -360,15 +360,15 @@ export const AdminTests: React.FC = () => {
       setEditTitle(selectedTest.title || '');
       setEditDescription(selectedTest.description || '');
       setEditDurationMinutes(selectedTest.durationMinutes || 90);
-      setEditTotalMarks(selectedTest.totalMarks || 100);
-      setEditPassingMarks(selectedTest.passingMarks || 40);
+      setEditTotalMarks(selectedTest.totalMarks ?? 0);
+      setEditPassingMarks(selectedTest.passingMarks ?? 0);
       setEditNegativeMarking(selectedTest.negativeMarking ?? 0.25);
       setEditIsPremium(Boolean(selectedTest.isPremium));
       setEditStatus(selectedTest.status || 'published');
       setEditIconUrl(selectedTest.iconUrl || '');
       setSaveSuccessMsg(null);
     }
-  }, [selectedTest?.id, selectedTest?.iconUrl]);
+  }, [selectedTest]);
 
   const handleQuickIconUpload = async (file: File, targetTest: MockTest) => {
     try {
@@ -397,7 +397,10 @@ export const AdminTests: React.FC = () => {
     try {
       setIsSavingSettings(true);
       setSaveSuccessMsg(null);
-      const updated = await api.updateTest(selectedTest.id, {
+      // Publishing goes through validation (exam, marks, at least one valid question), so save
+      // the other settings first and then publish separately.
+      const isPublishing = editStatus === 'published' && selectedTest.status !== 'published';
+      let updated = await api.updateTest(selectedTest.id, {
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
         durationMinutes: Number(editDurationMinutes),
@@ -405,9 +408,22 @@ export const AdminTests: React.FC = () => {
         passingMarks: Number(editPassingMarks),
         negativeMarking: Number(editNegativeMarking),
         isPremium: editIsPremium,
-        status: editStatus,
+        status: isPublishing ? selectedTest.status : editStatus,
         iconUrl: editIconUrl.trim(),
       });
+      if (isPublishing) {
+        const publishResult = await api.publishTest(selectedTest.id);
+        if (!publishResult.success) {
+          setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? updated : t)));
+          setSelectedTest(updated);
+          alert(
+            'Settings saved, but the test was not published: ' +
+              (publishResult.error || 'Publish validation failed')
+          );
+          return;
+        }
+        updated = { ...updated, status: 'published', isActive: true };
+      }
       setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? updated : t)));
       setSelectedTest(updated);
       setSaveSuccessMsg('Changes saved successfully!');
@@ -419,12 +435,7 @@ export const AdminTests: React.FC = () => {
     }
   };
 
-  // Initial load
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [testsData, examsData, subjectsData, chaptersData] = await Promise.all([
@@ -434,21 +445,26 @@ export const AdminTests: React.FC = () => {
         api.getAllAdminChapters(),
       ]);
 
+      let freshTests: MockTest[];
       if (isSupabaseConfigured) {
-        setTests(testsData || []);
+        freshTests = testsData || [];
       } else {
         // If DB tests exist, merge with reference tests prioritizing DB tests
         if (testsData && testsData.length > 0) {
           const dbSlugs = new Set(testsData.map((t) => t.slug || t.id));
-          const combined = [
+          freshTests = [
             ...testsData,
             ...REFERENCE_DEFAULT_TESTS.filter((ref) => !dbSlugs.has(ref.slug)),
           ];
-          setTests(combined);
         } else {
-          setTests(REFERENCE_DEFAULT_TESTS);
+          freshTests = REFERENCE_DEFAULT_TESTS;
         }
       }
+      setTests(freshTests);
+      // Keep the open details panel in sync (e.g. totals recomputed after Manage Questions).
+      setSelectedTest((prev) =>
+        prev ? (freshTests.find((t) => t.id === prev.id) ?? prev) : prev
+      );
 
       setExams(examsData || []);
       setSubjects(subjectsData || []);
@@ -457,12 +473,17 @@ export const AdminTests: React.FC = () => {
       console.error('Failed to load mock tests data:', err);
       if (!isSupabaseConfigured) {
         setTests(REFERENCE_DEFAULT_TESTS);
-        if (!selectedTest) setSelectedTest(REFERENCE_DEFAULT_TESTS[0]);
+        setSelectedTest((prev) => prev ?? REFERENCE_DEFAULT_TESTS[0]);
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   // Sync tab change
   const handleTabChange = (tab: TestTypeTab) => {
@@ -1201,7 +1222,7 @@ export const AdminTests: React.FC = () => {
 
                           {/* Questions */}
                           <td className="py-3 px-2 text-center text-slate-700 dark:text-slate-300">
-                            {t.totalQuestions || 85}
+                            {t.totalQuestions ?? '—'}
                           </td>
 
                           {/* Duration */}
@@ -1736,7 +1757,7 @@ export const AdminTests: React.FC = () => {
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-800 dark:text-slate-200">
-                    Questions ({selectedTest.totalQuestions || 85})
+                    Questions ({selectedTest.totalQuestions ?? 0})
                   </span>
                   <Button
                     size="sm"

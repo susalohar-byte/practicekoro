@@ -60,370 +60,6 @@ export interface RankingStudent {
   }[];
 }
 
-// Initial seeded student rankings matching exact reference screenshot media_1791199684215.jpg
-export const INITIAL_STUDENTS: RankingStudent[] = [
-  {
-    rank: 1,
-    studentId: 'PK100312',
-    name: 'Rohit Kumar',
-    district: 'Purulia',
-    location: 'Purulia, West Bengal',
-    avatar: '/images/leaderboard_rohit.jpg',
-    testsAttempted: 48,
-    questionsAnswered: 3240,
-    accuracy: 92,
-    avgScore: 88,
-    lastActive: '2 hours ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 94, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 90, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 87, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 85, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 82, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'WBP Constable Full Mock 1',
-        scorePercent: 88,
-        timeAgo: '2 hours ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-      {
-        title: 'General Science - Heat & Temperature',
-        scorePercent: 92,
-        timeAgo: '1 day ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'Indian Polity - Constitution',
-        scorePercent: 84,
-        timeAgo: '2 days ago',
-        iconBg: 'bg-rose-100 text-rose-600',
-      },
-    ],
-  },
-  {
-    rank: 2,
-    studentId: 'PK100245',
-    name: 'Sneha Khatun',
-    district: 'Kolkata',
-    location: 'Kolkata, West Bengal',
-    avatar: '/images/avatar_sneha.jpg',
-    testsAttempted: 45,
-    questionsAnswered: 2980,
-    accuracy: 89,
-    avgScore: 84,
-    lastActive: '4 hours ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 91, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 88, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 86, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 84, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 80, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Geography Full Mock 1',
-        scorePercent: 89,
-        timeAgo: '4 hours ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'WBP Constable Full Mock 1',
-        scorePercent: 84,
-        timeAgo: '1 day ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-      {
-        title: 'Indian Polity - Test 02',
-        scorePercent: 82,
-        timeAgo: '3 days ago',
-        iconBg: 'bg-rose-100 text-rose-600',
-      },
-    ],
-  },
-  {
-    rank: 3,
-    studentId: 'PK100344',
-    name: 'Subhankar Pal',
-    district: 'Paschim Medinipur',
-    location: 'Paschim Medinipur',
-    avatar: '/images/avatar_abhishek.jpg',
-    testsAttempted: 42,
-    questionsAnswered: 2760,
-    accuracy: 87,
-    avgScore: 82,
-    lastActive: '1 day ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 88, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 86, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 84, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 81, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 78, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Reasoning Full Mock 1',
-        scorePercent: 85,
-        timeAgo: '1 day ago',
-        iconBg: 'bg-purple-100 text-purple-600',
-      },
-      {
-        title: 'WBP Constable PYQ 2024',
-        scorePercent: 82,
-        timeAgo: '2 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-      {
-        title: 'Blood Relations - Test 01',
-        scorePercent: 79,
-        timeAgo: '4 days ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-    ],
-  },
-  {
-    rank: 4,
-    studentId: 'PK100198',
-    name: 'Arijit Mondal',
-    district: 'Nadia',
-    location: 'Nadia, West Bengal',
-    avatar: '/images/avatar_arindam.jpg',
-    testsAttempted: 38,
-    questionsAnswered: 2450,
-    accuracy: 84,
-    avgScore: 80,
-    lastActive: '1 day ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 85, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 83, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 80, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 79, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 76, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'WBP Constable PYQ 2024',
-        scorePercent: 80,
-        timeAgo: '1 day ago',
-        iconBg: 'bg-rose-100 text-rose-600',
-      },
-      {
-        title: 'Modern India - Test 01',
-        scorePercent: 82,
-        timeAgo: '3 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-    ],
-  },
-  {
-    rank: 5,
-    studentId: 'PK100276',
-    name: 'Moumita Sarkar',
-    district: 'Howrah',
-    location: 'Howrah, West Bengal',
-    avatar: '/images/avatar_mousumi.jpg',
-    testsAttempted: 36,
-    questionsAnswered: 2320,
-    accuracy: 82,
-    avgScore: 78,
-    lastActive: '2 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 82, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 80, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 79, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 76, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 74, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Indian Polity - Test 02',
-        scorePercent: 78,
-        timeAgo: '2 days ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'WBP Constable Full Mock 2',
-        scorePercent: 79,
-        timeAgo: '4 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-    ],
-  },
-  {
-    rank: 6,
-    studentId: 'PK100188',
-    name: 'Rakesh Shaw',
-    district: 'Birbhum',
-    location: 'Birbhum, West Bengal',
-    avatar: '/images/avatar_koushik.jpg',
-    testsAttempted: 34,
-    questionsAnswered: 2180,
-    accuracy: 79,
-    avgScore: 75,
-    lastActive: '2 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 80, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 78, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 75, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 74, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 72, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Heat & Temperature - Test 01',
-        scorePercent: 80,
-        timeAgo: '2 days ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'WBP Constable PYQ 2023',
-        scorePercent: 75,
-        timeAgo: '5 days ago',
-        iconBg: 'bg-rose-100 text-rose-600',
-      },
-    ],
-  },
-  {
-    rank: 7,
-    studentId: 'PK100366',
-    name: 'Taniya Ghosh',
-    district: 'Murshidabad',
-    location: 'Murshidabad, West Bengal',
-    avatar: '/images/avatar_tania.jpg',
-    testsAttempted: 32,
-    questionsAnswered: 2040,
-    accuracy: 77,
-    avgScore: 72,
-    lastActive: '3 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 76, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 75, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 72, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 70, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 68, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Environment - Test 01',
-        scorePercent: 74,
-        timeAgo: '3 days ago',
-        iconBg: 'bg-emerald-100 text-emerald-600',
-      },
-      {
-        title: 'WBP Constable Full Mock 1',
-        scorePercent: 72,
-        timeAgo: '6 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-    ],
-  },
-  {
-    rank: 8,
-    studentId: 'PK100115',
-    name: 'Puja Roy',
-    district: 'Bankura',
-    location: 'Bankura, West Bengal',
-    initials: 'PR',
-    initialsBg: 'bg-rose-100 text-rose-600 border border-rose-200',
-    testsAttempted: 30,
-    questionsAnswered: 1920,
-    accuracy: 74,
-    avgScore: 70,
-    lastActive: '3 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 75, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 73, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 71, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 68, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 66, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Blood Relations - Test 01',
-        scorePercent: 70,
-        timeAgo: '3 days ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'WBP Constable PYQ 2022',
-        scorePercent: 71,
-        timeAgo: '5 days ago',
-        iconBg: 'bg-rose-100 text-rose-600',
-      },
-    ],
-  },
-  {
-    rank: 9,
-    studentId: 'PK100422',
-    name: 'Abhijit Dey',
-    district: 'Hooghly',
-    location: 'Hooghly, West Bengal',
-    initials: 'AD',
-    initialsBg: 'bg-emerald-100 text-emerald-600 border border-emerald-200',
-    testsAttempted: 28,
-    questionsAnswered: 1820,
-    accuracy: 72,
-    avgScore: 68,
-    lastActive: '4 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 72, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 70, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 68, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 66, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 65, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Mathematics Speed Test',
-        scorePercent: 68,
-        timeAgo: '4 days ago',
-        iconBg: 'bg-blue-100 text-blue-600',
-      },
-      {
-        title: 'WBP Constable Full Mock 1',
-        scorePercent: 69,
-        timeAgo: '6 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-    ],
-  },
-  {
-    rank: 10,
-    studentId: 'PK100099',
-    name: 'Suman Das',
-    district: 'South 24 Parganas',
-    location: 'South 24 Parganas',
-    avatar: '/images/performer_suman.png',
-    testsAttempted: 26,
-    questionsAnswered: 1680,
-    accuracy: 71,
-    avgScore: 66,
-    lastActive: '4 days ago',
-    subjectPerformance: [
-      { subject: 'General Science', scorePercent: 70, barColor: 'bg-cyan-500' },
-      { subject: 'General Knowledge', scorePercent: 68, barColor: 'bg-blue-600' },
-      { subject: 'Indian Polity', scorePercent: 66, barColor: 'bg-indigo-600' },
-      { subject: 'History', scorePercent: 65, barColor: 'bg-amber-500' },
-      { subject: 'Geography', scorePercent: 64, barColor: 'bg-rose-500' },
-    ],
-    recentAttempts: [
-      {
-        title: 'Reasoning Mock Test 02',
-        scorePercent: 67,
-        timeAgo: '4 days ago',
-        iconBg: 'bg-purple-100 text-purple-600',
-      },
-      {
-        title: 'WBP Constable Mock 03',
-        scorePercent: 66,
-        timeAgo: '7 days ago',
-        iconBg: 'bg-amber-100 text-amber-600',
-      },
-    ],
-  },
-];
-
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -450,6 +86,7 @@ export const AdminRankings: React.FC = () => {
   // Live rankings list loaded from Supabase
   const [studentsList, setStudentsList] = useState<RankingStudent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Selected Student for Details Widget
   const [selectedStudentRank, setSelectedStudentRank] = useState<number>(1);
@@ -486,6 +123,7 @@ export const AdminRankings: React.FC = () => {
       search?: string;
     }) => {
       setIsLoading(true);
+      setLoadError(null);
       try {
         const targetScope = overrides?.scope ?? scopeTab;
         const targetExam = overrides?.exam ?? selectedExam;
@@ -503,18 +141,14 @@ export const AdminRankings: React.FC = () => {
           search: targetSearch,
         });
 
-        if (liveRankings && liveRankings.length > 0) {
-          setStudentsList(liveRankings);
-          setSelectedStudentRank(liveRankings[0].rank);
-        } else {
-          // If database has no attempts matching the filter, fallback to initial reference rankings
-          setStudentsList(INITIAL_STUDENTS);
-          setSelectedStudentRank(1);
-        }
+        // No matching completed attempts is a real empty result, never seeded sample students.
+        const list = liveRankings || [];
+        setStudentsList(list);
+        setSelectedStudentRank(list.length > 0 ? list[0].rank : 1);
       } catch (err) {
         console.warn('Failed to load admin rankings from database:', err);
-        setStudentsList(INITIAL_STUDENTS);
-        setSelectedStudentRank(1);
+        setStudentsList([]);
+        setLoadError(err instanceof Error ? err.message : 'Failed to load rankings.');
       } finally {
         setIsLoading(false);
       }
@@ -595,14 +229,12 @@ export const AdminRankings: React.FC = () => {
   const filteredStudents = useMemo(() => {
     let list = studentsList;
     if (selectedSubject !== 'All Subjects') {
-      const subFiltered = list.filter((student) =>
+      // Applied strictly: no matches means an empty list, not the unfiltered rankings.
+      list = list.filter((student) =>
         student.subjectPerformance.some((sp) =>
           sp.subject.toLowerCase().includes(selectedSubject.toLowerCase())
         )
       );
-      if (subFiltered.length > 0) {
-        list = subFiltered;
-      }
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -726,6 +358,24 @@ export const AdminRankings: React.FC = () => {
           <span>Export Rankings</span>
         </button>
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-2xl p-4 border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-center justify-between"
+        >
+          <div>
+            <span className="font-bold mr-1">Rankings unavailable:</span> {loadError}
+          </div>
+          <button
+            type="button"
+            onClick={() => void fetchRankings()}
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ==================================================================== */}
       {/* 2. SUMMARY METRIC CARDS (4 CARDS IN A ROW) */}
@@ -1064,7 +714,9 @@ export const AdminRankings: React.FC = () => {
                 {filteredStudents.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-slate-400 text-xs">
-                      No rankings available.
+                      {loadError
+                        ? 'Rankings could not be loaded.'
+                        : 'No completed attempts match these filters.'}
                     </td>
                   </tr>
                 ) : (

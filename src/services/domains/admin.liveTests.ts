@@ -90,15 +90,59 @@ export function deriveLiveTestStatus(
   if (status === 'cancelled') return 'cancelled';
   if (status === 'draft') return 'draft';
   if (status === 'ended' || status === 'completed') return 'ended';
-  if (status === 'live') return 'live';
   const now = Date.now();
   const start = new Date(startAtStr).getTime();
-  if (isNaN(start)) return 'upcoming';
+  if (isNaN(start)) return status === 'live' ? 'live' : 'upcoming';
   const end = start + Math.max(1, durationMinutes) * 60 * 1000;
 
+  // An explicitly started ("Start Live Now") event stays live until its window closes.
+  if (status === 'live') return now <= end ? 'live' : 'ended';
   if (now < start) return 'upcoming';
   if (now <= end) return 'live';
   return 'ended';
+}
+
+/**
+ * Convert a `<input type="date">` + `<input type="time">` pair, interpreted in the admin's
+ * local timezone (IST for our admins), into a UTC ISO string.
+ */
+export function localDateTimeToIso(date: string, time: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  const local = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0, 0);
+  if (isNaN(local.getTime())) throw new Error('Invalid date or time.');
+  return local.toISOString();
+}
+
+/** Split an ISO timestamp into local `YYYY-MM-DD` / `HH:mm` parts for date & time inputs. */
+export function isoToLocalDateTimeParts(iso: string): { date: string; time: string } | null {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+/**
+ * Map an admin-facing status onto the `live_tests` columns. The DB CHECK only allows
+ * ('upcoming','live','ended','cancelled'); "Draft" is represented as an unpublished event.
+ */
+function toDbStatusFields(status: string): { status: string; isPublished?: boolean } {
+  switch (status) {
+    case 'draft':
+      return { status: 'upcoming', isPublished: false };
+    case 'live':
+      return { status: 'live', isPublished: true };
+    case 'ended':
+    case 'completed':
+      return { status: 'ended' };
+    case 'cancelled':
+      return { status: 'cancelled' };
+    default:
+      return { status: 'upcoming', isPublished: true };
+  }
 }
 
 /** Map a Supabase `tests` row into a `MockTest` object */
@@ -174,7 +218,18 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
     lt.scheduled_start_time ||
     new Date().toISOString();
   const duration = Number(test?.durationMinutes || lt.durationMinutes || lt.duration_minutes || 90);
-  const derivedStatus = deriveLiveTestStatus(lt.status, startAt, duration);
+  const isPublished =
+    lt.isPublished !== undefined
+      ? Boolean(lt.isPublished)
+      : lt.is_published !== undefined
+        ? Boolean(lt.is_published)
+        : true;
+  const scheduleStatus = deriveLiveTestStatus(lt.status, startAt, duration);
+  // Unpublished events are drafts until they are cancelled or have ended.
+  const derivedStatus: LiveTest['status'] =
+    !isPublished && (scheduleStatus === 'upcoming' || scheduleStatus === 'live')
+      ? 'draft'
+      : scheduleStatus;
   const endAt =
     lt.scheduledEndTime ||
     lt.scheduled_end_time ||
@@ -230,12 +285,7 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
       'Official examination pattern with statewide rank & percentile analysis.',
     enrolledCount: enrolled,
     participantsCount: participants,
-    isPublished:
-      lt.isPublished !== undefined
-        ? Boolean(lt.isPublished)
-        : lt.is_published !== undefined
-          ? Boolean(lt.is_published)
-          : true,
+    isPublished,
     scheduledStartTime: startAt,
     scheduledEndTime: endAt,
     scheduledStartAt: startAt,
@@ -507,6 +557,8 @@ export interface ScheduleLiveTestInput {
   durationMinutes?: number;
   totalMarks?: number;
   negativeMarking?: number;
+  /** Admin-facing status; 'draft' is stored as an unpublished upcoming event. */
+  status?: LiveTest['status'];
 }
 
 /** Schedule an existing test as a Live Test event */
@@ -534,6 +586,8 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
   const sourceTest = sourceTestsMap.get(input.testId) || null;
 
   const resolvedLogo = input.logo?.trim() || input.examLogo?.trim() || undefined;
+  const dbFields = toDbStatusFields(input.status || 'upcoming');
+  const isPublished = dbFields.isPublished ?? true;
 
   const newLiveTest: LiveTest = enrichLiveTest(
     {
@@ -546,7 +600,8 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
       startAt,
       registration_deadline: registrationDeadline,
       registrationDeadline,
-      status: 'upcoming',
+      status: dbFields.status,
+      isPublished,
       ranking_enabled: input.rankingEnabled ?? true,
       rankingEnabled: input.rankingEnabled ?? true,
       subscription_required: input.subscriptionRequired ?? false,
@@ -577,7 +632,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
         test_id: input.testId,
         start_at: startAt,
         registration_deadline: registrationDeadline,
-        status: newLiveTest.status === 'live' ? 'live' : 'upcoming',
+        status: dbFields.status,
         ranking_enabled: input.rankingEnabled ?? true,
         subscription_required: input.subscriptionRequired ?? false,
         title: newLiveTest.title,
@@ -588,7 +643,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
         total_marks: newLiveTest.totalMarks,
         negative_marking: newLiveTest.negativeMarking,
         instructions: newLiveTest.instructions,
-        is_published: true,
+        is_published: isPublished,
         logo: newLiveTest.logo,
         exam_logo: newLiveTest.examLogo,
       };
@@ -612,16 +667,19 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
   const sourceTestsMap = testId ? await fetchSourceTestsMap([testId]) : new Map<string, MockTest>();
   const sourceTest = sourceTestsMap.get(testId) || existing?.test || null;
 
-  // If status is explicitly being set to 'upcoming' or 'live' (e.g. re-scheduling or starting now),
-  // allow deriveLiveTestStatus to compute from the new startAt unless 'cancelled' or 'ended' was requested.
+  // Map the requested status onto the stored columns (Draft = unpublished). Without an explicit
+  // status, keep a cancellation and otherwise let deriveLiveTestStatus compute from the schedule.
+  const dbFields = updates.status ? toDbStatusFields(updates.status) : null;
   const nextStatus =
-    updates.status === 'cancelled' || updates.status === 'ended' ? updates.status : 'upcoming';
+    dbFields?.status ?? (existing.status === 'cancelled' ? 'cancelled' : 'upcoming');
+  const nextIsPublished = dbFields?.isPublished ?? existing.isPublished;
 
   const updatedItem = enrichLiveTest(
     {
       ...(existing || { id, testId }),
       ...updates,
       status: nextStatus,
+      isPublished: nextIsPublished,
       updatedAt: new Date().toISOString(),
     },
     sourceTest
@@ -659,7 +717,10 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
       if (updates.registrationDeadline !== undefined) {
         payload.registration_deadline = updates.registrationDeadline;
       }
-      if (updates.status) payload.status = updates.status;
+      if (dbFields) {
+        payload.status = dbFields.status;
+        if (dbFields.isPublished !== undefined) payload.is_published = dbFields.isPublished;
+      }
       if (updates.rankingEnabled !== undefined) payload.ranking_enabled = updates.rankingEnabled;
       if (updates.subscriptionRequired !== undefined) {
         payload.subscription_required = updates.subscriptionRequired;
@@ -681,8 +742,12 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
           .single(),
         id
       );
-    } catch {
-      // Handled via app_settings & localStorage
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message
+          ? `Live test could not be saved: ${err.message}`
+          : 'Live test could not be saved. Check the backend schema and permissions.'
+      );
     }
   }
 
@@ -1072,12 +1137,19 @@ export async function getLiveTestLeaderboard(liveTestId: string): Promise<LiveTe
     // submissions in Supabase appear on the statewide leaderboard even without migration 044!
     try {
       const liveTest = await getLiveTestById(liveTestId);
-      if (liveTest?.testId) {
+      const windowStart = liveTest ? new Date(liveTest.startAt).getTime() : NaN;
+      if (liveTest?.testId && !isNaN(windowStart)) {
+        // Only attempts started during the live window count — practice attempts of the same
+        // underlying test before or after the event must not appear on the live leaderboard.
+        const windowEnd =
+          windowStart + Math.max(1, Number(liveTest.durationMinutes) || 0) * 60 * 1000;
         const { data: attemptsData, error: attemptsErr } = await supabase
           .from('test_attempts')
           .select('id, user_id, score, accuracy, time_spent_seconds, end_time, created_at')
           .eq('test_id', liveTest.testId)
           .eq('status', 'completed')
+          .gte('start_time', new Date(windowStart).toISOString())
+          .lte('start_time', new Date(windowEnd).toISOString())
           .order('score', { ascending: false })
           .limit(200);
 

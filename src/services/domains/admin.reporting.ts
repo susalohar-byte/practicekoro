@@ -12,19 +12,31 @@ import {
 /** Every read is authorized by the caller's Supabase session/RLS; never a service key. */
 export async function readCompleteQuery(build: () => any): Promise<any[]> {
   const rows: any[] = [];
-  let expected: number | null = null;
+  const seen = new Set<string>();
+  let offset = 0;
+  let expected = 0;
   do {
-    const { data, error, count } = await build().range(rows.length, rows.length + 499);
+    const { data, error, count } = await build().range(offset, offset + 499);
     if (error) throw new Error(error.message);
     if (!Array.isArray(data) || typeof count !== 'number')
       throw new Error('The backend did not confirm a complete reporting result.');
-    if (expected !== null && count !== expected)
-      throw new Error('Reporting records changed during loading. Please retry.');
+    // Active platforms keep writing while a report pages through results: follow the
+    // latest confirmed count instead of failing, and drop rows that shift across pages.
     expected = count;
-    if (!data.length && rows.length < count)
-      throw new Error('Reporting data was truncated. Please retry.');
-    rows.push(...data);
-  } while (expected !== null && rows.length < expected);
+    if (!data.length) {
+      if (offset < expected) throw new Error('Reporting data was truncated. Please retry.');
+      break;
+    }
+    offset += data.length;
+    for (const row of data) {
+      const key = row && row.id != null ? String(row.id) : null;
+      if (key !== null) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      rows.push(row);
+    }
+  } while (offset < expected);
   return rows;
 }
 function rows(table: string, columns: string, filter: (q: any) => any = (q) => q) {
@@ -46,9 +58,12 @@ async function count(table: string, filter: (q: any) => any = (q) => q): Promise
 const within = (value: string, b: DateRangeBounds) =>
   Date.parse(value) >= Date.parse(b.startIso) && Date.parse(value) <= Date.parse(b.endIso);
 export function netPaymentAmount(p: any): number {
-  if (p.status !== 'completed') return 0; // fully refunded, pending and failed contribute no retained revenue
-  return (
-    (Math.round(Number(p.amount || 0) * 100) - Math.round(Number(p.refund_amount || 0) * 100)) / 100
+  // Pending and failed payments retain nothing; refunded ones keep any unrefunded remainder.
+  if (p.status !== 'completed' && p.status !== 'refunded') return 0;
+  const refunded = p.refund_amount ?? (p.status === 'refunded' ? p.amount : 0);
+  return Math.max(
+    0,
+    (Math.round(Number(p.amount || 0) * 100) - Math.round(Number(refunded || 0) * 100)) / 100
   );
 }
 export interface DashboardPeriod {
@@ -147,17 +162,28 @@ export async function getDashboardPeriodData(b: DateRangeBounds): Promise<Dashbo
   if (!isSupabaseConfigured) return aggregateDashboardPeriod(b, [], [], [], []);
   const start = b.prevStartIso || b.startIso;
   const filter = (q: any) => q.gte('created_at', start).lte('created_at', b.endIso);
-  const [p, a, r, m] = await Promise.all([
+  const [p, studentRows, a, r, m] = await Promise.all([
     rows('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
+    rows('profiles', 'id', (q) => q.eq('role', 'student')),
     rows('test_attempts', 'id, user_id, test_id, status, created_at', filter),
-    rows('attempt_answers', 'id, selected_option, created_at', (q) =>
+    rows('attempt_answers', 'id, selected_option, created_at, test_attempts!inner(user_id)', (q) =>
       filter(q.not('selected_option', 'is', null))
     ),
     rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
       filter(q.in('status', ['completed', 'refunded']))
     ),
   ]);
-  return aggregateDashboardPeriod(b, p, a, r, m);
+  // Student reporting excludes staff/admin test runs, matching the Analytics aggregation.
+  const students = new Set(studentRows.map((s) => s.id));
+  const owner = (x: any) =>
+    (Array.isArray(x.test_attempts) ? x.test_attempts[0] : x.test_attempts)?.user_id;
+  return aggregateDashboardPeriod(
+    b,
+    p,
+    a.filter((x) => students.has(x.user_id)),
+    r.filter((x) => students.has(owner(x))),
+    m
+  );
 }
 export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
   const now = new Date();

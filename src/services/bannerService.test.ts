@@ -211,9 +211,8 @@ describe('bannerService Enterprise Architecture', () => {
       expect(titles).not.toContain('Catalog Only Banner');
     });
 
-    it('guarantees admin active banners are shown as resilient fallback if audience filter yields empty', async () => {
+    it('never shows another audience\'s banners when the audience filter yields none', async () => {
       localStorage.clear();
-      // Only 1 active banner with 'pro' audience
       await bannerService.createBanner({
         title: 'Exclusive Pro Marathon',
         primaryCtaLink: '/exams',
@@ -223,10 +222,9 @@ describe('bannerService Enterprise Architecture', () => {
         displayOrder: 1,
       });
 
-      // Free user query: normally would filter out 'pro' banner, but fallback ensures active banner is displayed
       const bannersForFree = await bannerService.getActiveBanners({ audience: 'free' });
-      expect(bannersForFree.length).toBeGreaterThan(0);
-      expect(bannersForFree[0].title).toBe('Exclusive Pro Marathon');
+      expect(bannersForFree.map((b) => b.title)).not.toContain('Exclusive Pro Marathon');
+      expect(bannersForFree.every((b) => (b.targetAudience || 'all') !== 'pro')).toBe(true);
     });
   });
 });

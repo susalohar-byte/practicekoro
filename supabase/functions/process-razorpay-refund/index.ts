@@ -9,6 +9,9 @@ interface RefundRequestPayload {
   reason?: string;
   notes?: Record<string, any>;
   revokeSubscription?: boolean;
+  // 'gateway' refunds through Razorpay; 'manual' records a refund already paid out elsewhere.
+  mode?: 'gateway' | 'manual';
+  refundId?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -86,33 +89,29 @@ Deno.serve(async (req: Request) => {
 
   const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Check if caller has admin role
-  const adminEmail = (user.email || '').toLowerCase().trim();
-  const isSuperAdminEmail =
-    adminEmail === 'admin@practicekoro.online' || adminEmail === 'admin@practicekoro.com';
-
-  let hasAdminRole = isSuperAdminEmail;
-  if (!hasAdminRole) {
-    try {
-      const { data: roleCheck } = await serviceClient.rpc('has_role', {
-        _user_id: user.id,
-        _role: 'admin',
-      });
-      hasAdminRole = Boolean(roleCheck);
-    } catch {
-      // If RPC fails, check admin_staff or profiles
-      const { data: staffData } = await serviceClient
-        .from('admin_staff')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle();
-      if (staffData) hasAdminRole = true;
-    }
-  }
+  // Refunds are a super-admin operation, mirroring admin_scope_allowed('super').
+  const [{ data: callerProfile }, { data: callerAdminRole }] = await Promise.all([
+    serviceClient
+      .from('profiles')
+      .select('role, admin_role, account_status')
+      .eq('id', user.id)
+      .maybeSingle(),
+    serviceClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle(),
+  ]);
+  const hasAdminRole = Boolean(
+    callerAdminRole &&
+    callerProfile?.role === 'admin' &&
+    callerProfile?.admin_role === 'super_admin' &&
+    callerProfile?.account_status === 'active'
+  );
 
   if (!hasAdminRole) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Admin privileges required' }), {
+    return new Response(JSON.stringify({ error: 'Forbidden: Super admin privileges required' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -129,8 +128,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  if (!payload.paymentId) {
-    return new Response(JSON.stringify({ error: 'Missing paymentId in request' }), {
+  // The id is interpolated into a PostgREST filter, so only allow plain identifiers.
+  if (!payload.paymentId || !/^[A-Za-z0-9_-]{1,100}$/.test(payload.paymentId)) {
+    return new Response(JSON.stringify({ error: 'Missing or invalid paymentId in request' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -184,13 +184,55 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // 5. Razorpay Refund API Processing
-  const razorpayPaymentId = payment.razorpay_payment_id || payment.transaction_id;
-  let finalRefundId = `rfnd_${Date.now()}`;
+  const mode = payload.mode === 'manual' ? 'manual' : 'gateway';
+  const razorpayPaymentId: string | null = payment.razorpay_payment_id || payment.transaction_id;
+  if (mode === 'gateway' && !razorpayPaymentId?.startsWith('pay_')) {
+    return new Response(
+      JSON.stringify({
+        error: 'This payment has no Razorpay payment id. Record it as a manual refund instead.',
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const refundReasonText = payload.reason?.trim() || 'Admin initiated refund';
+  const nowIso = new Date().toISOString();
+
+  // 5. Atomically claim the payment so concurrent requests cannot refund it twice.
+  const { data: claimed, error: claimError } = await serviceClient
+    .from('payments')
+    .update({ status: 'refunded', updated_at: nowIso })
+    .eq('id', payment.id)
+    .eq('status', 'completed')
+    .select('id');
+  if (claimError || !claimed?.length) {
+    return new Response(
+      JSON.stringify({
+        error: claimError
+          ? `Could not lock payment for refund: ${claimError.message}`
+          : 'Payment is already being refunded or is no longer completed.',
+      }),
+      { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  const releaseClaim = () =>
+    serviceClient
+      .from('payments')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', payment.id);
+  const failAndRelease = async (status: number, body: Record<string, unknown>) => {
+    await releaseClaim();
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  };
+
+  // 6. Razorpay Refund API Processing
+  let finalRefundId = payload.refundId?.trim() || `rfnd_manual_${Date.now()}`;
   let razorpayResponse: any = null;
 
-  if (razorpayPaymentId && razorpayPaymentId.startsWith('pay_')) {
-    // Razorpay Credentials Resolution
+  if (mode === 'gateway') {
     const keyId = Deno.env.get('RAZORPAY_KEY_ID');
     const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
 
@@ -209,126 +251,100 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    if (resolvedKeyId && keySecret && resolvedKeyId !== 'rzp_test_practicekoro_key') {
-      const authHeaderBasic = 'Basic ' + btoa(`${resolvedKeyId.trim()}:${keySecret.trim()}`);
-      const refundPaise = rupeesToPaise(requestedRefund);
+    // Never report a gateway refund that was not actually sent to Razorpay.
+    if (!resolvedKeyId || !keySecret || resolvedKeyId === 'rzp_test_practicekoro_key') {
+      console.error('Razorpay keys are not configured; gateway refund refused.');
+      return failAndRelease(503, {
+        error: 'Razorpay refund keys are not configured on the server. No money was refunded.',
+      });
+    }
 
-      try {
-        const rzpRefundRes = await fetch(
-          `https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: authHeaderBasic,
-              'Content-Type': 'application/json',
+    const authHeaderBasic = 'Basic ' + btoa(`${resolvedKeyId.trim()}:${keySecret.trim()}`);
+    const refundPaise = rupeesToPaise(requestedRefund);
+
+    try {
+      const rzpRefundRes = await fetch(
+        `https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: authHeaderBasic,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: refundPaise,
+            notes: {
+              reason: payload.reason || 'Admin Initiated Refund',
+              admin_email: user.email || '',
+              payment_id: payment.id,
+              platform: 'PracticeKoro',
+              ...(payload.notes || {}),
             },
-            body: JSON.stringify({
-              amount: refundPaise,
-              notes: {
-                reason: payload.reason || 'Admin Initiated Refund',
-                admin_email: user.email || 'admin@practicekoro.online',
-                payment_id: payment.id,
-                platform: 'PracticeKoro',
-                ...(payload.notes || {}),
-              },
-            }),
-          }
-        );
-
-        razorpayResponse = await rzpRefundRes.json();
-
-        if (!rzpRefundRes.ok) {
-          const errMsg =
-            razorpayResponse?.error?.description ||
-            razorpayResponse?.error?.message ||
-            'Razorpay refund API call failed';
-          console.error('Razorpay Refund API error:', razorpayResponse);
-          return new Response(
-            JSON.stringify({
-              error: `Razorpay Gateway Error: ${errMsg}`,
-              details: razorpayResponse,
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        if (razorpayResponse?.id) {
-          finalRefundId = razorpayResponse.id;
-        }
-      } catch (fetchErr: any) {
-        console.error('Network error during Razorpay refund:', fetchErr);
-        return new Response(
-          JSON.stringify({
-            error: `Network error connecting to Razorpay: ${fetchErr?.message || 'Gateway unreachable'}`,
           }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } else {
-      console.warn(
-        'Razorpay live keys not fully configured in edge environment. Generating reference ID.'
+        }
       );
-      finalRefundId = `rfnd_manual_${Date.now()}`;
+
+      razorpayResponse = await rzpRefundRes.json();
+
+      if (!rzpRefundRes.ok || !razorpayResponse?.id) {
+        const errMsg =
+          razorpayResponse?.error?.description ||
+          razorpayResponse?.error?.message ||
+          'Razorpay refund API call failed';
+        console.error('Razorpay Refund API error:', razorpayResponse);
+        return failAndRelease(400, {
+          error: `Razorpay Gateway Error: ${errMsg}`,
+          details: razorpayResponse,
+        });
+      }
+      finalRefundId = razorpayResponse.id;
+    } catch (fetchErr: any) {
+      console.error('Network error during Razorpay refund:', fetchErr);
+      return failAndRelease(502, {
+        error: `Network error connecting to Razorpay: ${fetchErr?.message || 'Gateway unreachable'}`,
+      });
     }
   }
 
-  // 6. Authoritative Database Reconciliation
-  const refundReasonText = payload.reason?.trim() || 'Admin initiated refund';
-  const nowIso = new Date().toISOString();
-
-  // 6a. Try mark_payment_refunded RPC
-  let rpcSuccess = false;
-  try {
-    const { error: rpcErr } = await serviceClient.rpc('mark_payment_refunded', {
-      p_payment_id: payment.id,
-      p_refund_amount: requestedRefund,
-      p_refund_id: finalRefundId,
-      p_refund_reason: refundReasonText,
-    });
-    if (!rpcErr) rpcSuccess = true;
-  } catch (rpcEx) {
-    console.warn('RPC mark_payment_refunded call encountered error, using direct update:', rpcEx);
+  // 6b. Record the refund on the claimed payment row.
+  const { error: recordError } = await serviceClient
+    .from('payments')
+    .update({
+      status: 'refunded',
+      refund_amount: requestedRefund,
+      refund_id: finalRefundId,
+      refund_reason: refundReasonText,
+      refunded_at: nowIso,
+      refunded_by: user.id,
+      updated_at: nowIso,
+    })
+    .eq('id', payment.id);
+  if (recordError) {
+    console.error('Refund recorded at gateway but database update failed:', recordError);
+    if (mode === 'manual') {
+      return failAndRelease(500, { error: `Could not record refund: ${recordError.message}` });
+    }
+    // The money has moved; keep the row claimed as refunded and surface the problem.
+    return new Response(
+      JSON.stringify({
+        error: `Razorpay refund ${finalRefundId} succeeded but saving its details failed: ${recordError.message}`,
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
-  // 6b. Fallback direct update if RPC was not executed
-  if (!rpcSuccess) {
-    // 1. Update payment row
-    await serviceClient
-      .from('payments')
-      .update({
-        status: 'refunded',
-        refund_amount: requestedRefund,
-        refund_id: finalRefundId,
-        refund_reason: refundReasonText,
-        refunded_at: nowIso,
-        refunded_by: user.id,
-        updated_at: nowIso,
-      })
-      .eq('id', payment.id);
-
-    // 2. Revoke associated Pro subscription
-    if (payload.revokeSubscription !== false) {
-      await serviceClient
-        .from('subscriptions')
-        .update({
-          status: 'cancelled',
-          expires_at: nowIso,
-          updated_at: nowIso,
-        })
-        .or(
-          `payment_id.eq.${payment.id},and(user_id.eq.${payment.user_id},plan_id.eq.${payment.plan_id})`
-        )
-        .eq('status', 'active');
-
-      // 3. Demote profile to free tier if is_pro flag exists
-      try {
-        await serviceClient
-          .from('profiles')
-          .update({ is_pro: false, updated_at: nowIso })
-          .eq('id', payment.user_id);
-      } catch {
-        // ignore if is_pro not on profiles
-      }
+  // 6c. Revoke only the subscription this payment activated.
+  let revokedSubscription = false;
+  if (payload.revokeSubscription !== false) {
+    const { error: revokeError } = await serviceClient
+      .from('subscriptions')
+      .update({ status: 'cancelled', expires_at: nowIso, updated_at: nowIso })
+      .eq('payment_id', payment.id)
+      .eq('status', 'active');
+    if (revokeError) {
+      console.error('Subscription revoke after refund failed:', revokeError);
+    } else {
+      revokedSubscription = true;
     }
   }
 
@@ -336,9 +352,9 @@ Deno.serve(async (req: Request) => {
   try {
     await serviceClient.from('admin_audit_logs').insert({
       admin_id: user.id,
-      admin_email: user.email || 'admin@practicekoro.online',
+      admin_email: user.email || '',
       admin_name: user.user_metadata?.full_name || 'Administrator',
-      admin_role: 'admin',
+      admin_role: 'super_admin',
       action: 'PAYMENT_REFUND_PROCESSED',
       entity_type: 'payments',
       entity_id: payment.id,
@@ -351,7 +367,8 @@ Deno.serve(async (req: Request) => {
         original_amount: paymentAmountNum,
         reason: refundReasonText,
         user_id: payment.user_id,
-        revoked_subscription: payload.revokeSubscription !== false,
+        mode,
+        revoked_subscription: revokedSubscription,
         gateway_response: razorpayResponse,
       },
       created_at: nowIso,
@@ -369,7 +386,7 @@ Deno.serve(async (req: Request) => {
       refundAmount: requestedRefund,
       paymentId: payment.id,
       status: 'refunded',
-      revokedSubscription: payload.revokeSubscription !== false,
+      revokedSubscription,
       gatewayResponse: razorpayResponse,
     }),
     {

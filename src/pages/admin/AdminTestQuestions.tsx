@@ -137,6 +137,7 @@ export const AdminTestQuestions: React.FC = () => {
   }, [routeTestId]);
 
   const [isTestLocked, setIsTestLocked] = useState(false);
+  const [lockCheckError, setLockCheckError] = useState('');
 
   // Load test details, assigned questions, question bank, and taxonomy
   const loadData = useCallback(async () => {
@@ -154,7 +155,14 @@ export const AdminTestQuestions: React.FC = () => {
           api.getAllAdminSubjects(),
           api.getAllAdminChapters(),
           api.getAllAdminExams(),
-          api.isTestLockedForEditing(currentTestId).catch(() => false),
+          // Fail closed: if the live-test lock cannot be verified, treat the test as locked.
+          api.isTestLockedForEditing(currentTestId).then(
+            (isLocked) => ({ isLocked, error: '' }),
+            (err) => ({
+              isLocked: true,
+              error: getErrorMessage(err, 'Live Test lock status could not be verified.'),
+            })
+          ),
         ]);
 
       setTest(testData);
@@ -163,7 +171,8 @@ export const AdminTestQuestions: React.FC = () => {
       setSubjects(allSubjects);
       setChapters(allChapters);
       setExams(allExams);
-      setIsTestLocked(Boolean(locked));
+      setIsTestLocked(Boolean(locked.isLocked));
+      setLockCheckError(locked.error);
 
       // If the test has 0 questions (freshly created), default directly to question selection
       if (assigned.length === 0) {
@@ -404,7 +413,9 @@ export const AdminTestQuestions: React.FC = () => {
   // Add Selected Questions to Test
   // ---------------------------------------------------------------------------
   const handleAddSelectedQuestions = async () => {
-    if (selectedQuestionIds.length === 0 || !test) return;
+    if (selectedQuestionIds.length === 0 || !test || isTestLocked) return;
+    const previousAssigned = assignedQuestions;
+    const previousSelection = selectedQuestionIds;
 
     const questionsToAdd = bankQuestions.filter((q) => selectedQuestionIds.includes(q.id));
     const defMarks =
@@ -457,9 +468,14 @@ export const AdminTestQuestions: React.FC = () => {
         if (updatedTest) setTest(updatedTest);
         setActiveTab('assigned'); // Switch to view the updated questions list
       } else {
+        // Roll back the optimistic add so the list matches what is saved.
+        setAssignedQuestions(previousAssigned);
+        setSelectedQuestionIds(previousSelection);
         setSaveError(res.error || 'Failed to attach questions to test.');
       }
     } catch (err) {
+      setAssignedQuestions(previousAssigned);
+      setSelectedQuestionIds(previousSelection);
       setSaveError(getErrorMessage(err, 'Failed to save test questions'));
     } finally {
       setIsSaving(false);
@@ -470,7 +486,7 @@ export const AdminTestQuestions: React.FC = () => {
   // Manage Assigned Questions (Reorder, Marks, Remove)
   // ---------------------------------------------------------------------------
   const moveQuestion = (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= assignedQuestions.length) return;
+    if (isTestLocked || toIndex < 0 || toIndex >= assignedQuestions.length) return;
     const updated = [...assignedQuestions];
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
@@ -480,7 +496,7 @@ export const AdminTestQuestions: React.FC = () => {
   };
 
   const handleRemoveQuestion = async (index: number) => {
-    if (!test) return;
+    if (!test || isTestLocked) return;
     const updated = assignedQuestions.filter((_, idx) => idx !== index);
     const reordered = updated.map((q, idx) => ({ ...q, questionOrder: idx + 1 }));
 
@@ -590,7 +606,7 @@ export const AdminTestQuestions: React.FC = () => {
   };
 
   const handleSaveAssigned = async () => {
-    if (!currentTestId) return;
+    if (!currentTestId || isTestLocked) return;
     try {
       setIsSaving(true);
       setSaveError('');
@@ -1020,7 +1036,8 @@ export const AdminTestQuestions: React.FC = () => {
                 className="bg-gradient-to-r from-[#0075FF] to-[#0052E0] hover:from-[#026BFC] hover:to-[#0047C7] text-white text-xs font-bold shadow-lg shadow-[#0075FF]/30 hover:scale-[1.02] transition-transform"
                 leftIcon={<Save className="w-4 h-4" />}
                 onClick={handleSaveAssigned}
-                disabled={isSaving}
+                disabled={isSaving || isTestLocked}
+                title={isTestLocked ? 'Questions locked for active Live Test' : undefined}
               >
                 {isSaving ? 'Saving...' : 'Save Order & Marks'}
               </Button>
@@ -1142,9 +1159,9 @@ export const AdminTestQuestions: React.FC = () => {
             <div>
               <div className="font-black text-sm">🔒 Locked: Active Live Test Event</div>
               <div className="text-xs text-rose-700 dark:text-rose-300">
-                This test is currently scheduled as an active or upcoming Live Test event. Adding,
-                deleting, or reordering questions is locked to preserve exam integrity for live
-                participants.
+                {lockCheckError
+                  ? `Live Test status could not be verified (${lockCheckError}). Adding, deleting, or reordering questions is locked until it can be confirmed.`
+                  : 'This test is currently scheduled as an active or upcoming Live Test event. Adding, deleting, or reordering questions is locked to preserve exam integrity for live participants.'}
               </div>
             </div>
           </div>
@@ -1756,7 +1773,8 @@ export const AdminTestQuestions: React.FC = () => {
                   size="sm"
                   className="bg-gradient-to-r from-[#0075FF] to-[#0052E0] hover:from-[#026BFC] hover:to-[#0047C7] text-white text-xs font-black shadow-lg shadow-[#0075FF]/40 border border-[#0075FF]/60 px-4 py-1.5 rounded-full hover:scale-105 transition-transform"
                   onClick={handleAddSelectedQuestions}
-                  disabled={isSaving}
+                  disabled={isSaving || isTestLocked}
+                  title={isTestLocked ? 'Questions locked for active Live Test' : undefined}
                   leftIcon={<Plus className="w-4 h-4" />}
                 >
                   {isSaving ? 'Attaching...' : `Add Selected (${selectedQuestionIds.length})`}
@@ -1818,6 +1836,7 @@ export const AdminTestQuestions: React.FC = () => {
                       min={1}
                       max={assignedQuestions.length}
                       value={idx + 1}
+                      disabled={isTestLocked}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         if (!isNaN(val) && val >= 1 && val <= assignedQuestions.length) {
@@ -1829,7 +1848,7 @@ export const AdminTestQuestions: React.FC = () => {
                     />
                     <div className="flex md:flex-col gap-1">
                       <button
-                        disabled={idx === 0}
+                        disabled={isTestLocked || idx === 0}
                         onClick={() => moveQuestion(idx, idx - 1)}
                         className="p-1.5 rounded-lg bg-slate-100 dark:bg-[#070d1d] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors border border-slate-200 dark:border-[#192b57]"
                         title="Move Question Up"
@@ -1837,7 +1856,7 @@ export const AdminTestQuestions: React.FC = () => {
                         <ArrowUp className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        disabled={idx === assignedQuestions.length - 1}
+                        disabled={isTestLocked || idx === assignedQuestions.length - 1}
                         onClick={() => moveQuestion(idx, idx + 1)}
                         className="p-1.5 rounded-lg bg-slate-100 dark:bg-[#070d1d] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors border border-slate-200 dark:border-[#192b57]"
                         title="Move Question Down"
@@ -1957,6 +1976,7 @@ export const AdminTestQuestions: React.FC = () => {
                           step="0.25"
                           min="0"
                           value={q.marks}
+                          disabled={isTestLocked}
                           onChange={(e) =>
                             updateQuestionMarks(idx, parseFloat(e.target.value) || 0)
                           }
@@ -1968,7 +1988,8 @@ export const AdminTestQuestions: React.FC = () => {
                     {/* Safe Remove Question Button */}
                     <button
                       onClick={() => handleRemoveQuestion(idx)}
-                      className="px-3 py-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1.5 text-xs font-bold border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40"
+                      disabled={isTestLocked || isSaving}
+                      className="disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1.5 text-xs font-bold border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40"
                       title="Remove question from this mock test (it will remain safe in Question Bank)"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1997,7 +2018,8 @@ export const AdminTestQuestions: React.FC = () => {
                   className="bg-gradient-to-r from-[#0075FF] to-[#0052E0] hover:from-[#026BFC] hover:to-[#0047C7] text-white text-xs font-bold shadow-md shadow-[#0075FF]/30"
                   leftIcon={<Save className="w-4 h-4" />}
                   onClick={handleSaveAssigned}
-                  disabled={isSaving}
+                  disabled={isSaving || isTestLocked}
+                  title={isTestLocked ? 'Questions locked for active Live Test' : undefined}
                 >
                   {isSaving ? 'Saving...' : 'Save All Changes'}
                 </Button>

@@ -371,13 +371,13 @@ void main() {
 
       // Header + welcome banner
       expect(find.text('Ananya'), findsOneWidget);
-      expect(find.text('Practice Today.\nImprove Every Day.'), findsOneWidget);
-      expect(find.text('Build confidence with consistent practice.'), findsOneWidget);
+      expect(find.text('Small Practice\nBig Results!'), findsOneWidget);
+      expect(find.text('Turn your preparation into success with daily practice.'), findsOneWidget);
       expect(find.byTooltip('Search test series'), findsOneWidget);
       expect(find.byType(TextField), findsNothing); // no second search bar
 
       // Exactly the four quick actions; no Audio Book anywhere
-      for (final label in ['Topic Test', 'Test Series', 'Rank', 'Saved Questions']) {
+      for (final label in ['Mock Test', 'Topic Test', 'Official PYQ', 'Results']) {
         expect(find.text(label), findsWidgets, reason: label);
       }
       expect(find.textContaining('Audio'), findsNothing);
@@ -385,18 +385,18 @@ void main() {
       // Sections in order, from real data
       for (final title in [
         'Continue Your Practice',
-        'Your Exams',
+        'Exams for You',
         'Popular Test Series',
-        'Practice by Topic',
         'Your Progress',
+        'Recent Tests',
+        'Recently Added Tests',
+        'Recommended for You',
       ]) {
         expect(find.text(title), findsOneWidget, reason: title);
       }
-      expect(find.text('Manage'), findsOneWidget);
-      expect(find.text('Add Exam'), findsOneWidget);
-      expect(find.text('Railway NTPC'), findsOneWidget); // popular carousel
-      expect(find.text('POPULAR'), findsOneWidget); // only the admin-flagged series
-      expect(find.text('1,525 Qs'), findsOneWidget);
+      expect(find.text('Railway NTPC'), findsWidgets); // exam cards & popular carousel
+      expect(find.text('POPULAR'), findsWidgets); // only the admin-flagged series
+      expect(find.text('1,525 Qs'), findsWidgets);
     });
 
     testWidgets('Home page shows empty states instead of sample catalogue data', (tester) async {

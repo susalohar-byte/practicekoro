@@ -25,6 +25,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
+  const [rowErrors, setRowErrors] = useState<string[]>([]);
 
   if (!isOpen) return null;
 
@@ -93,6 +94,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setSuccessCount(null);
+    setRowErrors([]);
     if (e.target.files && e.target.files[0]) {
       setCsvFile(e.target.files[0]);
     }
@@ -106,6 +108,10 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    setSuccessCount(null);
+    setRowErrors([]);
+    let createdCount = 0;
+    const failures: string[] = [];
 
     try {
       const text = await csvFile.text();
@@ -118,7 +124,6 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       }
 
       const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-      let createdCount = 0;
 
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map((v) => v.trim());
@@ -153,7 +158,8 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
           if (matchChap) foundChapId = matchChap.id;
         }
 
-        await api.createTest({
+        try {
+          await api.createTest({
           title: row.title,
           testType,
           examId: foundExamId,
@@ -163,7 +169,9 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
           totalMarks: Number(row.totalmarks || 100),
           passingMarks: Number(row.passingmarks || 40),
           negativeMarking: Number(row.negativemarking || 0.25),
-          status: row.status === 'published' ? 'published' : 'draft',
+          // Imported tests have no questions yet, so they are created as drafts and published
+          // from Settings once questions are assigned (publishing is validated there).
+          status: 'draft',
           isPremium: row.ispremium === 'true',
           year: row.year ? Number(row.year) : undefined,
           paperName: row.papername || undefined,
@@ -174,19 +182,30 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/(^-|-$)/g, ''),
-          isActive: true,
+          isActive: false,
         });
-
-        createdCount++;
+          createdCount++;
+        } catch (rowErr) {
+          // Keep going: report every failed row instead of aborting the whole import.
+          failures.push(
+            `Row ${i + 1} ("${row.title}"): ${
+              rowErr instanceof Error ? rowErr.message : 'Failed to create test'
+            }`
+          );
+        }
       }
 
       setSuccessCount(createdCount);
-      onImportComplete();
+      setRowErrors(failures);
+      if (failures.length > 0) {
+        setError(`${failures.length} row(s) could not be imported.`);
+      }
     } catch (err: any) {
       console.error('Import failed:', err);
       setError(err?.message || 'Failed to import tests. Please check CSV format.');
     } finally {
       setIsProcessing(false);
+      if (createdCount > 0) onImportComplete();
     }
   };
 
@@ -211,14 +230,26 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
           {error && (
             <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-300 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+              <div>
+                <span>{error}</span>
+                {rowErrors.length > 0 && (
+                  <ul className="mt-1.5 list-disc pl-4 space-y-0.5">
+                    {rowErrors.map((msg) => (
+                      <li key={msg}>{msg}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
 
-          {successCount !== null && (
+          {successCount !== null && successCount > 0 && (
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-300 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Successfully imported {successCount} mock tests!</span>
+              <span>
+                Successfully imported {successCount} mock tests as drafts. Assign questions, then
+                publish them from Settings.
+              </span>
             </div>
           )}
 

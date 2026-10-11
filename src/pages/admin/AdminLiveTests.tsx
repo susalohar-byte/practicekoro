@@ -1,6 +1,7 @@
 import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '@/services/api';
+import { isoToLocalDateTimeParts, localDateTimeToIso } from '@/services/domains/admin.liveTests';
 import type { LiveTest, MockTest } from '@/types';
 import {
   Radio,
@@ -167,7 +168,7 @@ export const AdminLiveTests: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedTestId]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -1552,10 +1553,12 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
   const [logo, setLogo] = useState(
     initialData?.logo || initialData?.examLogo || PRESET_LOGOS[0].url
   );
-  const [startDate, setStartDate] = useState(
-    initialData?.startAt ? initialData.startAt.substring(0, 10) : '2026-10-15'
-  );
-  const [startTime, setStartTime] = useState('10:00');
+  // Date/time inputs are in the admin's local timezone (IST); stored as UTC ISO.
+  const initialStartParts = initialData?.startAt
+    ? isoToLocalDateTimeParts(initialData.startAt)
+    : null;
+  const [startDate, setStartDate] = useState(initialStartParts?.date ?? '2026-10-15');
+  const [startTime, setStartTime] = useState(initialStartParts?.time ?? '10:00');
   const [durationMinutes, setDurationMinutes] = useState(initialData?.durationMinutes || 60);
   const [totalQuestions, setTotalQuestions] = useState(initialData?.totalQuestions || 100);
   const [totalMarks, setTotalMarks] = useState(initialData?.totalMarks || 100);
@@ -1591,14 +1594,24 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
 
     try {
       setIsSubmitting(true);
-      const startIso = new Date(`${startDate}T${startTime}:00.000Z`).toISOString();
+      const startIso = localDateTimeToIso(startDate, startTime);
       const endIso = new Date(
         new Date(startIso).getTime() + durationMinutes * 60 * 1000
       ).toISOString();
 
       let result: LiveTest;
       if (initialData) {
+        // Keep an explicit earlier registration deadline; otherwise it follows the start time
+        // (it defaulted to the start time on create and must never be after the start).
+        const prevDeadline = initialData.registrationDeadline
+          ? new Date(initialData.registrationDeadline).getTime()
+          : NaN;
+        const keepDeadline =
+          !isNaN(prevDeadline) &&
+          prevDeadline !== new Date(initialData.startAt).getTime() &&
+          prevDeadline <= new Date(startIso).getTime();
         result = await api.updateLiveTest(initialData.id, {
+          registrationDeadline: keepDeadline ? initialData.registrationDeadline : startIso,
           title,
           examTitle,
           logo,
@@ -1626,12 +1639,13 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           rankingEnabled,
           logo,
           examLogo: logo,
+          status: status as LiveTest['status'],
         });
       }
 
       await onSave(result);
-    } catch {
-      toast.error('Failed to save Live Test');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save Live Test');
     } finally {
       setIsSubmitting(false);
     }
@@ -1720,6 +1734,9 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                 <option value="live">Live Now</option>
                 <option value="draft">Draft</option>
                 <option value="ended">Completed</option>
+                {initialData?.status === 'cancelled' && (
+                  <option value="cancelled">Cancelled</option>
+                )}
               </select>
             </div>
           </div>

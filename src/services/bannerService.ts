@@ -393,7 +393,6 @@ export const bannerService = {
   /**
    * Fetch only active banners sorted by displayOrder for Student Home
    * Supports target audience filtering (e.g. Free vs Pro Pass) and schedule verification.
-   * Resilient fallback guarantees that admin-configured banners are shown.
    */
   async getActiveBanners(options?: {
     audience?: BannerAudience;
@@ -403,7 +402,7 @@ export const bannerService = {
     const now = Date.now();
 
     // Scheduling is non-negotiable: expired / not-yet-started campaigns are
-    // never shown, including by the fallback below.
+    // never shown.
     const isCurrentlyLive = (b: HeroBanner): boolean => {
       if (b.startsAt) {
         const startTime = new Date(b.startsAt).getTime();
@@ -442,18 +441,8 @@ export const bannerService = {
       })
       .sort((a, b) => a.displayOrder - b.displayOrder);
 
-    if (active.length > 0) {
-      return active;
-    }
-
-    // Resilient fallback: when audience targeting eliminates everything,
-    // still show live banners for the requested placement so Home never
-    // goes empty — but never resurrect scheduled-out campaigns.
-    const fallbackActive = all
-      .filter((b) => b.isActive && placementOk(b) && isCurrentlyLive(b))
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-
-    return fallbackActive;
+    // Audience targeting is never bypassed: an empty result means no banner for this audience.
+    return active;
   },
 
   /**

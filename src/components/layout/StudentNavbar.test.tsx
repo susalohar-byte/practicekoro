@@ -102,6 +102,16 @@ describe('StudentNavbar Notification Audience & Schedule Filtering', () => {
       createdAt: '2026-09-18T09:00:00Z',
     },
     {
+      id: 'notif-selected',
+      title: 'Personal Targeted Notice',
+      message: 'Sent to selected recipients; RLS returns it only to them.',
+      targetAudience: 'selected',
+      channel: 'in_app' as const,
+      status: 'sent' as const,
+      sentAt: '2026-09-18T10:00:00Z',
+      createdAt: '2026-09-18T09:00:00Z',
+    },
+    {
       id: 'notif-sched-due',
       title: 'Scheduled Flash Mock',
       message: 'Scheduled in the past, now due.',
@@ -159,6 +169,8 @@ describe('StudentNavbar Notification Audience & Schedule Filtering', () => {
       expect(screen.getByText('Free Users Upgrade Discount')).toBeInTheDocument();
       // Should show scheduled notice whose time has arrived
       expect(screen.getByText('Scheduled Flash Mock')).toBeInTheDocument();
+      // Targeted notices returned by RLS are shown to their recipient
+      expect(screen.getByText('Personal Targeted Notice')).toBeInTheDocument();
 
       // Should NOT show pro or pro_users notices
       expect(screen.queryByText('Pro Exclusive Tip')).toBeNull();

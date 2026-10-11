@@ -349,11 +349,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
             features:
               Array.isArray(p.features) && p.features.length > 0
                 ? p.features.map((f) => ({ text: f, included: true }))
-                : [
-                    { text: 'Full mock tests', included: true },
-                    { text: 'Topic tests', included: true },
-                    { text: 'Detailed solutions', included: true },
-                  ],
+                : [],
           };
         });
         setPlans(mapped);
@@ -388,9 +384,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
   const [formPlanOriginalPrice, setFormPlanOriginalPrice] = useState('299');
   const [formPlanDurationDays, setFormPlanDurationDays] = useState('180');
   const [formPlanBadge, setFormPlanBadge] = useState('');
-  const [formPlanFeatures, setFormPlanFeatures] = useState(
-    'All topic tests, Unlimited mocks, Statewide rank, PDF notes'
-  );
+  const [formPlanFeatures, setFormPlanFeatures] = useState('');
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
   // Form states for Edit Plan
@@ -482,7 +476,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
     }
 
     const featureItems: PlanFeature[] = formPlanFeatures
-      .split(',')
+      .split('\n')
       .map((f) => f.trim())
       .filter(Boolean)
       .map((text) => ({ text, included: true }));
@@ -529,7 +523,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
     setEditPlanOriginalPrice(String(plan.originalPrice || plan.price));
     setEditPlanDurationDays(String(plan.durationDays || 30));
     setEditPlanBadge(plan.badge || '');
-    setEditPlanFeatures(plan.features.map((f) => f.text).join(', '));
+    setEditPlanFeatures(plan.features.map((f) => f.text).join('\n'));
     setEditButtonText(plan.buttonText);
     setIsEditPlanModalOpen(true);
   };
@@ -568,7 +562,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
     }
 
     const featureItems: PlanFeature[] = editPlanFeatures
-      .split(',')
+      .split('\n')
       .map((f) => f.trim())
       .filter(Boolean)
       .map((text) => ({ text, included: true }));
@@ -640,9 +634,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
               setFormPlanOriginalPrice('299');
               setFormPlanDurationDays('180');
               setFormPlanBadge('');
-              setFormPlanFeatures(
-                'Full mock tests, Unlimited topic practice, Detailed solutions, No ads'
-              );
+              setFormPlanFeatures('');
               setIsAddPlanModalOpen(true);
             }}
             className="bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl px-5 py-2.5 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1244,14 +1236,14 @@ export const AdminSubscriptionPlans: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-medium text-slate-700 mb-1 block">
-                  Features (comma separated)
+                  Features (one per line)
                 </label>
                 <textarea
                   rows={3}
                   value={formPlanFeatures}
                   onChange={(e) => setFormPlanFeatures(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
-                  placeholder="Unlimited mock tests, Statewide rank analysis, Video explanations..."
+                  placeholder={'Unlimited mock tests\nStatewide rank analysis\nVideo explanations'}
                 />
               </div>
 
@@ -1411,17 +1403,17 @@ export const AdminSubscriptionPlans: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-700 mb-1 block">
-                  Features List (comma separated)
+                  Features List (one per line)
                 </label>
                 <textarea
                   rows={4}
                   value={editPlanFeatures}
                   onChange={(e) => setEditPlanFeatures(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
-                  placeholder="Unlimited mock tests, Statewide rank analysis, Video explanations..."
+                  placeholder={'Unlimited mock tests\nStatewide rank analysis\nVideo explanations'}
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Separate each feature with a comma to list them on the plan card.
+                  Put each feature on its own line to list it on the plan card.
                 </p>
               </div>
 

@@ -1,6 +1,6 @@
 import { csvCell } from '@/utils/csvExport';
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   FileText,
   UserPlus,
@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import type { AdminAuditLog } from '@/types';
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -441,6 +442,112 @@ const getSeverityBadge = (sev: AuditSeverity) => {
   }
 };
 
+// Raw audit actions come from DB triggers (insert/update/delete) or legacy client logs.
+export function mapAuditAction(action: string): AuditLogItem['action'] {
+  const a = action.toLowerCase();
+  if (a.includes('insert') || a.includes('create') || a.includes('add')) return 'Created';
+  if (a.includes('delete') || a.includes('revoke')) return 'Deleted';
+  if (a.includes('refund')) return 'Refunded';
+  if (a.includes('view')) return 'Viewed';
+  if (a.includes('login')) return 'Login';
+  if (a.includes('change')) return 'Changed';
+  return 'Updated';
+}
+
+// Entity types are table names from DB triggers (questions, hero_banners, …) or legacy singular names.
+const AUDIT_RESOURCE_BY_ENTITY: Record<string, AuditLogItem['resource']> = {
+  question: 'Question',
+  questions: 'Question',
+  test_series: 'Test Series',
+  test: 'Mock Test',
+  tests: 'Mock Test',
+  live_tests: 'Mock Test',
+  test_questions: 'Mock Test',
+  test_exams: 'Mock Test',
+  coupon: 'Coupon',
+  coupons: 'Coupon',
+  subscription: 'Subscription',
+  subscriptions: 'Subscription',
+  subscription_plans: 'Subscription',
+  user: 'Student',
+  student: 'Student',
+  profiles: 'Student',
+  student_notes: 'Student',
+  student_batches: 'Student',
+  student_batch_members: 'Student',
+  payment: 'Payment',
+  payments: 'Payment',
+  payment_gateways: 'Payment',
+  settings: 'Settings',
+  app_settings: 'Settings',
+  subject: 'Subject',
+  subjects: 'Subject',
+  chapters: 'Subject',
+  banner: 'Banner',
+  hero_banners: 'Banner',
+};
+export function mapAuditResource(entityType: string): AuditLogItem['resource'] {
+  return AUDIT_RESOURCE_BY_ENTITY[(entityType || '').toLowerCase()] || 'System';
+}
+
+const AUDIT_PAGE_SIZE = 100;
+
+function mapAuditLog(log: AdminAuditLog, idx: number): AuditLogItem {
+  const dt = new Date(log.createdAt);
+  const dateStr = dt.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timeStr = dt.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+  const initials = (log.adminName || log.adminEmail || 'AD')
+    .split(' ')
+    .map((s) => s[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  const action = mapAuditAction(log.action);
+  return {
+    id: log.id,
+    num: idx + 1,
+    date: dateStr,
+    time: timeStr,
+    adminName: log.adminName || 'Admin',
+    adminEmail: log.adminEmail || '',
+    avatarType: 'initials',
+    avatarInitials: initials,
+    avatarBgColor: 'bg-blue-100',
+    avatarTextColor: 'text-blue-600',
+    action,
+    resource: mapAuditResource(log.entityType),
+    details:
+      log.details?.source !== 'database_trigger'
+        ? 'Legacy client log (unverified)'
+        : log.entityName
+          ? `${log.action} ${log.entityName}`.slice(0, 30) + '...'
+          : log.action,
+    fullDetails: log.entityName
+      ? `${log.action}: ${log.entityName}`
+      : JSON.stringify(log.details || {}),
+    resourceId: log.entityId,
+    ipAddress: log.ipAddress || 'Not recorded',
+    severity: action === 'Deleted' ? 'Warning' : 'Info',
+    jsonData: {
+      id: log.id,
+      action: log.action,
+      entityType: log.entityType,
+      entityId: log.entityId,
+      details: log.details,
+      adminRole: log.adminRole,
+    },
+  };
+}
+
 // ============================================================================
 // MAIN COMPONENT: ADMIN AUDIT LOGS
 // ============================================================================
@@ -456,119 +563,33 @@ export const AdminAuditLogs: React.FC = () => {
   const [selectedLogId, setSelectedLogId] = useState<string>('');
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState<boolean>(false);
 
+  // Server-side pagination: logs are fetched in pages via offset; older pages load on demand.
+  const [serverTotal, setServerTotal] = useState<number | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadLogsPage = useCallback(async (offset: number) => {
+    const { logs, total } = await api.getAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset });
+    const mapped = (logs || []).map((log, idx) => mapAuditLog(log, offset + idx));
+    return { mapped, total };
+  }, []);
+
   // Fetch real audit logs on mount
   useEffect(() => {
     let isMounted = true;
     setPageLoading(true);
-    api
-      .getAdminAuditLogs({ limit: 100 })
-      .then(({ logs }) => {
+    loadLogsPage(0)
+      .then(({ mapped, total }) => {
         if (!isMounted) return;
-        if (!logs || logs.length === 0) {
+        if (mapped.length === 0) {
           if (isSupabaseConfigured) {
             setLogsList([]);
+            setServerTotal(total);
             setSelectedLogId('');
             setIsDetailsPanelOpen(false);
           }
           return;
         }
-        const mapped: AuditLogItem[] = logs.map((log, idx) => {
-          const dt = new Date(log.createdAt);
-          const dateStr = dt.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          });
-          const timeStr = dt.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-          });
-
-          const actionFormatted: AuditLogItem['action'] =
-            log.action.toLowerCase().includes('create') || log.action.toLowerCase().includes('add')
-              ? 'Created'
-              : log.action.toLowerCase().includes('delete') ||
-                  log.action.toLowerCase().includes('revoke')
-                ? 'Deleted'
-                : log.action.toLowerCase().includes('refund')
-                  ? 'Refunded'
-                  : log.action.toLowerCase().includes('view')
-                    ? 'Viewed'
-                    : log.action.toLowerCase().includes('login')
-                      ? 'Login'
-                      : log.action.toLowerCase().includes('change')
-                        ? 'Changed'
-                        : 'Updated';
-
-          const resourceFormatted: AuditLogItem['resource'] =
-            log.entityType === 'question'
-              ? 'Question'
-              : log.entityType === 'test_series'
-                ? 'Test Series'
-                : log.entityType === 'test'
-                  ? 'Mock Test'
-                  : log.entityType === 'coupon'
-                    ? 'Coupon'
-                    : log.entityType === 'subscription'
-                      ? 'Subscription'
-                      : log.entityType === 'user' || log.entityType === 'student'
-                        ? 'Student'
-                        : log.entityType === 'payment'
-                          ? 'Payment'
-                          : log.entityType === 'settings'
-                            ? 'Settings'
-                            : log.entityType === 'subject'
-                              ? 'Subject'
-                              : log.entityType === 'banner'
-                                ? 'Banner'
-                                : 'System';
-
-          const initials = (log.adminName || log.adminEmail || 'AD')
-            .split(' ')
-            .map((s) => s[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-
-          return {
-            id: log.id,
-            num: idx + 1,
-            date: dateStr,
-            time: timeStr,
-            adminName: log.adminName || 'Admin',
-            adminEmail: log.adminEmail || '',
-            avatarType: 'initials',
-            avatarInitials: initials,
-            avatarBgColor: 'bg-blue-100',
-            avatarTextColor: 'text-blue-600',
-            action: actionFormatted,
-            resource: resourceFormatted,
-            details:
-              log.details?.source !== 'database_trigger'
-                ? 'Legacy client log (unverified)'
-                : log.entityName
-                  ? `${log.action} ${log.entityName}`.slice(0, 30) + '...'
-                  : log.action,
-            fullDetails: log.entityName
-              ? `${log.action}: ${log.entityName}`
-              : JSON.stringify(log.details || {}),
-            resourceId: log.entityId,
-            ipAddress: log.ipAddress || 'Not recorded',
-            severity: log.action.toLowerCase().includes('delete') ? 'Warning' : 'Info',
-            jsonData: {
-              id: log.id,
-              action: log.action,
-              entityType: log.entityType,
-              entityId: log.entityId,
-              details: log.details,
-              adminRole: log.adminRole,
-            },
-          };
-        });
-
         setLogsList(mapped);
+        setServerTotal(total);
         setSelectedLogId((prev) => {
           if (!prev) return '';
           return mapped.some((m) => m.id === prev) ? prev : '';
@@ -587,7 +608,25 @@ export const AdminAuditLogs: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadLogsPage]);
+
+  const hasMoreLogs = serverTotal !== null && logsList.length < serverTotal;
+  const handleLoadOlderLogs = async () => {
+    if (isLoadingMore || !hasMoreLogs) return;
+    setIsLoadingMore(true);
+    try {
+      const { mapped, total } = await loadLogsPage(logsList.length);
+      setLogsList((prev) => {
+        const seen = new Set(prev.map((l) => l.id));
+        return [...prev, ...mapped.filter((l) => !seen.has(l.id))];
+      });
+      setServerTotal(total);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Older audit logs could not be loaded');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Checkbox selections in table
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -647,6 +686,11 @@ export const AdminAuditLogs: React.FC = () => {
     return { area: top, count: max };
   }, [logsList]);
 
+  const adminOptions = useMemo(
+    () => Array.from(new Set(logsList.map((l) => l.adminName).filter(Boolean))).sort(),
+    [logsList]
+  );
+
   // Filtered rows
   const filteredLogs = useMemo(() => {
     return logsList.filter((log) => {
@@ -668,6 +712,11 @@ export const AdminAuditLogs: React.FC = () => {
       return true;
     });
   }, [logsList, filterAdmin, filterAction, filterResource, filterSeverity, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / rowsPerPage));
+  useEffect(() => {
+    setCurrentPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
 
   // Checkbox handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -901,14 +950,11 @@ export const AdminAuditLogs: React.FC = () => {
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
             >
               <option value="All Admins">All Admins</option>
-              <option value="Susanta Lohar">Susanta Lohar</option>
-              <option value="Puja Namata">Puja Namata</option>
-              <option value="Rohit Kumar">Rohit Kumar</option>
-              <option value="Sneha Khatun">Sneha Khatun</option>
-              <option value="Arijit Pal">Arijit Pal</option>
-              <option value="Moumita Das">Moumita Das</option>
-              <option value="Subhankar Bera">Subhankar Bera</option>
-              <option value="Admin Test">Admin Test</option>
+              {adminOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -1212,6 +1258,22 @@ export const AdminAuditLogs: React.FC = () => {
                 Showing {filteredLogs.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1}–
                 {Math.min(filteredLogs.length, currentPage * rowsPerPage)} of {filteredLogs.length}{' '}
                 logs
+                {serverTotal !== null && (
+                  <span className="text-slate-400">
+                    {' '}
+                    ({logsList.length} of {serverTotal} loaded)
+                  </span>
+                )}
+                {hasMoreLogs && (
+                  <button
+                    type="button"
+                    onClick={() => void handleLoadOlderLogs()}
+                    disabled={isLoadingMore}
+                    className="ml-2 font-semibold text-[#2563EB] hover:underline disabled:opacity-50"
+                  >
+                    {isLoadingMore ? 'Loading…' : 'Load older logs'}
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -1223,47 +1285,14 @@ export const AdminAuditLogs: React.FC = () => {
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
 
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#2563EB] text-white font-medium shadow-2xs"
-                >
-                  1
-                </button>
-                <button
-                  onClick={() => setCurrentPage(2)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-                >
-                  2
-                </button>
-                <button
-                  onClick={() => setCurrentPage(3)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-                >
-                  3
-                </button>
-                <button
-                  onClick={() => setCurrentPage(4)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-                >
-                  4
-                </button>
-                <button
-                  onClick={() => setCurrentPage(5)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-                >
-                  5
-                </button>
-                <span className="px-1 text-slate-400">...</span>
-                <button
-                  onClick={() => setCurrentPage(213)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-                >
-                  213
-                </button>
+                <span className="px-2 text-slate-600 font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
 
                 <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -1271,7 +1300,10 @@ export const AdminAuditLogs: React.FC = () => {
                 <div className="relative ml-2">
                   <select
                     value={rowsPerPage}
-                    onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="appearance-none border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"
                   >
                     <option value={12}>12 / page</option>

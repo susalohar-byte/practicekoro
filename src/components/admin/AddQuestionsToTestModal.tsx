@@ -1,5 +1,5 @@
 import { AdminSectionSkeleton } from './AdminSkeleton';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Search, BookOpen, Filter } from 'lucide-react';
 import type { MockTest, Question, Subject, Chapter } from '@/types';
 import { api } from '@/services/api';
@@ -26,8 +26,14 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
+  // Marks of questions already assigned to this test, so re-saving never wipes custom marks.
+  const [assignedMarks, setAssignedMarks] = useState<
+    Map<string, { marks?: number; negativeMarks?: number }>
+  >(new Map());
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const loadRequestRef = useRef(0);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,35 +41,54 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   const [selectedChapterId, setSelectedChapterId] = useState<string>(test?.chapterId || '');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
-  useEffect(() => {
-    if (!test || !isOpen) return;
+  const testId = test?.id;
+  const testSubjectId = test?.subjectId;
+  const testChapterId = test?.chapterId;
 
-    setSelectedSubjectId(test.subjectId || '');
-    setSelectedChapterId(test.chapterId || '');
-    loadInitialData();
-  }, [test?.id, isOpen]);
-
-  const loadInitialData = async () => {
-    if (!test) return;
+  const loadInitialData = useCallback(async () => {
+    if (!testId) return;
+    const requestId = ++loadRequestRef.current;
     setIsLoading(true);
     try {
       // 1. Get already assigned questions
-      const assigned = await api.getTestAssignedQuestions(test.id);
-      const assignedIds = new Set(assigned.map((a) => a.questionId));
-      setSelectedQuestionIds(new Set(assignedIds));
+      const assigned = await api.getTestAssignedQuestions(testId);
 
       // 2. Load available questions from Central Question Bank
       const allQs = await api.getAllAdminQuestions({
-        subjectId: test.subjectId || undefined,
-        chapterId: test.chapterId || undefined,
+        subjectId: testSubjectId || undefined,
+        chapterId: testChapterId || undefined,
       });
+      if (requestId !== loadRequestRef.current) return;
+      setSelectedQuestionIds(new Set(assigned.map((a) => a.questionId)));
+      setAssignedMarks(
+        new Map(
+          assigned.map((a) => [a.questionId, { marks: a.marks, negativeMarks: a.negativeMarks }])
+        )
+      );
       setQuestions(allQs);
     } catch (err) {
+      if (requestId !== loadRequestRef.current) return;
       console.error('Failed to load question bank:', err);
+      setLoadError(getErrorMessage(err, 'Failed to load the assigned questions'));
     } finally {
-      setIsLoading(false);
+      if (requestId === loadRequestRef.current) setIsLoading(false);
     }
-  };
+  }, [testId, testSubjectId, testChapterId]);
+
+  useEffect(() => {
+    if (!testId || !isOpen) return;
+
+    // Clear anything left over from a previously opened test before loading.
+    setQuestions([]);
+    setSelectedQuestionIds(new Set());
+    setAssignedMarks(new Map());
+    setLoadError(null);
+    setSearchTerm('');
+    setSelectedDifficulty('all');
+    setSelectedSubjectId(testSubjectId || '');
+    setSelectedChapterId(testChapterId || '');
+    loadInitialData();
+  }, [testId, testSubjectId, testChapterId, isOpen, loadInitialData]);
 
   const handleApplyFilter = async () => {
     setIsLoading(true);
@@ -111,19 +136,24 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   };
 
   const handleSaveAssignments = async () => {
-    if (!test) return;
+    if (!test || loadError || isLoading) return;
     setIsSaving(true);
     try {
-      // Build question assignments preserving previous orders where possible
+      // Build question assignments preserving previous orders and marks; only newly added
+      // questions get the default marks.
       const orderedIds = Array.from(selectedQuestionIds);
-      const payload = orderedIds.map((qId, idx) => ({
-        questionId: qId,
-        orderIndex: idx + 1,
-        marks: 1.0,
-        negativeMarks: test.negativeMarking || 0,
-      }));
+      const payload = orderedIds.map((qId, idx) => {
+        const existing = assignedMarks.get(qId);
+        return {
+          questionId: qId,
+          orderIndex: idx + 1,
+          marks: existing?.marks ?? 1.0,
+          negativeMarks: existing ? (existing.negativeMarks ?? 0) : test.negativeMarking || 0,
+        };
+      });
 
-      await api.saveTestQuestions(test.id, payload);
+      const result = await api.saveTestQuestions(test.id, payload);
+      if (!result.success) throw new Error(result.error || 'Save failed');
       alert(`Successfully saved ${payload.length} questions to "${test.title}"!`);
       onQuestionsAssigned();
       onClose();
@@ -253,7 +283,12 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
         {/* Question List - Scrollable */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-          {isLoading ? (
+          {loadError ? (
+            <div className="py-16 text-center text-xs text-rose-500">
+              {loadError}. Close and reopen to try again — saving is disabled so the current
+              assignments are not overwritten.
+            </div>
+          ) : isLoading ? (
             <AdminSectionSkeleton
               label="Loading questions from Question Bank..."
               variant="table"
@@ -331,7 +366,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
             <Button
               size="sm"
               onClick={handleSaveAssignments}
-              disabled={isSaving}
+              disabled={isSaving || isLoading || Boolean(loadError)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4"
             >
               {isSaving ? 'Assigning...' : `Assign ${selectedQuestionIds.size} Questions`}

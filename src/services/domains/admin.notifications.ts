@@ -16,35 +16,25 @@ export async function getNotifications(): Promise<NotificationItem[]> {
       // Non-fatal if stored procedure is not yet applied in active environment
     }
 
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) {
-      return data.map((d: any) => {
-        const scheduledAt = d.scheduled_at || undefined;
-        const effectiveStatus = d.status;
-        const effectiveSentAt = d.sent_at || undefined;
-
-        return {
-          id: d.id,
-          title: d.title,
-          message: d.message,
-          targetAudience: d.target_audience,
-          channel: d.channel,
-          status: effectiveStatus,
-          sentAt: effectiveSentAt,
-          scheduledAt,
-          createdAt: d.created_at,
-          createdBy: d.created_by || undefined,
-          actionLink: d.action_link || undefined,
-          type: d.type || undefined,
-        };
-      });
+    // Page through all rows: a single request is capped by the API max-rows limit.
+    const PAGE_SIZE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw new Error(error.message);
+      const page = data ?? [];
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) break;
     }
-    return [];
+    return rows.map((d: any) => ({
+      ...mapNotification(d),
+      createdBy: d.created_by || undefined,
+    }));
   }
 
   // Fallback: sync scheduled items in local in-memory store
@@ -184,9 +174,14 @@ export async function updateNotification(
   updates: Partial<NotificationItem>
 ): Promise<NotificationItem> {
   if (isSupabaseConfigured) {
-    const current = (await getNotifications()).find((n) => n.id === id);
-    if (!current) throw new Error('Notification not found');
-    const merged = { ...current, ...updates };
+    const { data: row, error: fetchError } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchError) throw new Error(fetchError.message);
+    if (!row) throw new Error('Notification not found');
+    const merged = { ...mapNotification(row), ...updates };
     if (!merged.title.trim() || !merged.message.trim())
       throw new Error('Title and message required');
     if (merged.channel !== 'in_app') throw new Error('Only in-app delivery is connected.');

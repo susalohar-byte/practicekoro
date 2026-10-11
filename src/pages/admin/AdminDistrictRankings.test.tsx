@@ -1,124 +1,125 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AdminDistrictRankings } from './AdminDistrictRankings';
+import { AdminDistrictRankings, rankDistricts } from './AdminDistrictRankings';
 
-// Mock API
-vi.mock('@/services/api', () => ({
-  api: {
-    getAppLeaderboard: vi.fn().mockResolvedValue([]),
-  },
+const m = vi.hoisted(() => ({
+  rankings: vi.fn(),
+  exams: vi.fn(),
 }));
 
-describe('AdminDistrictRankings - 23 Districts Pagination & View Modes', () => {
+vi.mock('@/services/api', () => ({
+  api: { getAllAdminExams: m.exams },
+}));
+vi.mock('@/services/domains/admin.analytics', () => ({
+  getAdminDistrictRankings: m.rankings,
+}));
+
+const row = (district: string, avg: number | null, attempts = 2) => ({
+  district,
+  studentCount: 1,
+  attemptsCount: attempts,
+  avgPercentage: avg,
+  topStudentName: avg === null ? null : `${district} Topper`,
+  topStudentScore: avg,
+});
+
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <AdminDistrictRankings />
+    </MemoryRouter>
+  );
+
+describe('AdminDistrictRankings - real district aggregates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    m.exams.mockResolvedValue([{ id: 'exam-1', title: 'WBP Constable' }]);
   });
 
-  it('paginates 23 districts across 3 pages (10 per page) and updates rows when clicking pages', async () => {
-    render(
-      <MemoryRouter>
-        <AdminDistrictRankings />
-      </MemoryRouter>
-    );
-
-    // Wait for initial load to finish past skeleton
-    await waitFor(() => {
-      expect(screen.getByText('Showing 1–10 of 23 districts')).toBeInTheDocument();
-    });
-
-    const tables = screen.getAllByRole('table');
-    const districtTable = tables[0];
-
-    // Page 1 should show 1–10 of 23 districts by default
-    expect(within(districtTable).getByText('Purulia')).toBeInTheDocument(); // Rank 1
-    expect(within(districtTable).getByText('Birbhum')).toBeInTheDocument(); // Rank 10
-    expect(within(districtTable).queryByText('Kolkata')).not.toBeInTheDocument(); // Rank 11 (on page 2)
-    expect(within(districtTable).queryByText('Purba Bardhaman')).not.toBeInTheDocument(); // Rank 23 (on page 3)
-
-    // Check pagination buttons exist for all 3 pages
-    expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Page 2' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Page 3' })).toBeInTheDocument();
-
-    // Navigate to Page 2
-    const page2Button = screen.getByRole('button', { name: 'Page 2' });
-    fireEvent.click(page2Button);
-
-    expect(screen.getByText('Showing 11–20 of 23 districts')).toBeInTheDocument();
-    expect(within(districtTable).queryByText('Purulia')).not.toBeInTheDocument(); // Rank 1 gone
-    expect(within(districtTable).getByText('Kolkata')).toBeInTheDocument(); // Rank 11 appears
-    expect(within(districtTable).getByText('Kalimpong')).toBeInTheDocument(); // Rank 20 appears
-    expect(within(districtTable).queryByText('Purba Bardhaman')).not.toBeInTheDocument(); // Rank 23 (on page 3)
-
-    // Navigate to Page 3
-    const page3Button = screen.getByRole('button', { name: 'Page 3' });
-    fireEvent.click(page3Button);
-
-    expect(screen.getByText('Showing 21–23 of 23 districts')).toBeInTheDocument();
-    expect(within(districtTable).queryByText('Kolkata')).not.toBeInTheDocument();
-    expect(within(districtTable).getByText('Jhargram')).toBeInTheDocument(); // Rank 21
-    expect(within(districtTable).getByText('Purba Medinipur')).toBeInTheDocument(); // Rank 22
-    expect(within(districtTable).getByText('Purba Bardhaman')).toBeInTheDocument(); // Rank 23
-
-    // Next page should be disabled on page 3
-    const nextButton = screen.getByRole('button', { name: 'Next page' });
-    expect(nextButton).toBeDisabled();
-
-    // Previous page should navigate back to Page 2
-    const prevButton = screen.getByRole('button', { name: 'Previous page' });
-    fireEvent.click(prevButton);
-    expect(screen.getByText('Showing 11–20 of 23 districts')).toBeInTheDocument();
-    expect(within(districtTable).getByText('Kolkata')).toBeInTheDocument();
+  it('ranks only real rows and keeps the Not specified bucket unranked', () => {
+    const ranked = rankDistricts([
+      row('Not specified', 99),
+      row('Howrah', 40),
+      row('Kolkata', 80),
+      row('Nadia', null),
+    ]);
+    expect(ranked.map((r) => [r.district, r.rank])).toEqual([
+      ['Kolkata', 1],
+      ['Howrah', 2],
+      ['Not specified', null],
+      ['Nadia', null],
+    ]);
   });
 
-  it('switches to All (23 Districts) and displays all districts in continuous scroll view', async () => {
-    render(
-      <MemoryRouter>
-        <AdminDistrictRankings />
-      </MemoryRouter>
+  it('renders server rows with no invented districts and paginates them', async () => {
+    m.rankings.mockResolvedValue(
+      Array.from({ length: 12 }, (_, i) => row(`District ${i + 1}`, 90 - i))
     );
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Districts per page')).toBeInTheDocument();
-    });
-
-    const pageSizeSelect = screen.getByLabelText('Districts per page');
-
-    // Switch to All (23 Districts)
-    fireEvent.change(pageSizeSelect, { target: { value: 'all' } });
-
-    expect(screen.getByText('Showing all 23 districts of West Bengal')).toBeInTheDocument();
-    expect(screen.getByText('Scroll to view all 23 districts')).toBeInTheDocument();
-
-    const tables = screen.getAllByRole('table');
-    const districtTable = tables[0];
-
-    // All districts from 1 to 23 are now visible in one scrollable list
-    expect(within(districtTable).getByText('Purulia')).toBeInTheDocument(); // Rank 1
-    expect(within(districtTable).getByText('Kolkata')).toBeInTheDocument(); // Rank 11
-    expect(within(districtTable).getByText('Purba Bardhaman')).toBeInTheDocument(); // Rank 23
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText('Showing 1–10 of 12 districts')).toBeInTheDocument()
+    );
+    const table = screen.getAllByRole('table')[0];
+    expect(within(table).getByText('District 1')).toBeInTheDocument();
+    expect(within(table).queryByText('Purulia')).not.toBeInTheDocument();
+    expect(within(table).queryByText('District 11')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Page 2' }));
+    expect(screen.getByText('Showing 11–12 of 12 districts')).toBeInTheDocument();
+    expect(within(table).getByText('District 11')).toBeInTheDocument();
   });
 
-  it('filters by district correctly and updates summary count', async () => {
-    render(
-      <MemoryRouter>
-        <AdminDistrictRankings />
-      </MemoryRouter>
+  it('shows an empty state when there are no completed attempts', async () => {
+    m.rankings.mockResolvedValue([]);
+    renderPage();
+    await waitFor(() =>
+      expect(
+        screen.getByText('No completed student attempts found for these filters.')
+      ).toBeInTheDocument()
     );
+  });
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Select District')).toBeInTheDocument();
-    });
+  it('shows an error state with retry instead of fake rows', async () => {
+    m.rankings.mockRejectedValueOnce(new Error('Insufficient active staff permissions'));
+    m.rankings.mockResolvedValue([row('Kolkata', 70)]);
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Insufficient'));
+    fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
+    await waitFor(() =>
+      expect(within(screen.getAllByRole('table')[0]).getByText('Kolkata')).toBeInTheDocument()
+    );
+  });
 
-    const districtFilter = screen.getByLabelText('Select District');
-    fireEvent.change(districtFilter, { target: { value: 'Kolkata' } });
+  it('passes the exam and time period filters to the server aggregation', async () => {
+    m.rankings.mockResolvedValue([row('Kolkata', 70)]);
+    renderPage();
+    await waitFor(() => expect(screen.getByLabelText('Select Exam')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('option', { name: 'WBP Constable' })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Select Exam'), { target: { value: 'exam-1' } });
+    await waitFor(() =>
+      expect(m.rankings).toHaveBeenLastCalledWith(
+        expect.objectContaining({ examId: 'exam-1', fromIso: expect.any(String) })
+      )
+    );
+    await waitFor(() => expect(screen.getByLabelText('Time Period')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText('Time Period'), { target: { value: 'All Time' } });
+    await waitFor(() =>
+      expect(m.rankings).toHaveBeenLastCalledWith({
+        examId: 'exam-1',
+        fromIso: null,
+        toIso: null,
+      })
+    );
+  });
 
-    const tables = screen.getAllByRole('table');
-    const districtTable = tables[0];
-
+  it('filters by district', async () => {
+    m.rankings.mockResolvedValue([row('Kolkata', 70), row('Howrah', 60)]);
+    renderPage();
+    await waitFor(() => expect(screen.getByLabelText('Select District')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Kolkata' })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('Select District'), { target: { value: 'Kolkata' } });
+    const table = screen.getAllByRole('table')[0];
     expect(screen.getByText('Showing 1–1 of 1 districts')).toBeInTheDocument();
-    expect(within(districtTable).getByText('Kolkata')).toBeInTheDocument();
-    expect(within(districtTable).queryByText('Purulia')).not.toBeInTheDocument();
+    expect(within(table).queryByText('Howrah')).not.toBeInTheDocument();
   });
 });

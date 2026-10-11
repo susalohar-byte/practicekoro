@@ -21,10 +21,12 @@ export function paymentRange(preset: string, now = new Date()) {
   return getDateRangeBounds('Custom Range', from, today);
 }
 export function retainedPaymentAmount(p: AdminPaymentRow) {
-  return p.status === 'completed'
+  // A partially refunded payment is marked 'refunded' but keeps its unrefunded remainder.
+  return p.status === 'completed' || p.status === 'refunded'
     ? Math.max(
         0,
-        Math.round(Number(p.amount) * 100) - Math.round(Number(p.refundAmount || 0) * 100)
+        Math.round(Number(p.amount) * 100) -
+          Math.round(Number(p.refundAmount ?? (p.status === 'refunded' ? p.amount : 0)) * 100)
       ) / 100
     : 0;
 }

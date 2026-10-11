@@ -55,6 +55,9 @@ export interface AdminBannerItem {
   startDate: string; // "01 Sep 2026" or "01-09-2026"
   endDate: string; // "30 Sep 2026" or "30-09-2026"
   hasDateRange: boolean;
+  /** Raw ISO schedule boundaries as stored on the banner record. */
+  startsAt?: string;
+  expiresAt?: string;
   status: BannerStatus;
   imageUrl: string;
   fileName: string;
@@ -308,6 +311,62 @@ const INITIAL_BANNERS: AdminBannerItem[] = [
 ];
 
 // Helper to map DB HeroBanner to AdminBannerItem
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** ISO timestamp → local "YYYY-MM-DD" for <input type="date">. */
+export function isoToDateInput(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Local "YYYY-MM-DD" → ISO; start = local start of day, end = local end of day. */
+export function dateInputToIso(value: string, edge: 'start' | 'end'): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return '';
+  const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])];
+  const date =
+    edge === 'start' ? new Date(y, mo, d, 0, 0, 0, 0) : new Date(y, mo, d, 23, 59, 59, 999);
+  return date.toISOString();
+}
+
+/** Derive the admin status from the stored activity flag and schedule. */
+export function deriveBannerStatus(
+  banner: Pick<HeroBanner, 'isActive' | 'startsAt' | 'expiresAt'>,
+  now = Date.now()
+): BannerStatus {
+  const start = banner.startsAt ? new Date(banner.startsAt).getTime() : NaN;
+  const end = banner.expiresAt ? new Date(banner.expiresAt).getTime() : NaN;
+  if (!isNaN(end) && end < now) return 'Archived';
+  if (banner.isActive && !isNaN(start) && start > now) return 'Scheduled';
+  return banner.isActive ? 'Active' : 'Draft';
+}
+
+/**
+ * Map the admin status + schedule to the stored fields. Scheduled = active with a future start;
+ * Archived = inactive with an expiry that has passed (set to now if not already past).
+ */
+export function bannerStatusToRecord(
+  status: BannerStatus,
+  startsAt: string,
+  expiresAt: string,
+  now = Date.now()
+): { isActive: boolean; startsAt: string; expiresAt: string } {
+  if (startsAt && expiresAt && new Date(expiresAt).getTime() < new Date(startsAt).getTime())
+    throw new Error('End date must be on or after the start date.');
+  if (status === 'Scheduled') {
+    if (!startsAt || new Date(startsAt).getTime() <= now)
+      throw new Error('Choose a future start date for a scheduled banner.');
+    return { isActive: true, startsAt, expiresAt };
+  }
+  if (status === 'Archived') {
+    const expired = expiresAt && new Date(expiresAt).getTime() < now;
+    return { isActive: false, startsAt, expiresAt: expired ? expiresAt : new Date(now).toISOString() };
+  }
+  return { isActive: status === 'Active', startsAt, expiresAt };
+}
+
 function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBannerItem {
   let bType: BannerType = 'Test Series';
   if (
@@ -354,7 +413,9 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     startDate: formatDate(banner.startsAt),
     endDate: formatDate(banner.expiresAt),
     hasDateRange: hasRange,
-    status: banner.isActive ? 'Active' : 'Draft',
+    startsAt: banner.startsAt || undefined,
+    expiresAt: banner.expiresAt || undefined,
+    status: deriveBannerStatus(banner),
     imageUrl: banner.imageUrl || '/images/exam_hero_banner.png',
     fileName: banner.imageUrl ? banner.imageUrl.split('/').pop() || 'banner.jpg' : 'banner.jpg',
     clickCount: banner.clickCount || 0,
@@ -740,9 +801,11 @@ export const AdminBanners: React.FC = () => {
     linkUrl: '/test-series',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
-    startDate: '01 Oct 2026',
-    endDate: '31 Oct 2026',
-    hasDateRange: true,
+    startDate: '',
+    endDate: '',
+    hasDateRange: false,
+    startsAt: '',
+    expiresAt: '',
     status: 'Active',
     imageUrl: '/images/exam_hero_banner.png',
     fileName: 'banner-new.jpg',
@@ -863,16 +926,24 @@ export const AdminBanners: React.FC = () => {
     if (!editFormData || isUpdating) return;
     try {
       setIsUpdating(true);
-      const saved = await bannerService.updateBanner(editFormData.id, {
+      const original = banners.find((b) => b.id === editFormData.id);
+      const record = bannerStatusToRecord(
+        editFormData.status,
+        editFormData.startsAt || '',
+        editFormData.expiresAt || ''
+      );
+      const updates: Partial<HeroBanner> = {
         title: editFormData.title,
         subtitle: editFormData.description,
         primaryCtaLink: editFormData.linkUrl,
         imageUrl: editFormData.imageUrl,
         displayOrder: editFormData.order,
-        isActive: editFormData.status === 'Active',
-        startsAt: editFormData.startDate,
-        expiresAt: editFormData.endDate,
-      });
+        isActive: record.isActive,
+      };
+      // Only send schedule boundaries that actually changed ('' clears a date).
+      if (record.startsAt !== (original?.startsAt || '')) updates.startsAt = record.startsAt;
+      if (record.expiresAt !== (original?.expiresAt || '')) updates.expiresAt = record.expiresAt;
+      const saved = await bannerService.updateBanner(editFormData.id, updates);
       const row = mapHeroBannerToAdminItem(saved, 0);
       setBanners((prev) => prev.map((b) => (b.id === row.id ? row : b)));
       setEditFormData(row);
@@ -964,12 +1035,19 @@ export const AdminBanners: React.FC = () => {
     }
     try {
       setIsCreating(true);
+      const record = bannerStatusToRecord(
+        newBannerData.status,
+        newBannerData.startsAt || '',
+        newBannerData.expiresAt || ''
+      );
       const saved = await bannerService.createBanner({
         title: newBannerData.title,
         subtitle: newBannerData.subtitle,
         primaryCtaLink: newBannerData.linkUrl,
         imageUrl: newBannerData.imageUrl,
-        isActive: newBannerData.status === 'Active',
+        isActive: record.isActive,
+        ...(record.startsAt ? { startsAt: record.startsAt } : {}),
+        ...(record.expiresAt ? { expiresAt: record.expiresAt } : {}),
         displayOrder: banners.length + 1,
       });
       const row = mapHeroBannerToAdminItem(saved, 0);
@@ -1820,40 +1898,38 @@ export const AdminBanners: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex-1 relative">
                         <input
-                          type="text"
-                          value={editFormData.startDate || '01-09-2026'}
+                          type="date"
+                          aria-label="Schedule start date"
+                          value={isoToDateInput(editFormData.startsAt)}
                           onChange={(e) =>
                             setEditFormData((prev) =>
                               prev
                                 ? {
                                     ...prev,
-                                    startDate: e.target.value,
-                                    hasDateRange: true,
+                                    startsAt: dateInputToIso(e.target.value, 'start'),
                                   }
                                 : null
                             )
                           }
-                          placeholder="DD-MM-YYYY"
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none focus:border-[#026BFC]"
                         />
                       </div>
                       <span className="text-slate-400 font-medium">➔</span>
                       <div className="flex-1 relative">
                         <input
-                          type="text"
-                          value={editFormData.endDate || '30-09-2026'}
+                          type="date"
+                          aria-label="Schedule end date"
+                          value={isoToDateInput(editFormData.expiresAt)}
                           onChange={(e) =>
                             setEditFormData((prev) =>
                               prev
                                 ? {
                                     ...prev,
-                                    endDate: e.target.value,
-                                    hasDateRange: true,
+                                    expiresAt: dateInputToIso(e.target.value, 'end'),
                                   }
                                 : null
                             )
                           }
-                          placeholder="DD-MM-YYYY"
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs focus:outline-none focus:border-[#026BFC]"
                         />
                       </div>
@@ -2173,11 +2249,14 @@ export const AdminBanners: React.FC = () => {
                 <div>
                   <label className="block text-slate-600 font-medium mb-1">Start Date</label>
                   <input
-                    type="text"
-                    placeholder="01 Oct 2026"
-                    value={newBannerData.startDate}
+                    type="date"
+                    aria-label="Start Date"
+                    value={isoToDateInput(newBannerData.startsAt)}
                     onChange={(e) =>
-                      setNewBannerData((prev) => ({ ...prev, startDate: e.target.value }))
+                      setNewBannerData((prev) => ({
+                        ...prev,
+                        startsAt: dateInputToIso(e.target.value, 'start'),
+                      }))
                     }
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800"
                   />
@@ -2185,11 +2264,14 @@ export const AdminBanners: React.FC = () => {
                 <div>
                   <label className="block text-slate-600 font-medium mb-1">End Date</label>
                   <input
-                    type="text"
-                    placeholder="31 Oct 2026"
-                    value={newBannerData.endDate}
+                    type="date"
+                    aria-label="End Date"
+                    value={isoToDateInput(newBannerData.expiresAt)}
                     onChange={(e) =>
-                      setNewBannerData((prev) => ({ ...prev, endDate: e.target.value }))
+                      setNewBannerData((prev) => ({
+                        ...prev,
+                        expiresAt: dateInputToIso(e.target.value, 'end'),
+                      }))
                     }
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800"
                   />

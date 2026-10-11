@@ -344,6 +344,10 @@ export async function createTest(
 }
 
 export async function updateTest(id: string, updates: Partial<MockTest>): Promise<MockTest> {
+  // Students only see tests that are both published AND active (RLS), so keep the two in step.
+  if (updates.status !== undefined) {
+    updates = { ...updates, isActive: updates.status === 'published' };
+  }
   if (!isSupabaseConfigured) {
     const idx = localTests.findIndex((t) => t.id === id);
     if (idx !== -1) {
@@ -469,6 +473,17 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
   const existing = await getTestById(id);
   if (!existing) return null;
 
+  // Extra exam associations live in the test_exams junction, not on the tests row.
+  let associatedExamIds = existing.associatedExamIds;
+  if (isSupabaseConfigured) {
+    const { data: assocRows, error: assocError } = await supabase
+      .from('test_exams')
+      .select('exam_id')
+      .eq('test_id', id);
+    if (assocError) throw new Error(assocError.message);
+    associatedExamIds = (assocRows || []).map((r: { exam_id: string }) => String(r.exam_id));
+  }
+
   const newTest = await createTest({
     title: `${existing.title} (Copy)`,
     slug: `${existing.slug || 'test'}-copy-${Date.now()}`,
@@ -483,30 +498,40 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
     negativeMarking: existing.negativeMarking,
     isPremium: existing.isPremium,
     testType: existing.testType,
-    totalQuestions: existing.totalQuestions || 0,
+    // The real count is written by save_test_questions once the questions are copied below.
+    totalQuestions: 0,
     orderIndex: (existing.orderIndex || 1) + 1,
     isActive: false,
     year: existing.year,
     paperName: existing.paperName,
     shift: existing.shift,
+    setName: existing.setName,
+    examDate: existing.examDate,
+    testSeriesId: existing.testSeriesId,
+    iconUrl: existing.iconUrl,
+    associatedExamIds,
     status: 'draft',
   });
 
-  try {
-    const qAssigned = await getTestAssignedQuestions(id);
-    if (qAssigned && qAssigned.length > 0) {
-      await saveTestQuestions(
-        newTest.id,
-        qAssigned.map((q: TestQuestionAssignment, idx: number) => ({
-          questionId: q.questionId,
-          orderIndex: idx + 1,
-          marks: q.marks,
-          negativeMarks: q.negativeMarks,
-        }))
+  const qAssigned = await getTestAssignedQuestions(id);
+  if (qAssigned && qAssigned.length > 0) {
+    const result = await saveTestQuestions(
+      newTest.id,
+      qAssigned.map((q: TestQuestionAssignment, idx: number) => ({
+        questionId: q.questionId,
+        orderIndex: idx + 1,
+        marks: q.marks,
+        negativeMarks: q.negativeMarks,
+      }))
+    );
+    if (!result.success) {
+      throw new Error(
+        `The copy "${newTest.title}" was created as a draft, but its questions could not be copied: ${
+          result.error || 'unknown error'
+        }`
       );
     }
-  } catch (e) {
-    console.warn('Questions duplication note:', e);
+    return (await getTestById(newTest.id)) ?? newTest;
   }
 
   return newTest;

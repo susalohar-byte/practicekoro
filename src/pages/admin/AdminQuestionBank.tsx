@@ -2,7 +2,8 @@ import { csvCell } from '@/utils/csvExport';
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
 import { requireSuccess } from '@/services/domains/admin.mutations';
 import { runConfirmedBatch } from '@/services/domains/admin.mutations';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '@/services/api';
 import {
   Shield,
@@ -34,9 +35,29 @@ import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { getPageNumbers } from '@/utils/pagination';
+import { parseCsvRaw } from '@/utils/csvParser';
 
 export type UploadMode = 'exam' | 'subject';
 export type QuestionBankStatus = 'published' | 'draft' | 'under_review' | 'archived';
+
+/** Display type derived from the stored source_type (question_type is always 'mcq' in the DB). */
+export function questionBankType(q: Pick<Question, 'sourceType'>): 'PYQ' | 'Topic' | 'Full Mock' {
+  if (q.sourceType === 'pyq') return 'PYQ';
+  if (q.sourceType === 'topic') return 'Topic';
+  return 'Full Mock';
+}
+
+/** Display status: the DB stores published questions as 'active'. */
+export function questionBankStatus(q: Pick<Question, 'status'>): string {
+  const s = String(q.status || 'active').toLowerCase();
+  return s === 'active' ? 'published' : s;
+}
+
+/** Option list that always contains the record's current value so a select never misreports it. */
+function withCurrentOption(options: string[], current: string): string[] {
+  const unique = Array.from(new Set(options.filter(Boolean)));
+  return current && !unique.includes(current) ? [current, ...unique] : unique;
+}
 
 // Full showcase dataset matching reference screenshot media_1791132993733.jpg
 // Rows 1-10 are pixel-exact matches to the reference screenshot; rows 11-40 populate pages 2-4+
@@ -656,6 +677,7 @@ export const AdminQuestionBank: React.FC = () => {
 
   // Drawer Edit Form States
   const [drawerBengaliText, setDrawerBengaliText] = useState('');
+  const [drawerEnglishText, setDrawerEnglishText] = useState('');
   const [drawerOptions, setDrawerOptions] = useState<{ [key: string]: string }>({
     A: '',
     B: '',
@@ -664,19 +686,20 @@ export const AdminQuestionBank: React.FC = () => {
   });
   const [drawerCorrectOption, setDrawerCorrectOption] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [drawerUploadMode, setDrawerUploadMode] = useState<UploadMode>('exam');
-  const [drawerExam, setDrawerExam] = useState('WBP Constable');
-  const [drawerSubject, setDrawerSubject] = useState('History');
-  const [drawerTopic, setDrawerTopic] = useState('Modern India');
-  const [drawerType, setDrawerType] = useState('PYQ');
-  const [drawerYear, setDrawerYear] = useState<number | string>(2025);
+  const [drawerExam, setDrawerExam] = useState('');
+  const [drawerSubject, setDrawerSubject] = useState('');
+  const [drawerTopic, setDrawerTopic] = useState('');
+  const [drawerType, setDrawerType] = useState<'PYQ' | 'Topic' | 'Full Mock'>('Topic');
+  const [drawerYear, setDrawerYear] = useState<number | string>('');
   const [drawerSource, setDrawerSource] = useState('Official PYQ');
   const [drawerStatus, setDrawerStatus] = useState<QuestionBankStatus>('published');
   const [drawerTags, setDrawerTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [isUpdatingDrawer, setIsUpdatingDrawer] = useState(false);
 
-  // Drawer Explanation Edit State
+  // Drawer Explanation Edit State (English and Bengali are stored separately)
   const [editExplanation, setEditExplanation] = useState('');
+  const [editExplanationBengali, setEditExplanationBengali] = useState('');
 
   // Floating Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -795,10 +818,29 @@ export const AdminQuestionBank: React.FC = () => {
     loadInitialData();
   }, [loadInitialData]);
 
+  // Honour deep links such as ?source=topic&subjectId=…&topicId=… (from Topic Manage)
+  // by applying them as the initial filters once the taxonomy lists are loaded.
+  const [searchParams] = useSearchParams();
+  const appliedUrlFilters = useRef(false);
+  useEffect(() => {
+    if (appliedUrlFilters.current || isLoading) return;
+    appliedUrlFilters.current = true;
+    const subjectId = searchParams.get('subjectId');
+    const topicId = searchParams.get('topicId');
+    const source = searchParams.get('source');
+    const subjectName = subjectId ? subjects.find((s) => s.id === subjectId)?.name : undefined;
+    const topicName = topicId ? topics.find((t) => t.id === topicId)?.name : undefined;
+    if (subjectName) setSelectedSubjectFilter(subjectName);
+    if (topicName) setSelectedTopicFilter(topicName);
+    if (source === 'pyq' || source === 'topic') setSelectedTypeFilter(source);
+    if (subjectName || topicName || source) setCurrentPage(1);
+  }, [isLoading, searchParams, subjects, topics]);
+
   // Synchronize drawer fields whenever activeQuestion changes
   useEffect(() => {
     if (activeQuestion) {
-      setDrawerBengaliText(activeQuestion.questionBengaliText || activeQuestion.questionText || '');
+      setDrawerBengaliText(activeQuestion.questionBengaliText || '');
+      setDrawerEnglishText(activeQuestion.questionText || '');
       setDrawerOptions({
         A: activeQuestion.optionA || '',
         B: activeQuestion.optionB || '',
@@ -810,13 +852,22 @@ export const AdminQuestionBank: React.FC = () => {
         (activeQuestion.uploadMode as UploadMode) ||
           (activeQuestion.sourceExam ? 'exam' : 'subject')
       );
-      setDrawerExam(activeQuestion.sourceExam || 'WBP Constable');
-      setDrawerSubject(activeQuestion.subjectName || 'History');
-      setDrawerTopic(activeQuestion.topicName || activeQuestion.chapterName || 'Modern India');
-      setDrawerType(
-        activeQuestion.questionType || (activeQuestion.sourceType === 'pyq' ? 'PYQ' : 'Topic')
+      setDrawerExam(activeQuestion.sourceExam || '');
+      setDrawerSubject(
+        activeQuestion.subjectName ||
+          subjects.find((s) => s.id === activeQuestion.subjectId)?.name ||
+          ''
       );
-      setDrawerYear(activeQuestion.sourceYear || 2025);
+      setDrawerTopic(
+        activeQuestion.topicName ||
+          activeQuestion.chapterName ||
+          topics.find((t) => t.id === (activeQuestion.chapterId || activeQuestion.topicId))
+            ?.name ||
+          ''
+      );
+      setDrawerType(questionBankType(activeQuestion));
+      setDrawerYear(activeQuestion.sourceYear || '');
+      setDrawerTags(activeQuestion.tags || []);
       setDrawerSource(
         activeQuestion.sourceType === 'pyq'
           ? 'Official PYQ'
@@ -829,14 +880,19 @@ export const AdminQuestionBank: React.FC = () => {
           ? 'published'
           : (activeQuestion.status as QuestionBankStatus) || 'draft'
       );
-      setEditExplanation(
-        activeQuestion.explanationBengali ||
-          activeQuestion.explanation ||
-          activeQuestion.shortNotes ||
-          ''
-      );
+      setEditExplanation(activeQuestion.explanation || '');
+      setEditExplanationBengali(activeQuestion.explanationBengali || '');
     }
+    // Re-sync only when a different question is opened/saved; taxonomy lists are
+    // read as a fallback for name lookup.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQuestion]);
+
+  // Topic options for the drawer: topics of the selected subject when it is known.
+  const drawerTopicNames = useMemo(() => {
+    const subjectId = subjects.find((s) => s.name === drawerSubject)?.id;
+    return topics.filter((t) => !subjectId || t.subjectId === subjectId).map((t) => t.name);
+  }, [subjects, topics, drawerSubject]);
 
   // Filtered Questions Dataset
   const filteredQuestions = useMemo(() => {
@@ -911,13 +967,13 @@ export const AdminQuestionBank: React.FC = () => {
 
       // 7. Type Filter
       if (selectedTypeFilter !== 'all') {
-        const t = (q.questionType || (q.sourceType === 'pyq' ? 'PYQ' : 'Topic')).toLowerCase();
+        const t = questionBankType(q).toLowerCase();
         if (t !== selectedTypeFilter.toLowerCase()) return false;
       }
 
       // 8. Status Filter
       if (selectedStatusFilter !== 'all') {
-        const s = (q.status || 'published').toLowerCase();
+        const s = questionBankStatus(q);
         if (s !== selectedStatusFilter.toLowerCase()) return false;
       }
 
@@ -950,36 +1006,27 @@ export const AdminQuestionBank: React.FC = () => {
 
   // Statistics calculation grounded to database numbers
   const stats = useMemo(() => {
-    if (isSupabaseConfigured) {
-      const total = questions.length;
-      const examQuestions = questions.filter(
-        (q) => q.uploadMode === 'exam' || Boolean(q.sourceExam)
-      ).length;
-      const subjectQuestions = questions.filter(
-        (q) =>
-          q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
-      ).length;
-      const published = questions.filter((q) => (q.status || 'published') === 'published').length;
-      const draft = questions.filter((q) => q.status === 'draft').length;
-      const underReview = questions.filter(
-        (q) => (q.status as string) === 'under_review' || (q.status as string) === 'review'
-      ).length;
-      return {
-        total,
-        examQuestions,
-        subjectQuestions,
-        published,
-        draft,
-        underReview,
-      };
-    }
+    const total = questions.length;
+    const examQuestions = questions.filter(
+      (q) => q.uploadMode === 'exam' || Boolean(q.sourceExam)
+    ).length;
+    const subjectQuestions = questions.filter(
+      (q) =>
+        q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
+    ).length;
+    const published = questions.filter((q) => questionBankStatus(q) === 'published').length;
+    const draft = questions.filter((q) => questionBankStatus(q) === 'draft').length;
+    const underReview = questions.filter((q) => {
+      const status = questionBankStatus(q);
+      return status === 'under_review' || status === 'review';
+    }).length;
     return {
-      total: 12430,
-      examQuestions: 7250,
-      subjectQuestions: 5180,
-      published: 11120,
-      draft: 320,
-      underReview: 450,
+      total,
+      examQuestions,
+      subjectQuestions,
+      published,
+      draft,
+      underReview,
     };
   }, [questions]);
 
@@ -1084,7 +1131,7 @@ export const AdminQuestionBank: React.FC = () => {
       q.sourceExam || '',
       q.subjectName || '',
       q.topicName || '',
-      q.status || 'published',
+      questionBankStatus(q),
     ]);
     const csvContent =
       '\uFEFF' + headers.join(',') + '\n' + rows.map((r) => r.map(csvCell).join(',')).join('\n');
@@ -1104,32 +1151,47 @@ export const AdminQuestionBank: React.FC = () => {
     if (!activeQuestion || isUpdatingDrawer) return;
     try {
       setIsUpdatingDrawer(true);
-      const updatedQuestion: Question = {
-        ...activeQuestion,
-        questionBengaliText: drawerBengaliText.trim(),
-        questionText: drawerBengaliText.trim(),
+      const englishText = drawerEnglishText.trim();
+      const bengaliText = drawerBengaliText.trim();
+      if (!englishText && !bengaliText) {
+        showToast('Question text is required.');
+        return;
+      }
+      const originalType = questionBankType(activeQuestion);
+      const subjectId = drawerSubject
+        ? subjects.find((s) => s.name === drawerSubject)?.id
+        : undefined;
+      const chapterId = drawerTopic
+        ? topics.find(
+            (t) => t.name === drawerTopic && (!subjectId || t.subjectId === subjectId)
+          )?.id
+        : undefined;
+      // Only send the fields this drawer edits; untouched columns keep their stored values.
+      const updatedQuestion: Partial<Question> = {
+        questionText: englishText || bengaliText,
+        questionBengaliText: bengaliText,
         optionA: drawerOptions.A.trim(),
         optionB: drawerOptions.B.trim(),
         optionC: drawerOptions.C.trim(),
         optionD: drawerOptions.D.trim(),
         correctOption: drawerCorrectOption,
-        uploadMode: drawerUploadMode,
-        sourceExam: drawerUploadMode === 'exam' ? drawerExam : undefined,
-        subjectName: drawerSubject,
-        topicName: drawerTopic,
-        chapterName: drawerTopic,
-        questionType: drawerType,
-        sourceType: drawerType === 'PYQ' ? 'pyq' : drawerType === 'Full Mock' ? 'other' : 'topic',
-        subjectId: subjects.find((s) => s.name === drawerSubject)?.id,
-        chapterId: topics.find((t) => t.name === drawerTopic)?.id,
+        sourceExam: drawerUploadMode === 'exam' ? drawerExam || undefined : '',
         isActive: drawerStatus === 'published',
-        sourceYear: drawerYear ? Number(drawerYear) : undefined,
         status: drawerStatus,
         tags: drawerTags,
         explanation: editExplanation.trim(),
-        explanationBengali: editExplanation.trim(),
-        shortNotes: editExplanation.trim(),
+        explanationBengali: editExplanationBengali.trim(),
       };
+      if (subjectId && subjectId !== activeQuestion.subjectId) updatedQuestion.subjectId = subjectId;
+      if (chapterId && chapterId !== (activeQuestion.chapterId || activeQuestion.topicId))
+        updatedQuestion.chapterId = chapterId;
+      if (drawerType !== originalType) {
+        updatedQuestion.sourceType =
+          drawerType === 'PYQ' ? 'pyq' : drawerType === 'Full Mock' ? 'other' : 'topic';
+      }
+      const nextYear = drawerYear ? Number(drawerYear) : undefined;
+      // updateQuestion stores a falsy year as NULL, so 0 clears a previously saved year.
+      if (nextYear !== activeQuestion.sourceYear) updatedQuestion.sourceYear = nextYear ?? 0;
 
       const savedQuestion = await api.updateQuestion(activeQuestion.id, updatedQuestion);
 
@@ -1413,12 +1475,10 @@ export const AdminQuestionBank: React.FC = () => {
       const text = event.target?.result as string;
       if (!text) return;
 
-      const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
+      // RFC 4180 parsing: quoted commas, multi-line fields and "" escapes.
+      const csvRows = parseCsvRaw(text.replace(/^\uFEFF/, ''));
 
-      if (lines.length <= 1) {
+      if (csvRows.length <= 1) {
         setImportPreviewStats({
           total: 0,
           valid: 0,
@@ -1426,55 +1486,126 @@ export const AdminQuestionBank: React.FC = () => {
           duplicates: 0,
           errorList: ['The uploaded file is empty or missing headers.'],
         });
+        setParsedImportQuestions([]);
         return;
       }
 
-      const rows = lines.slice(1);
+      const rows = csvRows.slice(1);
       const parsed: Question[] = [];
       const errors: string[] = [];
+      // Columns up to and including correct_answer are required in each template.
+      const requiredColumns = modeIdx(importMode, 'correct') + 1;
+      const findSubject = (name: string) =>
+        name ? subjects.find((sub) => sub.name.trim().toLowerCase() === name.toLowerCase()) : undefined;
+      const findTopic = (name: string, subjectId?: string) =>
+        name
+          ? topics.find(
+              (t) =>
+                t.name.trim().toLowerCase() === name.toLowerCase() &&
+                (!subjectId || t.subjectId === subjectId)
+            )
+          : undefined;
+      const toNumber = (value: string | undefined, fallback: number) => {
+        if (!value?.trim()) return fallback;
+        const n = Number(value);
+        return Number.isFinite(n) && n >= 0 ? n : NaN;
+      };
 
-      rows.forEach((line, idx) => {
-        const parts = line
-          .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-          .map((p) => p.replace(/^"|"$/g, '').trim());
-        if (parts.length >= 7) {
-          const qText = parts[modeIdx(importMode, 'question')];
-          const optA = parts[modeIdx(importMode, 'optA')];
-          const optB = parts[modeIdx(importMode, 'optB')];
-          const optC = parts[modeIdx(importMode, 'optC')] || 'Option C';
-          const optD = parts[modeIdx(importMode, 'optD')] || 'Option D';
-          const correct = (parts[modeIdx(importMode, 'correct')]?.toUpperCase() || 'A') as
-            'A' | 'B' | 'C' | 'D';
+      rows.forEach((parts, idx) => {
+        const rowLabel = `Row ${idx + 2}`;
+        if (parts.length < requiredColumns) {
+          errors.push(
+            `${rowLabel}: expected at least ${requiredColumns} columns, found ${parts.length}`
+          );
+          return;
+        }
+        const qText = parts[modeIdx(importMode, 'question')];
+        const optA = parts[modeIdx(importMode, 'optA')];
+        const optB = parts[modeIdx(importMode, 'optB')];
+        const optC = parts[modeIdx(importMode, 'optC')];
+        const optD = parts[modeIdx(importMode, 'optD')];
+        const correct = (parts[modeIdx(importMode, 'correct')] || '').trim().toUpperCase();
 
-          if (!qText) {
-            errors.push(`Row ${idx + 2}: Question text is empty`);
+        if (!qText) {
+          errors.push(`${rowLabel}: Question text is empty`);
+          return;
+        }
+        if (!optA || !optB || !optC || !optD) {
+          errors.push(`${rowLabel}: Options A, B, C and D are mandatory`);
+          return;
+        }
+        if (!['A', 'B', 'C', 'D'].includes(correct)) {
+          errors.push(
+            `${rowLabel}: correct_answer must be A, B, C or D (got "${parts[modeIdx(importMode, 'correct')] || ''}")`
+          );
+          return;
+        }
+        const marks = toNumber(parts[modeIdx(importMode, 'marks')], 1);
+        const negativeMarks = toNumber(parts[modeIdx(importMode, 'negativeMarks')], 0.25);
+        if (Number.isNaN(marks) || Number.isNaN(negativeMarks)) {
+          errors.push(`${rowLabel}: marks and negative_marks must be non-negative numbers`);
+          return;
+        }
+        const tags = (parts[modeIdx(importMode, 'tags')] || '')
+          .split(';')
+          .map((t) => t.trim())
+          .filter(Boolean);
+        const explanation = parts[modeIdx(importMode, 'explanation')] || '';
+        const shortNotes = parts[modeIdx(importMode, 'shortNotes')] || '';
+
+        const base: Question = {
+          id: crypto.randomUUID(),
+          questionText: qText,
+          optionA: optA,
+          optionB: optB,
+          optionC: optC,
+          optionD: optD,
+          correctOption: correct as 'A' | 'B' | 'C' | 'D',
+          uploadMode: importMode,
+          status: 'published',
+          isActive: true,
+          defaultMarks: marks,
+          defaultNegativeMarks: negativeMarks,
+          explanationBengali: explanation || undefined,
+          shortNotes,
+          tags,
+        };
+
+        if (importMode === 'exam') {
+          const rawType = (parts[1] || '').trim().toLowerCase();
+          const sourceType: Question['sourceType'] = !rawType
+            ? undefined
+            : rawType.includes('pyq')
+              ? 'pyq'
+              : rawType === 'topic'
+                ? 'topic'
+                : 'other';
+          const rawYear = (parts[2] || '').trim();
+          if (rawYear && !/^\d{4}$/.test(rawYear)) {
+            errors.push(`${rowLabel}: year must be a 4-digit year (got "${rawYear}")`);
             return;
           }
-          if (!optA || !optB) {
-            errors.push(`Row ${idx + 2}: Options A and B are mandatory`);
-            return;
-          }
-
           parsed.push({
-            id: crypto.randomUUID(),
-            questionBengaliText: qText,
-            questionText: qText,
-            optionA: optA,
-            optionB: optB,
-            optionC: optC,
-            optionD: optD,
-            correctOption: ['A', 'B', 'C', 'D'].includes(correct) ? correct : 'A',
-            uploadMode: importMode,
-            sourceExam: importMode === 'exam' ? parts[0] || 'WBP Constable' : undefined,
-            subjectName:
-              importMode === 'subject' ? parts[0] || 'General Science' : 'General Awareness',
-            topicName: importMode === 'subject' ? parts[1] || 'Important Topics' : 'Mock Test',
-            status: 'published',
-            isActive: true,
-            defaultMarks: 1,
-            defaultNegativeMarks: 0.25,
-            explanationBengali: parts[modeIdx(importMode, 'explanation')] || '',
-            shortNotes: parts[modeIdx(importMode, 'shortNotes')] || '',
+            ...base,
+            sourceExam: parts[0] || undefined,
+            sourceType,
+            sourceYear: rawYear ? Number(rawYear) : undefined,
+            sourcePaper: parts[3] || undefined,
+          });
+        } else {
+          const subjectName = parts[0] || '';
+          const topicName = parts[1] || '';
+          const subject = findSubject(subjectName);
+          const topic = findTopic(topicName, subject?.id);
+          parsed.push({
+            ...base,
+            sourceType: 'topic',
+            subjectName: subjectName || undefined,
+            subjectId: subject?.id,
+            topicName: topicName || undefined,
+            chapterName: topicName || undefined,
+            chapterId: topic?.id,
+            subtopic: parts[2] || undefined,
           });
         }
       });
@@ -1506,6 +1637,12 @@ export const AdminQuestionBank: React.FC = () => {
           return 8;
         case 'correct':
           return 9;
+        case 'marks':
+          return 10;
+        case 'negativeMarks':
+          return 11;
+        case 'tags':
+          return 15;
         case 'explanation':
           return 12;
         case 'shortNotes':
@@ -1527,6 +1664,12 @@ export const AdminQuestionBank: React.FC = () => {
           return 7;
         case 'correct':
           return 8;
+        case 'marks':
+          return 9;
+        case 'negativeMarks':
+          return 10;
+        case 'tags':
+          return 14;
         case 'explanation':
           return 11;
         case 'shortNotes':
@@ -1799,7 +1942,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.total.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600">↑ 12%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">vs last month</p>
         </div>
@@ -1823,7 +1965,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.examQuestions.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600">↑ 18%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">Full Mocks & PYQs</p>
         </div>
@@ -1847,7 +1988,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.subjectQuestions.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600">↑ 8%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">For Topic Tests</p>
         </div>
@@ -1870,7 +2010,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.published.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600">↑ 15%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">Ready to use</p>
         </div>
@@ -1893,7 +2032,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.draft.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-rose-500">↓ 5%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">Not published</p>
         </div>
@@ -1916,7 +2054,6 @@ export const AdminQuestionBank: React.FC = () => {
             <span className="text-lg font-bold text-slate-900">
               {stats.underReview.toLocaleString('en-IN')}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-600">↑ 8%</span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">Needs check</p>
         </div>
@@ -2365,12 +2502,12 @@ export const AdminQuestionBank: React.FC = () => {
                             <span
                               className={cn(
                                 'px-2 py-0.5 rounded text-[10px] font-bold',
-                                q.questionType === 'PYQ' || q.sourceType === 'pyq'
+                                questionBankType(q) === 'PYQ'
                                   ? 'bg-purple-100 text-purple-700'
                                   : 'bg-sky-100 text-sky-700'
                               )}
                             >
-                              {q.questionType === 'PYQ' || q.sourceType === 'pyq' ? 'PYQ' : 'Topic'}
+                              {questionBankType(q)}
                             </span>
                           </td>
 
@@ -2399,7 +2536,9 @@ export const AdminQuestionBank: React.FC = () => {
                                 ? 'Published'
                                 : q.status === 'under_review'
                                   ? 'Under Review'
-                                  : 'Draft'}
+                                  : q.status === 'archived'
+                                    ? 'Archived'
+                                    : 'Draft'}
                             </span>
                           </td>
 
@@ -2662,6 +2801,23 @@ export const AdminQuestionBank: React.FC = () => {
                   />
                 </div>
 
+                {/* Question (English) Box */}
+                <div>
+                  <label
+                    htmlFor="drawer-english-textarea"
+                    className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                  >
+                    Question (English)
+                  </label>
+                  <textarea
+                    id="drawer-english-textarea"
+                    rows={2}
+                    value={drawerEnglishText}
+                    onChange={(e) => setDrawerEnglishText(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#026BFC] resize-none"
+                  />
+                </div>
+
                 {/* Options Box with Shuffle & Add Option */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -2759,11 +2915,15 @@ export const AdminQuestionBank: React.FC = () => {
                         onChange={(e) => setDrawerExam(e.target.value)}
                         className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                       >
-                        <option value="WBP Constable">WBP Constable</option>
-                        <option value="WBSSC Group C">WBSSC Group C</option>
-                        <option value="WBSSC Group D">WBSSC Group D</option>
-                        <option value="Railway NTPC">Railway NTPC</option>
-                        <option value="ICDS">ICDS</option>
+                        <option value="">—</option>
+                        {withCurrentOption(
+                          exams.map((ex) => ex.name),
+                          drawerExam
+                        ).map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   ) : (
@@ -2776,11 +2936,15 @@ export const AdminQuestionBank: React.FC = () => {
                         onChange={(e) => setDrawerSubject(e.target.value)}
                         className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                       >
-                        <option value="History">History</option>
-                        <option value="General Science">General Science</option>
-                        <option value="Indian Polity">Indian Polity</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="Geography">Geography</option>
+                        <option value="">—</option>
+                        {withCurrentOption(
+                          subjects.map((sub) => sub.name),
+                          drawerSubject
+                        ).map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   )}
@@ -2795,13 +2959,15 @@ export const AdminQuestionBank: React.FC = () => {
                         onChange={(e) => setDrawerSubject(e.target.value)}
                         className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                       >
-                        <option value="History">History</option>
-                        <option value="General Science">General Science</option>
-                        <option value="Indian Polity">Indian Polity</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="Geography">Geography</option>
-                        <option value="Economy">Economy</option>
-                        <option value="Static GK">Static GK</option>
+                        <option value="">—</option>
+                        {withCurrentOption(
+                          subjects.map((sub) => sub.name),
+                          drawerSubject
+                        ).map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   )}
@@ -2813,15 +2979,12 @@ export const AdminQuestionBank: React.FC = () => {
                       onChange={(e) => setDrawerTopic(e.target.value)}
                       className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                     >
-                      <option value="Modern India">Modern India</option>
-                      <option value="Chemical Reactions">Chemical Reactions</option>
-                      <option value="Constitution">Constitution</option>
-                      <option value="BODMAS">BODMAS</option>
-                      <option value="Rivers of India">Rivers of India</option>
-                      <option value="Indian Economy">Indian Economy</option>
-                      <option value="West Bengal">West Bengal</option>
-                      <option value="Human Body">Human Body</option>
-                      <option value="National Symbols">National Symbols</option>
+                      <option value="">—</option>
+                      {withCurrentOption(drawerTopicNames, drawerTopic).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -2831,7 +2994,9 @@ export const AdminQuestionBank: React.FC = () => {
                     </label>
                     <select
                       value={drawerType}
-                      onChange={(e) => setDrawerType(e.target.value)}
+                      onChange={(e) =>
+                        setDrawerType(e.target.value as 'PYQ' | 'Topic' | 'Full Mock')
+                      }
                       className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                     >
                       <option value="PYQ">PYQ</option>
@@ -2847,11 +3012,15 @@ export const AdminQuestionBank: React.FC = () => {
                       onChange={(e) => setDrawerYear(e.target.value)}
                       className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
                     >
-                      <option value="2026">2026</option>
-                      <option value="2025">2025</option>
-                      <option value="2024">2024</option>
-                      <option value="2023">2023</option>
-                      <option value="2022">2022</option>
+                      <option value="">—</option>
+                      {withCurrentOption(
+                        ['2026', '2025', '2024', '2023', '2022'],
+                        drawerYear ? String(drawerYear) : ''
+                      ).map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -2963,11 +3132,31 @@ export const AdminQuestionBank: React.FC = () => {
             {drawerTab === 'explanation' && (
               <div className="p-4 space-y-4 text-xs">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">
-                    Comprehensive Explanation (Bengali & English)
+                  <label
+                    htmlFor="drawer-explanation-bengali"
+                    className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase"
+                  >
+                    Explanation (Bengali)
                   </label>
                   <textarea
-                    rows={8}
+                    id="drawer-explanation-bengali"
+                    rows={6}
+                    value={editExplanationBengali}
+                    onChange={(e) => setEditExplanationBengali(e.target.value)}
+                    placeholder="Enter detailed explanation of why the correct option is right..."
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-[#F8FAFC] font-medium text-slate-900 focus:outline-none focus:border-[#026BFC] resize-none"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="drawer-explanation-english"
+                    className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase"
+                  >
+                    Explanation (English)
+                  </label>
+                  <textarea
+                    id="drawer-explanation-english"
+                    rows={6}
                     value={editExplanation}
                     onChange={(e) => setEditExplanation(e.target.value)}
                     placeholder="Enter detailed explanation of why the correct option is right..."

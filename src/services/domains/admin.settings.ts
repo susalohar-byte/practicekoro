@@ -50,7 +50,11 @@ export async function updateAppSettings(
     return { success: false, error: 'Duplicate setting IDs are not allowed.' };
   if (
     updates.some(
-      (u) => !u.id.trim() || /secret|password|service[._ ]?role|private[._ ]?key/i.test(u.id)
+      (u) =>
+        !u.id.trim() ||
+        /secret|password|service[._ ]?role|private[._ ]?key|api[._ ]?key|server[._ ]?key|smtp[._ ]?user(name)?/i.test(
+          u.id
+        )
     )
   )
     return { success: false, error: 'Credentials must be configured server-side.' };
@@ -165,11 +169,6 @@ export async function updateAppSettings(
       key: 'fast2sms_enabled',
       description: 'Enable Fast2SMS direct SMS delivery gateway',
     },
-    gateway_fast2sms_api_key: {
-      category: 'integrations',
-      key: 'fast2sms_api_key',
-      description: 'Fast2SMS bulk SMS authorization key',
-    },
     gateway_fast2sms_route: {
       category: 'integrations',
       key: 'fast2sms_route',
@@ -189,11 +188,6 @@ export async function updateAppSettings(
       category: 'integrations',
       key: 'fcm_project_id',
       description: 'Firebase Project ID for push notifications',
-    },
-    gateway_fcm_server_key: {
-      category: 'integrations',
-      key: 'fcm_server_key',
-      description: 'Firebase Cloud Messaging Server Key / Auth token',
     },
     gateway_fcm_vapid_key: {
       category: 'integrations',

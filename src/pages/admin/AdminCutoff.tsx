@@ -41,6 +41,61 @@ export interface CutoffItem {
   addedBy?: string;
   source?: string;
   notes?: string;
+  status?: CutoffRecordStatus;
+}
+
+type CutoffRecordStatus = 'active' | 'draft' | 'archived';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  GEN: 'General',
+  OBC_A: 'OBC-A',
+  OBC_B: 'OBC-B',
+};
+
+/** DB category code (+ gender scope) → the label used by the table, filters and form. */
+function toDisplayCategory(category: string, gender?: string): string {
+  const label = CATEGORY_LABELS[category] || category;
+  return gender === 'FEMALE' ? `Female (${label})` : label;
+}
+
+/**
+ * Form label → DB columns. "Female (…)" options are stored as gender FEMALE plus a valid
+ * category code (the category CHECK only allows GEN/OBC_A/OBC_B/SC/ST/EWS/…).
+ */
+function toDbCategoryGender(
+  label: string,
+  existingGender?: string
+): { category: string; gender: 'ALL' | 'MALE' | 'FEMALE' } {
+  const female = /^Female \((.+)\)$/.exec(label);
+  const base = female ? female[1] : label;
+  const category = base === 'General' ? 'GEN' : base.replace('-', '_');
+  if (female) return { category, gender: 'FEMALE' };
+  const gender = existingGender === 'MALE' ? 'MALE' : 'ALL';
+  return { category, gender };
+}
+
+// Category badge class helper
+function getCategoryBadgeClass(cat: string): string {
+  switch (cat) {
+    case 'General':
+      return 'bg-[#DBEAFE] text-[#1E40AF]';
+    case 'OBC-A':
+      return 'bg-[#DCFCE7] text-[#15803D]';
+    case 'OBC-B':
+      return 'bg-[#FEF3C7] text-[#B45309]';
+    case 'SC':
+      return 'bg-[#EDE9FE] text-[#6D28D9]';
+    case 'ST':
+      return 'bg-[#FFE4E6] text-[#BE123C]';
+    case 'EWS':
+      return 'bg-[#FEF9C3] text-[#A16207]';
+    case 'Female (General)':
+      return 'bg-[#E0E7FF] text-[#4338CA]';
+    case 'Female (SC)':
+      return 'bg-[#F3E8FF] text-[#7E22CE]';
+    default:
+      return 'bg-slate-100 text-slate-800';
+  }
 }
 
 export interface RecentUpdateItem {
@@ -402,22 +457,18 @@ export const AdminCutoff: React.FC = () => {
           return;
         }
         const mapped: CutoffItem[] = records.map((r) => {
-          let badgeClass = 'bg-[#DBEAFE] text-[#1E40AF]';
-          const cat = String(r.category);
-          if (cat === 'OBC-A' || cat === 'OBC_A') badgeClass = 'bg-[#DCFCE7] text-[#15803D]';
-          else if (cat === 'OBC-B' || cat === 'OBC_B') badgeClass = 'bg-[#FEF3C7] text-[#B45309]';
-          else if (cat === 'SC') badgeClass = 'bg-[#EDE9FE] text-[#6D28D9]';
-          else if (cat === 'ST') badgeClass = 'bg-[#FFE4E6] text-[#BE123C]';
+          const category = toDisplayCategory(String(r.category), r.gender);
 
           return {
             id: r.id,
             exam: r.examTitle || 'WBP Constable',
             year: r.year,
             stage: r.stage,
-            category: r.category,
-            categoryBadgeClass: badgeClass,
+            category,
+            categoryBadgeClass: getCategoryBadgeClass(category),
             cutoffMarks: r.cutoffMarks,
-            totalPosts: '11,746',
+            totalPosts: r.totalPosts || '',
+            status: r.status,
             addedOn: r.verifiedDate
               ? new Date(r.verifiedDate).toLocaleDateString('en-GB')
               : r.createdAt
@@ -492,7 +543,9 @@ export const AdminCutoff: React.FC = () => {
   const [formStage, setFormStage] = useState('Final Merit');
   const [formCategory, setFormCategory] = useState('General');
   const [formCutoffMarks, setFormCutoffMarks] = useState('85.25');
-  const [formTotalPosts, setFormTotalPosts] = useState('11,746');
+  const [formTotalPosts, setFormTotalPosts] = useState('');
+  // Students only see 'active' cutoffs (RLS), so new records default to Active.
+  const [formStatus, setFormStatus] = useState<CutoffRecordStatus>('active');
   const [formSource, setFormSource] = useState(
     'WBPRB Official Notification Memo No. PRB/RECT/2024-89'
   );
@@ -557,30 +610,6 @@ export const AdminCutoff: React.FC = () => {
     });
   }, [cutoffsList, appliedFilters]);
 
-  // Category badge class helper
-  const getCategoryBadgeClass = (cat: string): string => {
-    switch (cat) {
-      case 'General':
-        return 'bg-[#DBEAFE] text-[#1E40AF]';
-      case 'OBC-A':
-        return 'bg-[#DCFCE7] text-[#15803D]';
-      case 'OBC-B':
-        return 'bg-[#FEF3C7] text-[#B45309]';
-      case 'SC':
-        return 'bg-[#EDE9FE] text-[#6D28D9]';
-      case 'ST':
-        return 'bg-[#FFE4E6] text-[#BE123C]';
-      case 'EWS':
-        return 'bg-[#FEF9C3] text-[#A16207]';
-      case 'Female (General)':
-        return 'bg-[#E0E7FF] text-[#4338CA]';
-      case 'Female (SC)':
-        return 'bg-[#F3E8FF] text-[#7E22CE]';
-      default:
-        return 'bg-slate-100 text-slate-800';
-    }
-  };
-
   // Open Create Modal
   const handleOpenCreateModal = () => {
     setEditingItem(null);
@@ -588,8 +617,9 @@ export const AdminCutoff: React.FC = () => {
     setFormYear('2024');
     setFormStage('Final Merit');
     setFormCategory('General');
-    setFormCutoffMarks('85.25');
-    setFormTotalPosts('11,746');
+    setFormCutoffMarks('');
+    setFormTotalPosts('');
+    setFormStatus('active');
     setFormSource('WBPRB Official Notification Memo No. PRB/RECT/2024-89');
     setFormNotes('Official cutoff benchmark for recruitment selection.');
     setIsAddModalOpen(true);
@@ -604,6 +634,7 @@ export const AdminCutoff: React.FC = () => {
     setFormCategory(item.category);
     setFormCutoffMarks(item.cutoffMarks.toFixed(2));
     setFormTotalPosts(item.totalPosts);
+    setFormStatus(item.status || 'draft');
     setFormSource(item.source || 'WBPRB Official Notification Memo No. PRB/RECT/2024-89');
     setFormNotes(item.notes || '');
     setIsAddModalOpen(true);
@@ -621,6 +652,10 @@ export const AdminCutoff: React.FC = () => {
         ? (await api.getCutoffRecords()).find((x) => x.id === String(editingItem.id))
         : undefined;
       if (editingItem && !existing) throw new Error('The cutoff no longer exists.');
+      const { category: dbCategory, gender: dbGender } = toDbCategoryGender(
+        formCategory,
+        existing?.gender
+      );
       const saved = await api.saveCutoffRecord({
         ...existing,
         id: existing?.id,
@@ -629,8 +664,8 @@ export const AdminCutoff: React.FC = () => {
         year: Number(formYear),
         stage: formStage as any,
         cutoffType: existing?.cutoffType || 'OFFICIAL',
-        category: (formCategory === 'General' ? 'GEN' : formCategory.replace('-', '_')) as any,
-        gender: existing?.gender || 'ALL',
+        category: dbCategory as any,
+        gender: dbGender,
         district: existing?.district || 'ALL',
         scoreType: existing?.scoreType || 'raw_marks',
         maxMarks: existing?.maxMarks || 100,
@@ -640,19 +675,21 @@ export const AdminCutoff: React.FC = () => {
         source: formSource,
         verificationStatus: existing?.verificationStatus || 'Pending Verification',
         notes: formNotes,
-        status: existing?.status || 'draft',
+        status: formStatus,
         totalPosts: formTotalPosts,
       });
       if (!saved.id) throw new Error('Saved ID missing');
+      const savedCategory = toDisplayCategory(String(saved.category), saved.gender);
       const item: CutoffItem = {
         id: saved.id,
         exam: saved.examTitle,
         year: saved.year,
         stage: saved.stage,
-        category: saved.category,
-        categoryBadgeClass: getCategoryBadgeClass(saved.category),
+        category: savedCategory,
+        categoryBadgeClass: getCategoryBadgeClass(savedCategory),
         cutoffMarks: saved.cutoffMarks,
         totalPosts: saved.totalPosts || '',
+        status: saved.status,
         addedOn: new Date(saved.createdAt || Date.now()).toLocaleDateString('en-GB'),
         addedBy: saved.verifiedBy || 'Admin',
         source: saved.source,
@@ -694,6 +731,7 @@ export const AdminCutoff: React.FC = () => {
     setFormCategory(item.category);
     setFormCutoffMarks(String(item.cutoffMarks));
     setFormTotalPosts(item.totalPosts);
+    setFormStatus('active');
     setFormSource(item.source || '');
     setFormNotes(item.notes || '');
     setIsAddModalOpen(true);
@@ -1557,6 +1595,21 @@ export const AdminCutoff: React.FC = () => {
                     <option value="Female (SC)">Female (SC)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium text-slate-700 mb-1 block">
+                  Visibility Status
+                </label>
+                <select
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as CutoffRecordStatus)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  <option value="active">Active (visible to students)</option>
+                  <option value="draft">Draft (hidden from students)</option>
+                  {formStatus === 'archived' && <option value="archived">Archived</option>}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3.5">

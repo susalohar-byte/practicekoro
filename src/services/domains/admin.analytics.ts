@@ -74,7 +74,9 @@ export async function getAuthoritativeAnalytics(
       }
     }
   };
-  const [profiles, attempts, answers, payments, subscriptions] = await Promise.all([
+  // Current calendar month is loaded independently so it never depends on the selected range.
+  const month = getDateRangeBounds('This Month');
+  const [profiles, attempts, answers, payments, subscriptions, monthPayments] = await Promise.all([
     readProfiles(),
     read('test_attempts', 'id,user_id,status,score,created_at', dated),
     read(
@@ -86,8 +88,11 @@ export async function getAuthoritativeAnalytics(
     read('subscriptions', 'id,user_id,status,expires_at', (q) =>
       q.eq('status', 'active').gt('expires_at', new Date().toISOString())
     ),
+    read('payments', 'id,user_id,amount,refund_amount,status,created_at', (q) =>
+      q.gte('created_at', month.startIso).lte('created_at', month.endIso)
+    ),
   ]);
-  return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions);
+  return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions, monthPayments);
 }
 
 export function aggregateAnalytics(
@@ -96,7 +101,9 @@ export function aggregateAnalytics(
   attempts: any[],
   answers: any[],
   payments: any[],
-  subscriptions: any[]
+  subscriptions: any[],
+  /** Payments of the current Kolkata calendar month, independent of the selected range. */
+  monthPayments: any[] = []
 ): PlatformAnalyticsData {
   profiles = profiles.filter((p) => p.role === 'student');
   const students = new Map(profiles.map((p) => [p.id, p]));
@@ -136,8 +143,11 @@ export function aggregateAnalytics(
   };
   for (const a of attempts) {
     const e = entry(a.user_id);
-    e.totalTests++;
-    if (a.status === 'completed') e.totalScore += Number(a.score || 0);
+    // In-progress and abandoned attempts are not finished tests and carry no final score.
+    if (a.status === 'completed') {
+      e.totalTests++;
+      e.totalScore += Number(a.score || 0);
+    }
     if (!e.lastActive || Date.parse(a.created_at) > Date.parse(e.lastActive))
       e.lastActive = a.created_at;
   }
@@ -295,14 +305,15 @@ export function aggregateAnalytics(
       topStudent: studentRankings[0],
       performanceTrend: buckets.map((k) => {
         const a = bucketRows(attempts, k),
-          r = bucketRows(answers, k);
+          r = bucketRows(answers, k),
+          done = a.filter((x) => x.status === 'completed');
         return {
           date: k.dateStr,
           label: k.label,
           attemptsCount: a.length,
           averageAccuracy: rate(r.filter((x) => x.is_correct === true).length, r.length),
-          averageScore: a.length
-            ? a.reduce((sum, x) => sum + Number(x.score || 0), 0) / a.length
+          averageScore: done.length
+            ? done.reduce((sum, x) => sum + Number(x.score || 0), 0) / done.length
             : 0,
         };
       }),
@@ -332,13 +343,14 @@ export function aggregateAnalytics(
     revenue: {
       totalRevenue:
         payments.reduce((sum, p) => sum + Math.round(netPaymentAmount(p) * 100), 0) / 100,
-      monthlyRevenue: payments
-        .filter(
-          (p) =>
-            getKolkataDateString(new Date(p.created_at)).slice(0, 7) ===
-            getKolkataDateString(new Date()).slice(0, 7)
-        )
-        .reduce((sum, p) => sum + netPaymentAmount(p), 0),
+      monthlyRevenue:
+        monthPayments
+          .filter(
+            (p) =>
+              getKolkataDateString(new Date(p.created_at)).slice(0, 7) ===
+              getKolkataDateString(new Date()).slice(0, 7)
+          )
+          .reduce((sum, p) => sum + Math.round(netPaymentAmount(p) * 100), 0) / 100,
       paidStudents: new Set(
         payments
           .filter((p) => netPaymentAmount(p) > 0 && students.has(p.user_id))
@@ -357,4 +369,36 @@ export function aggregateAnalytics(
       }),
     },
   };
+}
+
+export interface AdminDistrictRankingRow {
+  district: string;
+  studentCount: number;
+  attemptsCount: number;
+  /** Mean of score/total_marks over completed attempts; null when no attempt has marks. */
+  avgPercentage: number | null;
+  topStudentName: string | null;
+  topStudentScore: number | null;
+}
+
+/** Real district aggregates from completed student attempts (admin-only RPC). */
+export async function getAdminDistrictRankings(
+  params: { examId?: string | null; fromIso?: string | null; toIso?: string | null } = {}
+): Promise<AdminDistrictRankingRow[]> {
+  const { data, error } = await supabase.rpc('get_admin_district_rankings', {
+    p_exam_id: params.examId || null,
+    p_from: params.fromIso || null,
+    p_to: params.toIso || null,
+  });
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) throw new Error('District rankings were not confirmed.');
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return data.map((r: any) => ({
+    district: String(r.district || 'Not specified'),
+    studentCount: Number(r.student_count || 0),
+    attemptsCount: Number(r.attempts_count || 0),
+    avgPercentage: num(r.avg_percentage),
+    topStudentName: r.top_student_name || null,
+    topStudentScore: num(r.top_student_score),
+  }));
 }

@@ -43,6 +43,10 @@ describe('Payment reporting integrity', () => {
     expect(retainedPaymentAmount(row({ refundAmount: 200 }))).toBe(0);
     expect(recordedRefundAmount(row({ status: 'refunded' }))).toBe(100);
   });
+  it('keeps the unrefunded remainder of a partially refunded payment', () => {
+    expect(retainedPaymentAmount(row({ status: 'refunded', refundAmount: 10 }))).toBe(90);
+    expect(retainedPaymentAmount(row({ status: 'refunded', refundAmount: 100 }))).toBe(0);
+  });
   it('chart totals reconcile with real retained amounts and recorded refunds', () => {
     const range = paymentRange('Last 30 Days', new Date('2026-10-07T10:00:00Z'));
     const points = paymentChart(

@@ -306,7 +306,13 @@ export const AdminCoupons: React.FC = () => {
               year: 'numeric',
             })
           : 'No Expiry';
-        const isAct = c.isActive;
+        // An enabled coupon is only live inside its validity window.
+        const nowMs = Date.now();
+        const startsLater = Boolean(c.validFrom && Date.parse(c.validFrom) > nowMs);
+        const hasEnded = Boolean(c.validUntil && Date.parse(c.validUntil) < nowMs);
+        const status: CouponRowItem['status'] =
+          !c.isActive || hasEnded ? 'Expired' : startsLater ? 'Scheduled' : 'Active';
+        const isAct = status === 'Active';
 
         let planName = 'All Plans';
         let planBadge = 'bg-[#DBEAFE] text-[#1E40AF]';
@@ -331,8 +337,12 @@ export const AdminCoupons: React.FC = () => {
           totalLimit: c.maxUses ?? 0,
           validFrom: validFromStr,
           validUntil: validUntilStr,
-          status: isAct ? 'Active' : 'Expired',
-          statusBadgeClass: isAct ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-[#FEE2E2] text-[#DC2626]',
+          status,
+          statusBadgeClass: isAct
+            ? 'bg-[#DCFCE7] text-[#15803D]'
+            : status === 'Scheduled'
+              ? 'bg-[#FEF3C7] text-[#B45309]'
+              : 'bg-[#FEE2E2] text-[#DC2626]',
           description: c.description,
           isFirstTimeOnly: c.maxUsesPerUser === 1,
         };
@@ -542,13 +552,13 @@ export const AdminCoupons: React.FC = () => {
           editingCoupon && formValidFrom === editingCoupon.validFrom?.slice(0, 10)
             ? editingCoupon.validFrom
             : formValidFrom
-              ? new Date(formValidFrom).toISOString()
+              ? new Date(`${formValidFrom}T00:00:00`).toISOString()
               : new Date().toISOString(),
         validUntil:
           editingCoupon && formValidUntil === editingCoupon.validUntil?.slice(0, 10)
             ? editingCoupon.validUntil
             : formValidUntil
-              ? new Date(formValidUntil + 'T23:59:59.999Z').toISOString()
+              ? new Date(`${formValidUntil}T23:59:59.999`).toISOString()
               : '',
         isActive: formActiveImmediately,
       };
@@ -776,22 +786,12 @@ export const AdminCoupons: React.FC = () => {
               Total Discount Given
             </span>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-2xl font-bold text-slate-900 leading-tight">
-                ₹
-                {couponsList
-                  .reduce(
-                    (sum, c) =>
-                      sum +
-                      (c.usedCount || 0) * (c.discountType === 'fixed' ? c.discountValue : 50),
-                    0
-                  )
-                  .toLocaleString('en-IN')}
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                Saved
-              </span>
+              {/* Per-redemption discount amounts are not recorded, so no total is invented. */}
+              <span className="text-2xl font-bold text-slate-900 leading-tight">—</span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">lifetime value</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              not tracked yet
+            </span>
           </div>
         </div>
       </div>

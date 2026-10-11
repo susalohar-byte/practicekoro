@@ -113,9 +113,14 @@ beforeEach(() => {
       },
     ],
     attempt_answers: [
-      { id: 'r1', selected_option: 'A', created_at: time },
-      { id: 'r2', selected_option: 'B', created_at: '2026-10-08T06:00:00Z' },
-      { id: 'skip', selected_option: null, created_at: time },
+      { id: 'r1', selected_option: 'A', created_at: time, test_attempts: { user_id: 'u1' } },
+      {
+        id: 'r2',
+        selected_option: 'B',
+        created_at: '2026-10-08T06:00:00Z',
+        test_attempts: { user_id: 'u1' },
+      },
+      { id: 'skip', selected_option: null, created_at: time, test_attempts: { user_id: 'u1' } },
     ],
     payments: [
       { id: 'p1', status: 'completed', amount: 100, refund_amount: 30, created_at: time },
@@ -178,6 +183,39 @@ describe('authoritative Dashboard reporting regressions', () => {
       readCompleteQuery(() => ({ range: async () => ({ data: [], count: null, error: null }) }))
     ).rejects.toThrow('confirm');
   });
+  it('excludes staff attempts and answers from student period reporting', async () => {
+    m.data.test_attempts.push({
+      id: 'staff-a',
+      user_id: 'staff',
+      test_id: 't1',
+      status: 'completed',
+      created_at: time,
+    });
+    m.data.attempt_answers.push({
+      id: 'staff-r',
+      selected_option: 'A',
+      created_at: time,
+      test_attempts: { user_id: 'staff' },
+    });
+    const r = await getDashboardPeriodData(b);
+    expect(r).toMatchObject({ testsAttempted: 2, questionsAnswered: 2, activeStudents: 1 });
+  });
+  it('tolerates rows inserted while paging instead of failing the report', async () => {
+    const grow = [
+      { data: [{ id: 1 }, { id: 2 }], count: 3, error: null },
+      { data: [{ id: 3 }, { id: 4 }], count: 4, error: null },
+    ];
+    let i = 0;
+    const out = await readCompleteQuery(() => ({ range: async () => grow[i++] }));
+    expect(out.map((r) => r.id)).toEqual([1, 2, 3, 4]);
+    const shifted = [
+      { data: [{ id: 1 }, { id: 2 }], count: 3, error: null },
+      { data: [{ id: 2 }, { id: 3 }], count: 3, error: null },
+    ];
+    let j = 0;
+    const deduped = await readCompleteQuery(() => ({ range: async () => shifted[j++] }));
+    expect(deduped.map((r) => r.id)).toEqual([1, 2, 3]);
+  });
   it('counts an answered response only when a selected option is recorded', async () => {
     m.data.attempt_answers = [];
     expect((await getDashboardPeriodData(b)).questionsAnswered).toBe(0);
@@ -212,6 +250,8 @@ describe('authoritative Dashboard reporting regressions', () => {
     expect(netPaymentAmount({ status: 'pending', amount: 100 })).toBe(0);
     expect(netPaymentAmount({ status: 'completed', amount: 0, refund_amount: 0 })).toBe(0);
     expect(netPaymentAmount({ status: 'completed', amount: 99.99, refund_amount: 9.99 })).toBe(90);
+    expect(netPaymentAmount({ status: 'refunded', amount: 100 })).toBe(0);
+    expect(netPaymentAmount({ status: 'refunded', amount: 999, refund_amount: 10 })).toBe(989);
   });
   it('deduplicates owning and shared test/exam links without losing linked exam credits', async () => {
     expect(await getDashboardExamAttemptCounts({ t1: 2 })).toEqual({ e1: 2, e2: 2 });

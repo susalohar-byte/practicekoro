@@ -41,8 +41,16 @@ import { cn } from '@/lib/utils';
 import { notificationDateInput, notificationDateMatches } from '@/utils/adminNotificationDates';
 import { api } from '@/services/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { sendFast2Sms } from '@/services/domains/smsGateway';
 import { sendFcmPush } from '@/services/domains/fcmGateway';
+
+/** Format a date as the local-time value expected by <input type="datetime-local">. */
+function toLocalDateTimeInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+const SMS_BROADCAST_DISABLED_MESSAGE =
+  'Direct SMS broadcast is disabled: recipients and the Fast2SMS key must be resolved by a server-side function, which is not configured. No SMS was sent.';
 
 // ============================================================================
 // DATA TYPES & INTERFACES
@@ -68,6 +76,8 @@ export interface NotificationRecord {
   message: string;
   type: NotificationCategory;
   audience: string;
+  /** Raw target_audience value stored on the backend record (e.g. 'all', 'pro', 'free'). */
+  targetAudience?: string;
   audienceCount: string;
   status: NotificationStatus;
   sentAtDate?: string;
@@ -928,6 +938,7 @@ export const AdminNotifications: React.FC = () => {
                 : r.targetAudience === 'pro'
                   ? 'Pro Members'
                   : r.targetAudience || 'All Students',
+            targetAudience: r.targetAudience,
             audienceCount: 'All',
             status: r.status === 'sent' ? 'Sent' : r.status === 'scheduled' ? 'Scheduled' : 'Draft',
             sentAtDate: dateObj?.toLocaleDateString('en-GB', {
@@ -1020,6 +1031,7 @@ export const AdminNotifications: React.FC = () => {
   // Form State in Right Panel
   const [formTab, setFormTab] = useState<'General' | 'Audience' | 'Schedule'>('General');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<NotificationStatus | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formMessage, setFormMessage] = useState('');
   const [formType, setFormType] = useState<NotificationCategory>('General');
@@ -1119,6 +1131,7 @@ export const AdminNotifications: React.FC = () => {
   // Start editing a notification
   const handleStartEdit = (item: NotificationRecord) => {
     setEditingId(item.id);
+    setEditingStatus(item.status);
     setFormTitle(item.title);
     setFormMessage(item.message);
     setFormType(item.type);
@@ -1127,8 +1140,13 @@ export const AdminNotifications: React.FC = () => {
     setFormAudienceCount(item.audienceCount);
     setFormSendPush(item.sendPush ?? true);
     setFormSendEmail(item.sendEmail ?? false);
-    setFormScheduledDate(item.scheduledAt || '2026-09-20T10:00');
-    setFormTab('General');
+    const scheduled = item.scheduledAt ? new Date(item.scheduledAt) : null;
+    setFormScheduledDate(
+      scheduled && Number.isFinite(scheduled.getTime())
+        ? toLocalDateTimeInput(scheduled)
+        : '2026-09-20T10:00'
+    );
+    setFormTab(item.status === 'Scheduled' ? 'Schedule' : 'General');
 
     // Scroll to form and focus
     const el = document.getElementById('create-notification-panel');
@@ -1139,6 +1157,7 @@ export const AdminNotifications: React.FC = () => {
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setEditingStatus(null);
     setFormTitle('');
     setFormMessage('');
     setFormType('General');
@@ -1162,9 +1181,22 @@ export const AdminNotifications: React.FC = () => {
       );
       return;
     }
+    if (formSendSms) {
+      showToast(SMS_BROADCAST_DISABLED_MESSAGE);
+      return;
+    }
     setFormIsSubmitting(true);
     try {
-      const status = isDraft ? 'draft' : formTab === 'Schedule' ? 'scheduled' : 'sent';
+      // Editing keeps the record's existing status unless the admin explicitly saves it as a
+      // draft or chooses the Schedule tab.
+      const keptStatus =
+        editingId && editingStatus === 'Draft'
+          ? 'draft'
+          : editingId && editingStatus === 'Scheduled'
+            ? 'scheduled'
+            : 'sent';
+      const status = isDraft ? 'draft' : formTab === 'Schedule' ? 'scheduled' : keptStatus;
+      const wasAlreadySent = Boolean(editingId) && editingStatus === 'Sent';
       const input = {
         title: formTitle.trim(),
         message: formMessage.trim(),
@@ -1189,9 +1221,10 @@ export const AdminNotifications: React.FC = () => {
       }
 
       const deliveryChannels: string[] = ['In-App'];
+      let pushNote = '';
 
-      // Dispatch external FCM Push Notification if enabled
-      if (status === 'sent' && formSendPush) {
+      // Dispatch external FCM Push Notification if enabled (only on first publish)
+      if (status === 'sent' && !wasAlreadySent && formSendPush) {
         try {
           const settings = await api.getAppSettings();
           const serverKey = String(
@@ -1213,62 +1246,32 @@ export const AdminNotifications: React.FC = () => {
                   ? 'free_students'
                   : 'all_students',
           });
-          if (pushRes.success) {
+          if (pushRes.success && !pushRes.isSimulated) {
             deliveryChannels.push('FCM Push');
+          } else {
+            pushNote = ' Push notification was not delivered (FCM is not configured server-side).';
           }
         } catch {
-          // non-blocking external dispatch
+          pushNote = ' Push notification could not be dispatched.';
         }
       }
 
-      // Dispatch external Fast2SMS direct carrier SMS if enabled
-      if (status === 'sent' && formSendSms) {
-        try {
-          const settings = await api.getAppSettings();
-          const apiKey = String(
-            settings.find((s) => s.id === 'gateway_fast2sms_api_key')?.value || ''
-          );
-          const route = String(
-            settings.find((s) => s.id === 'gateway_fast2sms_route')?.value || 'q'
-          );
-          const senderId = String(
-            settings.find((s) => s.id === 'gateway_fast2sms_sender_id')?.value || 'FSTSMS'
-          );
-
-          let targetNumbers: string[] = [];
-          try {
-            const students = await api.getAdminStudents(undefined, undefined, undefined, 50, 0);
-            targetNumbers = students.map((s) => s.phone || '').filter((p) => p && p.length >= 10);
-          } catch {
-            // fallback
-          }
-
-          if (targetNumbers.length === 0) {
-            targetNumbers = ['9547771118'];
-          }
-
-          const smsRes = await sendFast2Sms({
-            apiKey,
-            numbers: targetNumbers,
-            message: formMessage.trim(),
-            route,
-            senderId,
-          });
-
-          if (smsRes.success) {
-            deliveryChannels.push(`Fast2SMS (${smsRes.recipientCount} SMS)`);
-          }
-        } catch {
-          // non-blocking external dispatch
-        }
-      }
-
+      const wasEditing = Boolean(editingId);
       setEditingId(null);
+      setEditingStatus(null);
       setFormTitle('');
       setFormMessage('');
       setFormActionLink('');
       await loadBackendNotifications();
-      showToast(`Notification broadcasted successfully via ${deliveryChannels.join(' + ')}!`);
+      if (status === 'draft') showToast(wasEditing ? 'Draft updated.' : 'Draft saved.');
+      else if (status === 'scheduled')
+        showToast(
+          `Notification ${wasEditing ? 'updated and ' : ''}scheduled for ${new Date(
+            formScheduledDate
+          ).toLocaleString()}.`
+        );
+      else if (wasAlreadySent) showToast('Sent notification updated.');
+      else showToast(`Notification published via ${deliveryChannels.join(' + ')}.${pushNote}`);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -1339,7 +1342,7 @@ export const AdminNotifications: React.FC = () => {
         await api.createNotification({
           title: item.title + ' (Copy)',
           message: item.message,
-          targetAudience: item.audience,
+          targetAudience: item.targetAudience || item.audience,
           channel: 'in_app',
           status: 'draft',
           type: item.type,
@@ -1414,6 +1417,7 @@ export const AdminNotifications: React.FC = () => {
             type="button"
             onClick={() => {
               setEditingId(null);
+              setEditingStatus(null);
               setFormTitle('');
               setFormMessage('');
               setFormType('General');
@@ -2401,9 +2405,12 @@ export const AdminNotifications: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
+                      disabled
+                      aria-label="Direct Carrier SMS (unavailable)"
+                      title={SMS_BROADCAST_DISABLED_MESSAGE}
                       onClick={() => setFormSendSms(!formSendSms)}
                       className={cn(
-                        'w-10 h-5.5 rounded-full transition-colors relative cursor-pointer shrink-0',
+                        'w-10 h-5.5 rounded-full transition-colors relative shrink-0 cursor-not-allowed opacity-50',
                         formSendSms ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
                       )}
                     >
@@ -2424,7 +2431,7 @@ export const AdminNotifications: React.FC = () => {
                         </span>
                       </div>
                       <span className="text-[11px] text-slate-400 block leading-tight mt-0.5">
-                        Deliver SMS directly to student mobile phones
+                        Unavailable: SMS broadcast requires a server-side gateway function
                       </span>
                     </div>
                   </div>
@@ -2543,7 +2550,7 @@ export const AdminNotifications: React.FC = () => {
                     onClick={() => {
                       const d = new Date();
                       d.setHours(d.getHours() + 2);
-                      setFormScheduledDate(d.toISOString().slice(0, 16));
+                      setFormScheduledDate(toLocalDateTimeInput(d));
                     }}
                     className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium cursor-pointer"
                   >
@@ -2555,7 +2562,7 @@ export const AdminNotifications: React.FC = () => {
                       const d = new Date();
                       d.setDate(d.getDate() + 1);
                       d.setHours(9, 0, 0, 0);
-                      setFormScheduledDate(d.toISOString().slice(0, 16));
+                      setFormScheduledDate(toLocalDateTimeInput(d));
                     }}
                     className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-medium cursor-pointer"
                   >

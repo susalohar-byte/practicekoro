@@ -227,6 +227,8 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
 
         const target = (n.targetAudience || 'all').toLowerCase().trim();
         if (target === 'all') return true;
+        // Targeted notices: RLS only returns them to their recipients.
+        if (target === 'selected') return true;
 
         const isProAudience = target === 'pro' || target === 'pro_users' || target === 'premium';
         if (isPro && isProAudience) return true;

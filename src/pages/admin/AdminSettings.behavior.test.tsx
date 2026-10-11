@@ -73,6 +73,7 @@ describe('Truthful Settings workflows', () => {
     expect(screen.getByLabelText('SMTP Host')).toHaveValue('smtp.example.test');
     expect(screen.getByLabelText('SMTP Port')).toHaveValue('2525');
     expect(screen.queryByLabelText('SMTP Password')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('SMTP Username')).not.toBeInTheDocument();
   });
   it('does not invent a live gateway key when the backend returns an empty configuration', async () => {
     m.gateway.mockResolvedValue({ keyId: '', isActive: false });
@@ -219,12 +220,10 @@ describe('Truthful Settings workflows', () => {
     expect(m.update).toHaveBeenCalledTimes(1);
     expect(m.update.mock.calls[0][0].map((row: { id: string }) => row.id)).toEqual([
       'gateway_fast2sms_enabled',
-      'gateway_fast2sms_api_key',
       'gateway_fast2sms_route',
       'gateway_fast2sms_sender_id',
       'gateway_fcm_enabled',
       'gateway_fcm_project_id',
-      'gateway_fcm_server_key',
       'gateway_fcm_vapid_key',
     ]);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();

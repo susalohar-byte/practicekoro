@@ -23,27 +23,32 @@ export const MockTestPreviewModal: React.FC<MockTestPreviewModalProps> = ({
   const [showExplanation, setShowExplanation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!test || !isOpen) return;
+  const testId = test?.id;
 
-    loadQuestions();
+  useEffect(() => {
+    if (!testId || !isOpen) return;
+
+    let cancelled = false;
+    setQuestions([]);
     setCurrentIndex(0);
     setSelectedAnswers({});
     setShowExplanation(false);
-  }, [test?.id, isOpen]);
-
-  const loadQuestions = async () => {
-    if (!test) return;
     setIsLoading(true);
-    try {
-      const data = await api.getTestAssignedQuestions(test.id);
-      setQuestions(data);
-    } catch (err) {
-      console.error('Failed to load questions for preview:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    api
+      .getTestAssignedQuestions(testId)
+      .then((data) => {
+        if (!cancelled) setQuestions(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load questions for preview:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [testId, isOpen]);
 
   if (!isOpen || !test) return null;
 

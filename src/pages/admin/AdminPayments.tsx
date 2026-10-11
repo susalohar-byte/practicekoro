@@ -1619,6 +1619,8 @@ export const AdminPayments: React.FC = () => {
                       status: 'Refunded',
                       statusBadgeClass: 'bg-[#FEF3C7] text-[#D97706]',
                       subscriptionActive: false,
+                      // Totals and charts read sourcePayment, so keep it in sync too.
+                      sourcePayment: updated,
                     }
                   : p
               )

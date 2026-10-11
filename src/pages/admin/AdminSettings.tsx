@@ -46,15 +46,10 @@ import {
   CheckCircle2,
   Upload,
   MessageSquare,
-  Eye,
-  EyeOff,
   Save,
-  Copy,
   RefreshCw,
   Send,
 } from 'lucide-react';
-import { checkFast2SmsBalance, sendTestSms } from '@/services/domains/smsGateway';
-import { sendTestPushNotification } from '@/services/domains/fcmGateway';
 
 type SettingsTab =
   'general' | 'branding' | 'seo' | 'email' | 'payments' | 'integrations' | 'security' | 'system';
@@ -215,7 +210,6 @@ export const AdminSettings: React.FC = () => {
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('587');
   const [smtpEncryption, setSmtpEncryption] = useState('TLS');
-  const [smtpUsername, setSmtpUsername] = useState('');
   const isSendingTestEmail = false;
   const [appVersion, setAppVersion] = useState('Not configured');
 
@@ -238,21 +232,12 @@ export const AdminSettings: React.FC = () => {
   // SMS & Push Notification Gateways (Fast2SMS & Firebase Cloud Messaging)
   // --------------------------------------------------------------------------
   const [fast2smsEnabled, setFast2smsEnabled] = useState(false);
-  const [fast2smsApiKey, setFast2smsApiKey] = useState('');
   const [fast2smsRoute, setFast2smsRoute] = useState<'q' | 'dlt' | 'otp'>('q');
   const [fast2smsSenderId, setFast2smsSenderId] = useState('FSTSMS');
-  const [fast2smsShowKey, setFast2smsShowKey] = useState(false);
-  const [testSmsMobile, setTestSmsMobile] = useState('');
-  const [isSendingTestSms, setIsSendingTestSms] = useState(false);
-  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
-  const [smsBalanceInfo, setSmsBalanceInfo] = useState<string | null>(null);
 
   const [fcmEnabled, setFcmEnabled] = useState(false);
   const [fcmProjectId, setFcmProjectId] = useState('practicekoro-app');
-  const [fcmServerKey, setFcmServerKey] = useState('');
   const [fcmVapidKey, setFcmVapidKey] = useState('');
-  const [fcmShowKey, setFcmShowKey] = useState(false);
-  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
 
   // Helper toast notification
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'error') => {
@@ -321,7 +306,6 @@ export const AdminSettings: React.FC = () => {
           if (s.id === 'smtp_host') setSmtpHost(String(val ?? ''));
           if (s.id === 'smtp_port') setSmtpPort(String(val ?? '587'));
           if (s.id === 'smtp_encryption') setSmtpEncryption(String(val ?? 'TLS'));
-          if (s.id === 'smtp_username') setSmtpUsername(String(val ?? ''));
           if (s.id === 'sys_app_version' || s.key === 'app_version')
             setAppVersion(String(val ?? 'Not configured'));
           if (s.id === 'primary_color' || s.key === 'primary_color') setPrimaryColor(String(val));
@@ -340,13 +324,11 @@ export const AdminSettings: React.FC = () => {
           if (s.id === 'seo_google_tag') setSearchConsoleToken(String(val ?? ''));
           if (s.id === 'gateway_fast2sms_enabled')
             setFast2smsEnabled(val === true || val === 'true');
-          if (s.id === 'gateway_fast2sms_api_key') setFast2smsApiKey(String(val ?? ''));
           if (s.id === 'gateway_fast2sms_route')
             setFast2smsRoute(val === 'dlt' || val === 'otp' ? val : 'q');
           if (s.id === 'gateway_fast2sms_sender_id') setFast2smsSenderId(String(val || 'FSTSMS'));
           if (s.id === 'gateway_fcm_enabled') setFcmEnabled(val === true || val === 'true');
           if (s.id === 'gateway_fcm_project_id') setFcmProjectId(String(val || 'practicekoro-app'));
-          if (s.id === 'gateway_fcm_server_key') setFcmServerKey(String(val ?? ''));
           if (s.id === 'gateway_fcm_vapid_key') setFcmVapidKey(String(val ?? ''));
         });
       }
@@ -450,7 +432,6 @@ export const AdminSettings: React.FC = () => {
         { id: 'smtp_host', value: smtpHost },
         { id: 'smtp_port', value: smtpPort },
         { id: 'smtp_encryption', value: smtpEncryption },
-        { id: 'smtp_username', value: smtpUsername },
       ]);
 
       if (!res.success) {
@@ -547,12 +528,10 @@ export const AdminSettings: React.FC = () => {
     try {
       const result = await api.updateAppSettings([
         { id: 'gateway_fast2sms_enabled', value: fast2smsEnabled },
-        { id: 'gateway_fast2sms_api_key', value: fast2smsApiKey.trim() },
         { id: 'gateway_fast2sms_route', value: fast2smsRoute },
         { id: 'gateway_fast2sms_sender_id', value: fast2smsSenderId.trim() || 'FSTSMS' },
         { id: 'gateway_fcm_enabled', value: fcmEnabled },
         { id: 'gateway_fcm_project_id', value: fcmProjectId.trim() },
-        { id: 'gateway_fcm_server_key', value: fcmServerKey.trim() },
         { id: 'gateway_fcm_vapid_key', value: fcmVapidKey.trim() },
       ]);
       if (!result.success) throw new Error(result.error || 'Gateway configuration was not saved.');
@@ -569,54 +548,6 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const handleTestSms = async () => {
-    if (!testSmsMobile.trim()) {
-      showToast('Enter a 10-digit mobile number for test SMS.', 'info');
-      return;
-    }
-    setIsSendingTestSms(true);
-    try {
-      const res = await sendTestSms(fast2smsApiKey, testSmsMobile, fast2smsSenderId);
-      if (res.success) {
-        showToast(res.message, 'success');
-      } else {
-        showToast(res.message || 'Test SMS failed.', 'error');
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to send test SMS.', 'error');
-    } finally {
-      setIsSendingTestSms(false);
-    }
-  };
-
-  const handleCheckBalance = async () => {
-    setIsCheckingBalance(true);
-    try {
-      const res = await checkFast2SmsBalance(fast2smsApiKey);
-      setSmsBalanceInfo(res.message);
-      showToast(res.message, res.success ? 'success' : 'info');
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to check balance.', 'info');
-    } finally {
-      setIsCheckingBalance(false);
-    }
-  };
-
-  const handleTestPush = async () => {
-    setIsSendingTestPush(true);
-    try {
-      const res = await sendTestPushNotification(fcmServerKey, fcmProjectId);
-      if (res.success) {
-        showToast(res.message, 'success');
-      } else {
-        showToast(res.message || 'Test push notification failed.', 'error');
-      }
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to send test push alert.', 'error');
-    } finally {
-      setIsSendingTestPush(false);
-    }
-  };
   const handleSendTestEmail = () =>
     showToast('Email delivery is not configured through this page. No message was sent.', 'info');
   const handleConfirmClearCache = async () => {
@@ -2047,22 +1978,9 @@ export const AdminSettings: React.FC = () => {
 
                 {/* Row 2: 2 columns */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      SMTP Username
-                    </label>
-                    <input
-                      disabled={!canManageSettings || isSaving}
-                      aria-label="SMTP Username"
-                      type="text"
-                      value={smtpUsername}
-                      onChange={(e) => setSmtpUsername(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
-                  </div>
-
                   <p className="text-xs text-amber-700">
-                    SMTP credentials are configured server-side. Do not enter passwords here. Saved
+                    SMTP credentials (username and password) must be configured as server (Edge
+                    Function) secrets and are not stored here. Saved
                     values are reference metadata only; this page does not enable mail delivery.
                   </p>
                 </div>
@@ -2749,50 +2667,15 @@ export const AdminSettings: React.FC = () => {
 
             {/* Fast2SMS Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* API Key */}
+              {/* API Key: server-side secret only */}
               <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                  <span>Fast2SMS Authorization API Key</span>
-                  <span className="text-[11px] font-normal text-slate-400">
-                    From Fast2SMS Dev Dashboard (bulkV2)
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={fast2smsShowKey ? 'text' : 'password'}
-                    value={fast2smsApiKey}
-                    onChange={(e) => setFast2smsApiKey(e.target.value)}
-                    placeholder="e.g. gM4oP2hJbS7iZ5rK... (Your Fast2SMS API Key)"
-                    className="w-full h-10 px-3.5 pr-20 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                  <div className="absolute right-2 top-2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setFast2smsShowKey(!fast2smsShowKey)}
-                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                      title={fast2smsShowKey ? 'Hide key' : 'Show key'}
-                    >
-                      {fast2smsShowKey ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                    {fast2smsApiKey && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(fast2smsApiKey);
-                          showToast('Fast2SMS API Key copied to clipboard', 'info');
-                        }}
-                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                        title="Copy API Key"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Fast2SMS Authorization API Key
+                </p>
+                <p className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                  The Fast2SMS API key must be configured as a server (Edge Function) secret. It is
+                  not stored in or readable from the browser.
+                </p>
               </div>
 
               {/* Delivery Route */}
@@ -2836,47 +2719,33 @@ export const AdminSettings: React.FC = () => {
 
             {/* Live Tools: Balance Check & Test SMS */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Fast2SMS Live Testing & Balance
-                </h4>
-                {smsBalanceInfo && (
-                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                    {smsBalanceInfo}
-                  </span>
-                )}
-              </div>
-
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Fast2SMS Live Testing & Balance
+              </h4>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => void handleCheckBalance()}
-                  disabled={isCheckingBalance}
+                  disabled
+                  title="Requires a server-side SMS function; the API key is not available in the browser"
                   className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={cn('w-3.5 h-3.5', isCheckingBalance && 'animate-spin')} />
-                  {isCheckingBalance ? 'Checking...' : 'Check Balance'}
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Check Balance
                 </button>
-
-                <div className="flex-1 flex items-center gap-2">
-                  <input
-                    type="tel"
-                    value={testSmsMobile}
-                    onChange={(e) => setTestSmsMobile(e.target.value)}
-                    placeholder="Enter 10-digit mobile (e.g. 9876543210)"
-                    className="flex-1 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleTestSms()}
-                    disabled={isSendingTestSms}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    {isSendingTestSms ? 'Sending...' : 'Send Test SMS'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled
+                  title="Requires a server-side SMS function; the API key is not available in the browser"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Send Test SMS
+                </button>
               </div>
+              <p className="text-[11px] text-slate-400">
+                Balance checks and test SMS must run from a server-side function that holds the API
+                key; no such function is connected yet.
+              </p>
             </div>
           </div>
 
@@ -2972,46 +2841,15 @@ export const AdminSettings: React.FC = () => {
                 </p>
               </div>
 
-              {/* Server Key / Auth Token */}
+              {/* Server Key: server-side secret only */}
               <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                  <span>FCM Server Key / Cloud Messaging Token</span>
-                  <span className="text-[11px] font-normal text-slate-400">
-                    From Firebase Project Settings &gt; Cloud Messaging
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={fcmShowKey ? 'text' : 'password'}
-                    value={fcmServerKey}
-                    onChange={(e) => setFcmServerKey(e.target.value)}
-                    placeholder="e.g. AAAA... (FCM Legacy Server Key or Service Token)"
-                    className="w-full h-10 px-3.5 pr-20 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                  <div className="absolute right-2 top-2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setFcmShowKey(!fcmShowKey)}
-                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                      title={fcmShowKey ? 'Hide key' : 'Show key'}
-                    >
-                      {fcmShowKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                    {fcmServerKey && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(fcmServerKey);
-                          showToast('FCM Server Key copied to clipboard', 'info');
-                        }}
-                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                        title="Copy Server Key"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  FCM Server Key / Cloud Messaging Token
+                </p>
+                <p className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                  The FCM server key must be configured as a server (Edge Function) secret. It is
+                  not stored in or readable from the browser.
+                </p>
               </div>
             </div>
 
@@ -3022,17 +2860,18 @@ export const AdminSettings: React.FC = () => {
                   FCM Push Notification Test
                 </h4>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Dispatches a test push notification to verify gateway handshake and credentials.
+                  Test pushes must run from a server-side function that holds the FCM server key; no
+                  such function is connected yet.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => void handleTestPush()}
-                disabled={isSendingTestPush}
+                disabled
+                title="Requires a server-side push function; the server key is not available in the browser"
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-colors disabled:opacity-50 shrink-0"
               >
                 <Bell className="w-3.5 h-3.5" />
-                {isSendingTestPush ? 'Testing...' : 'Send Test Push Alert'}
+                Send Test Push Alert
               </button>
             </div>
           </div>
