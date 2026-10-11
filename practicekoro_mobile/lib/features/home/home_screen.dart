@@ -10,6 +10,7 @@ import '../../data/models/exam_model.dart';
 import '../../data/models/live_test_model.dart';
 import '../../data/models/test_series_model.dart';
 import '../../data/models/test_model.dart';
+import '../../data/models/subject_model.dart';
 import '../../data/repositories/catalog_repository.dart';
 
 /// Completed attempts from server for the signed-in student.
@@ -119,11 +120,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _refresh() async {
     ref.invalidate(examsProvider);
+    ref.invalidate(popularExamsProvider);
     ref.invalidate(popularTestSeriesProvider);
     ref.invalidate(recentTestsProvider);
     ref.invalidate(activeLiveTestProvider);
     ref.invalidate(inProgressAttemptsProvider);
     ref.invalidate(completedAttemptsProvider);
+    ref.invalidate(subjectsProvider);
+    ref.invalidate(heroBannersProvider);
     ref.invalidate(notificationsProvider);
     await _loadUserMeta();
   }
@@ -139,6 +143,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final exams = ref.watch(examsProvider).asData?.value ?? const <ExamModel>[];
+    final popularExams =
+        ref.watch(popularExamsProvider).asData?.value ?? const <Map<String, dynamic>>[];
     final seriesAsync = ref.watch(popularTestSeriesProvider);
     final liveTestAsync = ref.watch(activeLiveTestProvider);
     final inProgress =
@@ -147,6 +153,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.watch(completedAttemptsProvider).asData?.value ?? const <TestAttemptModel>[];
     final recentTests =
         ref.watch(recentTestsProvider).asData?.value ?? const <MockTestModel>[];
+    final subjects =
+        ref.watch(subjectsProvider).asData?.value ?? const <SubjectModel>[];
+    final heroBanners =
+        ref.watch(heroBannersProvider).asData?.value ?? const <Map<String, dynamic>>[];
     final notifs =
         ref.watch(notificationsProvider).asData?.value ?? const <Map<String, dynamic>>[];
 
@@ -154,7 +164,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       for (final a in LocalStorageService.getAttempts()) a.id: a,
       for (final a in serverAttempts) a.id: a,
     };
-    final stats = _HomeStats.fromAttempts(attemptsById.values);
+    final userAttempts = attemptsById.values.toList()
+      ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    final stats = _HomeStats.fromAttempts(userAttempts);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FD),
@@ -171,7 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 14),
 
               // 2. Hero Banner
-              _buildHeroBanner(),
+              _buildHeroBanner(heroBanners),
               const SizedBox(height: 8),
               _buildHeroDots(),
               const SizedBox(height: 20),
@@ -189,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
 
               // 5. Exams for You
-              _buildExamsForYou(exams),
+              _buildExamsForYou(exams, popularExams),
               const SizedBox(height: 24),
 
               // 6. Popular Test Series
@@ -201,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
 
               // 8. Recent Tests
-              _buildRecentTests(),
+              _buildRecentTests(userAttempts),
               const SizedBox(height: 24),
 
               // 9. Recently Added Tests
@@ -209,7 +221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
 
               // 10. Recommended for You
-              _buildRecommendedForYou(),
+              _buildRecommendedForYou(subjects),
               const SizedBox(height: 24),
 
               // 11. Motivational Banner
@@ -338,14 +350,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 2. Hero Banner ────────────────────────────────────────────────────────
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner([List<Map<String, dynamic>> heroBanners = const []]) {
+    String? bannerImageUrl;
+    if (heroBanners.isNotEmpty) {
+      final b = heroBanners.first;
+      bannerImageUrl = (b['image_url'] ?? b['imageUrl'] ?? b['banner_url']) as String?;
+    }
+
+    final ImageProvider bannerImage;
+    if (bannerImageUrl != null &&
+        (bannerImageUrl.startsWith('http://') || bannerImageUrl.startsWith('https://'))) {
+      bannerImage = NetworkImage(bannerImageUrl);
+    } else if (bannerImageUrl != null && bannerImageUrl.startsWith('assets/')) {
+      bannerImage = AssetImage(bannerImageUrl);
+    } else {
+      bannerImage = const AssetImage('assets/images/dashboard/ref_hero_banner_clean.png');
+    }
+
     return Container(
       constraints: const BoxConstraints(minHeight: 185),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: const Color(0xFFD9EEFE),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/dashboard/ref_hero_banner_clean.png'),
+        image: DecorationImage(
+          image: bannerImage,
           fit: BoxFit.cover,
           alignment: Alignment.centerRight,
         ),
@@ -766,6 +794,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final duration = '${liveTest?.durationMinutes ?? 60} Mins';
     final questions = '${liveTest?.totalQuestions ?? 100} Questions';
 
+    String scheduleTime = 'Today, 7:00 PM';
+    if (liveTest?.scheduledStartTime != null) {
+      final start = liveTest!.scheduledStartTime.toLocal();
+      final now = DateTime.now();
+      final isToday = start.year == now.year && start.month == now.month && start.day == now.day;
+      final hour = start.hour > 12 ? start.hour - 12 : (start.hour == 0 ? 12 : start.hour);
+      final ampm = start.hour >= 12 ? 'PM' : 'AM';
+      final minute = start.minute.toString().padLeft(2, '0');
+      final timeStr = '$hour:$minute $ampm';
+      if (isToday) {
+        scheduleTime = 'Today, $timeStr';
+      } else {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        scheduleTime = '${start.day} ${months[start.month - 1]}, $timeStr';
+      }
+    }
+
     void onJoin() {
       if (liveTest != null && liveTest.id.isNotEmpty) {
         context.push('/live-test/${liveTest.id}');
@@ -852,9 +897,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
                         const SizedBox(width: 3),
-                        const Text(
-                          'Today, 7:00 PM',
-                          style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        Text(
+                          scheduleTime,
+                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 8),
                         const Icon(Icons.schedule_rounded, size: 11, color: Color(0xFF64748B)),
@@ -918,30 +963,142 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 5. Exams for You ──────────────────────────────────────────────────────
 
-  Widget _buildExamsForYou(List<ExamModel> exams) {
-    final examConfigs = [
+  Widget _buildExamsForYou(
+    List<ExamModel> exams, [
+    List<Map<String, dynamic>> popularExams = const [],
+  ]) {
+    final defaultConfigs = [
       (
         title: 'WBP Constable',
         displayTitle: 'WBP\nConstable',
         tests: '25 Tests',
-        asset: 'assets/images/dashboard/exam_card_wbp_art.png',
         slug: 'wbp-constable',
+        imageUrl: null as String?,
       ),
       (
         title: 'WBSSC Group C & D',
         displayTitle: 'WBSSC\nGroup C & D',
         tests: '30 Tests',
-        asset: 'assets/images/dashboard/exam_card_wbssc_art.png',
         slug: 'wbssc-group-c-d',
+        imageUrl: null as String?,
       ),
       (
         title: 'Railway NTPC',
         displayTitle: 'Railway\nNTPC',
         tests: '40 Tests',
-        asset: 'assets/images/dashboard/exam_card_railway_art.png',
         slug: 'railway-ntpc',
+        imageUrl: null as String?,
       ),
     ];
+
+    String formatDisplayTitle(String title) {
+      if (title.contains('\n')) return title;
+      final parts = title.split(' ');
+      if (parts.length <= 1) return title;
+      if (parts.length == 2) return '${parts[0]}\n${parts[1]}';
+      return '${parts[0]}\n${parts.sublist(1).join(' ')}';
+    }
+
+    final examConfigs = exams.isNotEmpty
+        ? [
+            for (var i = 0; i < exams.take(3).length; i++) ...[
+              () {
+                final ex = exams[i];
+                final popularCard = popularExams.cast<Map<String, dynamic>?>().firstWhere(
+                      (c) =>
+                          c != null &&
+                          (c['examId'] == ex.id ||
+                              c['slug'] == ex.slug ||
+                              c['title'] == ex.title),
+                      orElse: () => null,
+                    );
+                String? bg;
+                if (ex.bannerUrl != null && ex.bannerUrl!.trim().isNotEmpty) {
+                  bg = ex.bannerUrl!.trim();
+                } else if (popularCard != null) {
+                  final cardBg = popularCard['cardBgImage'] as String?;
+                  final cardEmblem = popularCard['cardEmblemUrl'] as String?;
+                  bg = (cardBg != null && cardBg.isNotEmpty) ? cardBg : cardEmblem;
+                }
+
+                String testsCount;
+                if (ex.totalTests != null && ex.totalTests! > 0) {
+                  testsCount = '${ex.totalTests} Tests';
+                } else if (popularCard != null && popularCard['testsCount'] != null) {
+                  testsCount = popularCard['testsCount'].toString();
+                } else {
+                  testsCount = i == 0 ? '25 Tests' : (i == 1 ? '30 Tests' : '40 Tests');
+                }
+
+                return (
+                  title: ex.title,
+                  displayTitle: formatDisplayTitle(ex.title),
+                  tests: testsCount,
+                  slug: ex.slug,
+                  imageUrl: bg,
+                );
+              }(),
+            ],
+          ]
+        : defaultConfigs;
+
+    String defaultAssetForSlug(String slug) {
+      final s = slug.toLowerCase();
+      if (s.contains('wbp') || s.contains('police')) {
+        return 'assets/images/dashboard/exam_card_wbp_art.png';
+      } else if (s.contains('wbssc') || s.contains('clerk') || s.contains('wbpsc') || s.contains('group')) {
+        return 'assets/images/dashboard/exam_card_wbssc_art.png';
+      } else if (s.contains('railway') || s.contains('ntpc') || s.contains('rrb')) {
+        return 'assets/images/dashboard/exam_card_railway_art.png';
+      }
+      return 'assets/images/dashboard/exam_card_wbp_art.png';
+    }
+
+    Widget buildCardImage(String? bgImage, String slug) {
+      final fallbackAsset = defaultAssetForSlug(slug);
+      if (bgImage != null && bgImage.isNotEmpty) {
+        if (bgImage.startsWith('http://') || bgImage.startsWith('https://')) {
+          return Image.network(
+            bgImage,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Image.asset(
+              fallbackAsset,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: const Color(0xFFEFF6FF),
+                child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
+              ),
+            ),
+          );
+        }
+        String assetPath = bgImage;
+        if (assetPath.startsWith('/')) {
+          assetPath = 'assets$assetPath';
+        } else if (!assetPath.startsWith('assets/')) {
+          assetPath = 'assets/$assetPath';
+        }
+        return Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Image.asset(
+            fallbackAsset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(
+              color: const Color(0xFFEFF6FF),
+              child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
+            ),
+          ),
+        );
+      }
+      return Image.asset(
+        fallbackAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(
+          color: const Color(0xFFEFF6FF),
+          child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -997,14 +1154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         SizedBox(
                           height: 64,
                           width: double.infinity,
-                          child: Image.asset(
-                            examConfigs[i].asset,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              color: const Color(0xFFEFF6FF),
-                              child: const Icon(Icons.school_rounded, color: PK.blue, size: 28),
-                            ),
-                          ),
+                          child: buildCardImage(examConfigs[i].imageUrl, examConfigs[i].slug),
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
@@ -1023,20 +1173,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    examConfigs[i].tests,
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF64748B),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      examConfigs[i].tests,
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF64748B),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -1436,8 +1589,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 8. Recent Tests ───────────────────────────────────────────────────────
 
-  Widget _buildRecentTests() {
-    final tests = [
+  String _monthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return (month >= 1 && month <= 12) ? months[month - 1] : '';
+  }
+
+  Widget _buildRecentTests([List<TestAttemptModel> userAttempts = const []]) {
+    final defaultTests = [
       (
         title: 'Full Mock Test 1',
         exam: 'WBP Constable',
@@ -1451,6 +1609,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         pillColor: const Color(0xFF16A34A),
         iconColor: const Color(0xFF2563EB),
         iconBg: const Color(0xFFEFF6FF),
+        attemptId: null as String?,
       ),
       (
         title: 'General Awareness – Topic Test',
@@ -1465,6 +1624,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         pillColor: const Color(0xFF16A34A),
         iconColor: const Color(0xFF16A34A),
         iconBg: const Color(0xFFF0FDF4),
+        attemptId: null as String?,
       ),
       (
         title: 'Mathematics – Topic Test',
@@ -1479,8 +1639,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         pillColor: const Color(0xFFEF4444),
         iconColor: const Color(0xFFEA580C),
         iconBg: const Color(0xFFFFF7ED),
+        attemptId: null as String?,
       ),
     ];
+
+    final tests = userAttempts.isNotEmpty
+        ? [
+            for (final a in userAttempts.take(3)) ...[
+              () {
+                final d = a.completedAt.toLocal();
+                final dateStr = '${d.day.toString().padLeft(2, '0')} ${_monthName(d.month)} ${d.year}';
+                final timeMins = (a.timeSpentSeconds / 60).round().clamp(1, 180);
+                final totalM = a.totalMarks > 0 ? a.totalMarks : 100.0;
+                final scoreStr = '${a.score.toInt()}/${totalM.toInt()}';
+                final pct = a.percentage > 0
+                    ? a.percentage
+                    : (totalM > 0 ? (a.score / totalM * 100) : 0.0);
+                final isTop = pct >= 80;
+                final isPass = pct >= 50;
+                final grade = isTop ? 'Great' : (isPass ? 'Good' : 'Keep Going');
+                final pillBg = isPass ? const Color(0xFFDCFCE7) : const Color(0xFFFFE4E6);
+                final pillColor = isPass ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+                final iconColor = isTop
+                    ? const Color(0xFF2563EB)
+                    : (isPass ? const Color(0xFF16A34A) : const Color(0xFFEA580C));
+                final iconBg = isTop
+                    ? const Color(0xFFEFF6FF)
+                    : (isPass ? const Color(0xFFF0FDF4) : const Color(0xFFFFF7ED));
+
+                return (
+                  title: a.testTitle.isNotEmpty ? a.testTitle : 'Mock Test',
+                  exam: a.testSeriesTitle ?? 'Practice Test',
+                  date: dateStr,
+                  time: '$timeMins Mins',
+                  marks: '${totalM.toInt()} Marks',
+                  score: scoreStr,
+                  grade: grade,
+                  hasTrophy: isTop,
+                  pillBg: pillBg,
+                  pillColor: pillColor,
+                  iconColor: iconColor,
+                  iconBg: iconBg,
+                  attemptId: a.id,
+                );
+              }(),
+            ],
+          ]
+        : defaultTests;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1522,7 +1727,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             for (var i = 0; i < tests.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
               InkWell(
-                onTap: () => context.push('/test-series'),
+                onTap: () {
+                  if (tests[i].attemptId != null && tests[i].attemptId!.isNotEmpty) {
+                    context.push('/results/${tests[i].attemptId}');
+                  } else {
+                    _navigateToTab(3, '/results');
+                  }
+                },
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -1639,8 +1850,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─── 9. Recently Added Tests ───────────────────────────────────────────────
 
   Widget _buildRecentlyAddedTests(List<MockTestModel> recentTests) {
-    final tests = [
+    final defaultTests = [
       (
+        id: 'default-1',
         title: 'WBP Constable – Full Mock Test 5',
         exam: 'WBP Constable',
         qs: '85 Qs',
@@ -1653,6 +1865,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         iconBg: const Color(0xFFEFF6FF),
       ),
       (
+        id: 'default-2',
         title: 'Static GK – Important Questions',
         exam: 'All Competitive Exams',
         qs: '50 Qs',
@@ -1665,6 +1878,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         iconBg: const Color(0xFFFFF7ED),
       ),
       (
+        id: 'default-3',
         title: 'Current Affairs – Daily Quiz',
         exam: 'All Competitive Exams',
         qs: '25 Qs',
@@ -1677,6 +1891,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         iconBg: const Color(0xFFF0FDF4),
       ),
     ];
+
+    final tests = recentTests.isNotEmpty
+        ? [
+            for (var i = 0; i < recentTests.take(3).length; i++) ...[
+              () {
+                final t = recentTests[i];
+                final icon = t.testType == 'full_mock'
+                    ? Icons.description_rounded
+                    : (t.testType == 'pyq'
+                        ? Icons.history_edu_rounded
+                        : (t.testType == 'chapter_mock'
+                            ? Icons.track_changes_rounded
+                            : Icons.article_rounded));
+                final iconColor = i == 0
+                    ? const Color(0xFF2563EB)
+                    : (i == 1 ? const Color(0xFFEA580C) : const Color(0xFF16A34A));
+                final iconBg = i == 0
+                    ? const Color(0xFFEFF6FF)
+                    : (i == 1 ? const Color(0xFFFFF7ED) : const Color(0xFFF0FDF4));
+
+                return (
+                  id: t.id,
+                  title: t.title,
+                  exam: t.examTitle ?? t.testSeriesTitle ?? t.subjectName ?? 'All Competitive Exams',
+                  qs: '${t.totalQuestions} Qs',
+                  time: '${t.durationMinutes} Mins',
+                  marks: '${t.totalMarks.toInt()} Marks',
+                  isNew: i < 2,
+                  isFree: !t.isPremium,
+                  icon: icon,
+                  iconColor: iconColor,
+                  iconBg: iconBg,
+                );
+              }(),
+            ],
+          ]
+        : defaultTests;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1718,7 +1969,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             for (var i = 0; i < tests.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
               InkWell(
-                onTap: () => context.push('/test-series'),
+                onTap: () {
+                  if (tests[i].id.startsWith('default-')) {
+                    context.push('/test-series');
+                  } else {
+                    context.push('/test-runner/${tests[i].id}');
+                  }
+                },
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(12),
@@ -1774,12 +2031,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     color: const Color(0xFFDCFCE7),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text(
-                                    'FREE',
+                                  child: Text(
+                                    tests[i].isFree ? 'FREE' : 'PRO',
                                     style: TextStyle(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFF16A34A),
+                                      color: tests[i].isFree ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
                                     ),
                                   ),
                                 ),
@@ -1828,8 +2085,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 10. Recommended for You ───────────────────────────────────────────────
 
-  Widget _buildRecommendedForYou() {
-    final topics = [
+  Widget _buildRecommendedForYou([List<SubjectModel> subjects = const []]) {
+    final defaultTopics = [
       (
         id: 'reasoning',
         title: 'Reasoning\nTopic Tests',
@@ -1871,6 +2128,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         circleBg: const Color(0xFFDCFCE7),
       ),
     ];
+
+    final themeSlots = [
+      (
+        icon: Icons.psychology_rounded,
+        iconColor: const Color(0xFFEC4899),
+        bg: const Color(0xFFFDF2F8),
+        border: const Color(0xFFFCE7F3),
+        circleBg: const Color(0xFFFCE7F3),
+      ),
+      (
+        icon: Icons.science_rounded,
+        iconColor: const Color(0xFF06B6D4),
+        bg: const Color(0xFFF0FDFA),
+        border: const Color(0xFFCCFBF1),
+        circleBg: const Color(0xFFCCFBF1),
+      ),
+      (
+        icon: Icons.account_balance_rounded,
+        iconColor: const Color(0xFFF59E0B),
+        bg: const Color(0xFFFFFBEB),
+        border: const Color(0xFFFEF3C7),
+        circleBg: const Color(0xFFFEF3C7),
+      ),
+      (
+        icon: Icons.description_rounded,
+        iconColor: const Color(0xFF10B981),
+        bg: const Color(0xFFF0FDF4),
+        border: const Color(0xFFDCFCE7),
+        circleBg: const Color(0xFFDCFCE7),
+      ),
+    ];
+
+    IconData resolveSubjectIcon(String name, int slotIndex) {
+      final n = name.toLowerCase();
+      if (n.contains('reason') || n.contains('logic') || n.contains('mental')) return Icons.psychology_rounded;
+      if (n.contains('sci') || n.contains('bio') || n.contains('phys') || n.contains('chem')) return Icons.science_rounded;
+      if (n.contains('hist') || n.contains('itihas') || n.contains('geo')) return Icons.account_balance_rounded;
+      if (n.contains('polity') || n.contains('const') || n.contains('law') || n.contains('econ')) return Icons.description_rounded;
+      if (n.contains('math') || n.contains('gonit') || n.contains('arith')) return Icons.calculate_rounded;
+      if (n.contains('eng') || n.contains('beng') || n.contains('lang')) return Icons.translate_rounded;
+      return themeSlots[slotIndex % themeSlots.length].icon;
+    }
+
+    final topics = subjects.isNotEmpty
+        ? [
+            for (var i = 0; i < subjects.take(4).length; i++) ...[
+              () {
+                final s = subjects[i];
+                final slot = themeSlots[i % themeSlots.length];
+                final title = s.name.contains('\n') ? s.name : '${s.name}\nTopic Tests';
+                final qs = s.chaptersCount != null && s.chaptersCount! > 0
+                    ? '${s.chaptersCount! * 15}+ Questions'
+                    : '150+ Questions';
+
+                return (
+                  id: s.slug.isNotEmpty ? s.slug : s.id,
+                  title: title,
+                  qs: qs,
+                  icon: resolveSubjectIcon(s.name, i),
+                  iconColor: slot.iconColor,
+                  bg: slot.bg,
+                  border: slot.border,
+                  circleBg: slot.circleBg,
+                );
+              }(),
+            ],
+          ]
+        : defaultTopics;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
