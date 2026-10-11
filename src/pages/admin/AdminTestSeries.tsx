@@ -1,7 +1,7 @@
 import { csvCell } from '@/utils/csvExport';
 import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import { runConfirmedBatch, requireSuccess } from '@/services/domains/admin.mutations';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import {
   Layers,
@@ -347,12 +347,9 @@ export const AdminTestSeries: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Load tests when activeSeries changes
+  // Re-sync the drawer forms whenever the active series data changes (not only its id)
   useEffect(() => {
-    if (!activeSeries) {
-      setActiveSeriesTests([]);
-      return;
-    }
+    if (!activeSeries) return;
 
     setDrawerDescriptionText(activeSeries.description || '');
     setDrawerSettingsForm({
@@ -367,6 +364,27 @@ export const AdminTestSeries: React.FC = () => {
       iconUrl: activeSeries.iconUrl || '/images/exams/logo_wbp.png',
       bannerUrl: activeSeries.bannerUrl || '',
     });
+  }, [activeSeries]);
+
+  // Latest active series for the test loader below, which only refetches when the id changes.
+  const activeSeriesRef = useRef(activeSeries);
+  useEffect(() => {
+    activeSeriesRef.current = activeSeries;
+  }, [activeSeries]);
+  const activeSeriesId = activeSeries?.id;
+
+  // Load tests when the active series id changes
+  useEffect(() => {
+    const activeSeries = activeSeriesRef.current;
+    if (!activeSeriesId || !activeSeries) {
+      setActiveSeriesTests([]);
+      return;
+    }
+    // Ignore responses for a series that is no longer selected (fast switching).
+    let stale = false;
+    const setActiveSeriesTestsIfCurrent = (tests: MockTest[]) => {
+      if (!stale) setActiveSeriesTests(tests);
+    };
 
     const loadSeriesTests = async () => {
       try {
@@ -387,17 +405,17 @@ export const AdminTestSeries: React.FC = () => {
           Array.isArray(localSaved) &&
           localSaved.length > 0
         ) {
-          setActiveSeriesTests(localSaved);
+          setActiveSeriesTestsIfCurrent(localSaved);
           return;
         }
 
         const tests = await api.getSeriesTests(activeSeries.id);
         if (tests && tests.length > 0) {
-          setActiveSeriesTests(tests);
+          setActiveSeriesTestsIfCurrent(tests);
         } else if (isSupabaseConfigured) {
-          setActiveSeriesTests([]);
+          setActiveSeriesTestsIfCurrent([]);
         } else if (activeSeries.id === 'wbp-prelims-2025') {
-          setActiveSeriesTests(DEFAULT_WBP_SERIES_TESTS);
+          setActiveSeriesTestsIfCurrent(DEFAULT_WBP_SERIES_TESTS);
         } else {
           // Generate sample tests matching series testCount
           const sampleCount = activeSeries.fullMockCount || 3;
@@ -462,18 +480,21 @@ export const AdminTestSeries: React.FC = () => {
               status: 'published',
             });
           }
-          setActiveSeriesTests(samples);
+          setActiveSeriesTestsIfCurrent(samples);
         }
       } catch (err) {
         console.warn('Could not load series tests:', err);
-        setActiveSeriesTests(isSupabaseConfigured ? [] : DEFAULT_WBP_SERIES_TESTS);
+        setActiveSeriesTestsIfCurrent(isSupabaseConfigured ? [] : DEFAULT_WBP_SERIES_TESTS);
       } finally {
-        setIsLoadingDrawerTests(false);
+        if (!stale) setIsLoadingDrawerTests(false);
       }
     };
 
     loadSeriesTests();
-  }, [activeSeries?.id]); // Only refetch when active series ID changes
+    return () => {
+      stale = true;
+    };
+  }, [activeSeriesId]); // Only refetch when active series ID changes
 
   // Derived Summary Analytics
   const stats = useMemo(() => {

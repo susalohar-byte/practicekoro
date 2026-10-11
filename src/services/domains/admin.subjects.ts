@@ -189,7 +189,8 @@ export async function updateSubject(id: string, updates: Partial<Subject>): Prom
   const payload: Record<string, unknown> = {};
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.slug !== undefined) payload.slug = updates.slug;
-  if (updates.description !== undefined) payload.description = updates.description;
+  // An empty description clears the stored value.
+  if (updates.description !== undefined) payload.description = updates.description || null;
   if (updates.iconName !== undefined) payload.icon_name = updates.iconName;
   if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
   if (updates.isActive !== undefined) payload.is_active = updates.isActive;

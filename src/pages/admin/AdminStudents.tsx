@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/services/api';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import type { AdminStudentRow, AdminStudentDetails, TestAttempt } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -627,6 +628,7 @@ function mapDbRowToStudent(row: AdminStudentRow, index: number): EnrichedStudent
 // ============================================================================
 
 export const AdminStudents: React.FC = () => {
+  const { user: currentAdmin } = useAuth();
   // State: pure database state, no fake preset records
   const [students, setStudents] = useState<EnrichedStudent[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -1216,7 +1218,11 @@ export const AdminStudents: React.FC = () => {
         phone: editStudentForm.phone.trim(),
         targetExam: editStudentForm.targetExam,
         district: editStudentForm.location,
-        status: editStudentForm.status,
+        // Only send status when the admin actually changed it to a known value.
+        ...(editStudentForm.status !== selectedStudent.status &&
+        editStudentForm.status !== 'Unavailable'
+          ? { status: editStudentForm.status }
+          : {}),
       });
       if (!result.success) {
         showToast('error', result.error || 'Student update was not confirmed.');
@@ -1372,11 +1378,12 @@ export const AdminStudents: React.FC = () => {
 
     setIsWorking(true);
     try {
-      const res = await api.createStudentNote(
-        selectedStudent.id,
-        newNoteText.trim(),
-        'Staff Admin'
-      );
+      const authorName = currentAdmin?.fullName?.trim() || currentAdmin?.email?.trim();
+      if (!authorName) {
+        showToast('error', 'Your staff profile could not be identified; note was not saved.');
+        return;
+      }
+      const res = await api.createStudentNote(selectedStudent.id, newNoteText.trim(), authorName);
       if (!res.success || !res.note) {
         showToast('error', res.error || 'Failed to persist note.');
         return;

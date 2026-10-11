@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { api } from '@/services/api';
 import { AdminStudents } from './AdminStudents';
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'staff', fullName: 'Fixture Staff', email: 'staff@example.test' } }),
+}));
 vi.mock('@/services/api', () => ({
   api: {
     getAllAdminStudents: vi.fn(),

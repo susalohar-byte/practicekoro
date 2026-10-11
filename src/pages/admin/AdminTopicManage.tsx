@@ -304,7 +304,8 @@ export const AdminTopicManage: React.FC = () => {
         await api.updateSubject(editingSubject.id, {
           name: subName.trim(),
           slug: subSlug.trim(),
-          description: subDescription.trim() || undefined,
+          // '' (not undefined) so clearing the field clears the stored description.
+          description: subDescription.trim(),
           orderIndex: Number(subOrderIndex),
           isActive: subIsActive,
         });
@@ -397,7 +398,8 @@ export const AdminTopicManage: React.FC = () => {
           subjectId: topicSubjectId,
           name: topicName.trim(),
           slug: topicSlug.trim(),
-          description: topicDescription.trim() || undefined,
+          // '' (not undefined) so clearing the field clears the stored description.
+          description: topicDescription.trim(),
           orderIndex: Number(topicOrderIndex),
           isActive: topicIsActive,
         });

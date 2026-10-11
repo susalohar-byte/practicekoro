@@ -151,6 +151,8 @@ export async function updateChapter(id: string, input: Partial<Chapter>): Promis
   const payload: Record<string, unknown> = {};
   for (const [k, c] of Object.entries(fields))
     if ((input as any)[k] !== undefined) payload[c] = (input as any)[k];
+  // An empty description clears the stored value.
+  if (input.description !== undefined) payload.description = input.description || null;
   const d = requireSavedRow(
     await supabase.from('chapters').update(payload).eq('id', id).select('*').single(),
     id

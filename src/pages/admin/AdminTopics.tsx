@@ -992,10 +992,13 @@ export const AdminTopics: React.FC = () => {
   // Open Reorder Modal
   const handleOpenOrderModal = () => {
     const targetSubId =
-      selectedSubjectFilter !== 'all' ? selectedSubjectFilter : 'sub-general-science';
+      selectedSubjectFilter !== 'all' && subjectsList.some((s) => s.id === selectedSubjectFilter)
+        ? selectedSubjectFilter
+        : subjectsList[0]?.id || '';
     setOrderSubjectId(targetSubId);
+    // Only the chosen subject's topics are renumbered.
     const subTopics = topicsList
-      .filter((t) => t.subjectId === targetSubId || t.subjectName.toLowerCase().includes('science'))
+      .filter((t) => t.subjectId === targetSubId)
       .sort((a, b) => a.orderIndex - b.orderIndex);
     setOrderList(subTopics);
     setIsOrderModalOpen(true);
@@ -1288,15 +1291,11 @@ export const AdminTopics: React.FC = () => {
             className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
           >
             <option value="all">All Subjects</option>
-            <option value="sub-general-science">General Science</option>
-            <option value="sub-indian-polity">Indian Polity</option>
-            <option value="sub-reasoning">Reasoning</option>
-            <option value="sub-mathematics">Mathematics</option>
-            <option value="sub-history">History</option>
-            <option value="sub-geography">Geography</option>
-            <option value="sub-economics">Economics</option>
-            <option value="sub-current-affairs">Current Affairs</option>
-            <option value="sub-computer-awareness">Computer Awareness</option>
+            {subjectsList.map((sub) => (
+              <option key={sub.id} value={sub.id}>
+                {sub.name}
+              </option>
+            ))}
           </select>
 
           {/* All Status Dropdown */}
@@ -2444,9 +2443,12 @@ export const AdminTopics: React.FC = () => {
                   }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-700 dark:text-slate-200"
                 >
-                  <option value="sub-general-science">General Science</option>
-                  <option value="sub-indian-polity">Indian Polity</option>
-                  <option value="sub-reasoning">Reasoning</option>
+                  {subjectsList.length === 0 && <option value="">No subjects</option>}
+                  {subjectsList.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
