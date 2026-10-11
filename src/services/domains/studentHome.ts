@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabaseRuntime as supabase } from '@/lib/supabase';
+import { readCompleteQuery } from '@/services/domains/admin.reporting';
 
 export interface AppLeaderboardRow {
   rank: number;
@@ -85,11 +86,7 @@ function subscribeToTables(
 
   let channel = supabase.channel(channelName);
   for (const table of tables) {
-    channel = channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table },
-      callback
-    );
+    channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, callback);
   }
   channel.subscribe();
 
@@ -98,10 +95,15 @@ function subscribeToTables(
   };
 }
 
-export function subscribeToStudentCatalogUpdates(callback: () => void): () => void {
+export function subscribeToStudentCatalogUpdates(
+  callback: () => void,
+  homepageMetadata = false
+): () => void {
   return subscribeToTables(
     `student-catalog-${crypto.randomUUID()}`,
-    ['test_series', 'tests', 'test_exams'],
+    homepageMetadata
+      ? ['test_series', 'tests', 'test_exams', 'exams', 'subjects', 'chapters', 'live_tests']
+      : ['test_series', 'tests', 'test_exams'],
     callback
   );
 }
@@ -110,7 +112,37 @@ export function subscribeToPopularExamUpdates(callback: () => void): () => void 
   return subscribeToTables(`popular-exams-${crypto.randomUUID()}`, ['app_settings'], callback);
 }
 
+/** Metadata-only, caller-owned progress. Never reads answer keys or uses a service key. */
+export async function getHomepageAttemptProgress(
+  userId: string,
+  attemptIds: string[]
+): Promise<Record<string, number>> {
+  const ids = [...new Set(attemptIds)];
+  if (!userId || !ids.length || !isSupabaseConfigured) return {};
+  const rows = await readCompleteQuery(() =>
+    supabase
+      .from('attempt_answers')
+      .select('attempt_id, question_id, selected_option, test_attempts!inner(user_id)', {
+        count: 'exact',
+      })
+      .in('attempt_id', ids)
+      .eq('test_attempts.user_id', userId)
+      .order('attempt_id', { ascending: true })
+      .order('question_id', { ascending: true })
+  );
+  const answers = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!ids.includes(row.attempt_id) || !['A', 'B', 'C', 'D'].includes(row.selected_option))
+      continue;
+    const answered = answers.get(row.attempt_id) || new Set<string>();
+    answered.add(row.question_id);
+    answers.set(row.attempt_id, answered);
+  }
+  return Object.fromEntries(ids.map((id) => [id, answers.get(id)?.size || 0]));
+}
+
 export const studentHomeApi = {
+  getHomepageAttemptProgress,
   getAppLeaderboard,
   getDailyContent,
   subscribeToStudentCatalogUpdates,

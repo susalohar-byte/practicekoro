@@ -459,7 +459,16 @@ async function attachPopularTestSeriesCounts(
   }
 }
 
-export async function getPopularTestSeriesCards(): Promise<PopularTestSeriesCard[]> {
+export async function getPopularTestSeriesCards(options?: { configuredOnly?: boolean }): Promise<PopularTestSeriesCard[]> {
+  if (options?.configuredOnly) {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase.from('app_settings').select('value').eq('id', 'popular_test_series_config').maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.value) return [];
+    const value: unknown = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    if (!Array.isArray(value)) throw new Error('Invalid homepage showcase configuration');
+    return (value as PopularTestSeriesCard[]).filter(card => card && typeof card.id === 'string').sort((a,b) => a.orderIndex - b.orderIndex);
+  }
   if (!isSupabaseConfigured) return attachPopularTestSeriesCounts(DEFAULT_POPULAR_TEST_SERIES);
 
   try {

@@ -224,3 +224,41 @@ describe('StudentNavbar Notification Audience & Schedule Filtering', () => {
     });
   });
 });
+
+describe('Reference homepage header', () => {
+  beforeEach(() => {
+    vi.mocked(api.getNotifications).mockResolvedValue([]);
+    mockAuthUser = {
+      user: { id: 'signed-in', fullName: 'Susanta Das', email: 'student@example.test' },
+      isPro: false,
+      isAdmin: false,
+      logout: vi.fn(),
+    };
+  });
+  it('uses the requested homepage search and signed-in name, without a sample avatar', async () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <StudentNavbar />
+      </MemoryRouter>
+    );
+    expect(
+      screen.getByPlaceholderText('Search for tests, topics, subjects...')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Susanta Das')).toBeInTheDocument();
+    expect(screen.getByText('SD')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Susanta Das' })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.getNotifications).toHaveBeenCalled());
+  });
+  it('preserves the existing search placeholder on other student pages', async () => {
+    render(
+      <MemoryRouter initialEntries={['/results']}>
+        <StudentNavbar />
+      </MemoryRouter>
+    );
+    expect(screen.getByPlaceholderText('Search tests, exams, topics... (⌘K)')).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Search for tests, topics, subjects...')
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(api.getNotifications).toHaveBeenCalled());
+  });
+});

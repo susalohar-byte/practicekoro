@@ -309,7 +309,11 @@ export const catalogApi = {
     }
   },
 
-  async getTests(chapterId?: string, examId?: string): Promise<MockTest[]> {
+  async getTests(
+    chapterId?: string,
+    examId?: string,
+    options?: { strict?: boolean }
+  ): Promise<MockTest[]> {
     if (!isSupabaseConfigured) {
       return [];
     }
@@ -329,26 +333,39 @@ export const catalogApi = {
         }
       }
 
-      let query = supabase
-        .from('tests')
-        .select('*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title)')
-        .eq('is_active', true)
-        .eq('status', 'published');
-      if (chapterId) query = query.eq('chapter_id', chapterId);
-      if (examId) {
-        if (assocTestIds.length > 0) {
-          query = query.or(`id.in.(${assocTestIds.join(',')}),exam_id.eq.${examId}`);
-        } else {
-          query = query.eq('exam_id', examId);
+      const makeQuery = () => {
+        let query = supabase
+          .from('tests')
+          .select(
+            '*, exams:exam_id(title), subjects:subject_id(name), chapters:chapter_id(name), test_series:test_series_id(title), test_exams(exam_id)',
+            options?.strict ? { count: 'exact' } : undefined
+          )
+          .eq('is_active', true)
+          .eq('status', 'published');
+        if (chapterId) query = query.eq('chapter_id', chapterId);
+        if (examId) {
+          if (assocTestIds.length > 0) {
+            query = query.or(`id.in.(${assocTestIds.join(',')}),exam_id.eq.${examId}`);
+          } else {
+            query = query.eq('exam_id', examId);
+          }
         }
-      }
-      const { data, error } = await query.order('order_index', { ascending: true });
-
-      if (error || !data || data.length === 0) {
-        return [];
-      }
+        return query.order('order_index', { ascending: true }).order('id', { ascending: true });
+      };
+      const response = options?.strict
+        ? { data: await readCompleteQuery(makeQuery), error: null }
+        : await makeQuery();
+      const { data, error } = response;
+      if (error && options?.strict) throw new Error(error.message || 'Tests could not be loaded');
+      if (!data && options?.strict) throw new Error('Test catalog was not confirmed');
+      if (error || !data || data.length === 0) return [];
       return data.map((item) => ({
         id: item.id,
+        iconUrl: item.icon_url ?? undefined,
+        createdAt: item.created_at ?? undefined,
+        associatedExamIds: Array.isArray(item.test_exams)
+          ? item.test_exams.map((relation: { exam_id: string }) => relation.exam_id)
+          : [],
         examId: item.exam_id,
         subjectId: item.subject_id ?? undefined,
         chapterId: item.chapter_id ?? undefined,
@@ -378,7 +395,8 @@ export const catalogApi = {
         topicName: item.chapters?.name,
         testSeriesTitle: item.test_series?.title,
       }));
-    } catch {
+    } catch (error) {
+      if (options?.strict) throw error;
       return [];
     }
   },
@@ -1507,7 +1525,7 @@ export const catalogApi = {
   async getStudentTestSeries(examId?: string): Promise<TestSeries[]> {
     if (!isSupabaseConfigured) return [];
 
-      const data = await readCompleteQuery(() => {
+    const data = await readCompleteQuery(() => {
       let query = supabase
         .from('test_series')
         .select(
@@ -1515,53 +1533,57 @@ export const catalogApi = {
           *,
           exams:exam_id (id, title, category, slug),
           tests (id, test_type, is_active, status)
-        `
-        , { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('is_active', true)
-.order('order_index', { ascending: true }).order('id', { ascending: true });
+        .order('order_index', { ascending: true })
+        .order('id', { ascending: true });
 
       if (examId) query = query.eq('exam_id', examId);
 
       return query;
-      });
+    });
 
-      return data.map((item: any) => {
-        const rawTests = Array.isArray(item.tests) ? item.tests : [];
-        const activeTests = rawTests.filter(
-          (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
-        );
-        const count = activeTests.length;
-        const fullMockCount = activeTests.filter((t: any) => t.test_type === 'full_mock').length;
-        const pyqTestCount = activeTests.filter((t: any) => t.test_type === 'pyq').length;
-        const topicTestCount = activeTests.filter(
-          (t: any) =>
-            t.test_type === 'topic' ||
-            t.test_type === 'chapter_mock' ||
-            t.test_type === 'subject_mock'
-        ).length;
+    return data.map((item: any) => {
+      const rawTests = Array.isArray(item.tests) ? item.tests : [];
+      const activeTests = rawTests.filter(
+        (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
+      );
+      const count = activeTests.length;
+      const fullMockCount = activeTests.filter((t: any) => t.test_type === 'full_mock').length;
+      const pyqTestCount = activeTests.filter((t: any) => t.test_type === 'pyq').length;
+      const topicTestCount = activeTests.filter(
+        (t: any) =>
+          t.test_type === 'topic' ||
+          t.test_type === 'chapter_mock' ||
+          t.test_type === 'subject_mock'
+      ).length;
 
-        return {
-          id: item.id,
-          examId: item.exam_id,
-          title: item.title,
-          slug: item.slug,
-          description: item.description ?? undefined,
-          iconUrl: item.icon_url || undefined,
-          isPremium: Boolean(item.is_premium),
-          orderIndex: Number(item.order_index || 0),
-          isActive: Boolean(item.is_active),
-          isPopular: Boolean(item.is_popular),
-          createdAt: item.created_at,
-          examTitle: item.exams?.title || undefined,
-          examCategory: item.exams?.category || undefined,
-          testCount: count,
-          testsCount: count,
-          fullMockCount,
-          topicTestCount,
-          pyqTestCount,
-        };
-      });
-
+      return {
+        id: item.id,
+        examId: item.exam_id,
+        title: item.title,
+        slug: item.slug,
+        description: item.description ?? undefined,
+        iconUrl: item.icon_url || undefined,
+        isPremium: Boolean(item.is_premium),
+        orderIndex: Number(item.order_index || 0),
+        isActive: Boolean(item.is_active),
+        status: item.status ?? undefined,
+        bannerUrl: item.banner_url ?? undefined,
+        subtitle: item.subtitle ?? undefined,
+        isPopular: Boolean(item.is_popular),
+        createdAt: item.created_at,
+        examTitle: item.exams?.title || undefined,
+        examCategory: item.exams?.category || undefined,
+        testCount: count,
+        testsCount: count,
+        fullMockCount,
+        topicTestCount,
+        pyqTestCount,
+      };
+    });
   },
 
   /**

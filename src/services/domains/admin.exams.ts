@@ -346,7 +346,16 @@ export const DEFAULT_POPULAR_EXAMS: PopularExamCard[] = [
   },
 ];
 
-export async function getPopularExams(): Promise<PopularExamCard[]> {
+export async function getPopularExams(options?: { configuredOnly?: boolean }): Promise<PopularExamCard[]> {
+  if (options?.configuredOnly) {
+    if (!isSupabaseConfigured) return [];
+    const { data, error } = await supabase.from('app_settings').select('value').eq('id', 'popular_exams_config').maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.value) return [];
+    const value: unknown = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    if (!Array.isArray(value)) throw new Error('Invalid homepage showcase configuration');
+    return (value as PopularExamCard[]).filter(card => card && typeof card.id === 'string').sort((a,b) => a.orderIndex - b.orderIndex);
+  }
   if (!isSupabaseConfigured) return attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
   try {
     const { data, error } = await supabase

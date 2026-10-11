@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '@/styles/student-panel.css';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { StudentSidebar } from './StudentSidebar';
 import { StudentNavbar } from './StudentNavbar';
 import { BottomNav } from './BottomNav';
@@ -11,6 +11,7 @@ import { StudentLoading, StudentLoadError } from '@/components/student/StudentLo
 import { MandatoryDistrictModal } from '@/components/student/MandatoryDistrictModal';
 
 export const AppLayout: React.FC = () => {
+  const isStudyHomepage = useLocation().pathname === '/dashboard';
   const {
     isMaintenanceMode,
     loading: maintLoading,
@@ -82,7 +83,7 @@ export const AppLayout: React.FC = () => {
         <main
           id="student-main"
           tabIndex={-1}
-          className="flex-1 w-full max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-28 lg:pb-12 motion-safe:transition-all motion-safe:duration-200"
+          className={`flex-1 w-full max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isStudyHomepage ? 'pt-2 sm:pt-3' : 'py-6 sm:py-8'} pb-28 lg:pb-12 motion-safe:transition-all motion-safe:duration-200`}
         >
           <React.Suspense fallback={<StudentLoading label="Loading student page" />}>
             <Outlet

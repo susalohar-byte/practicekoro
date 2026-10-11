@@ -401,6 +401,7 @@ export type LiveTestParticipation = LiveTestParticipant;
 
 export interface MockTest {
   id: string;
+  createdAt?: string;
   iconUrl?: string;
   examId?: string;
   subjectId?: string;

@@ -1,532 +1,763 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { useExam } from '@/context/ExamContext';
 import { bannerService } from '@/services/bannerService';
 import { api } from '@/services/api';
+import { HomepageCarousel } from '@/components/student/HomepageCarousel';
+import { HomepageImage } from '@/components/student/HomepageImage';
+import {
+  activeHomepageBanners,
+  bannerDestination,
+  browserSavedAnswerCount,
+  featuredLiveMock,
+  recentAttempts,
+  recentlyAddedTests,
+  recommendedHomepageTests,
+  resolveExamCards,
+  resolveSeriesCards,
+  storedImage,
+} from '@/lib/student/homepage';
 import {
   ArrowRight,
-  Bookmark,
-  CheckCircle2,
+  BarChart3,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Clock3,
+  Crown,
   FileText,
-  Headphones,
-  Lightbulb,
+  Files,
+  Flame,
   Radio,
   RefreshCw,
-  Sparkles,
   Target,
-  Trophy,
-  Zap,
+  Users,
+  type LucideIcon,
 } from 'lucide-react';
-import type { PopularTestSeriesCard } from '@/types';
-import '@/styles/student-panel.css';
+import type { MockTest, TestAttempt } from '@/types';
+import '@/styles/student-homepage-reference.css';
 
-const isInternalPath = (value: string) => /^\/(?!\/)/.test(value) && !value.includes('\\');
+const emptyAttempts: TestAttempt[] = [];
+const emptyTests: MockTest[] = [];
+const tones = ['orange', 'purple', 'green', 'pink'] as const;
+const dateLabel = (value?: string) =>
+  value && Number.isFinite(Date.parse(value))
+    ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Asia/Kolkata',
+      }).format(new Date(value))
+    : undefined;
+const scheduleLabel = (value: string) =>
+  new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
+  }).format(new Date(value));
+function SectionHeading({
+  title,
+  icon: Icon,
+  link = '/test-series',
+  id,
+}: {
+  title: string;
+  icon: LucideIcon;
+  link?: string;
+  id: string;
+}) {
+  return (
+    <div className="study-section-heading">
+      <h2 id={id}>
+        <Icon size={26} aria-hidden="true" />
+        <span>{title}</span>
+      </h2>
+      <Link to={link}>
+        View All
+        <ArrowRight size={16} aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+function EmptyState({
+  children,
+  loading = false,
+  onRetry,
+}: {
+  children: ReactNode;
+  loading?: boolean;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="study-empty" role={onRetry ? 'alert' : loading ? 'status' : undefined}>
+      <span>{children}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry}>
+          <RefreshCw size={16} aria-hidden="true" />
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+function TestRow({ test, index }: { test: MockTest; index: number }) {
+  return (
+    <Link className="study-test-row" to={`/exams/${encodeURIComponent(test.id)}`}>
+      <HomepageImage
+        src={test.iconUrl}
+        className={`study-doc study-${tones[index % tones.length]}`}
+      />
+      <div className="study-test-copy">
+        <h3>{test.title}</h3>
+        <p>
+          <FileText size={13} aria-hidden="true" />
+          {test.totalQuestions} Qs<span>·</span>
+          <Clock3 size={13} aria-hidden="true" />
+          {test.durationMinutes} Mins
+        </p>
+        <span className={`study-access ${test.isPremium ? 'study-access-pro' : ''}`}>
+          {test.isPremium ? 'PRO' : 'FREE'}
+        </span>
+      </div>
+      <ChevronRight size={18} aria-hidden="true" />
+    </Link>
+  );
+}
 
-const quickLinks = [
-  {
-    title: 'Topic practice',
-    description: 'Build confidence, one chapter at a time.',
-    route: '/practice',
-    icon: Zap,
-    tone: 'blue',
-  },
-  {
-    title: 'Saved questions',
-    description: 'Revisit the questions that matter.',
-    route: '/saved-questions',
-    icon: Bookmark,
-    tone: 'green',
-  },
-  {
-    title: 'Audio books',
-    description: 'Keep learning, wherever you are.',
-    route: '/audio-books',
-    icon: Headphones,
-    tone: 'purple',
-  },
-  {
-    title: 'Leaderboard',
-    description: 'See how your preparation compares.',
-    route: '/rank',
-    icon: Trophy,
-    tone: 'amber',
-  },
-];
-
-export const Home: React.FC = () => {
+export function Home() {
   const { user, isPro } = useAuth();
   const { selectedExam } = useExam();
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [failedBannerImages, setFailedBannerImages] = useState<string[]>([]);
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const queryClient = useQueryClient();
+  const [now, setNow] = useState(Date.now());
+  const [slide, setSlide] = useState(0);
+  const [bannerPaused, setBannerPaused] = useState(false);
+  const [failedBanners, setFailedBanners] = useState<string[]>([]);
   const audience = isPro ? 'pro' : 'free';
-  const bannerQuery = useQuery({
-    queryKey: ['hero-banners', audience],
-    queryFn: () => bannerService.getActiveBanners({ audience, placement: 'home_hero' }),
-    staleTime: 30000,
+  const catalogOptions = { staleTime: 30000, refetchInterval: 60000 };
+  const bannersQuery = useQuery({
+    queryKey: ['hero-banners', audience, 'homepage-stored'],
+    queryFn: () =>
+      bannerService.getActiveBanners({
+        audience,
+        placement: 'home_hero',
+        strictAudience: true,
+        storedImagesOnly: true,
+      }),
+    ...catalogOptions,
+  });
+  const examsQuery = useQuery({
+    queryKey: ['homepage-exams'],
+    queryFn: () => api.getExams(),
+    ...catalogOptions,
+  });
+  const examConfigQuery = useQuery({
+    queryKey: ['homepage-exam-config'],
+    queryFn: () => api.getPopularExams({ configuredOnly: true }),
+    ...catalogOptions,
+  });
+  const testsQuery = useQuery({
+    queryKey: ['homepage-tests'],
+    queryFn: () => api.getTests(undefined, undefined, { strict: true }),
+    ...catalogOptions,
+  });
+  const seriesQuery = useQuery({
+    queryKey: ['homepage-series'],
+    queryFn: () => api.getStudentTestSeries(),
+    ...catalogOptions,
+  });
+  const seriesConfigQuery = useQuery({
+    queryKey: ['homepage-series-config'],
+    queryFn: () => api.getPopularTestSeriesCards({ configuredOnly: true }),
+    ...catalogOptions,
   });
   const liveQuery = useQuery({
-    queryKey: ['active-live-test'],
-    queryFn: () => api.getActiveLiveTest(),
-    staleTime: 30000,
+    queryKey: ['homepage-live-tests'],
+    queryFn: () => api.getLiveTests(),
+    staleTime: 15000,
     refetchInterval: 30000,
   });
   const attemptsQuery = useQuery({
     queryKey: ['home-user-attempts', user?.id],
     queryFn: () => (user?.id ? api.getUserAttempts(user.id) : Promise.resolve([])),
     enabled: !!user?.id,
-    staleTime: 30000,
+    ...catalogOptions,
   });
-  const seriesQuery = useQuery<PopularTestSeriesCard[]>({
-    queryKey: ['popular-test-series-showcase'],
-    queryFn: () => api.getPopularTestSeriesCards(),
-    staleTime: 60000,
-  });
-  const leaderboardQuery = useQuery({
-    queryKey: ['home-leaderboard'],
-    queryFn: () => api.getAppLeaderboard('west_bengal'),
-    staleTime: 60000,
-  });
-  const attempts = useMemo(() => attemptsQuery.data ?? [], [attemptsQuery.data]);
-  const inProgressAttempt = attempts.find((attempt) => attempt.status === 'in_progress');
-  const stats = useMemo(() => {
-    const completed = attempts.filter((attempt) => attempt.status === 'completed');
-    return {
-      count: completed.length,
-      accuracy: completed.length
-        ? Math.round(
-            completed.reduce((sum, attempt) => sum + (attempt.accuracy || 0), 0) / completed.length
-          )
-        : null,
-      questions: completed.reduce(
-        (sum, attempt) => sum + (attempt.correctCount || 0) + (attempt.wrongCount || 0),
-        0
-      ),
-    };
-  }, [attempts]);
-  const series = useMemo(
-    () =>
-      [...(seriesQuery.data ?? [])]
-        .filter((card) => card.isActive !== false)
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)),
-    [seriesQuery.data]
+  const attempts = useMemo(
+    () => (attemptsQuery.data || emptyAttempts).filter((attempt) => attempt.userId === user?.id),
+    [attemptsQuery.data, user?.id]
   );
-  const liveTest = liveQuery.data;
-  const liveStart = liveTest?.startAt || liveTest?.scheduledStartTime;
-  const liveStartTime = liveStart ? new Date(liveStart).getTime() : NaN;
-  const validLiveStart = Number.isFinite(liveStartTime);
-  const remaining = validLiveStart ? Math.max(0, liveStartTime - currentTime) : 0;
+  const unfinished = useMemo(
+    () => attempts.filter((attempt) => attempt.status === 'in_progress').slice(0, 12),
+    [attempts]
+  );
+  const progressQuery = useQuery({
+    queryKey: ['homepage-attempt-progress', user?.id, unfinished.map((attempt) => attempt.id)],
+    queryFn: () =>
+      api.getHomepageAttemptProgress(
+        user!.id,
+        unfinished.map((attempt) => attempt.id)
+      ),
+    enabled: !!user?.id && unfinished.length > 0,
+    ...catalogOptions,
+  });
+  const tests = testsQuery.data || emptyTests;
+  const examCards = useMemo(
+    () => resolveExamCards(examsQuery.data || [], examConfigQuery.data || [], testsQuery.data),
+    [examsQuery.data, examConfigQuery.data, testsQuery.data]
+  );
+  const seriesCards = useMemo(
+    () => resolveSeriesCards(seriesQuery.data || [], seriesConfigQuery.data || [], testsQuery.data),
+    [seriesQuery.data, seriesConfigQuery.data, testsQuery.data]
+  );
+  const banners = useMemo(
+    () =>
+      activeHomepageBanners(bannersQuery.data || [], audience, now).filter(
+        (banner) => !failedBanners.includes(banner.imageUrl!)
+      ),
+    [bannersQuery.data, audience, now, failedBanners]
+  );
+  // Resolve against the complete published catalog: legacy API enrichment must
+  // not feature a local/demo test or a source record hidden by publication/RLS.
+  const live = useMemo(
+    () =>
+      featuredLiveMock(
+        (liveQuery.data || []).map((event) => ({
+          ...event,
+          test: tests.find((test) => test.id === event.testId) || null,
+        })),
+        now
+      ),
+    [liveQuery.data, tests, now]
+  );
+  const recent = useMemo(() => recentAttempts(attempts), [attempts]);
+  const added = useMemo(() => recentlyAddedTests(tests), [tests]);
+  const recommended = useMemo(
+    () => recommendedHomepageTests(tests, attempts, user?.targetExamId || selectedExam?.id),
+    [tests, attempts, user?.targetExamId, selectedExam?.id]
+  );
+  const selectedBanner = banners.length ? banners[slide % banners.length] : undefined;
+  const targetExamId = selectedExam?.id || user?.targetExamId;
+  const targetRoute = (type: 'full-mock' | 'pyq') =>
+    targetExamId ? `/exams/${encodeURIComponent(targetExamId)}/${type}` : '/test-series';
+
   useEffect(() => {
-    if (!liveStart) return;
-    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
-  }, [liveStart]);
-  const banners = bannerQuery.data ?? [];
-  const bannerIndex = banners.length ? currentSlide % banners.length : 0;
-  const banner = banners[bannerIndex];
-  const rawBannerLink = (banner?.primaryCtaLink || '').trim();
-  const externalBanner = /^https?:\/\//i.test(rawBannerLink);
-  const bannerHref =
-    externalBanner || isInternalPath(rawBannerLink) ? rawBannerLink : '/test-series';
-  const firstName = user?.fullName?.trim().split(/\s+/)[0] || 'there';
+  }, []);
+  useEffect(() => {
+    if (
+      banners.length < 2 ||
+      bannerPaused ||
+      (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)
+    )
+      return;
+    const timer = setInterval(() => setSlide((previous) => (previous + 1) % banners.length), 6000);
+    return () => clearInterval(timer);
+  }, [banners.length, bannerPaused]);
+  useEffect(() => {
+    const refresh = () => {
+      for (const key of [
+        'homepage-exams',
+        'homepage-exam-config',
+        'homepage-tests',
+        'homepage-series',
+        'homepage-series-config',
+        'homepage-live-tests',
+      ])
+        void queryClient.invalidateQueries({ queryKey: [key] });
+    };
+    const stopBanners = bannerService.subscribeToBannerUpdates(
+      () => void queryClient.invalidateQueries({ queryKey: ['hero-banners'] })
+    );
+    const stopCatalog = api.subscribeToStudentCatalogUpdates(refresh, true);
+    const stopSettings = api.subscribeToPopularExamUpdates(refresh);
+    window.addEventListener('practicekoro:popular_test_series_updated', refresh);
+    window.addEventListener('pk_test_series_updated', refresh);
+    return () => {
+      stopBanners();
+      stopCatalog();
+      stopSettings();
+      window.removeEventListener('practicekoro:popular_test_series_updated', refresh);
+      window.removeEventListener('pk_test_series_updated', refresh);
+    };
+  }, [queryClient]);
 
   return (
-    <div className="student-dashboard">
-      <header className="sd-heading">
-        <div>
-          <p className="sd-eyebrow">YOUR LEARNING SPACE</p>
-          <h1>
-            Welcome back, {firstName}
-            <span className="sd-greeting" aria-hidden="true">
-              {' '}
-              👋
-            </span>
-          </h1>
-          <p>A little practice today. A stronger you tomorrow.</p>
-        </div>
-        <Link to="/test-series" className="sd-target-link">
-          <Target size={18} aria-hidden="true" />
-          <span>{selectedExam?.title || 'Choose your exam'}</span>
-          <ChevronRight size={16} aria-hidden="true" />
-        </Link>
-      </header>
-
-      <div className="sd-focus-grid">
-        <section className="sd-focus" aria-labelledby="sd-focus-title">
-          <div className="sd-focus-top">
-            <span className="sd-focus-label">
-              <Sparkles size={16} aria-hidden="true" />
-              {inProgressAttempt ? 'PICK UP WHERE YOU LEFT OFF' : 'MAKE TODAY COUNT'}
-            </span>
-            <span className="sd-plan">{isPro ? 'PRO MEMBER' : 'LET’S GET STARTED'}</span>
-          </div>
-          <h2 id="sd-focus-title">
-            {inProgressAttempt
-              ? 'Your next step? Finish strong.'
-              : 'Small steps. Big possibilities.'}
-          </h2>
-          <p>
-            {inProgressAttempt
-              ? `Continue ${inProgressAttempt.testTitle || 'your test'} and turn your effort into progress.`
-              : 'Explore mock tests for your exam, or sharpen one topic with a focused practice session.'}
-          </p>
-          <div className="sd-focus-actions">
-            <Link
-              to={
-                inProgressAttempt
-                  ? `/exams/${inProgressAttempt.testId}/runner?attemptId=${inProgressAttempt.id}`
-                  : '/test-series'
-              }
-              className="sd-button sd-button-light"
-            >
-              {inProgressAttempt ? 'Resume test' : 'Explore mock tests'}
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-            <Link to="/practice" className="sd-focus-secondary">
-              Practice a topic
-              <ChevronRight size={17} aria-hidden="true" />
-            </Link>
-          </div>
-          <div className="sd-focus-footer">
-            <CheckCircle2 size={16} aria-hidden="true" />
-            Learn from every attempt, not just your score.
-          </div>
-        </section>
-        <aside className="sd-card sd-study" aria-labelledby="sd-study-title">
-          <div className="sd-icon sd-icon-amber">
-            <Lightbulb size={22} aria-hidden="true" />
-          </div>
-          <p className="sd-eyebrow">A BETTER STUDY HABIT</p>
-          <h2 id="sd-study-title">Practice. Review. Repeat.</h2>
-          <p>
-            After a test, review your mistakes before starting another. Small corrections make a
-            real difference.
-          </p>
-          <Link to="/results" className="sd-text-link">
-            Review your results
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </aside>
-      </div>
-
-      <section aria-labelledby="sd-progress-title" className="sd-section">
-        <div className="sd-section-heading">
-          <div>
-            <h2 id="sd-progress-title">Your progress, at a glance</h2>
-            <p>Based on your completed test attempts.</p>
-          </div>
-          <Link to="/results" className="sd-text-link">
-            View results
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-        {attemptsQuery.isError ? (
-          <div role="alert" className="sd-empty">
-            We couldn’t load your progress.
-            <button className="sd-text-link" onClick={() => void attemptsQuery.refetch()}>
-              <RefreshCw size={16} aria-hidden="true" />
-              Try again
-            </button>
-          </div>
-        ) : (
-          <div className="sd-stats" aria-busy={attemptsQuery.isLoading}>
-            {[
-              {
-                label: 'Tests completed',
-                value: stats.count,
-                detail: stats.count ? 'Keep your momentum going' : 'Your first attempt starts here',
-                icon: FileText,
-                tone: 'blue',
-              },
-              {
-                label: 'Average accuracy',
-                value: stats.accuracy === null ? '—' : `${stats.accuracy}%`,
-                detail:
-                  stats.accuracy === null
-                    ? 'Available after your first test'
-                    : 'Across completed attempts',
-                icon: Target,
-                tone: 'green',
-              },
-              {
-                label: 'Questions answered',
-                value: stats.questions.toLocaleString('en-IN'),
-                detail: 'Correct and incorrect answers',
-                icon: CheckCircle2,
-                tone: 'purple',
-              },
-            ].map((stat) => (
-              <div key={stat.label} className="sd-card sd-stat">
-                <div className={`sd-icon sd-icon-${stat.tone}`}>
-                  <stat.icon size={21} aria-hidden="true" />
-                </div>
-                <div>
-                  <h3>{stat.label}</h3>
-                  <strong>{attemptsQuery.isLoading ? '…' : stat.value}</strong>
-                  <p>{stat.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section aria-labelledby="sd-tools-title" className="sd-section">
-        <div className="sd-section-heading">
-          <div>
-            <h2 id="sd-tools-title">Find your focus</h2>
-            <p>Everything you need for your next study session.</p>
-          </div>
-        </div>
-        <div className="sd-tools">
-          {quickLinks.map(({ title, description, route, icon: Icon, tone }) => (
-            <Link key={route} to={route} className="sd-card sd-tool">
-              <div className="sd-tool-top">
-                <div className={`sd-icon sd-icon-${tone}`}>
-                  <Icon size={22} aria-hidden="true" />
-                </div>
-                <ArrowRight size={18} className="sd-tool-arrow" aria-hidden="true" />
-              </div>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {liveTest && (
-        <section className="sd-live" aria-label="Live test">
-          <div className="sd-live-main">
-            <div className="sd-icon sd-icon-rose">
-              <Radio size={22} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="sd-eyebrow">{remaining > 0 ? 'UPCOMING LIVE TEST' : 'LIVE TEST'}</p>
-              <h2>{liveTest.title}</h2>
-              {validLiveStart && (
-                <p>
-                  {new Intl.DateTimeFormat('en-IN', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                    timeZone: 'Asia/Kolkata',
-                  }).format(new Date(liveStartTime))}{' '}
-                  IST
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="sd-live-action">
-            {remaining > 0 && (
-              <span className="sd-countdown">
-                Starts in {Math.floor(remaining / 86400000)}d {Math.floor(remaining / 3600000) % 24}
-                h {Math.floor(remaining / 60000) % 60}m
-              </span>
-            )}
-            <Link
-              to={liveTest.testId ? `/live-test/${liveTest.testId}` : '/live-test'}
-              className="sd-button sd-button-primary"
-            >
-              View live test
-              <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {banner && (
-        <section className="sd-promotion" aria-label="Announcements">
+    <div className="pk-study-home" aria-label="PracticeKoro Study Dashboard">
+      <h1 className="sr-only">Your study dashboard</h1>
+      {selectedBanner && (
+        <section
+          className="study-hero"
+          aria-label="Homepage banner"
+          onMouseEnter={() => setBannerPaused(true)}
+          onMouseLeave={() => setBannerPaused(false)}
+          onFocusCapture={() => setBannerPaused(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+              setBannerPaused(false);
+          }}
+        >
           <a
-            href={bannerHref}
-            target={externalBanner ? '_blank' : undefined}
-            rel={externalBanner ? 'noopener noreferrer' : undefined}
-            onClick={() => void bannerService.trackBannerClick(banner.id)}
+            href={bannerDestination(selectedBanner.primaryCtaLink)}
+            target={
+              /^https?:\/\//i.test(bannerDestination(selectedBanner.primaryCtaLink))
+                ? '_blank'
+                : undefined
+            }
+            rel="noopener noreferrer"
+            onClick={() => {
+              void bannerService.trackBannerClick(selectedBanner.id).catch(() => {});
+            }}
           >
-            {banner.imageUrl && !failedBannerImages.includes(banner.imageUrl) ? (
-              <picture>
-                {banner.mobileImageUrl && (
-                  <source media="(max-width: 640px)" srcSet={banner.mobileImageUrl} />
-                )}
-                <img
-                  src={banner.imageUrl}
-                  alt={banner.title || 'Explore featured tests'}
-                  loading="lazy"
-                  onError={() =>
-                    setFailedBannerImages((previous) => [...previous, banner.imageUrl!])
-                  }
-                />
-              </picture>
-            ) : (
-              <div className="sd-text-promotion">
-                <p className="sd-eyebrow">FEATURED FOR YOU</p>
-                <h2>{banner.title}</h2>
-                {banner.subtitle && <p>{banner.subtitle}</p>}
-                <span className="sd-text-link">
-                  {banner.primaryCtaText || 'Explore tests'}
-                  <ArrowRight size={16} aria-hidden="true" />
-                </span>
-              </div>
-            )}
+            <picture>
+              {storedImage(selectedBanner.mobileImageUrl) && (
+                <source media="(max-width: 640px)" srcSet={selectedBanner.mobileImageUrl} />
+              )}
+              <img
+                src={selectedBanner.imageUrl}
+                alt={selectedBanner.title || 'Featured homepage banner'}
+                onError={() =>
+                  setFailedBanners((previous) => [...previous, selectedBanner.imageUrl!])
+                }
+              />
+            </picture>
           </a>
           {banners.length > 1 && (
-            <div className="sd-banner-controls">
+            <>
               <button
-                aria-label="Previous slide"
-                onClick={() => setCurrentSlide((bannerIndex + banners.length - 1) % banners.length)}
+                type="button"
+                className="study-banner-prev"
+                aria-label="Previous banner"
+                onClick={() => setSlide((slide + banners.length - 1) % banners.length)}
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={22} />
               </button>
-              <span>
-                {bannerIndex + 1} / {banners.length}
-              </span>
               <button
-                aria-label="Next slide"
-                onClick={() => setCurrentSlide((bannerIndex + 1) % banners.length)}
+                type="button"
+                className="study-banner-next"
+                aria-label="Next banner"
+                onClick={() => setSlide((slide + 1) % banners.length)}
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={22} />
               </button>
-            </div>
+              <div className="study-banner-dots">
+                {banners.map((banner, index) => (
+                  <button
+                    type="button"
+                    key={banner.id}
+                    aria-label={`Show banner ${index + 1}`}
+                    aria-pressed={index === slide % banners.length}
+                    onClick={() => setSlide(index)}
+                  >
+                    <span />
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </section>
       )}
 
-      <section className="sd-section" aria-labelledby="sd-series-title">
-        <div className="sd-section-heading">
-          <div>
-            <h2 id="sd-series-title">Explore test series</h2>
-            <p>A focused path towards your target exam.</p>
-          </div>
-          <Link to="/test-series" className="sd-text-link">
-            Browse all
-            <ArrowRight size={16} aria-hidden="true" />
+      <section className="study-quick-actions" aria-label="Quick actions">
+        {[
+          {
+            title: 'Mock Test',
+            detail: 'Full Length Tests',
+            href: targetRoute('full-mock'),
+            icon: FileText,
+            tone: 'purple',
+          },
+          {
+            title: 'Topic Test',
+            detail: 'Chapter-wise Practice',
+            href: '/practice',
+            icon: Target,
+            tone: 'green',
+          },
+          {
+            title: 'Official PYQ',
+            detail: 'Previous Year Questions',
+            href: targetRoute('pyq'),
+            icon: Files,
+            tone: 'orange',
+          },
+          {
+            title: 'Results',
+            detail: 'Track Your Progress',
+            href: '/results',
+            icon: BarChart3,
+            tone: 'pink',
+          },
+        ].map(({ title, detail, href, icon: Icon, tone }) => (
+          <Link key={title} to={href} className={`study-quick-card study-${tone}`}>
+            <span className="study-quick-icon">
+              <Icon size={30} aria-hidden="true" />
+            </span>
+            <span>
+              <strong>{title}</strong>
+              <small>{detail}</small>
+            </span>
+            <ChevronRight size={20} aria-hidden="true" />
           </Link>
-        </div>
-        {seriesQuery.isError ? (
-          <div className="sd-empty" role="alert">
-            Test series couldn’t be loaded.
-            <button className="sd-text-link" onClick={() => void seriesQuery.refetch()}>
-              Try again
-            </button>
-          </div>
-        ) : seriesQuery.isLoading ? (
-          <div className="sd-empty" role="status">
-            Loading test series…
-          </div>
-        ) : series.length ? (
-          <div className="sd-series-grid">
-            {series.map((card) => (
-              <Link
-                key={card.id}
-                to={
-                  card.route && isInternalPath(card.route)
-                    ? card.route
-                    : `/test-series/${card.testSeriesId || card.id}`
-                }
-                className="sd-card sd-series"
-              >
-                <div className="sd-series-top">
-                  <div className="sd-series-logo">
-                    {card.cardLogoUrl ? (
-                      <img
-                        src={card.cardLogoUrl}
-                        alt=""
-                        loading="lazy"
-                        onError={(event) => {
-                          event.currentTarget.onerror = null;
-                          event.currentTarget.src = '/logo-icon.png';
-                        }}
-                      />
-                    ) : (
-                      <FileText size={24} aria-hidden="true" />
-                    )}
-                  </div>
-                  {card.badgeText && <span className="sd-series-badge">{card.badgeText}</span>}
-                </div>
-                <h3>{card.title}</h3>
-                <p>{card.subtitle || 'Prepare with focused test practice.'}</p>
-                <div className="sd-series-details">
-                  {card.fullMockCount != null && (
-                    <span>
-                      <strong>{card.fullMockCount}</strong> full mocks
-                    </span>
-                  )}
-                  {card.topicTestCount != null && (
-                    <span>
-                      <strong>{card.topicTestCount}</strong> topic tests
-                    </span>
-                  )}
-                  {card.pyqTestCount != null && (
-                    <span>
-                      <strong>{card.pyqTestCount}</strong> PYQs
-                    </span>
-                  )}
-                </div>
-                <span className="sd-text-link">
-                  Explore series
-                  <ArrowRight size={17} aria-hidden="true" />
+        ))}
+      </section>
+
+      <section className="study-section" aria-labelledby="study-live-title">
+        <SectionHeading
+          title="Live Mock Test"
+          icon={Radio}
+          id="study-live-title"
+          link="/live-test"
+        />
+        {liveQuery.isError || testsQuery.isError ? (
+          <EmptyState
+            onRetry={() => {
+              void liveQuery.refetch();
+              void testsQuery.refetch();
+            }}
+          >
+            Live test schedules couldn’t be loaded.
+          </EmptyState>
+        ) : liveQuery.isLoading || testsQuery.isLoading ? (
+          <EmptyState loading>Checking live test schedules…</EmptyState>
+        ) : live ? (
+          <div className="study-live-card">
+            <HomepageImage
+              src={live.test?.iconUrl || live.logo}
+              className="study-doc study-orange"
+            />
+            <div className="study-live-copy">
+              <div className="study-live-title">
+                <span
+                  className={`study-live-badge ${Date.parse(live.startAt) > now ? 'study-upcoming' : ''}`}
+                >
+                  {Date.parse(live.startAt) > now ? 'UPCOMING' : 'LIVE'}
                 </span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="sd-empty">
-            <FileText size={24} aria-hidden="true" />
-            <div>
-              <h3>Find the right test for you</h3>
-              <p>Browse the catalog to explore available exams and test series.</p>
+                <h3>{live.test?.title || live.title}</h3>
+              </div>
+              <p className="study-live-exam">{live.test?.examTitle || live.examTitle}</p>
+              <div className="study-live-meta">
+                <span>
+                  <CalendarDays size={16} aria-hidden="true" />
+                  {scheduleLabel(live.startAt)} IST
+                </span>
+                <span>
+                  <Clock3 size={16} aria-hidden="true" />
+                  {live.test?.durationMinutes} Mins
+                </span>
+                <span>
+                  <FileText size={16} aria-hidden="true" />
+                  {live.test?.totalQuestions} Questions
+                </span>
+                {(live.enrolledCount || 0) > 0 && (
+                  <span>
+                    <Users size={16} aria-hidden="true" />
+                    {live.enrolledCount} registered
+                  </span>
+                )}
+              </div>
             </div>
-            <Link to="/test-series" className="sd-button sd-button-primary">
-              Browse catalog
-              <ArrowRight size={17} aria-hidden="true" />
+            <Link className="study-join-button" to={`/live-test?id=${encodeURIComponent(live.id)}`}>
+              {Date.parse(live.startAt) > now ? 'View Schedule' : 'Join Now'}
+              <ArrowRight size={18} aria-hidden="true" />
             </Link>
           </div>
+        ) : (
+          <EmptyState>
+            No live or upcoming full mock is scheduled. New events will appear here when published.
+          </EmptyState>
         )}
       </section>
 
-      <section className="sd-card sd-leaderboard" aria-labelledby="sd-rank-title">
-        <div className="sd-section-heading">
-          <div>
-            <h2 id="sd-rank-title">Learning together, growing together</h2>
-            <p>West Bengal leaderboard</p>
-          </div>
-          <Link to="/rank" className="sd-text-link">
-            View rankings
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-        {leaderboardQuery.isError ? (
-          <div className="sd-empty" role="alert">
-            Rankings couldn’t be loaded.
-            <button className="sd-text-link" onClick={() => void leaderboardQuery.refetch()}>
-              Try again
-            </button>
-          </div>
-        ) : leaderboardQuery.isLoading ? (
-          <p className="sd-muted" role="status">
-            Loading rankings…
-          </p>
-        ) : leaderboardQuery.data?.length ? (
-          <ol className="sd-ranks">
-            {leaderboardQuery.data.slice(0, 4).map((row) => (
-              <li key={row.rank}>
-                <span className="sd-rank-number">{row.rank}</span>
-                <div>
-                  <strong>{row.display_name}</strong>
-                  <span>{Number(row.tests_count) || 0} tests completed</span>
-                </div>
-                <b>{Math.round(Number(row.average_percentage) || 0)}%</b>
-              </li>
-            ))}
-          </ol>
+      <section className="study-section" aria-labelledby="study-continue-title">
+        <SectionHeading
+          title="Continue Your Practice"
+          icon={Target}
+          id="study-continue-title"
+          link="/my-tests"
+        />
+        {attemptsQuery.isError ? (
+          <EmptyState onRetry={() => void attemptsQuery.refetch()}>
+            Your practice history couldn’t be loaded.
+          </EmptyState>
+        ) : attemptsQuery.isLoading ? (
+          <EmptyState loading>Loading your saved practice…</EmptyState>
+        ) : unfinished.length ? (
+          <HomepageCarousel label="unfinished practice tests">
+            {unfinished.map((attempt, index) => {
+              const local = browserSavedAnswerCount(attempt.id);
+              const count = progressQuery.data?.[attempt.id] ?? local;
+              const total = attempt.totalQuestions;
+              const answered =
+                count === undefined
+                  ? undefined
+                  : total !== undefined
+                    ? Math.min(count, total)
+                    : count;
+              const percentage =
+                answered !== undefined && total && total > 0
+                  ? Math.round((answered / total) * 100)
+                  : undefined;
+              return (
+                <article key={attempt.id} className="study-continue-card">
+                  <div className="study-continue-top">
+                    <HomepageImage
+                      src={tests.find((test) => test.id === attempt.testId)?.iconUrl}
+                      className={`study-doc study-${tones[index % tones.length]}`}
+                    />
+                    <div>
+                      <h3>{attempt.testTitle || 'Test in progress'}</h3>
+                      <p>
+                        {attempt.examTitle ||
+                          attempt.subjectName ||
+                          attempt.chapterName ||
+                          'Saved test session'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="study-progress-label">
+                    {answered !== undefined ? (
+                      <span>
+                        {answered}
+                        {total !== undefined ? `/${total}` : ' answered'}
+                        {progressQuery.data?.[attempt.id] === undefined && local !== undefined
+                          ? ' · on this device'
+                          : ''}
+                      </span>
+                    ) : (
+                      <span>
+                        {progressQuery.isLoading ? 'Loading progress…' : 'Progress unavailable'}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="study-progress-track"
+                    role="progressbar"
+                    aria-label={`${attempt.testTitle || 'Test'} progress`}
+                    aria-valuenow={percentage}
+                    aria-valuemin={percentage !== undefined ? 0 : undefined}
+                    aria-valuemax={percentage !== undefined ? 100 : undefined}
+                    aria-valuetext={
+                      answered !== undefined
+                        ? `${answered}${total !== undefined ? ` of ${total}` : ''} questions answered`
+                        : 'Progress unavailable'
+                    }
+                  >
+                    <span style={{ width: percentage !== undefined ? `${percentage}%` : '0%' }} />
+                  </div>
+                  <Link
+                    className="study-continue-button"
+                    to={`/exams/${encodeURIComponent(attempt.testId)}/runner?attemptId=${encodeURIComponent(attempt.id)}`}
+                  >
+                    Continue Test
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                </article>
+              );
+            })}
+          </HomepageCarousel>
         ) : (
-          <p className="sd-muted">
-            Rankings will appear here when results are available. Keep practising!
+          <EmptyState>
+            No unfinished tests yet. Choose a mock or topic test to begin your practice.
+          </EmptyState>
+        )}
+      </section>
+
+      <section className="study-section" aria-labelledby="study-exams-title">
+        <SectionHeading title="Exams for You" icon={Crown} id="study-exams-title" />
+        {examsQuery.isError ? (
+          <EmptyState onRetry={() => void examsQuery.refetch()}>
+            Exam records couldn’t be loaded.
+          </EmptyState>
+        ) : examsQuery.isLoading ? (
+          <EmptyState loading>Loading available exams…</EmptyState>
+        ) : examCards.length ? (
+          <HomepageCarousel label="available exams">
+            {examCards.map(({ exam, image }) => (
+              <Link
+                key={exam.id}
+                className="study-exam-card"
+                to={`/exams/${encodeURIComponent(exam.id)}/full-mock`}
+              >
+                <HomepageImage src={image} kind="exam" />
+                <strong>{exam.title}</strong>
+                <span>
+                  <CalendarDays size={14} aria-hidden="true" />
+                  {exam.testsCount !== undefined
+                    ? `${exam.testsCount} Tests`
+                    : 'Test count unavailable'}
+                  <ChevronRight size={14} aria-hidden="true" />
+                </span>
+              </Link>
+            ))}
+          </HomepageCarousel>
+        ) : (
+          <EmptyState>Published exams will appear here when available.</EmptyState>
+        )}
+        {examConfigQuery.isError && (
+          <p className="study-inline-note">
+            Custom exam artwork could not be refreshed. Showing saved exam fields or generic icons.
           </p>
         )}
       </section>
+
+      <section className="study-section" aria-labelledby="study-series-title">
+        <SectionHeading title="Popular Test Series" icon={Flame} id="study-series-title" />
+        {seriesQuery.isError ? (
+          <EmptyState onRetry={() => void seriesQuery.refetch()}>
+            Test series couldn’t be loaded.
+          </EmptyState>
+        ) : seriesQuery.isLoading ? (
+          <EmptyState loading>Loading published test series…</EmptyState>
+        ) : seriesCards.length ? (
+          <HomepageCarousel label="popular test series">
+            {seriesCards.map(({ series, image, badge, testCount, questionCount }) => (
+              <Link
+                key={series.id}
+                className="study-series-card"
+                to={`/test-series/${encodeURIComponent(series.id)}`}
+              >
+                <HomepageImage src={image} className="study-series-thumb" />
+                <div>
+                  <h3>{series.title}</h3>
+                  <p>
+                    {testCount !== undefined ? `${testCount} Tests` : 'Counts unavailable'}
+                    {questionCount !== undefined
+                      ? ` · ${questionCount.toLocaleString('en-IN')} Questions`
+                      : ''}
+                  </p>
+                </div>
+                <span className="study-series-right">
+                  {badge && <small>{badge}</small>}
+                  <ChevronRight size={20} aria-hidden="true" />
+                </span>
+              </Link>
+            ))}
+          </HomepageCarousel>
+        ) : (
+          <EmptyState>Published test series will appear here when available.</EmptyState>
+        )}
+        {seriesConfigQuery.isError && (
+          <p className="study-inline-note">
+            Showcase settings could not be refreshed. Showing the published series catalog.
+          </p>
+        )}
+      </section>
+
+      <div className="study-bottom-row">
+        <section className="study-bottom-panel" aria-labelledby="study-recent-title">
+          <SectionHeading
+            title="Recent Tests"
+            icon={Clock3}
+            id="study-recent-title"
+            link="/results"
+          />
+          {attemptsQuery.isError ? (
+            <EmptyState onRetry={() => void attemptsQuery.refetch()}>
+              Recent results couldn’t be loaded.
+            </EmptyState>
+          ) : attemptsQuery.isLoading ? (
+            <EmptyState loading>Loading your recent results…</EmptyState>
+          ) : recent.length ? (
+            <div className="study-test-list">
+              {recent.map((attempt, index) => (
+                <Link
+                  key={attempt.id}
+                  className="study-test-row study-result-row"
+                  to={`/exams/${encodeURIComponent(attempt.testId)}/results/${encodeURIComponent(attempt.id)}`}
+                >
+                  <HomepageImage
+                    src={tests.find((test) => test.id === attempt.testId)?.iconUrl}
+                    className={`study-doc study-${tones[index % tones.length]}`}
+                  />
+                  <div className="study-test-copy">
+                    <h3>{attempt.testTitle || 'Completed test'}</h3>
+                    <p>{attempt.examTitle || attempt.subjectName}</p>
+                    {dateLabel(attempt.endTime || attempt.createdAt) && (
+                      <p>
+                        <CalendarDays size={13} aria-hidden="true" />
+                        {dateLabel(attempt.endTime || attempt.createdAt)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="study-result-score">
+                    <strong>
+                      {attempt.score}/{attempt.totalMarks}
+                    </strong>
+                    <small>Completed</small>
+                  </span>
+                  <ChevronRight size={16} aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState>Complete your first test to see your results here.</EmptyState>
+          )}
+        </section>
+        <section className="study-bottom-panel" aria-labelledby="study-added-title">
+          <SectionHeading title="Recently Added Tests" icon={FileText} id="study-added-title" />
+          {testsQuery.isError ? (
+            <EmptyState onRetry={() => void testsQuery.refetch()}>
+              New tests couldn’t be loaded.
+            </EmptyState>
+          ) : testsQuery.isLoading ? (
+            <EmptyState loading>Loading newly published tests…</EmptyState>
+          ) : added.length ? (
+            <div className="study-test-list">
+              {added.map((test, index) => (
+                <TestRow key={test.id} test={test} index={index} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState>Newly published tests will appear here.</EmptyState>
+          )}
+        </section>
+        <section className="study-bottom-panel" aria-labelledby="study-recommended-title">
+          <SectionHeading
+            title="Recommended for You"
+            icon={Target}
+            id="study-recommended-title"
+            link="/practice"
+          />
+          {testsQuery.isError || attemptsQuery.isError ? (
+            <EmptyState
+              onRetry={() => {
+                void testsQuery.refetch();
+                void attemptsQuery.refetch();
+              }}
+            >
+              Suggestions couldn’t be loaded.
+            </EmptyState>
+          ) : testsQuery.isLoading || attemptsQuery.isLoading ? (
+            <EmptyState loading>Finding tests for your exam…</EmptyState>
+          ) : recommended.length ? (
+            <>
+              <p className="study-recommendation-note">Unattempted tests from your exam catalog.</p>
+              <div className="study-recommendations">
+                {recommended.map((test, index) => (
+                  <Link
+                    key={test.id}
+                    to={`/exams/${encodeURIComponent(test.id)}`}
+                    className={`study-recommendation study-${tones[index % tones.length]}`}
+                  >
+                    <HomepageImage src={test.iconUrl} icon={index % 2 ? Files : Target} />
+                    <div>
+                      <h3>{test.title}</h3>
+                      <p>{test.totalQuestions} Questions</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyState>New suggestions will appear as your exam catalog grows.</EmptyState>
+          )}
+        </section>
+      </div>
     </div>
   );
-};
+}

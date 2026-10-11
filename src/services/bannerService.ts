@@ -378,7 +378,7 @@ export const bannerService = {
    * 3. localStorage cache ('pk_hero_banners')
    * Empty when nothing is configured — no demo banners are ever injected.
    */
-  async getBanners(): Promise<HeroBanner[]> {
+  async getBanners(options?: { storedImagesOnly?: boolean }): Promise<HeroBanner[]> {
     if (!isSupabaseConfigured)
       return getStoredBanners().sort((a, b) => a.displayOrder - b.displayOrder);
     const { data, error } = await supabaseRuntime
@@ -389,7 +389,14 @@ export const bannerService = {
     if (error) throw new Error(error.message);
     const raw = typeof data?.value === 'string' ? JSON.parse(data.value) : data?.value || [];
     if (!Array.isArray(raw)) throw new Error('Invalid banner storage.');
-    return raw.map(sanitizeBanner).sort((a, b) => a.displayOrder - b.displayOrder);
+    return raw
+      .map((item, index) => {
+        const banner = sanitizeBanner(item, index);
+        if (options?.storedImagesOnly && !item.imageUrl && !item.image_url)
+          banner.imageUrl = undefined;
+        return banner;
+      })
+      .sort((a, b) => a.displayOrder - b.displayOrder);
   },
 
   /**
@@ -400,8 +407,10 @@ export const bannerService = {
   async getActiveBanners(options?: {
     audience?: BannerAudience;
     placement?: BannerPlacement;
+    strictAudience?: boolean;
+    storedImagesOnly?: boolean;
   }): Promise<HeroBanner[]> {
-    const all = await this.getBanners();
+    const all = await this.getBanners({ storedImagesOnly: options?.storedImagesOnly });
     const now = Date.now();
 
     // Scheduling is non-negotiable: expired / not-yet-started campaigns are
@@ -426,7 +435,7 @@ export const bannerService = {
 
     const active = all
       .filter((b) => {
-        if (!b.isActive) return false;
+        if (!b.isActive || (options?.storedImagesOnly && !b.imageUrl)) return false;
 
         // Target audience filtering:
         // 'all' banners are visible to everyone. If targeted to 'free' or 'pro', check match.
@@ -444,7 +453,7 @@ export const bannerService = {
       })
       .sort((a, b) => a.displayOrder - b.displayOrder);
 
-    if (active.length > 0) {
+    if (active.length > 0 || options?.strictAudience) {
       return active;
     }
 

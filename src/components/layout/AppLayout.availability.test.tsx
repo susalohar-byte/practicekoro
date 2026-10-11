@@ -12,7 +12,7 @@ vi.mock('@/context/MaintenanceContext', () => ({
   useMaintenance: () => ({ ...m, checkMaintenanceMode: m.retry }),
 }));
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ isAdmin: m.isAdmin }) }));
-vi.mock('react-router-dom', () => ({ Outlet: () => <div>Student content</div> }));
+vi.mock('react-router-dom', () => ({ Outlet: () => <div>Student content</div>, useLocation: () => ({ pathname: '/dashboard' }) }));
 vi.mock('./StudentSidebar', () => ({ StudentSidebar: () => null }));
 vi.mock('./StudentNavbar', () => ({ StudentNavbar: () => null }));
 vi.mock('./BottomNav', () => ({ BottomNav: () => null }));

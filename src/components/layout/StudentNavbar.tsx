@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { StudentSupportModal } from '@/components/student/StudentSupportModal';
@@ -77,6 +77,11 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, isPro, isAdmin, logout } = useAuth();
+  const isStudyHomepage = useLocation().pathname === '/dashboard';
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
+  const avatarInitials = (user?.fullName || 'Student').trim().split(/\s+/).slice(0,2).map(name => name[0]).join('').toUpperCase();
+  const showInitials = isStudyHomepage && (!user?.avatarUrl || avatarFailed);
 
   // Search State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -222,7 +227,8 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
       <header
         className={cn(
           'student-navbar sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[#E2EAF8] dark:border-slate-800 transition-all select-none',
-          embedded ? 'border-b-0' : 'shadow-[0_2px_12px_rgba(10,46,101,0.03)]'
+          embedded ? 'border-b-0' : 'shadow-[0_2px_12px_rgba(10,46,101,0.03)]',
+          isStudyHomepage && 'study-navbar'
         )}
       >
         <div className="w-full px-3.5 sm:px-6 lg:px-8">
@@ -269,7 +275,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
 
               {/* Desktop View: Clean Integrated Search Bar */}
               {showSearch && (
-                <div ref={searchContainerRef} className="hidden lg:block relative w-64 xl:w-80 transition-all duration-200">
+                <div ref={searchContainerRef} className="study-navbar-search hidden lg:block relative w-64 xl:w-80 transition-all duration-200">
                   <form onSubmit={handleSearchSubmit} className="relative">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                     <input
@@ -282,7 +288,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                       }}
                       onFocus={() => setIsSearchOpen(true)}
                       aria-label="Search tests, exams and topics"
-                      placeholder="Search tests, exams, topics... (⌘K)"
+                      placeholder={isStudyHomepage ? 'Search for tests, topics, subjects...' : 'Search tests, exams, topics... (⌘K)'}
                       className="w-full pl-9 pr-8 py-2 rounded-full bg-[#F1F5FC] dark:bg-slate-800/80 border border-[#E2ECF8] dark:border-slate-700/80 text-xs font-semibold text-[#051A43] dark:text-white placeholder:text-[#94A3B8] focus:outline-none focus:border-[#026BFC] focus:bg-white dark:focus:bg-slate-800 transition-all shadow-2xs"
                     />
                     {searchQuery ? (
@@ -378,7 +384,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search mock tests, exams, subjects..."
+                          placeholder={isStudyHomepage ? 'Search for tests, topics, subjects...' : 'Search mock tests, exams, subjects...'}
                           className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#F8FAFC] dark:bg-slate-900 border border-[#E2ECF8] dark:border-slate-700 text-xs font-semibold text-[#051A43] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#026BFC]"
                         />
                         {searchQuery && (
@@ -420,7 +426,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
               <Link
                 to="/subscription"
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none',
+                  'study-navbar-pro hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none',
                   isPro
                     ? 'bg-[#FEF3C7] dark:bg-amber-950/60 text-[#D97706] border border-[#FDE68A] dark:border-amber-800'
                     : 'bg-gradient-to-r from-[#026BFC] to-[#0158FC] text-white hover:brightness-105 shadow-blue-500/20'
@@ -521,7 +527,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
               </div>
 
               {/* Theme Toggle */}
-              <ThemeToggle className="h-11 w-11" />
+              <ThemeToggle className="h-11 w-11 study-navbar-theme" />
 
               {/* Candidate Profile Avatar Chip */}
               <div ref={profileContainerRef} className="relative">
@@ -533,20 +539,21 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                   className="flex min-h-[44px] min-w-[44px] justify-center items-center gap-2 p-0.5 sm:px-2 sm:py-1 rounded-full border border-[#E2ECF8] dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#026BFC]/50 transition-all cursor-pointer shadow-2xs group"
                 >
                   <div className="relative shrink-0">
-                    <img
+                    {showInitials ? <span className="flex w-8 h-8 sm:w-8.5 sm:h-8.5 items-center justify-center rounded-full bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-200 text-xs font-bold" aria-hidden="true">{avatarInitials}</span> : <img
                       src={user?.avatarUrl || '/images/student_avatar_hd.png'}
                       alt={user?.fullName || 'Candidate'}
                       className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full object-cover border border-white dark:border-slate-700"
                       onError={(e) => {
-                        e.currentTarget.src = '/images/student_avatar_hd.png';
+                        if (isStudyHomepage) setAvatarFailed(true);
+                        else e.currentTarget.src = '/images/student_avatar_hd.png';
                       }}
-                    />
+                    />}
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
                   </div>
 
                   <div className="hidden lg:block text-left pr-1">
-                    <p className="text-xs font-bold text-[#051A43] dark:text-white truncate max-w-[100px] leading-tight">
-                      {user?.fullName?.split(' ')[0] || 'Candidate'}
+                    <p className="study-navbar-student-name text-xs font-bold text-[#051A43] dark:text-white truncate max-w-[100px] leading-tight">
+                      {isStudyHomepage ? user?.fullName || 'Student' : user?.fullName?.split(' ')[0] || 'Candidate'}
                     </p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none mt-0.5">
                       {isPro ? (
@@ -570,14 +577,15 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-[#E2ECF8] dark:border-slate-800 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-2.5">
-                        <img
+                        {showInitials ? <span className="flex w-9 h-9 items-center justify-center rounded-full bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-200 text-sm font-bold" aria-hidden="true">{avatarInitials}</span> : <img
                           src={user?.avatarUrl || '/images/student_avatar_hd.png'}
                           alt={user?.fullName || 'Candidate'}
                           className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                           onError={(e) => {
-                            e.currentTarget.src = '/images/student_avatar_hd.png';
+                            if (isStudyHomepage) setAvatarFailed(true);
+                            else e.currentTarget.src = '/images/student_avatar_hd.png';
                           }}
-                        />
+                        />}
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-[#051A43] dark:text-white truncate">
                             {user?.fullName || 'Candidate'}
@@ -659,6 +667,7 @@ export const StudentNavbar: React.FC<StudentNavbarProps> = ({
                       )}
                     </div>
 
+                    {isStudyHomepage && <div className="study-navbar-appearance px-4 py-2 flex items-center justify-between gap-3 text-sm text-slate-700 dark:text-slate-200"><span>Appearance</span><ThemeToggle className="h-11 w-11 study-navbar-theme" /></div>}
                     <div className="border-t border-slate-100 dark:border-slate-800 pt-1 mt-1">
                       <button
                         type="button"
