@@ -105,6 +105,9 @@ class AuthRepository {
     String? district,
     String? category,
     String? gender,
+    String? dob,
+    String? state,
+    List<String>? targetExams,
   }) async {
     final client = _supabase;
     final user = client?.auth.currentUser;
@@ -118,6 +121,10 @@ class AuthRepository {
       if (district != null && district.trim().isNotEmpty) 'district': district.trim(),
       if (category != null && category.trim().isNotEmpty) 'category': category.trim(),
       if (gender != null && gender.trim().isNotEmpty) 'gender': gender.trim(),
+      if (dob != null && dob.trim().isNotEmpty) 'dob': dob.trim(),
+      if (state != null && state.trim().isNotEmpty) 'state': state.trim(),
+      if (targetExams != null && targetExams.isNotEmpty)
+        'target_exam_id': targetExams.first.trim(),
     };
 
     try {
@@ -138,6 +145,15 @@ class AuthRepository {
     }
     if (gender != null && gender.trim().isNotEmpty) {
       await LocalStorageService.saveUserGender(gender.trim());
+    }
+    if (dob != null && dob.trim().isNotEmpty) {
+      await LocalStorageService.saveUserDob(dob.trim());
+    }
+    if (state != null && state.trim().isNotEmpty) {
+      await LocalStorageService.saveUserState(state.trim());
+    }
+    if (targetExams != null) {
+      await LocalStorageService.saveTargetExamsList(targetExams);
     }
   }
 
@@ -207,6 +223,17 @@ class AuthRepository {
     if (district.isNotEmpty) await LocalStorageService.saveUserDistrict(district);
     if (category.isNotEmpty) await LocalStorageService.saveUserCategory(category);
     if (gender.isNotEmpty) await LocalStorageService.saveUserGender(gender);
+    final dob = (profileData?['dob'] ?? meta['dob'] ?? '').toString().trim();
+    if (dob.isNotEmpty) await LocalStorageService.saveUserDob(dob);
+    final state = (profileData?['state'] ?? meta['state'] ?? 'West Bengal').toString().trim();
+    if (state.isNotEmpty) await LocalStorageService.saveUserState(state);
+    final targetExam = (profileData?['target_exam_id'] ?? meta['target_exam_id'] ?? '').toString().trim();
+    if (targetExam.isNotEmpty) {
+      final currentList = LocalStorageService.getTargetExamsList();
+      if (!currentList.contains(targetExam)) {
+        await LocalStorageService.saveTargetExamsList([targetExam, ...currentList]);
+      }
+    }
 
     // Check active PRO subscription
     try {

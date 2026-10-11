@@ -9,14 +9,30 @@ class ImageUrlHelper {
     final trimmed = rawUrl.trim();
     if (trimmed.isEmpty) return null;
 
+    if (trimmed.startsWith('assets/')) {
+      return trimmed;
+    }
+
+    // Check if filename matches a local bundled asset for instant offline loading
+    final filename = trimmed.split('/').last.split('?').first;
+    final localAssetMap = <String, String>{
+      'home_hero_banner.png': 'assets/images/home_hero_banner.png',
+      'exam_hero_banner.png': 'assets/images/exam_hero_banner.png',
+      'student_hero_banner.jpg': 'assets/images/student_hero_banner.jpg',
+      'daily_10_banner_exact.png': 'assets/images/daily_10_banner_exact.png',
+      'hero_wbtet_banner.png': 'assets/images/hero_wbtet_banner.png',
+      'hero_banner_ref.png': 'assets/images/hero_banner_ref.png',
+      'test_series_hero_banner.png': 'assets/images/exams/test_series_hero_banner.png',
+    };
+    if (localAssetMap.containsKey(filename)) {
+      return localAssetMap[filename]!;
+    }
+
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
     }
     if (trimmed.startsWith('//')) {
       return 'https:$trimmed';
-    }
-    if (trimmed.startsWith('assets/')) {
-      return trimmed;
     }
     if (trimmed.startsWith('/')) {
       return '${AppConstants.websiteUrl}$trimmed';
@@ -121,13 +137,19 @@ class PkAdminImage extends StatelessWidget {
         );
       }
     }
-    return Center(
+    final hasFiniteDims = width != null &&
+        height != null &&
+        width!.isFinite &&
+        height!.isFinite;
+    return Container(
+      width: width,
+      height: height,
+      color: backgroundColor ?? Colors.transparent,
+      alignment: Alignment.center,
       child: Icon(
         fallbackIcon,
         color: fallbackColor ?? const Color(0xFF026BFC),
-        size: (width != null && height != null)
-            ? (width! < height! ? width! * 0.5 : height! * 0.5)
-            : 24,
+        size: hasFiniteDims ? (width! < height! ? width! * 0.5 : height! * 0.5) : 24,
       ),
     );
   }

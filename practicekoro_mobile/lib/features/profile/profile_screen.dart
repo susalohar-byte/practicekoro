@@ -1,20 +1,33 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/components/pk_dialog.dart';
+import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/constants/wb_districts.dart';
 import '../../core/widgets/pk_bottom_spacing.dart';
 import '../../data/datasources/local_storage.dart';
 import '../../data/models/attempt_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
 
-/// Screen: Profile Screen
-/// Exact recreation of the approved Playful Gen-Z EdTech UI reference (media_1791289543957.png).
+/// Profile Overview Screen (approved full-length Profile UI reference).
+/// Sections, top to bottom:
+/// 1. Header: "Profile" title + settings gear
+/// 2. Profile card: avatar (edit badge), name, email, phone, chevron to Edit Profile,
+///    gender / date of birth / location
+/// 3. My Progress: tests attempted, accuracy, questions solved, day streak (real attempts)
+/// 4. My Exams: selected exam tags, Edit and Add Exam (Edit Profile exam editor)
+/// 5. My Test Attempts + Bookmarks
+/// 6. Account & Preferences: Subscription & Plan, Payment History, Coupons, Notification Settings
+/// 7. Help & Information: Help & Support, About PracticeKoro, Privacy Policy
+/// 8. Meet Nimo banner
+/// 9. Logout
+///
+/// Removed by design: My Learning, My Notes, Downloads, Download History, Refer & Earn.
 class ProfileScreen extends StatefulWidget {
   final ValueChanged<int>? onTabSelected;
 
@@ -24,1585 +37,662 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+/// Progress figures derived from the student's completed attempts.
+class _ProfileStats {
+  final int testsAttempted;
+  final int? accuracy; // null when no question has been answered yet
+  final int questionsSolved;
+  final int dayStreak;
+
+  const _ProfileStats({
+    required this.testsAttempted,
+    required this.accuracy,
+    required this.questionsSolved,
+    required this.dayStreak,
+  });
+
+  factory _ProfileStats.fromAttempts(Iterable<TestAttemptModel> attempts) {
+    final list = attempts.toList();
+    final correct = list.fold<int>(0, (sum, a) => sum + a.correctCount);
+    final answered = list.fold<int>(0, (sum, a) => sum + a.correctCount + a.wrongCount);
+
+    // Consecutive days with at least one completed test, ending today or yesterday.
+    DateTime day(DateTime d) => DateTime(d.year, d.month, d.day);
+    final days = list.map((a) => day(a.completedAt.toLocal())).toSet();
+    var cursor = day(DateTime.now());
+    if (!days.contains(cursor)) cursor = cursor.subtract(const Duration(days: 1));
+    var streak = 0;
+    while (days.contains(cursor)) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    return _ProfileStats(
+      testsAttempted: list.length,
+      accuracy: answered > 0 ? (correct / answered * 100).round() : null,
+      questionsSolved: answered,
+      dayStreak: streak,
+    );
+  }
+}
+
 class _ProfileScreenState extends State<ProfileScreen> {
+  static const Color _canvas = Color(0xFFF2F7FF);
+  static const Color _ink = Color(0xFF0B1B3F);
+  static const Color _slate = Color(0xFF64748B);
+  static const Color _muted = Color(0xFF94A3B8);
+  static const Color _blue = Color(0xFF026BFC);
+
+  final _catalog = CatalogRepository();
+
   bool _isLoading = true;
-  bool _isLoggedIn = false;
-  bool _isPaid = false;
+  String _userName = '';
+  String _userEmail = '';
+  String _userPhone = '';
+  String _userDistrict = '';
+  String _userState = '';
+  String _userGender = '';
+  String _userDob = '';
+  List<String> _targetExams = const [];
 
-  String _userName = 'Susanta Lohar';
-  String _userEmail = 'susanta@example.com';
-  String _userPhone = '+91 98765 43210';
-  String _userDistrict = 'Purulia';
-  String _userState = 'West Bengal';
-  String _userCategory = 'GEN';
-  String _userGender = 'NOT_SPECIFIED';
-  String _joinedDateFormatted = '15 Aug 2025';
-  String _planValidityText = 'Valid till 15 Mar 2026';
-
-  // Learning Stats
-  String _statsFilter = 'Last 30 Days';
-  final List<String> _statsFilterOptions = [
-    'Last 7 Days',
-    'Last 30 Days',
-    'Last 90 Days',
-    'All Time',
-  ];
-  List<TestAttemptModel> _allAttempts = [];
-  int _statTestsAttempted = 12;
-  int _statAverageAccuracy = 68;
-  String _statTotalStudyTime = '4h 32m';
-  int _statDayStreak = 5;
-
-  static const Map<String, String> _categoryLabels = {
-    'GEN': 'General / UR',
-    'OBC_A': 'OBC-A',
-    'OBC_B': 'OBC-B',
-    'SC': 'SC',
-    'ST': 'ST',
-    'EWS': 'EWS',
-    'PWD': 'PwD',
-    'OTHER': 'Other',
-    'NA': 'Prefer not to say',
-  };
-
-  static const Map<String, String> _genderLabels = {
-    'MALE': 'Male',
-    'FEMALE': 'Female',
-    'OTHER': 'Other',
-    'NOT_SPECIFIED': 'Prefer not to say',
-  };
+  _ProfileStats? _stats;
+  bool _statsFailed = false;
 
   @override
   void initState() {
     super.initState();
+    _readLocalProfile();
     _loadProfileData();
+  }
+
+  bool get _isSignedIn {
+    try {
+      return Supabase.instance.client.auth.currentUser != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Cached profile written by AuthRepository (instant, offline-friendly).
+  void _readLocalProfile() {
+    final name = LocalStorageService.getUserName();
+    _userName = name == 'Candidate' ? '' : name;
+    _userEmail = LocalStorageService.getUserEmail() ?? '';
+    _userPhone = LocalStorageService.getUserPhone() ?? '';
+    _userDistrict = LocalStorageService.getUserDistrict() ?? '';
+    _userState = LocalStorageService.getUserState();
+    _userGender = _formatGender(LocalStorageService.getUserGender());
+    _userDob = _formatDob(LocalStorageService.getUserDob());
+    _targetExams = LocalStorageService.getTargetExamsList();
   }
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
 
+    // 1. Refresh the cached profile from Supabase (writes back to local storage).
     try {
-      // 1. Local Storage fallback / cache
-      final localLoggedIn = LocalStorageService.isLoggedIn();
-      final localName = LocalStorageService.getUserName();
-      final localEmail = LocalStorageService.getUserEmail();
-      final localPhone = LocalStorageService.getUserPhone();
-      final localDistrict = LocalStorageService.getUserDistrict() ??
-          LocalStorageService.getLeaderboardDistrict();
-      final localCategory = LocalStorageService.getUserCategory();
-      final localGender = LocalStorageService.getUserGender();
-      final localPro = LocalStorageService.isProUser();
-      final localExpiry = LocalStorageService.getProExpiryDate();
-
-      _isLoggedIn = localLoggedIn;
-      _isPaid = localPro;
-      if (localName.isNotEmpty) _userName = localName;
-      if (localEmail != null && localEmail.isNotEmpty) _userEmail = localEmail;
-      if (localPhone != null && localPhone.isNotEmpty) _userPhone = localPhone;
-      if (localDistrict.isNotEmpty) _userDistrict = localDistrict;
-      _userCategory = localCategory;
-      _userGender = localGender;
-
-      if (localExpiry != null) {
-        _planValidityText = 'Valid till ${DateFormat('d MMM yyyy').format(localExpiry)}';
-      }
-
-      // 2. Fetch live data from Supabase if available
-      final client = Supabase.instance.client;
-      final user = client.auth.currentUser;
-
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        _isLoggedIn = true;
-        // Parse joined date from user account creation
-        try {
-          final createdAt = DateTime.tryParse(user.createdAt);
-          if (createdAt != null) {
-            _joinedDateFormatted = DateFormat('d MMM yyyy').format(createdAt);
-          }
-        } catch (_) {}
-
-        // Sync with profiles table
-        final profile = await AuthRepository().syncUserProfile(user);
-        if (profile != null) {
-          final pName = profile['full_name']?.toString() ?? '';
-          final pEmail = profile['email']?.toString() ?? user.email ?? '';
-          final pPhone = profile['phone']?.toString() ?? user.phone ?? '';
-          final pDistrict = profile['district']?.toString() ?? '';
-          final pState = profile['state']?.toString() ?? 'West Bengal';
-
-          if (pName.isNotEmpty) _userName = pName;
-          if (pEmail.isNotEmpty) _userEmail = pEmail;
-          if (pPhone.isNotEmpty) _userPhone = pPhone;
-          if (pDistrict.isNotEmpty) _userDistrict = pDistrict;
-          if (pState.isNotEmpty) _userState = pState;
-        }
-
-        // Live subscription check
-        final isPro = LocalStorageService.isProUser();
-        _isPaid = isPro;
-        final expiry = LocalStorageService.getProExpiryDate();
-        if (expiry != null) {
-          _planValidityText = 'Valid till ${DateFormat('d MMM yyyy').format(expiry)}';
-        }
+        await AuthRepository().syncUserProfile(user);
       }
-
-      // 3. Load user attempts for learning stats
-      _allAttempts = LocalStorageService.getAttempts();
-      _computeStats();
     } catch (_) {
-      // Graceful fallback to cached state
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      // Offline or not configured: keep showing the cached profile.
     }
-  }
+    if (!mounted) return;
+    setState(_readLocalProfile);
 
-  void _computeStats() {
-    final now = DateTime.now();
-    DateTime cutoff;
-    switch (_statsFilter) {
-      case 'Last 7 Days':
-        cutoff = now.subtract(const Duration(days: 7));
-        break;
-      case 'Last 90 Days':
-        cutoff = now.subtract(const Duration(days: 90));
-        break;
-      case 'All Time':
-        cutoff = DateTime(2020);
-        break;
-      case 'Last 30 Days':
-      default:
-        cutoff = now.subtract(const Duration(days: 30));
-        break;
-    }
-
-    final filtered = _allAttempts.where((a) => a.completedAt.isAfter(cutoff)).toList();
-
-    if (filtered.isNotEmpty) {
-      _statTestsAttempted = filtered.length;
-      final totalAcc = filtered.fold<double>(0.0, (sum, a) => sum + a.accuracy);
-      _statAverageAccuracy = (totalAcc / filtered.length).round();
-
-      final totalSeconds = filtered.fold<int>(0, (sum, a) => sum + a.timeSpentSeconds);
-      final hours = totalSeconds ~/ 3600;
-      final minutes = (totalSeconds % 3600) ~/ 60;
-      if (hours > 0) {
-        _statTotalStudyTime = '${hours}h ${minutes}m';
-      } else {
-        _statTotalStudyTime = '${minutes}m';
-      }
-
-      // Calculate streak
-      final dates = filtered
-          .map((a) => DateFormat('yyyy-MM-dd').format(a.completedAt))
-          .toSet();
-      int streak = 0;
-      for (int i = 0; i < 60; i++) {
-        final dStr = DateFormat('yyyy-MM-dd').format(now.subtract(Duration(days: i)));
-        if (dates.contains(dStr)) {
-          streak++;
-        } else if (i > 0) {
-          break;
+    // 2. Progress from completed attempts: server history merged with this device's.
+    final attemptsById = <String, TestAttemptModel>{
+      for (final a in LocalStorageService.getAttempts()) a.id: a,
+    };
+    var failed = false;
+    if (_isSignedIn) {
+      try {
+        for (final a in await _catalog.getStudentCompletedAttempts()) {
+          attemptsById[a.id] = a;
         }
+      } catch (_) {
+        failed = true;
       }
-      _statDayStreak = math.max(streak, 1);
-    } else {
-      // Baseline when no offline tests stored yet
-      _statTestsAttempted = 12;
-      _statAverageAccuracy = 68;
-      _statTotalStudyTime = '4h 32m';
-      _statDayStreak = 5;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _stats = _ProfileStats.fromAttempts(attemptsById.values);
+      _statsFailed = failed && attemptsById.isEmpty;
+      _isLoading = false;
+    });
+  }
+
+  String _formatGender(String raw) {
+    switch (raw.trim().toUpperCase()) {
+      case 'MALE':
+        return 'Male';
+      case 'FEMALE':
+        return 'Female';
+      case 'OTHER':
+        return 'Other';
+      default:
+        return ''; // NOT_SPECIFIED or empty
     }
   }
 
-  // ==========================================
-  // EDIT PROFILE BOTTOM SHEET
-  // ==========================================
-  void _showEditProfileBottomSheet() {
-    final nameCtrl = TextEditingController(text: _userName);
-    final phoneCtrl = TextEditingController(text: _userPhone);
-    String selectedDist = kWestBengalDistricts.contains(_userDistrict)
-        ? _userDistrict
-        : 'Purulia';
-    String selectedCat = _categoryLabels.containsKey(_userCategory)
-        ? _userCategory
-        : 'GEN';
-    String selectedGen = _genderLabels.containsKey(_userGender)
-        ? _userGender
-        : 'NOT_SPECIFIED';
+  String _formatDob(String raw) {
+    final parsed = DateTime.tryParse(raw.trim());
+    if (parsed == null) return raw.trim();
+    return DateFormat('d MMM yyyy').format(parsed);
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.edit_note_rounded,
-                          color: Color(0xFF0066FF), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Edit Profile',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Keep your personal information up to date',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+  String get _locationText {
+    final state = _userState.trim();
+    final shortState = state.toLowerCase() == 'west bengal' ? 'WB' : state;
+    if (_userDistrict.isNotEmpty && shortState.isNotEmpty) return '$_userDistrict, $shortState';
+    return _userDistrict.isNotEmpty ? _userDistrict : '';
+  }
 
-                // Name Field
-                const Text(
-                  'Full Name',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your full name',
-                    prefixIcon: const Icon(Icons.person_outline_rounded,
-                        color: Color(0xFF0066FF), size: 20),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF0066FF), width: 1.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
+  void _goToTab(int index, String route) {
+    if (widget.onTabSelected != null) {
+      widget.onTabSelected!(index);
+    } else {
+      context.go(route);
+    }
+  }
 
-                // Phone Field
-                const Text(
-                  'Phone Number',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText: '+91 98765 43210',
-                    prefixIcon: const Icon(Icons.phone_outlined,
-                        color: Color(0xFF0066FF), size: 20),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF0066FF), width: 1.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
+  Future<void> _openEditProfile() async {
+    final updated = await context.push<bool>('/edit-profile');
+    if (updated == true && mounted) {
+      _loadProfileData();
+    }
+  }
 
-                // District Dropdown
-                const Text(
-                  'Preparation District (West Bengal)',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+  Future<void> _openExternal(String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) => false);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open $url'), behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await PKDialog.show(
+      context,
+      title: 'Logout',
+      message: 'Are you sure you want to log out of your PracticeKoro account?',
+      confirmText: 'Logout',
+      icon: Icons.logout_rounded,
+      iconColor: AppColors.error,
+    );
+
+    if (confirmed == true && mounted) {
+      await AuthRepository().signOut();
+      if (mounted) {
+        context.go('/login');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _canvas,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            if (_isLoading)
+              const LinearProgressIndicator(
+                minHeight: 2.5,
+                color: _blue,
+                backgroundColor: Colors.transparent,
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadProfileData,
+                color: _blue,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: PKBottomSpacing.safeAreaEdgeInsets(
+                    context,
+                    horizontal: 16,
+                    top: 8,
+                    additionalGap: 24,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTopHeader(),
+                      const SizedBox(height: 12),
+                      _buildUserProfileCard(),
+                      const SizedBox(height: 14),
+                      _buildMyProgressCard(),
+                      const SizedBox(height: 14),
+                      _buildMyExamsCard(),
+                      const SizedBox(height: 14),
+                      _buildActivityCard(),
+                      const SizedBox(height: 14),
+                      _buildAccountCard(),
+                      const SizedBox(height: 14),
+                      _buildHelpCard(),
+                      const SizedBox(height: 14),
+                      _buildNimoBanner(),
+                      const SizedBox(height: 14),
+                      _buildLogoutRow(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedDist,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF64748B)),
-                      items: kWestBengalDistricts.map((d) {
-                        return DropdownMenuItem<String>(
-                          value: d,
-                          child: Text(
-                            d,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setSheetState(() => selectedDist = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Category Dropdown
-                const Text(
-                  'Category / Caste Reservation',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedCat,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF64748B)),
-                      items: _categoryLabels.entries.map((entry) {
-                        return DropdownMenuItem<String>(
-                          value: entry.key,
-                          child: Text(
-                            entry.value,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setSheetState(() => selectedCat = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Gender Dropdown
-                const Text(
-                  'Gender',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedGen,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF64748B)),
-                      items: _genderLabels.entries.map((entry) {
-                        return DropdownMenuItem<String>(
-                          value: entry.key,
-                          child: Text(
-                            entry.value,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setSheetState(() => selectedGen = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final newName = nameCtrl.text.trim();
-                      final newPhone = phoneCtrl.text.trim();
-
-                      setState(() {
-                        if (newName.isNotEmpty) _userName = newName;
-                        if (newPhone.isNotEmpty) _userPhone = newPhone;
-                        _userDistrict = selectedDist;
-                        _userCategory = selectedCat;
-                        _userGender = selectedGen;
-                      });
-
-                      Navigator.pop(ctx);
-
-                      await AuthRepository().updateProfile(
-                        fullName: newName.isNotEmpty ? newName : _userName,
-                        phone: newPhone.isNotEmpty ? newPhone : _userPhone,
-                        district: selectedDist,
-                        category: selectedCat,
-                        gender: selectedGen,
-                      );
-
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Profile updated successfully! ✨'),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Color(0xFF0F172A),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0066FF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // ==========================================
-  // PAYMENT HISTORY BOTTOM SHEET
-  // ==========================================
-  void _showPaymentHistoryBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+  // ─── Shared card chrome ──────────────────────────────────────────────────
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: const [
+        BoxShadow(color: Color(0x0F1E3A8A), blurRadius: 18, offset: Offset(0, 6)),
+      ],
+    );
+  }
+
+  Widget _rowDivider({double indent = 66}) {
+    return Divider(height: 1, thickness: 1, indent: indent, endIndent: 16, color: const Color(0xFFEFF3F8));
+  }
+
+  // ─── 1. Header ───────────────────────────────────────────────────────────
+
+  Widget _buildTopHeader() {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Profile',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: _ink,
+              letterSpacing: -0.6,
+            ),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+        IconButton(
+          tooltip: 'Settings',
+          icon: const Icon(Icons.settings_outlined, color: _ink, size: 26),
+          onPressed: () => context.push('/settings'),
+        ),
+      ],
+    );
+  }
+
+  // ─── 2. Profile card ─────────────────────────────────────────────────────
+
+  Widget _buildUserProfileCard() {
+    final displayName = _userName.isNotEmpty
+        ? _userName
+        : (_userEmail.contains('@') ? _userEmail.split('@').first : 'Your Name');
+    final infoItems = <(IconData, String)>[
+      if (_userGender.isNotEmpty) (Icons.person_outline_rounded, _userGender),
+      if (_userDob.isNotEmpty) (Icons.calendar_month_outlined, _userDob),
+      if (_locationText.isNotEmpty) (Icons.location_on_outlined, _locationText),
+    ];
+
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: _openEditProfile,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 14),
+              child: Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(color: Color(0xFFDBEAFE), shape: BoxShape.circle),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/profile_avatar_boy.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.person_rounded, size: 38, color: _blue),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: _blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: _ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        if (_userEmail.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            _userEmail,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, color: _slate, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                        const SizedBox(height: 3),
+                        Text(
+                          _userPhone.isNotEmpty ? _userPhone : 'Add phone number',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _userPhone.isNotEmpty ? _slate : _blue,
+                            fontWeight: _userPhone.isNotEmpty ? FontWeight.w500 : FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: _ink, size: 24),
+                ],
               ),
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.receipt_long_rounded,
-                      color: Color(0xFF0284C7), size: 24),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: Color(0xFFEFF3F8)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: infoItems.isEmpty
+                ? InkWell(
+                    onTap: _openEditProfile,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.add_circle_outline_rounded, size: 17, color: _blue),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Add gender, date of birth & location',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: _blue),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment:
+                        infoItems.length == 1 ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Payment History',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
+                      for (final (icon, text) in infoItems)
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(icon, size: 18, color: _ink),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  text,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _ink),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'All verified receipts and transactions',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 3. My Progress ──────────────────────────────────────────────────────
+
+  Widget _buildMyProgressCard() {
+    final stats = _stats;
+    final hasAttempts = stats != null && stats.testsAttempted > 0;
+    String show(String Function(_ProfileStats s) pick) => stats == null ? '–' : pick(stats);
+
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 10, 12),
+            child: Row(
+              children: [
+                const Icon(Icons.bar_chart_rounded, color: _blue, size: 26),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'My Progress',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _goToTab(3, '/results'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _blue,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    minimumSize: const Size(0, 32),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('View Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded, size: 18),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            if (_isPaid)
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.check_circle_rounded,
-                          color: Color(0xFF15803D), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'PracticeKoro PAID Plan',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Txn ID: PK-2025-SUB982',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '₹499',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Successful',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              )
-            else
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEFF6FF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.credit_card_off_rounded,
-                          color: Color(0xFF0066FF), size: 30),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'No Transactions Yet',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'When you upgrade your plan, payment invoices will appear right here.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('Close',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // COUPONS BOTTOM SHEET
-  // ==========================================
-  void _showCouponsBottomSheet() {
-    final couponCtrl = TextEditingController();
-    bool isChecking = false;
-    String? validationMsg;
-    bool isSuccess = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF5FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.confirmation_number_outlined,
-                          color: Color(0xFF9333EA), size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Coupons & Offers',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Apply discount codes for your subscription',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Promo code input
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: couponCtrl,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          hintText: 'Enter coupon code',
-                          prefixIcon: const Icon(Icons.local_offer_outlined,
-                              color: Color(0xFF9333EA), size: 20),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                                color: Color(0xFF9333EA), width: 1.5),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: isChecking
-                            ? null
-                            : () async {
-                                final code = couponCtrl.text.trim().toUpperCase();
-                                if (code.isEmpty) return;
-                                setSheetState(() {
-                                  isChecking = true;
-                                  validationMsg = null;
-                                });
-
-                                try {
-                                  final repo = CatalogRepository();
-                                  final coupon = await repo.validateCoupon(code);
-                                  if (coupon != null) {
-                                    setSheetState(() {
-                                      isChecking = false;
-                                      isSuccess = true;
-                                      validationMsg =
-                                          'Valid! ${coupon['discount_percent'] ?? 50}% Discount available.';
-                                    });
-                                  } else {
-                                    setSheetState(() {
-                                      isChecking = false;
-                                      isSuccess = false;
-                                      validationMsg = 'Coupon "$code" is invalid or expired.';
-                                    });
-                                  }
-                                } catch (_) {
-                                  setSheetState(() {
-                                    isChecking = false;
-                                    isSuccess = false;
-                                    validationMsg = 'Coupon check failed. Try again.';
-                                  });
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF9333EA),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                        child: isChecking
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Apply',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (validationMsg != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    validationMsg!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isSuccess
-                          ? const Color(0xFF15803D)
-                          : const Color(0xFFDC2626),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-
-                // Available coupons list
-                const Text(
-                  'Available Offers',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Coupon Card 1
-                _buildAvailableCouponItem(
-                  code: 'START2025',
-                  discountText: '50% Flat Discount',
-                  desc: 'Unlock all mock tests & practice packs at half price.',
-                  onCopy: () {
-                    Clipboard.setData(const ClipboardData(text: 'START2025'));
-                    couponCtrl.text = 'START2025';
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Coupon code copied! 🚀'),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                // Coupon Card 2
-                _buildAvailableCouponItem(
-                  code: 'WBGOVT',
-                  discountText: '₹100 Instant Discount',
-                  desc: 'Special scholarship offer for West Bengal aspirants.',
-                  onCopy: () {
-                    Clipboard.setData(const ClipboardData(text: 'WBGOVT'));
-                    couponCtrl.text = 'WBGOVT';
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Coupon code copied! 🚀'),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvailableCouponItem({
-    required String code,
-    required String discountText,
-    required String desc,
-    required VoidCallback onCopy,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF5FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF3E8FF)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF9333EA).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF9333EA).withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              code,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF7E22CE),
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  discountText,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.copy_rounded, color: Color(0xFF9333EA), size: 18),
-            onPressed: onCopy,
-            tooltip: 'Copy Code',
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // ABOUT PRACTICEKORO DIALOG
-  // ==========================================
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFBFDBFE), width: 2),
-              ),
-              child: Center(
-                child: Image.asset(
-                  'assets/images/logo-circle.png',
-                  width: 48,
-                  height: 48,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.school_rounded,
-                    color: Color(0xFF0066FF),
-                    size: 36,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              AppConstants.appTagline,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Version ${AppConstants.appVersion} (Build 17)',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF334155),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'West Bengal\'s premier competitive exam preparation platform with live tests, district rankings, and comprehensive topic practice.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11.5,
-                color: Color(0xFF475569),
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'Awesome',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0066FF),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // LOGOUT CONFIRMATION DIALOG
-  // ==========================================
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFEE2E2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.logout_rounded,
-                  color: Color(0xFFEF4444), size: 28),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Log out?',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Are you sure you want to log out from PracticeKoro? You can log back in anytime to continue your streak.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF64748B),
-                height: 1.35,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    await AuthRepository().signOut();
-                    if (mounted) {
-                      context.go('/login');
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text(
-                    'Log Out',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // MAIN BUILD METHOD
-  // ==========================================
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        body: SafeArea(
-          bottom: false,
-          child: _buildSkeletonLoader(),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: const Color(0xFF0066FF),
-          onRefresh: _loadProfileData,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            children: [
-              // 1. Top Custom Header (Sky pastel with Nimo illustration)
-              _buildTopHeader(),
-
-              // Content Container with standard padding
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 4),
-
-                    // 2. Profile Card (Avatar, Name, Email, Phone, Chips)
-                    _buildProfileCard(),
-                    const SizedBox(height: 14),
-
-                    // 3. Current Plan Card (FREE / PAID)
-                    _buildCurrentPlanCard(),
-                    const SizedBox(height: 14),
-
-                    // 4. Quick Action Cards (Subscriptions, Payment History, Coupons)
-                    _buildQuickActionCardsRow(),
-                    const SizedBox(height: 16),
-
-                    // 5. My Learning Stats Card
-                    _buildLearningStatsCard(),
-                    const SizedBox(height: 16),
-
-                    // 6. Settings / Account Items Card
-                    _buildSettingsListCard(),
-                    const SizedBox(height: 16),
-
-                    // 7. Motivational Nimo Banner
-                    _buildMotivationalBanner(),
-                    const SizedBox(height: 14),
-
-                    // 8. Log Out / Sign In Button
-                    _buildLogoutButton(),
-                    const SizedBox(height: 14),
-
-                    // Bottom navigation spacer
-                    const PKBottomNavSpacer(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // 1. TOP HEADER (Sky pastel + Nimo)
-  // ==========================================
-  Widget _buildTopHeader() {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFE0F2FE),
-            Color(0xFFF0F9FF),
-            Color(0xFFF8FAFC),
-          ],
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 12, 12, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Left: Title and Subtitle
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Manage your account and\nkeep your learning journey on track.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
-                    height: 1.35,
-                  ),
-                ),
-                SizedBox(height: 6),
-              ],
-            ),
-          ),
-
-          // Right: Nimo mascot illustration
+          const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: Color(0xFFEFF3F8)),
           Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Image.asset(
-              'assets/images/profile_header_nimo.png',
-              height: 104,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Image.asset(
-                'assets/images/nimo_celebrating.png',
-                height: 96,
-                fit: BoxFit.contain,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildProgressStatItem(
+                    value: show((s) => '${s.testsAttempted}'),
+                    label: 'Tests\nAttempted',
+                    valueColor: _ink,
+                  ),
+                ),
+                _buildStatDivider(),
+                Expanded(
+                  child: _buildProgressStatItem(
+                    value: show((s) => s.accuracy == null ? '–' : '${s.accuracy}%'),
+                    label: 'Accuracy',
+                    valueColor: const Color(0xFF10B981),
+                  ),
+                ),
+                _buildStatDivider(),
+                Expanded(
+                  child: _buildProgressStatItem(
+                    value: show((s) => NumberFormat.decimalPattern('en_IN').format(s.questionsSolved)),
+                    label: 'Questions\nSolved',
+                    valueColor: _ink,
+                  ),
+                ),
+                _buildStatDivider(),
+                Expanded(
+                  child: _buildProgressStatItem(
+                    value: show((s) => '${s.dayStreak}'),
+                    label: 'Days\nStreak',
+                    valueColor: const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
             ),
           ),
+          if (_statsFailed || (stats != null && !hasAttempts))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Text(
+                _statsFailed
+                    ? "Couldn't load your progress. Pull down to retry."
+                    : 'Attempt your first mock test to start tracking progress.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _statsFailed ? AppColors.error : _slate,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // ==========================================
-  // 2. PROFILE CARD
-  // ==========================================
-  Widget _buildProfileCard() {
+  Widget _buildProgressStatItem({
+    required String value,
+    required String label,
+    required Color valueColor,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: valueColor,
+              letterSpacing: -0.4,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _slate, height: 1.2),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(height: 44, width: 1, color: const Color(0xFFEFF3F8));
+  }
+
+  // ─── 4. My Exams ─────────────────────────────────────────────────────────
+
+  Widget _buildMyExamsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: _cardDecoration(),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row: Avatar + User Info + Edit Profile Button
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with camera badge
-              GestureDetector(
-                onTap: _showEditProfileBottomSheet,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFE0F2FE),
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/profile_avatar_boy.png',
-                          width: 54,
-                          height: 54,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Image.asset(
-                            'assets/images/student_avatar_hd.png',
-                            width: 54,
-                            height: 54,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.person_rounded,
-                              color: Color(0xFF0066FF),
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -2,
-                      right: -2,
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 9.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Name, Email, Phone
-              Expanded(
+              const Icon(Icons.track_changes_rounded, color: Color(0xFFEF4444), size: 30),
+              const SizedBox(width: 10),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _userName,
-                      style: const TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
-                        letterSpacing: -0.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      'My Exams',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.mail_outline_rounded,
-                            size: 13, color: Color(0xFF64748B)),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            _userEmail.isNotEmpty
-                                ? _userEmail
-                                : 'student@practicekoro.online',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_rounded,
-                            size: 13, color: Color(0xFF64748B)),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            _userPhone.isNotEmpty
-                                ? _userPhone
-                                : '+91 98765 43210',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    SizedBox(height: 1),
+                    Text(
+                      'Exams you are preparing for',
+                      style: TextStyle(fontSize: 12.5, color: _slate, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
               ),
-
-              // Edit Profile Button
-              GestureDetector(
-                onTap: _showEditProfileBottomSheet,
+              InkWell(
+                onTap: _openEditProfile,
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF0066FF),
-                      width: 1.2,
-                    ),
+                    color: const Color(0xFFE8F1FF),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
+                  child: const Text(
+                    'Edit',
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: _blue),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_targetExams.isEmpty) ...[
+            const Text(
+              "You haven't selected any exams yet.",
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: _slate),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final exam in _targetExams) _buildExamTag(exam),
+              InkWell(
+                onTap: _openEditProfile,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.edit_outlined,
-                          size: 12, color: Color(0xFF0066FF)),
-                      SizedBox(width: 3),
+                    children: [
+                      Icon(Icons.add_rounded, size: 17, color: Color(0xFF334155)),
+                      SizedBox(width: 4),
                       Text(
-                        'Edit Profile',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0066FF),
-                        ),
+                        'Add Exam',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                       ),
                     ],
                   ),
@@ -1610,247 +700,303 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+        ],
+      ),
+    );
+  }
 
-          // Bottom 3 Chips (District, State, Joined Date)
-          Row(
-            children: [
-              // Chip 1: District
-              Expanded(
-                child: _buildInfoChip(
-                  icon: Icons.location_on_outlined,
-                  topText: _userDistrict,
-                  bottomText: 'District',
-                ),
-              ),
-              const SizedBox(width: 6),
+  Widget _buildExamTag(String exam) {
+    final t = exam.toLowerCase();
+    final (Color bg, Color fg) = t.contains('rail') || t.contains('ntpc')
+        ? (const Color(0xFFFFE4E6), const Color(0xFFE11D48))
+        : t.contains('ssc') || t.contains('group') || t.contains('clerk')
+            ? (const Color(0xFFDCFCE7), const Color(0xFF15803D))
+            : t.contains('wbp') || t.contains('police') || t.contains('kp')
+                ? (const Color(0xFFDBEAFE), const Color(0xFF1D4ED8))
+                : (const Color(0xFFEDE9FE), const Color(0xFF7C3AED));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Text(
+        exam,
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
 
-              // Chip 2: State
-              Expanded(
-                child: _buildInfoChip(
-                  icon: Icons.school_outlined,
-                  topText: _userState,
-                  bottomText: 'State',
-                ),
-              ),
-              const SizedBox(width: 6),
+  // ─── 5. My Test Attempts + Bookmarks ─────────────────────────────────────
 
-              // Chip 3: Joined Date
-              Expanded(
-                child: _buildInfoChip(
-                  icon: Icons.calendar_today_outlined,
-                  topText: 'Joined',
-                  bottomText: _joinedDateFormatted,
-                  isDate: true,
-                ),
-              ),
-            ],
+  Widget _buildActivityCard() {
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          _buildListRow(
+            icon: Icons.description_rounded,
+            color: const Color(0xFF3B82F6),
+            title: 'My Test Attempts',
+            bold: true,
+            onTap: () => _goToTab(3, '/results'),
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.bookmark_rounded,
+            color: const Color(0xFFEF4444),
+            title: 'Bookmarks',
+            bold: true,
+            onTap: () => context.push('/saved-questions'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoChip({
+  Widget _buildListRow({
     required IconData icon,
-    required String topText,
-    required String bottomText,
-    bool isDate = false,
+    required Color color,
+    required String title,
+    String? trailingText,
+    bool bold = false,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                  color: _ink,
+                ),
+              ),
+            ),
+            if (trailingText != null) ...[
+              Text(
+                trailingText,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _muted),
+              ),
+              const SizedBox(width: 4),
+            ],
+            const Icon(Icons.chevron_right_rounded, color: _ink, size: 22),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeading({required IconData icon, required Color color, required String title}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF0066FF), size: 16),
-          const SizedBox(width: 4),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
           Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 6. Account & Preferences ────────────────────────────────────────────
+
+  Widget _buildAccountCard() {
+    final isPro = LocalStorageService.isProUser();
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          _buildSectionHeading(
+            icon: Icons.settings_rounded,
+            color: const Color(0xFF8B5CF6),
+            title: 'Account & Preferences',
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.workspace_premium_rounded,
+            color: const Color(0xFFFBBF24),
+            title: 'Subscription & Plan',
+            trailingText: isPro ? 'Pro' : 'Free',
+            onTap: () => context.push('/subscription'),
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.credit_card_rounded,
+            color: const Color(0xFF22C55E),
+            title: 'Payment History',
+            onTap: _showPaymentHistory,
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.local_offer_rounded,
+            color: const Color(0xFFF43F5E),
+            title: 'Coupons',
+            onTap: _showCoupons,
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.notifications_rounded,
+            color: const Color(0xFF3B82F6),
+            title: 'Notification Settings',
+            onTap: () => context.push('/settings'),
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  // ─── 7. Help & Information ───────────────────────────────────────────────
+
+  Widget _buildHelpCard() {
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecoration(),
+      child: Column(
+        children: [
+          _buildSectionHeading(
+            icon: Icons.support_rounded,
+            color: const Color(0xFFF26B5B),
+            title: 'Help & Information',
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.help_outline_rounded,
+            color: const Color(0xFF2563EB),
+            title: 'Help & Support',
+            onTap: () => context.push('/support'),
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.info_outline_rounded,
+            color: const Color(0xFF8B5CF6),
+            title: 'About PracticeKoro',
+            onTap: _showAbout,
+          ),
+          _rowDivider(),
+          _buildListRow(
+            icon: Icons.verified_user_rounded,
+            color: const Color(0xFF2563EB),
+            title: 'Privacy Policy',
+            onTap: () => _openExternal('${AppConstants.websiteUrl}/privacy-policy'),
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+
+  // ─── 8. Meet Nimo ────────────────────────────────────────────────────────
+
+  Widget _buildNimoBanner() {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 150),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE6F0FF), Color(0xFFD4E5FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: 6,
+            bottom: 0,
+            top: 8,
+            // Fade the artwork's left edge so its square crop never shows as a seam.
+            child: ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (rect) => const LinearGradient(
+                colors: [Colors.transparent, Colors.black],
+                stops: [0.0, 0.14],
+              ).createShader(rect),
+              child: Image.asset(
+                'assets/images/nimo_ready.png',
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomRight,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(18, 16, 120, 58),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isDate ? bottomText : topText,
-                  style: TextStyle(
-                    fontSize: isDate ? 10 : 11,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Meet Nimo',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.4),
                 ),
+                SizedBox(height: 2),
                 Text(
-                  isDate ? topText : bottomText,
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Keep showing up.\nEvery practice session counts!',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF334155), height: 1.3),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // 3. CURRENT PLAN CARD (FREE / PAID)
-  // ==========================================
-  Widget _buildCurrentPlanCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFBEB),
-            Color(0xFFFEF3C7),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // 3D Crown Image
-          Image.asset(
-            'assets/images/profile_crown_3d.png',
-            width: 52,
-            height: 48,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => const Icon(
-              Icons.workspace_premium_rounded,
-              color: Color(0xFFF59E0B),
-              size: 42,
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Plan Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Current Plan',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF92400E),
-                    letterSpacing: 0.3,
-                  ),
+          // Motivational pill may run under Nimo's shoulder, as in the reference.
+          Positioned(
+            left: 16,
+            right: 56,
+            bottom: 14,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x141E3A8A), blurRadius: 8, offset: Offset(0, 2)),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 6,
-                  runSpacing: 2,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _isPaid ? 'PAID Plan' : 'FREE Plan',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F172A),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _isPaid
-                            ? const Color(0xFFDCFCE7)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                    Icon(Icons.favorite_rounded, size: 14, color: _blue),
+                    SizedBox(width: 5),
+                    Flexible(
                       child: Text(
-                        _isPaid ? 'Active' : 'Free',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          color: _isPaid
-                              ? const Color(0xFF15803D)
-                              : const Color(0xFF64748B),
-                        ),
+                        'Practice Today, A Better You Tomorrow!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF1E3A8A)),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _isPaid ? _planValidityText : 'Free starter access',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF78350F),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _isPaid
-                      ? 'You have full access to all mock tests and practice tests.'
-                      : 'Upgrade to unlock all mock tests and full question banks.',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF78350F).withValues(alpha: 0.85),
-                    height: 1.25,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-
-          // Action Button (Manage Plan / Upgrade Plan)
-          ElevatedButton(
-            onPressed: () => context.push('/subscription'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0066FF),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
               ),
-              elevation: 0,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _isPaid ? 'Manage Plan' : 'Upgrade Plan',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 3),
-                const Icon(Icons.arrow_forward_rounded,
-                    color: Colors.white, size: 12),
-              ],
             ),
           ),
         ],
@@ -1858,689 +1004,342 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ==========================================
-  // 4. QUICK ACTION CARDS (Subscriptions, Payment History, Coupons)
-  // ==========================================
-  Widget _buildQuickActionCardsRow() {
-    return Row(
-      children: [
-        // Card 1: My Subscriptions
-        Expanded(
-          child: _buildQuickActionCard(
-            title: 'My Subscriptions',
-            subtitle: 'View & manage\nyour plan',
-            icon: Icons.workspace_premium_outlined,
-            bgColor: const Color(0xFFFFF1F2),
-            borderColor: const Color(0xFFFFE4E6),
-            accentColor: const Color(0xFFE11D48),
-            onTap: () => context.push('/subscription'),
-          ),
-        ),
-        const SizedBox(width: 8),
+  // ─── 9. Logout ───────────────────────────────────────────────────────────
 
-        // Card 2: Payment History
-        Expanded(
-          child: _buildQuickActionCard(
-            title: 'Payment History',
-            subtitle: 'View your\ntransactions',
-            icon: Icons.credit_card_rounded,
-            bgColor: const Color(0xFFF0F9FF),
-            borderColor: const Color(0xFFE0F2FE),
-            accentColor: const Color(0xFF0284C7),
-            onTap: _showPaymentHistoryBottomSheet,
+  Widget _buildLogoutRow() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      shadowColor: const Color(0x0F1E3A8A),
+      elevation: 0,
+      child: InkWell(
+        onTap: _handleLogout,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+          decoration: _cardDecoration(),
+          child: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 24),
+              SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: _ink, size: 22),
+            ],
           ),
         ),
-        const SizedBox(width: 8),
-
-        // Card 3: Coupons
-        Expanded(
-          child: _buildQuickActionCard(
-            title: 'Coupons',
-            subtitle: 'Apply discount\ncodes',
-            icon: Icons.confirmation_number_outlined,
-            bgColor: const Color(0xFFFAF5FF),
-            borderColor: const Color(0xFFF3E8FF),
-            accentColor: const Color(0xFF9333EA),
-            onTap: _showCouponsBottomSheet,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildQuickActionCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color bgColor,
-    required Color borderColor,
-    required Color accentColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: borderColor, width: 1.2),
+  // ─── Sheets: Payment History, Coupons, About ─────────────────────────────
+
+  Future<void> _showSheet({required String title, required Widget child}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetContext).size.height * 0.75),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  title,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3),
+                ),
+              ),
+              Flexible(child: child),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _sheetMessage(IconData icon, String text, {Color color = _slate}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40, color: color.withValues(alpha: 0.6)),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: color, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _futureList({
+    required Future<List<Map<String, dynamic>>> future,
+    required String emptyText,
+    required IconData emptyIcon,
+    required Widget Function(Map<String, dynamic>) itemBuilder,
+    Widget? footer,
+  }) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: future,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator(color: _blue)),
+          );
+        }
+        if (snap.hasError) {
+          return _sheetMessage(
+            Icons.cloud_off_rounded,
+            "Couldn't load right now. Check your connection and try again.",
+            color: AppColors.error,
+          );
+        }
+        final items = snap.data ?? const [];
+        if (items.isEmpty) return _sheetMessage(emptyIcon, emptyText);
+        return ListView.separated(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          itemCount: items.length + (footer != null ? 1 : 0),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
+          itemBuilder: (_, i) => i < items.length ? itemBuilder(items[i]) : footer!,
+        );
+      },
+    );
+  }
+
+  void _showPaymentHistory() {
+    if (!_isSignedIn) {
+      _showSheet(
+        title: 'Payment History',
+        child: _sheetMessage(Icons.lock_outline_rounded, 'Sign in to see your payment history.'),
+      );
+      return;
+    }
+    final money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    _showSheet(
+      title: 'Payment History',
+      child: _futureList(
+        future: _catalog.getMyPayments(),
+        emptyIcon: Icons.receipt_long_rounded,
+        emptyText: "You haven't made any payments yet.",
+        itemBuilder: (p) {
+          final status = (p['status'] ?? 'pending').toString();
+          final (Color bg, Color fg) = switch (status) {
+            'completed' => (const Color(0xFFDCFCE7), const Color(0xFF15803D)),
+            'refunded' => (const Color(0xFFE0E7FF), const Color(0xFF4338CA)),
+            'failed' => (const Color(0xFFFEE2E2), const Color(0xFFB91C1C)),
+            _ => (const Color(0xFFFEF3C7), const Color(0xFFB45309)),
+          };
+          final plan = p['subscription_plans'] is Map ? p['subscription_plans'] as Map : const {};
+          final planName = (plan['name'] ?? plan['title'] ?? p['plan_id'] ?? 'PracticeKoro Pro').toString();
+          final created = DateTime.tryParse((p['created_at'] ?? '').toString());
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFEFF3F8)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        planName,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _ink),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        created != null ? DateFormat('d MMM yyyy, h:mm a').format(created.toLocal()) : '',
+                        style: const TextStyle(fontSize: 12, color: _slate),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      money.format((p['amount'] as num?) ?? 0),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _ink),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+                      child: Text(
+                        status[0].toUpperCase() + status.substring(1),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCoupons() {
+    if (!_isSignedIn) {
+      _showSheet(
+        title: 'Coupons',
+        child: _sheetMessage(Icons.lock_outline_rounded, 'Sign in to see available coupons.'),
+      );
+      return;
+    }
+    final money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+    _showSheet(
+      title: 'Coupons',
+      child: _futureList(
+        future: _catalog.getActiveCoupons(),
+        emptyIcon: Icons.local_offer_outlined,
+        emptyText: 'No coupons are available right now.',
+        footer: SizedBox(
+          height: 46,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.push('/subscription');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('Apply at checkout · View Plans', style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ),
+        itemBuilder: (c) {
+          final code = (c['code'] ?? '').toString();
+          final value = (c['discount_value'] as num?) ?? 0;
+          final off = c['discount_type'] == 'percentage' ? '${value.round()}% OFF' : '${money.format(value)} OFF';
+          final until = DateTime.tryParse((c['valid_until'] ?? '').toString());
+          final minOrder = (c['min_order_amount'] as num?) ?? 0;
+          final details = [
+            if ((c['description'] ?? '').toString().isNotEmpty) c['description'].toString(),
+            if (minOrder > 0) 'Min. order ${money.format(minOrder)}',
+            if (until != null) 'Valid till ${DateFormat('d MMM yyyy').format(until.toLocal())}',
+          ].join(' · ');
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7F8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFFE4E6)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(off, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFFE11D48))),
+                      if (details.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(details, style: const TextStyle(fontSize: 12, color: _slate, height: 1.3)),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Coupon $code copied'), behavior: SnackBarBehavior.floating),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 15),
+                  label: Text(code, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFE11D48),
+                    side: const BorderSide(color: Color(0xFFFDA4AF), style: BorderStyle.solid),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAbout() {
+    _showSheet(
+      title: 'About PracticeKoro',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, color: accentColor, size: 20),
-                const Spacer(),
-                Icon(Icons.chevron_right_rounded, color: accentColor, size: 15),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
-                height: 1.25,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // 5. MY LEARNING STATS CARD
-  // ==========================================
-  Widget _buildLearningStatsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header with dropdown filter
-          Row(
-            children: [
-              const Icon(Icons.bar_chart_rounded,
-                  color: Color(0xFF0066FF), size: 22),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'My Learning Stats',
-                  style: TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.3,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/logo-circle.png',
+                    width: 48,
+                    height: 48,
+                    errorBuilder: (_, _, _) => const Icon(Icons.school_rounded, size: 40, color: _blue),
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 8),
-
-              // Dropdown menu
-              PopupMenuButton<String>(
-                initialValue: _statsFilter,
-                onSelected: (val) {
-                  setState(() {
-                    _statsFilter = val;
-                    _computeStats();
-                  });
-                },
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                color: Colors.white,
-                itemBuilder: (ctx) => _statsFilterOptions.map((opt) {
-                  return PopupMenuItem<String>(
-                    value: opt,
-                    child: Text(
-                      opt,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: opt == _statsFilter
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                        color: opt == _statsFilter
-                            ? const Color(0xFF0066FF)
-                            : const Color(0xFF0F172A),
-                      ),
+                const SizedBox(width: 12),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppConstants.appName,
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _ink),
                     ),
-                  );
-                }).toList(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 11, color: Color(0xFF64748B)),
-                      const SizedBox(width: 4),
-                      Text(
-                        _statsFilter,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.keyboard_arrow_down_rounded,
-                          size: 14, color: Color(0xFF64748B)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // 4 Stat Boxes (Tests Attempted, Avg Accuracy, Study Time, Day Streak)
-          Row(
-            children: [
-              // Box 1: Tests Attempted
-              Expanded(
-                child: _buildStatItemBox(
-                  icon: Icons.description_rounded,
-                  iconColor: const Color(0xFF10B981),
-                  bgColor: const Color(0xFFECFDF5),
-                  value: '$_statTestsAttempted',
-                  label: 'Tests Attempted',
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // Box 2: Average Accuracy
-              Expanded(
-                child: _buildStatItemBox(
-                  icon: Icons.track_changes_rounded,
-                  iconColor: const Color(0xFF0066FF),
-                  bgColor: const Color(0xFFEFF6FF),
-                  value: '$_statAverageAccuracy%',
-                  label: 'Average Accuracy',
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // Box 3: Total Study Time
-              Expanded(
-                child: _buildStatItemBox(
-                  icon: Icons.access_time_rounded,
-                  iconColor: const Color(0xFFF59E0B),
-                  bgColor: const Color(0xFFFFFBEB),
-                  value: _statTotalStudyTime,
-                  label: 'Total Study Time',
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // Box 4: Day Streak
-              Expanded(
-                child: _buildStatItemBox(
-                  icon: Icons.star_rounded,
-                  iconColor: const Color(0xFF8B5CF6),
-                  bgColor: const Color(0xFFFAF5FF),
-                  value: '$_statDayStreak',
-                  label: 'Day Streak',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItemBox({
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(height: 5),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
-              letterSpacing: -0.3,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 8.5,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
-              height: 1.15,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // 6. SETTINGS / ACCOUNT LIST CARD
-  // ==========================================
-  Widget _buildSettingsListCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 1. My Exam Preferences
-          _buildSettingsRow(
-            icon: Icons.track_changes_rounded,
-            iconBg: const Color(0xFFEFF6FF),
-            iconColor: const Color(0xFF0066FF),
-            title: 'My Exam Preferences',
-            subtitle: 'Update your target exams and subjects',
-            onTap: () => context.push('/exam-selection', extra: 'profile'),
-          ),
-          _buildDivider(),
-
-          // 2. Notifications
-          _buildSettingsRow(
-            icon: Icons.notifications_none_rounded,
-            iconBg: const Color(0xFFFFF1F2),
-            iconColor: const Color(0xFFEF4444),
-            title: 'Notifications',
-            subtitle: 'Manage your notification preferences',
-            onTap: () => context.push('/notifications'),
-          ),
-          _buildDivider(),
-
-          // 3. Settings
-          _buildSettingsRow(
-            icon: Icons.settings_outlined,
-            iconBg: const Color(0xFFECFDF5),
-            iconColor: const Color(0xFF0D9488),
-            title: 'Settings',
-            subtitle: 'Language, appearance and more',
-            onTap: () => context.push('/settings'),
-          ),
-          _buildDivider(),
-
-          // 4. Help & Support
-          _buildSettingsRow(
-            icon: Icons.help_outline_rounded,
-            iconBg: const Color(0xFFFFFBEB),
-            iconColor: const Color(0xFFF59E0B),
-            title: 'Help & Support',
-            subtitle: 'Get help or contact support',
-            onTap: () => context.push('/support'),
-          ),
-          _buildDivider(),
-
-          // 5. About PracticeKoro
-          _buildSettingsRow(
-            icon: Icons.info_outline_rounded,
-            iconBg: const Color(0xFFFAF5FF),
-            iconColor: const Color(0xFF8B5CF6),
-            title: 'About PracticeKoro',
-            subtitle: 'Version ${AppConstants.appVersion}',
-            onTap: _showAboutDialog,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsRow({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                    Text(
+                      'Version ${AppConstants.appVersion}',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: _slate),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748B),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: Color(0xFF94A3B8), size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return const Divider(
-      height: 1,
-      thickness: 1,
-      indent: 68,
-      endIndent: 16,
-      color: Color(0xFFF1F5F9),
-    );
-  }
-
-  // ==========================================
-  // 7. MOTIVATIONAL NIMO BANNER
-  // ==========================================
-  Widget _buildMotivationalBanner() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFE0F2FE),
-            Color(0xFFEFF6FF),
-            Color(0xFFFAF5FF),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFBAE6FD), width: 1.2),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Left: Nimo cheering thumbs up
-          Image.asset(
-            'assets/images/profile_banner_nimo.png',
-            height: 60,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Image.asset(
-              'assets/images/nimo_thumbs_up.png',
-              height: 52,
-              fit: BoxFit.contain,
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Center: Motivational Copy
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Keep Learning, You\'re\ndoing Great!',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                    height: 1.2,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Small steps today, big success tomorrow. 🚀',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ),
-
-          // Right: Target Dart + Stay Consistent!
-          Image.asset(
-            'assets/images/profile_banner_target.png',
-            height: 54,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Stay\nConsistent!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF92400E),
-                ),
+            const SizedBox(height: 14),
+            const Text(
+              '${AppConstants.appTagline}. Mock tests, topic practice, previous year questions '
+              'and rank analysis for West Bengal and central government exams.',
+              style: TextStyle(fontSize: 13.5, color: Color(0xFF334155), height: 1.45),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => _openExternal(AppConstants.websiteUrl),
+              icon: const Icon(Icons.language_rounded, size: 18),
+              label: const Text('Visit practicekoro.online', style: TextStyle(fontWeight: FontWeight.w700)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue,
+                side: const BorderSide(color: Color(0xFFBFDBFE)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // 8. LOG OUT / SIGN IN BUTTON
-  // ==========================================
-  Widget _buildLogoutButton() {
-    if (!_isLoggedIn) {
-      return GestureDetector(
-        onTap: () => context.push('/login'),
-        child: Container(
-          width: double.infinity,
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFBFDBFE), width: 1.2),
-          ),
-          child: Row(
-            children: const [
-              Icon(Icons.login_rounded, color: Color(0xFF0066FF), size: 20),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Sign In to Sync Your Progress',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0066FF),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF0066FF), size: 18),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: _showLogoutDialog,
-      child: Container(
-        width: double.infinity,
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF1F2),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFFFE4E6), width: 1.2),
-        ),
-        child: Row(
-          children: const [
-            Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Log Out',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFEF4444),
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: Color(0xFFEF4444), size: 18),
           ],
         ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // SKELETON LOADER
-  // ==========================================
-  Widget _buildSkeletonLoader() {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      children: [
-        // Header skeleton
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildShimmerBox(width: 120, height: 28, radius: 8),
-                const SizedBox(height: 8),
-                _buildShimmerBox(width: 180, height: 14, radius: 6),
-              ],
-            ),
-            _buildShimmerBox(width: 80, height: 80, radius: 40),
-          ],
-        ),
-        const SizedBox(height: 18),
-
-        // Profile card skeleton
-        _buildShimmerBox(width: double.infinity, height: 140, radius: 22),
-        const SizedBox(height: 14),
-
-        // Plan card skeleton
-        _buildShimmerBox(width: double.infinity, height: 96, radius: 20),
-        const SizedBox(height: 14),
-
-        // 3 Cards skeleton
-        Row(
-          children: [
-            Expanded(child: _buildShimmerBox(width: double.infinity, height: 80, radius: 18)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildShimmerBox(width: double.infinity, height: 80, radius: 18)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildShimmerBox(width: double.infinity, height: 80, radius: 18)),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Stats card skeleton
-        _buildShimmerBox(width: double.infinity, height: 120, radius: 22),
-        const SizedBox(height: 16),
-
-        // Settings skeleton
-        _buildShimmerBox(width: double.infinity, height: 220, radius: 22),
-      ],
-    );
-  }
-
-  Widget _buildShimmerBox({
-    required double width,
-    required double height,
-    required double radius,
-  }) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }

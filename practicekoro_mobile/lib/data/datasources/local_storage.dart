@@ -183,6 +183,39 @@ class LocalStorageService {
     return _prefs?.getString('pk_user_gender') ?? 'NOT_SPECIFIED';
   }
 
+  static Future<void> saveUserDob(String dob) async {
+    await _prefs?.setString('pk_user_dob', dob);
+  }
+
+  static String getUserDob() {
+    return _prefs?.getString('pk_user_dob') ?? '';
+  }
+
+  static Future<void> saveUserState(String state) async {
+    await _prefs?.setString('pk_user_state', state);
+  }
+
+  static String getUserState() {
+    return _prefs?.getString('pk_user_state') ?? 'West Bengal';
+  }
+
+  static const String _userTargetExamsKey = 'pk_user_target_exams_list';
+
+  static Future<void> saveTargetExamsList(List<String> exams) async {
+    await _prefs?.setStringList(_userTargetExamsKey, exams);
+    if (exams.isNotEmpty) {
+      await saveTargetExam(exams.first);
+    }
+  }
+
+  static List<String> getTargetExamsList() {
+    final list = _prefs?.getStringList(_userTargetExamsKey);
+    if (list != null && list.isNotEmpty) return list;
+    final single = getTargetExam();
+    if (single != null && single.isNotEmpty) return [single];
+    return const [];
+  }
+
   static bool isLoggedIn() {
     final uid = getUserId();
     return uid != null && uid.isNotEmpty;
@@ -196,6 +229,9 @@ class LocalStorageService {
     await _prefs?.remove('pk_user_district');
     await _prefs?.remove('pk_user_category');
     await _prefs?.remove('pk_user_gender');
+    await _prefs?.remove('pk_user_dob');
+    await _prefs?.remove('pk_user_state');
+    await _prefs?.remove(_userTargetExamsKey);
     await _prefs?.remove(AppConstants.prefsIsProUserKey);
     await _prefs?.remove(AppConstants.prefsProExpiresAtKey);
     await _prefs?.remove(AppConstants.prefsBookmarksKey);

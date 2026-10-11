@@ -231,7 +231,7 @@ void main() {
       expect(find.text('Your Rank'), findsOneWidget);
     });
 
-    testWidgets('SettingsScreen renders language toggle and target exam', (tester) async {
+    testWidgets('SettingsScreen renders account, preferences, and support groups', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: SettingsScreen(),
@@ -240,10 +240,14 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Settings & Preferences'), findsOneWidget);
-      expect(find.text('Primary Target Exam'), findsOneWidget);
-      expect(find.text('Daily Mock Test Reminder'), findsOneWidget);
-      expect(find.text('Notifications'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+      expect(find.text('Edit Profile'), findsOneWidget);
+      expect(find.text('Preferences'), findsOneWidget);
+      expect(find.text('Notification Settings'), findsOneWidget);
+      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('Support'), findsOneWidget);
+      expect(find.text('Help & Support'), findsOneWidget);
     });
 
     testWidgets('SupportScreen renders contact options and ticket form', (tester) async {
@@ -551,9 +555,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verify Test Series header and playful subtitle
+      // Verify Test Series header, Category Pills and Structured hero banner matching approved reference
       expect(find.text('Test Series'), findsWidgets);
-      expect(find.text('Practice Today, Be Exam Ready!'), findsWidgets);
+      expect(find.textContaining('Structured'), findsWidgets);
+      expect(find.text('All'), findsWidgets);
+      expect(find.text('Full Mock'), findsWidgets);
 
       // Verify search and All Exams filter
       expect(find.text('Search test series...'), findsOneWidget);
@@ -561,10 +567,17 @@ void main() {
 
       // Verify Test Series cards
       expect(find.text('WBP Constable'), findsWidgets);
-      expect(find.text('Railway (NTPC)'), findsWidgets);
+      expect(find.text('Railway NTPC'), findsWidgets);
     });
 
-    testWidgets('ProfileScreen renders Playful Gen-Z profile page matching reference across all breakpoints', (tester) async {
+    testWidgets('ProfileScreen renders approved 3-screen Profile UI matching reference across all breakpoints', (tester) async {
+      await LocalStorageService.saveUserName('Ananya Roy');
+      await LocalStorageService.saveUserEmail('ananya@example.com');
+      await LocalStorageService.saveUserGender('MALE');
+      await LocalStorageService.saveUserDob('2002-01-12');
+      await LocalStorageService.saveUserDistrict('Kolkata');
+      await LocalStorageService.saveTargetExamsList(['WBP Constable', 'Railway NTPC']);
+
       for (final width in [320.0, 360.0, 375.0, 390.0, 414.0, 430.0]) {
         tester.view.physicalSize = Size(width, 1000);
         tester.view.devicePixelRatio = 1.0;
@@ -580,40 +593,69 @@ void main() {
 
         // 1. Verify Top Header
         expect(find.text('Profile'), findsOneWidget);
-        expect(find.textContaining('Manage your account'), findsOneWidget);
 
-        // 2. Verify Profile Card & Edit Profile Button
-        expect(find.text('Edit Profile'), findsOneWidget);
-        expect(find.text('District'), findsOneWidget);
-        expect(find.text('State'), findsOneWidget);
-        expect(find.text('Joined'), findsOneWidget);
+        // 2. Verify Profile Card & Info items
+        expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+        expect(find.text('Male'), findsOneWidget);
+        expect(find.text('12 Jan 2002'), findsOneWidget);
 
-        // 3. Verify Current Plan Card
-        expect(find.text('Current Plan'), findsOneWidget);
+        // 3. Verify My Progress Card & 4 stats
+        expect(find.text('My Progress'), findsOneWidget);
+        expect(find.text('View Details'), findsOneWidget);
+        expect(find.textContaining('Tests'), findsWidgets);
+        expect(find.text('Accuracy'), findsOneWidget);
+        expect(find.textContaining('Questions'), findsWidgets);
+        expect(find.textContaining('Streak'), findsWidgets);
 
-        // 4. Verify 3 Quick Action Cards
-        expect(find.text('My Subscriptions'), findsOneWidget);
+        // 4. Verify My Exams Card & Action tags
+        expect(find.text('My Exams'), findsOneWidget);
+        expect(find.text('Exams you are preparing for'), findsOneWidget);
+        expect(find.text('WBP Constable'), findsWidgets);
+        expect(find.text('Add Exam'), findsOneWidget);
+
+        // 5. Verify Navigation Action Items
+        expect(find.text('My Test Attempts'), findsOneWidget);
+        expect(find.text('Bookmarks'), findsOneWidget);
+
+        // 6. Account, Help, Nimo banner and Logout
+        expect(find.text('Account & Preferences'), findsOneWidget);
+        expect(find.text('Subscription & Plan'), findsOneWidget);
         expect(find.text('Payment History'), findsOneWidget);
         expect(find.text('Coupons'), findsOneWidget);
-
-        // 5. Verify Learning Stats
-        expect(find.text('My Learning Stats'), findsOneWidget);
-        expect(find.text('Tests Attempted'), findsOneWidget);
-        expect(find.text('Average Accuracy'), findsOneWidget);
-        expect(find.text('Total Study Time'), findsOneWidget);
-        expect(find.text('Day Streak'), findsOneWidget);
-
-        // 6. Verify Settings Items
-        expect(find.text('My Exam Preferences'), findsOneWidget);
-        expect(find.text('Notifications'), findsOneWidget);
-        expect(find.text('Settings'), findsOneWidget);
-        expect(find.text('Help & Support'), findsOneWidget);
+        expect(find.text('Notification Settings'), findsOneWidget);
+        expect(find.text('Help & Information'), findsOneWidget);
         expect(find.text('About PracticeKoro'), findsOneWidget);
+        expect(find.text('Privacy Policy'), findsOneWidget);
+        expect(find.text('Meet Nimo'), findsOneWidget);
+        expect(find.text('Logout'), findsOneWidget);
 
-        // 7. Verify Motivational Banner
-        expect(find.textContaining('Keep Learning'), findsOneWidget);
+        // 7. Verify strictly removed items are absent
+        expect(find.text('My Learning'), findsNothing);
+        expect(find.text('My Notes'), findsNothing);
+        expect(find.text('Downloads'), findsNothing);
+        expect(find.text('Refer & Earn'), findsNothing);
+        expect(find.text('Download History'), findsNothing);
       }
       tester.view.resetPhysicalSize();
+    });
+
+    testWidgets('ProfileScreen shows empty states instead of sample student data', (tester) async {
+      await LocalStorageService.clearUserSession();
+      tester.view.physicalSize = const Size(390, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: ProfileScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rahul Das'), findsNothing);
+      expect(find.text('12 Jan 2002'), findsNothing);
+      expect(find.text('52'), findsNothing);
+      expect(find.text('Add gender, date of birth & location'), findsOneWidget);
+      expect(find.text("You haven't selected any exams yet."), findsOneWidget);
+      expect(find.text('Attempt your first mock test to start tracking progress.'), findsOneWidget);
     });
   });
 }

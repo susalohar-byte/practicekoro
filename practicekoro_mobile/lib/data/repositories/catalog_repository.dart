@@ -1135,51 +1135,100 @@ class CatalogRepository {
       'testSeriesId': 'wbp-constable',
       'title': 'WBP Constable',
       'subtitle': 'Complete Test Series',
-      'cardGradientStart': '#0066FF',
-      'cardGradientEnd': '#0048C6',
+      'cardGradientStart': '#2563EB',
+      'cardGradientEnd': '#60A5FA',
       'cardArrowColor': '#1A8CFF',
       'cardBgImage': 'assets/images/series_wbp_bg.png',
       'cardLogoUrl': 'assets/images/exams/emblem_series_wbp.png',
       'orderIndex': 1,
       'route': '/test-series/wbp-constable',
       'isActive': true,
-      'fullMockCount': 40,
-      'topicTestCount': 120,
-      'pyqTestCount': 25,
+      'isPremium': false,
+      'badgeText': 'Most Popular',
+      'fullMockCount': 25,
+      'topicTestCount': 80,
+      'pyqTestCount': 20,
+      'totalQuestions': 12500,
     },
     {
-      'id': 'popular-series-kp',
-      'testSeriesId': 'kp-constable',
-      'title': 'KP Constable',
-      'subtitle': 'Complete Test Series',
-      'cardGradientStart': '#6211D8',
-      'cardGradientEnd': '#450A99',
-      'cardArrowColor': '#8B5CF6',
-      'cardBgImage': 'assets/images/series_kp_bg.png',
-      'cardLogoUrl': 'assets/images/exams/emblem_series_kp.png',
+      'id': 'popular-series-wbssc',
+      'testSeriesId': 'wbssc-group-c',
+      'title': 'WBSSC Group C & D',
+      'subtitle': 'Complete Preparation Series',
+      'cardGradientStart': '#FDE8E8',
+      'cardGradientEnd': '#FCE7F3',
+      'cardArrowColor': '#F43F5E',
+      'cardBgImage': 'assets/images/books_stack_3d.png',
+      'cardLogoUrl': 'assets/images/exams/emblem_wbssc.png',
       'orderIndex': 2,
-      'route': '/test-series/kp-constable',
+      'route': '/test-series/wbssc-group-c',
       'isActive': true,
-      'fullMockCount': 35,
-      'topicTestCount': 110,
+      'isPremium': true,
+      'badgeText': null,
+      'fullMockCount': 30,
+      'topicTestCount': 90,
       'pyqTestCount': 20,
+      'totalQuestions': 15000,
+    },
+    {
+      'id': 'popular-series-railway',
+      'testSeriesId': 'railway-ntpc',
+      'title': 'Railway NTPC',
+      'subtitle': 'Complete Test Series',
+      'cardGradientStart': '#FEF3C7',
+      'cardGradientEnd': '#FDE68A',
+      'cardArrowColor': '#F59E0B',
+      'cardBgImage': 'assets/images/exams/bg_railway.png',
+      'cardLogoUrl': 'assets/images/exams/logo_railway.png',
+      'orderIndex': 3,
+      'route': '/test-series/railway-ntpc',
+      'isActive': true,
+      'isPremium': true,
+      'badgeText': 'Trending Now',
+      'fullMockCount': 40,
+      'topicTestCount': 110,
+      'pyqTestCount': 25,
+      'totalQuestions': 18000,
     },
     {
       'id': 'popular-series-ssc',
       'testSeriesId': 'ssc-gd',
       'title': 'SSC GD',
       'subtitle': 'Complete Test Series',
-      'cardGradientStart': '#EA580C',
-      'cardGradientEnd': '#C22B00',
-      'cardArrowColor': '#FB6F24',
+      'cardGradientStart': '#CCFBF1',
+      'cardGradientEnd': '#99F6E4',
+      'cardArrowColor': '#14B8A6',
       'cardBgImage': 'assets/images/series_ssc_bg.png',
       'cardLogoUrl': 'assets/images/exams/emblem_series_ssc.png',
-      'orderIndex': 3,
+      'orderIndex': 4,
       'route': '/test-series/ssc-gd',
       'isActive': true,
-      'fullMockCount': 50,
-      'topicTestCount': 140,
-      'pyqTestCount': 30,
+      'isPremium': true,
+      'badgeText': null,
+      'fullMockCount': 35,
+      'topicTestCount': 100,
+      'pyqTestCount': 20,
+      'totalQuestions': 16000,
+    },
+    {
+      'id': 'popular-series-kp',
+      'testSeriesId': 'kp-constable',
+      'title': 'KP Constable',
+      'subtitle': 'Complete Test Series',
+      'cardGradientStart': '#EDE9FE',
+      'cardGradientEnd': '#DDD6FE',
+      'cardArrowColor': '#8B5CF6',
+      'cardBgImage': 'assets/images/series_kp_bg.png',
+      'cardLogoUrl': 'assets/images/exams/emblem_series_kp.png',
+      'orderIndex': 5,
+      'route': '/test-series/kp-constable',
+      'isActive': true,
+      'isPremium': true,
+      'badgeText': null,
+      'fullMockCount': 35,
+      'topicTestCount': 110,
+      'pyqTestCount': 20,
+      'totalQuestions': 14000,
     },
   ];
 
@@ -1216,12 +1265,17 @@ class CatalogRepository {
       try {
         final tests = await client
             .from('tests')
-            .select('id, test_series_id, exam_id, test_type')
+            .select('id, test_series_id, exam_id, test_type, total_questions, is_premium')
             .eq('is_active', true)
             .eq('status', 'published');
-        final allSeries = await client.from('test_series').select('id, slug, exam_id');
+        final allSeries = await client
+            .from('test_series')
+            .select('id, slug, exam_id, title, is_premium, is_popular, order_index, is_active')
+            .eq('is_active', true);
 
         final seriesIdAliases = <String, Set<String>>{};
+        final seriesMeta = <String, Map<String, dynamic>>{};
+
         if (allSeries.isNotEmpty) {
           for (final row in allSeries) {
             final item = Map<String, dynamic>.from(row as Map);
@@ -1235,6 +1289,9 @@ class CatalogRepository {
               if (sExam != null) set.add(sExam);
               if (sSlug != null) seriesIdAliases.putIfAbsent(sSlug, () => set).addAll(set);
               if (sExam != null) seriesIdAliases.putIfAbsent(sExam, () => set).addAll(set);
+              seriesMeta[sId] = item;
+              if (sSlug != null) seriesMeta[sSlug] = item;
+              if (sExam != null) seriesMeta[sExam] = item;
             }
           }
         }
@@ -1242,12 +1299,15 @@ class CatalogRepository {
         final fullMockCounts = <String, int>{};
         final topicCounts = <String, int>{};
         final pyqCounts = <String, int>{};
+        final questionCounts = <String, int>{};
 
         if (tests.isNotEmpty) {
           for (final row in tests) {
             final item = Map<String, dynamic>.from(row as Map);
             final tsId = (item['test_series_id'] as String?) ?? (item['exam_id'] as String?);
             final testType = (item['test_type'] as String? ?? 'full_mock').toLowerCase();
+            final qCount = (item['total_questions'] as num?)?.toInt() ?? 25;
+
             if (tsId != null) {
               final aliases = seriesIdAliases[tsId] ?? {tsId};
               for (final alias in aliases) {
@@ -1258,6 +1318,7 @@ class CatalogRepository {
                 } else {
                   topicCounts[alias] = (topicCounts[alias] ?? 0) + 1;
                 }
+                questionCounts[alias] = (questionCounts[alias] ?? 0) + qCount;
               }
             }
           }
@@ -1269,11 +1330,20 @@ class CatalogRepository {
           final fCount = fullMockCounts[tsId];
           final tCount = topicCounts[tsId];
           final pCount = pyqCounts[tsId];
+          final qTotal = questionCounts[tsId];
+          final meta = seriesMeta[tsId];
+
+          final isPrem = meta != null && meta['is_premium'] != null
+              ? meta['is_premium'] as bool
+              : card['isPremium'] as bool? ?? false;
+
           return {
             ...card,
+            'isPremium': isPrem,
             if (fCount != null && fCount > 0) 'fullMockCount': fCount,
             if (tCount != null && tCount > 0) 'topicTestCount': tCount,
             if (pCount != null && pCount > 0) 'pyqTestCount': pCount,
+            if (qTotal != null && qTotal > 0) 'totalQuestions': qTotal,
           };
         }).toList();
       } catch (countErr) {
@@ -1506,6 +1576,34 @@ class CatalogRepository {
       } catch (_) {}
     }
     return null;
+  }
+
+  /// Signed-in student's own payment records (RLS: user_id = auth.uid()).
+  /// Throws on network/query failure so callers can show an error state.
+  Future<List<Map<String, dynamic>>> getMyPayments() async {
+    final client = _supabase;
+    final user = client?.auth.currentUser;
+    if (client == null || user == null) return const [];
+    final res = await client
+        .from('payments')
+        .select('id, amount, currency, status, plan_id, refund_amount, created_at, subscription_plans(title, name)')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return (res as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// Currently valid Admin-configured coupons visible to students
+  /// (RLS: is_active and not past valid_until). Throws on failure.
+  Future<List<Map<String, dynamic>>> getActiveCoupons() async {
+    final client = _supabase;
+    if (client == null || client.auth.currentUser == null) return const [];
+    final res = await client
+        .from('coupons')
+        .select('id, code, description, discount_type, discount_value, max_discount_amount, min_order_amount, valid_until')
+        .eq('is_active', true)
+        .order('created_at', ascending: false);
+    return (res as List<dynamic>).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   /// Fetch broadcast notifications sent from Admin Panel

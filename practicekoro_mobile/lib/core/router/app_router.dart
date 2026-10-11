@@ -22,6 +22,7 @@ import '../../features/result_analytics/result_screen.dart';
 import '../../features/result_analytics/analysis_screen.dart';
 import '../../features/result_analytics/solutions_screen.dart';
 import '../../features/profile/saved_questions_screen.dart';
+import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/settings_screen.dart';
 import '../../features/profile/support_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
@@ -90,6 +91,7 @@ final appRouter = GoRouter(
         location.startsWith('/practice/test-start') ||
         location == '/results' ||
         location == '/profile' ||
+        location == '/edit-profile' ||
         location == '/saved-questions' ||
         location == '/settings' ||
         location == '/support';
@@ -421,6 +423,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/profile',
       builder: (context, state) => const MainScaffold(initialIndex: 4),
+    ),
+    GoRoute(
+      path: '/edit-profile',
+      builder: (context, state) => const EditProfileScreen(),
     ),
 
     // 24. Subscription Screen
