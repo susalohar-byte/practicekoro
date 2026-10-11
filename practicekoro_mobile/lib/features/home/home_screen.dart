@@ -7,6 +7,7 @@ import '../../core/widgets/pk_bottom_spacing.dart';
 import '../../data/datasources/local_storage.dart';
 import '../../data/models/attempt_model.dart';
 import '../../data/models/exam_model.dart';
+import '../../data/models/live_test_model.dart';
 import '../../data/models/test_series_model.dart';
 import '../../data/models/test_model.dart';
 import '../../data/repositories/catalog_repository.dart';
@@ -94,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _onSeriesScroll() {
     if (!_seriesScrollController.hasClients) return;
     final offset = _seriesScrollController.offset;
-    final index = (offset / 248).round().clamp(0, 4);
+    final index = (offset / 322).round().clamp(0, 4);
     if (index != _seriesIndex && mounted) {
       setState(() => _seriesIndex = index);
     }
@@ -120,6 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.invalidate(examsProvider);
     ref.invalidate(popularTestSeriesProvider);
     ref.invalidate(recentTestsProvider);
+    ref.invalidate(activeLiveTestProvider);
     ref.invalidate(inProgressAttemptsProvider);
     ref.invalidate(completedAttemptsProvider);
     ref.invalidate(notificationsProvider);
@@ -138,6 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final exams = ref.watch(examsProvider).asData?.value ?? const <ExamModel>[];
     final seriesAsync = ref.watch(popularTestSeriesProvider);
+    final liveTestAsync = ref.watch(activeLiveTestProvider);
     final inProgress =
         ref.watch(inProgressAttemptsProvider).asData?.value ?? const <Map<String, dynamic>>[];
     final serverAttempts =
@@ -179,6 +182,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // 4. Quick Actions
               _buildQuickActions(),
+              const SizedBox(height: 20),
+
+              // 4.1 Live Mock Test
+              _buildLiveMockTest(liveTestAsync),
               const SizedBox(height: 24),
 
               // 5. Exams for You
@@ -751,6 +758,164 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  // ─── 4.1 Live Mock Test ────────────────────────────────────────────────────
+
+  Widget _buildLiveMockTest(AsyncValue<LiveTestModel?> liveTestAsync) {
+    final liveTest = liveTestAsync.asData?.value;
+
+    final duration = '${liveTest?.durationMinutes ?? 60} Mins';
+    final questions = '${liveTest?.totalQuestions ?? 100} Questions';
+
+    void onJoin() {
+      if (liveTest != null && liveTest.id.isNotEmpty) {
+        context.push('/live-test/${liveTest.id}');
+      } else {
+        context.push('/test-series');
+      }
+    }
+
+    return InkWell(
+      onTap: onJoin,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF1F2), Color(0xFFFFE4E6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFECDD3)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0AE11D48),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sensors_rounded, color: Color(0xFFEF4444), size: 18),
+                const SizedBox(width: 6),
+                const Text(
+                  'Live Mock Test',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F1E4A),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'LIVE',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE9FE),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF7C3AED), size: 17),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFFC084FC), size: 18),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    alignment: Alignment.centerLeft,
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
+                        const SizedBox(width: 3),
+                        const Text(
+                          'Today, 7:00 PM',
+                          style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.schedule_rounded, size: 11, color: Color(0xFF64748B)),
+                        const SizedBox(width: 3),
+                        Text(
+                          duration,
+                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.description_outlined, size: 11, color: Color(0xFF64748B)),
+                        const SizedBox(width: 3),
+                        Text(
+                          questions,
+                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onJoin,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33EF4444),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Join Now',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ─── 5. Exams for You ──────────────────────────────────────────────────────
 
   Widget _buildExamsForYou(List<ExamModel> exams) {
@@ -783,31 +948,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 18),
+            const Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 19),
             const SizedBox(width: 6),
             const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Exams for You',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  SizedBox(height: 1),
-                  Text(
-                    'Choose an exam to start practicing',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Exams for You',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F1E4A),
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
             InkWell(
@@ -911,7 +1062,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PKSectionTitle(title: 'Popular Test Series', subtitle: 'Most attempted and recommended for you'),
+          PKSectionTitle(title: 'Popular Test Series'),
           SizedBox(height: 12),
           Center(
             child: SizedBox(
@@ -928,7 +1079,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PKSectionTitle(title: 'Popular Test Series', subtitle: 'Most attempted and recommended for you'),
+          PKSectionTitle(title: 'Popular Test Series'),
           SizedBox(height: 10),
           PKEmptyCard(
             icon: Icons.library_books_outlined,
@@ -939,10 +1090,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
-    final defaultSeriesBanners = [
-      'assets/images/dashboard/series_card_wbp_art.png',
-      'assets/images/dashboard/series_card_wbssc_art.png',
-      'assets/images/dashboard/series_card_railway_art.png',
+    final defaultSeriesThumbnails = [
+      'assets/images/dashboard/exam_card_wbp_art.png',
+      'assets/images/dashboard/exam_card_wbssc_art.png',
+      'assets/images/dashboard/exam_card_railway_art.png',
     ];
 
     final cardItems = [
@@ -951,11 +1102,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           title: series[i].title,
           sub: PK.seriesLabel(series[i].title, series[i].description, series[i].examTitle),
           isPopular: series[i].isPopular,
-          tests: '${series[i].testCount > 0 ? series[i].testCount : (i == 0 ? 25 : (i == 1 ? 30 : 40))} Tests',
+          tests: '${series[i].testCount > 0 ? series[i].testCount : (i == 0 ? 25 : (i == 1 ? 30 : 40))} Full Mock Tests',
           qs: series[i].questionCount > 0
               ? '${PK.formatCount(series[i].questionCount)} Qs'
-              : (i == 0 ? '12,500+ Qs' : (i == 1 ? '15,000+ Qs' : '1,525 Qs')),
-          banner: series[i].bannerUrl ?? defaultSeriesBanners[i % defaultSeriesBanners.length],
+              : (i == 0 ? '12,500+ Questions' : (i == 1 ? '15,000+ Questions' : '1,525 Qs')),
+          thumbnail: series[i].iconUrl ??
+              series[i].bannerUrl ??
+              defaultSeriesThumbnails[i % defaultSeriesThumbnails.length],
           id: series[i].id,
         )
       ]
@@ -969,28 +1122,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const Icon(Icons.local_fire_department_rounded, color: Color(0xFFEF4444), size: 18),
             const SizedBox(width: 6),
             const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Popular Test Series',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  SizedBox(height: 1),
-                  Text(
-                    'Most attempted and recommended for you',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Popular Test Series',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F1E4A),
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
             InkWell(
@@ -1011,7 +1150,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 198,
+          height: 78,
           child: ListView.separated(
             controller: _seriesScrollController,
             scrollDirection: Axis.horizontal,
@@ -1024,121 +1163,113 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () => context.push('/test-series/${item.id}'),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  width: 236,
+                  width: 310,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: PK.cardBox(r: 16),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Stack(
-                        children: [
-                          SizedBox(
-                            height: 94,
-                            width: double.infinity,
-                            child: item.banner.startsWith('assets/')
-                                ? Image.asset(
-                                    item.banner,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(color: const Color(0xFFE8F2FF)),
-                                  )
-                                : Image.network(
-                                    item.banner,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(color: const Color(0xFFE8F2FF)),
-                                  ),
-                          ),
-                          if (item.isPopular)
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  'POPULAR',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFFEFF6FF),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: item.thumbnail.startsWith('assets/')
+                            ? Image.asset(item.thumbnail, fit: BoxFit.cover)
+                            : Image.network(
+                                item.thumbnail,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Container(color: const Color(0xFFEFF6FF)),
                               ),
-                            ),
-                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                      const SizedBox(width: 10),
+                      Expanded(
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF0F1E4A),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        item.sub,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF0158FC),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today_outlined, size: 11.5, color: Color(0xFF64748B)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  item.tests,
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(width: 12),
-                                const Icon(Icons.assignment_outlined, size: 11.5, color: Color(0xFF64748B)),
-                                const SizedBox(width: 4),
-                                Expanded(
                                   child: Text(
-                                    item.qs,
+                                    item.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF0F1E4A),
+                                    ),
                                   ),
                                 ),
+                                if (item.isPopular) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF10B981),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'POPULAR',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
+                            ),
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    item.tests,
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  const Text(
+                                    ' • ',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  Text(
+                                    item.qs,
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF0158FC),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 15),
                       ),
                     ],
                   ),
@@ -1310,30 +1441,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (
         title: 'Full Mock Test 1',
         exam: 'WBP Constable',
-        qs: '85 Qs',
+        date: '12 Sep 2026',
         time: '90 Mins',
         marks: '100 Marks',
-        isPaid: false,
+        score: '85/100',
+        grade: 'Good',
+        hasTrophy: true,
+        pillBg: const Color(0xFFDCFCE7),
+        pillColor: const Color(0xFF16A34A),
         iconColor: const Color(0xFF2563EB),
         iconBg: const Color(0xFFEFF6FF),
       ),
       (
-        title: 'Topic Test - General Awareness',
+        title: 'General Awareness – Topic Test',
         exam: 'WBP Constable',
-        qs: '25 Qs',
+        date: '10 Sep 2026',
         time: '25 Mins',
         marks: '25 Marks',
-        isPaid: false,
+        score: '18/25',
+        grade: 'Great',
+        hasTrophy: false,
+        pillBg: const Color(0xFFDCFCE7),
+        pillColor: const Color(0xFF16A34A),
         iconColor: const Color(0xFF16A34A),
         iconBg: const Color(0xFFF0FDF4),
       ),
       (
-        title: 'Topic Test - Mathematics',
+        title: 'Mathematics – Topic Test',
         exam: 'WBSSC Group C & D',
-        qs: '30 Qs',
+        date: '08 Sep 2026',
         time: '30 Mins',
         marks: '30 Marks',
-        isPaid: true,
+        score: '12/30',
+        grade: 'Keep Going',
+        hasTrophy: false,
+        pillBg: const Color(0xFFFFE4E6),
+        pillColor: const Color(0xFFEF4444),
         iconColor: const Color(0xFFEA580C),
         iconBg: const Color(0xFFFFF7ED),
       ),
@@ -1344,7 +1487,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.access_time_rounded, color: Color(0xFF2563EB), size: 18),
+            const Icon(Icons.schedule_rounded, color: Color(0xFF2563EB), size: 18),
             const SizedBox(width: 6),
             const Expanded(
               child: Text(
@@ -1400,37 +1543,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    tests[i].title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF0F1E4A),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                                  decoration: BoxDecoration(
-                                    color: tests[i].isPaid ? const Color(0xFFFFEDD5) : const Color(0xFFDCFCE7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    tests[i].isPaid ? 'PAID' : 'FREE',
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: tests[i].isPaid ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              tests[i].title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F1E4A),
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -1445,7 +1566,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 children: [
                                   const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
                                   const SizedBox(width: 3),
-                                  Text(tests[i].qs, style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                                  Text(tests[i].date, style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
                                   const SizedBox(width: 8),
                                   const Icon(Icons.schedule_rounded, size: 11, color: Color(0xFF64748B)),
                                   const SizedBox(width: 3),
@@ -1460,12 +1581,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        tests[i].isPaid ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
-                        color: const Color(0xFF94A3B8),
-                        size: 20,
+                      const SizedBox(width: 8),
+                      // Score Pill matching reference
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: tests[i].pillBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (tests[i].hasTrophy) ...[
+                                  const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 12),
+                                  const SizedBox(width: 3),
+                                ],
+                                Text(
+                                  tests[i].score,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w900,
+                                    color: tests[i].pillColor,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              tests[i].grade,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: tests[i].pillColor,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
                     ],
                   ),
                 ),
@@ -1482,7 +1641,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildRecentlyAddedTests(List<MockTestModel> recentTests) {
     final tests = [
       (
-        title: 'WBP Constable - Full Mock Test 5',
+        title: 'WBP Constable – Full Mock Test 5',
         exam: 'WBP Constable',
         qs: '85 Qs',
         time: '90 Mins',
@@ -1494,7 +1653,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         iconBg: const Color(0xFFEFF6FF),
       ),
       (
-        title: 'Static GK - Important Questions',
+        title: 'Static GK – Important Questions',
         exam: 'All Competitive Exams',
         qs: '50 Qs',
         time: '30 Mins',
@@ -1505,6 +1664,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         iconColor: const Color(0xFFEA580C),
         iconBg: const Color(0xFFFFF7ED),
       ),
+      (
+        title: 'Current Affairs – Daily Quiz',
+        exam: 'All Competitive Exams',
+        qs: '25 Qs',
+        time: '15 Mins',
+        marks: '25 Marks',
+        isNew: true,
+        isFree: true,
+        icon: Icons.article_rounded,
+        iconColor: const Color(0xFF16A34A),
+        iconBg: const Color(0xFFF0FDF4),
+      ),
     ];
 
     return Column(
@@ -1512,7 +1683,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.auto_awesome_rounded, color: Color(0xFFF59E0B), size: 18),
+            const Icon(Icons.history_rounded, color: Color(0xFF2563EB), size: 19),
             const SizedBox(width: 6),
             const Expanded(
               child: Text(
@@ -1709,28 +1880,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const Icon(Icons.track_changes_rounded, color: Color(0xFFEF4444), size: 18),
             const SizedBox(width: 6),
             const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recommended for You',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  SizedBox(height: 1),
-                  Text(
-                    'Based on your performance and preparation',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Recommended for You',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F1E4A),
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
             InkWell(
