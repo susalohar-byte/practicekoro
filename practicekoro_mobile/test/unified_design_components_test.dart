@@ -563,11 +563,11 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify search icon and Bengali subjects
+      // Verify search icon and English subjects
       expect(find.byIcon(Icons.search_rounded), findsWidgets);
       expect(find.text('Practice'), findsOneWidget);
-      expect(find.text('ভারতের ইতিহাস'), findsOneWidget);
-      expect(find.text('সাধারণ বিজ্ঞান'), findsOneWidget);
+      expect(find.text('Indian History'), findsOneWidget);
+      expect(find.text('General Science'), findsOneWidget);
     });
 
     testWidgets('SplashScreen renders redesigned light-blue splash with logo, branding, and dots', (tester) async {

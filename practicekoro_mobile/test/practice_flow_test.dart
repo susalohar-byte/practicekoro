@@ -80,8 +80,8 @@ void main() {
 
       expect(find.text('Practice'), findsOneWidget);
       expect(find.textContaining('Practice & Master!'), findsOneWidget);
-      expect(find.text('ভারতের ইতিহাস'), findsOneWidget);
-      expect(find.text('পশ্চিমবঙ্গের ইতিহাস'), findsOneWidget);
+      expect(find.text('Indian History'), findsOneWidget);
+      expect(find.text('History of Bengal'), findsOneWidget);
     });
 
     testWidgets('SubjectDetailScreen renders Nimo pointing and topic list', (tester) async {

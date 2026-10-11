@@ -21,18 +21,6 @@ class PracticeScreen extends ConsumerStatefulWidget {
 class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  String _selectedCategory = 'all';
-
-  final List<Map<String, String>> _categories = const [
-    {'id': 'all', 'label': 'সকল বিষয়'},
-    {'id': 'history', 'label': 'ইতিহাস'},
-    {'id': 'geography', 'label': 'ভূগোল'},
-    {'id': 'science', 'label': 'বিজ্ঞান'},
-    {'id': 'math', 'label': 'অঙ্ক'},
-    {'id': 'reasoning', 'label': 'যৌক্তিকতা'},
-    {'id': 'language', 'label': 'ভাষা'},
-    {'id': 'computer', 'label': 'কম্পিউটার'},
-  ];
 
   @override
   void dispose() {
@@ -43,12 +31,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   @override
   Widget build(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
-    final allSubjects = PracticeRepository.defaultSubjects;
+    final subjectsAsync = ref.watch(practiceSubjectsProvider);
+    final allSubjects = subjectsAsync.asData?.value ?? PracticeRepository.defaultSubjects;
 
     final filtered = allSubjects.where((s) {
-      if (_selectedCategory != 'all' && s.category != _selectedCategory) {
-        return false;
-      }
       if (query.isNotEmpty) {
         final matchesBengali = s.nameBengali.toLowerCase().contains(query);
         final matchesEnglish = s.nameEnglish.toLowerCase().contains(query);
@@ -66,7 +52,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             context,
             horizontal: 16,
             top: 12,
-            // The Practice tab's mascot rises ~26dp above the navbar pill.
             additionalGap: PKBottomSpacing.defaultBreathingGap + 26,
           ),
           children: [
@@ -84,59 +69,66 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             _buildNimoBanner(),
             const SizedBox(height: 16),
 
-            // 4. Category Filter Chips
-            _buildCategoryChips(),
-            const SizedBox(height: 16),
-
-            // 5. Section Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // 4. Section Header (no count)
+            const Row(
               children: [
-                const Expanded(
-                  child: Row(
-                    children: [
-                      Text(
-                        'বিষয়সমূহ',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '• Subject Practice',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Subjects',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  '${filtered.length} টি বিষয়',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF026BFC),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '• Topic Practice',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
 
-            // 6. Subjects List / Cards
-            ...filtered.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSubjectCard(item),
-                )),
+            // 5. Subjects List / Cards
+            if (subjectsAsync.isLoading && !subjectsAsync.hasValue)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF026BFC)),
+                ),
+              )
+            else if (filtered.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.search_off_rounded, size: 40, color: Color(0xFF94A3B8)),
+                    SizedBox(height: 10),
+                    Text(
+                      'No matching subjects found',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...filtered.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildSubjectCard(item),
+                  )),
           ],
         ),
       ),
@@ -164,15 +156,15 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFFEF3C7),
+                    color: Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   child: const Text(
-                    'অধ্যায়ভিত্তিক',
+                    'Topic Tests',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFFB45309),
+                      color: Color(0xFF026BFC),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -266,7 +258,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         autofocus: true,
         style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          hintText: 'বিষয় বা অধ্যায় খুঁজুন (যেমন: ইতিহাস, অঙ্ক)...',
+          hintText: 'Search subjects (e.g., History, Math, Science)...',
           hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF026BFC), size: 20),
           suffixIcon: _searchController.text.isNotEmpty
@@ -346,7 +338,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'বিষয়ভিত্তিক অনুশীলন করো ও প্রস্তুতিকে করো ১০০% মজবুত!',
+                  'Topic-wise practice to boost your exam score and confidence.',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -361,7 +353,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                     SizedBox(width: 3),
                     Expanded(
                       child: Text(
-                        'পরীক্ষা-মুক্ত স্বাধীন প্র্যাকটিস',
+                        'Self-Paced Practice',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -377,62 +369,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: _categories.map((cat) {
-          final isSelected = _selectedCategory == cat['id'];
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedCategory = cat['id']!;
-                });
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF026BFC) : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFF026BFC) : const Color(0xFFE2E8F0),
-                    width: isSelected ? 1.5 : 1.0,
-                  ),
-                  boxShadow: [
-                    if (isSelected)
-                      BoxShadow(
-                        color: const Color(0xFF026BFC).withValues(alpha: 0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    else
-                      const BoxShadow(
-                        color: Color(0x04000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 1),
-                      ),
-                  ],
-                ),
-                child: Text(
-                  cat['label']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                    color: isSelected ? Colors.white : const Color(0xFF475569),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -491,19 +427,19 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.nameBengali,
+                    item.nameEnglish,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0F172A),
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
-                    '${item.questionCount} Questions • ${item.nameEnglish}',
+                    '${item.questionCount} Questions Available',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF64748B),
                     ),

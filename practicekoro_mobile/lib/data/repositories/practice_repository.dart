@@ -259,6 +259,11 @@ final practiceRepositoryProvider = Provider<PracticeRepository>((ref) {
   return PracticeRepository();
 });
 
+final practiceSubjectsProvider = FutureProvider<List<PracticeSubject>>((ref) async {
+  final repo = ref.watch(practiceRepositoryProvider);
+  return repo.getSubjects();
+});
+
 class PracticeRepository {
   SupabaseClient? get _supabase {
     try {
@@ -473,19 +478,109 @@ class PracticeRepository {
     ],
   };
 
+  PracticeSubject? _findFallbackSubject(String id, String slug) {
+    final cleanId = id.toLowerCase().replaceAll('wbp-', '').replaceAll('railway-', '').replaceAll('wbssc-', '');
+    final cleanSlug = slug.toLowerCase().replaceAll('wbp-', '').replaceAll('railway-', '').replaceAll('wbssc-', '');
+    for (final s in defaultSubjects) {
+      if (s.id == id ||
+          s.id == cleanId ||
+          s.id == slug ||
+          s.id == cleanSlug ||
+          cleanId.contains(s.id) ||
+          s.id.contains(cleanId) ||
+          cleanSlug.contains(s.id) ||
+          s.id.contains(cleanSlug)) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  /// Get all subjects (fetches from database 'subjects' table with fallback to defaultSubjects)
+  Future<List<PracticeSubject>> getSubjects() async {
+    final client = _supabase;
+    if (client != null) {
+      try {
+        final res = await client
+            .from('subjects')
+            .select('id, exam_id, name, slug, description, icon_name, order_index')
+            .eq('is_active', true)
+            .order('order_index', ascending: true);
+        if (res.isNotEmpty) {
+          final palette = [
+            (const Color(0xFFD97706), const Color(0xFFFEF3C7), Icons.auto_stories_rounded),
+            (const Color(0xFF4F46E5), const Color(0xFFEEF2FF), Icons.calculate_rounded),
+            (const Color(0xFF0D9488), const Color(0xFFCCFBF1), Icons.science_rounded),
+            (const Color(0xFF10B981), const Color(0xFFECFDF5), Icons.gavel_rounded),
+            (const Color(0xFF026BFC), const Color(0xFFDBEAFE), Icons.menu_book_rounded),
+            (const Color(0xFF9333EA), const Color(0xFFF3E8FF), Icons.translate_rounded),
+            (const Color(0xFFE11D48), const Color(0xFFFFE4E6), Icons.account_balance_rounded),
+            (const Color(0xFF16A34A), const Color(0xFFDCFCE7), Icons.public_rounded),
+            (const Color(0xFFCA8A04), const Color(0xFFFEF9C3), Icons.psychology_rounded),
+            (const Color(0xFF0284C7), const Color(0xFFE0F2FE), Icons.computer_rounded),
+          ];
+
+          return (res as List<dynamic>).asMap().entries.map((entry) {
+            final idx = entry.key;
+            final item = entry.value as Map<String, dynamic>;
+            final id = item['id'] as String;
+            final rawName = item['name'] as String? ?? 'Subject';
+            final slug = (item['slug'] as String?) ?? id;
+
+            String engName = rawName;
+            String benName = rawName;
+            final match = RegExp(r'^(.*?)\s*\((.*?)\)$').firstMatch(rawName);
+            if (match != null) {
+              engName = match.group(1)?.trim() ?? rawName;
+              benName = match.group(2)?.trim() ?? rawName;
+            }
+
+            final fallback = _findFallbackSubject(id, slug);
+            final fallbackStyle = palette[idx % palette.length];
+
+            return PracticeSubject(
+              id: id,
+              nameBengali: benName,
+              nameEnglish: engName,
+              questionCount: fallback?.questionCount ?? 150,
+              attemptedCount: fallback?.attemptedCount ?? 0,
+              accuracy: fallback?.accuracy ?? 0,
+              color: fallback?.color ?? fallbackStyle.$1,
+              bg: fallback?.bg ?? fallbackStyle.$2,
+              icon: fallback?.icon ?? fallbackStyle.$3,
+              symbol: fallback?.symbol,
+              category: fallback?.category ?? 'general',
+            );
+          }).toList();
+        }
+      } catch (_) {}
+    }
+    return defaultSubjects;
+  }
+
   /// Get subject by ID
   PracticeSubject getSubject(String subjectId) {
-    final cleanId = subjectId.toLowerCase().replaceAll('wbp-', '');
-    return defaultSubjects.firstWhere(
-      (s) => s.id == cleanId || s.id == subjectId,
-      orElse: () {
-        // Fallback search
-        for (final s in defaultSubjects) {
-          if (cleanId.contains(s.id) || s.id.contains(cleanId)) return s;
-        }
-        return defaultSubjects.first;
-      },
-    );
+    final cleanId = subjectId.toLowerCase().replaceAll('wbp-', '').replaceAll('railway-', '').replaceAll('wbssc-', '');
+    final fallback = _findFallbackSubject(subjectId, cleanId);
+    if (fallback != null) {
+      return fallback;
+    }
+    if (cleanId.contains('polity') || cleanId.contains('constitution')) {
+      return const PracticeSubject(
+        id: 'polity',
+        nameBengali: 'ভারতের সংবিধান',
+        nameEnglish: 'Indian Constitution',
+        questionCount: 150,
+        color: Color(0xFF10B981),
+        bg: Color(0xFFECFDF5),
+        icon: Icons.gavel_rounded,
+        category: 'polity',
+      );
+    }
+    for (final s in defaultSubjects) {
+      if (cleanId.contains(s.id) || s.id.contains(cleanId)) return s;
+    }
+    return defaultSubjects.first;
   }
 
   /// Get all topics for a subject (merges Supabase chapters with defaults)
