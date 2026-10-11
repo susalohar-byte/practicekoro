@@ -257,17 +257,15 @@ export const catalogApi = {
 
   async getExamTopicMappings(examId: string): Promise<string[]> {
     if (!isSupabaseConfigured) return [];
-    try {
-      const { data, error } = await supabase
-        .from('exam_topics')
-        .select('topic_id')
-        .eq('exam_id', examId)
-        .order('order_index', { ascending: true });
-      if (error || !data) return [];
-      return data.map((r: { topic_id: string }) => r.topic_id);
-    } catch {
-      return [];
-    }
+    // Errors propagate: an empty list would read as "no topics mapped" and a
+    // subsequent admin save would wipe the real mappings.
+    const { data, error } = await supabase
+      .from('exam_topics')
+      .select('topic_id')
+      .eq('exam_id', examId)
+      .order('order_index', { ascending: true });
+    if (error) throw new Error(error.message || 'Exam topic mappings could not be loaded.');
+    return (data || []).map((r: { topic_id: string }) => r.topic_id);
   },
 
   async getExamSubjectsWithTopics(examId: string): Promise<

@@ -150,7 +150,7 @@ async function fetchSeriesMetrics(): Promise<Map<string, SeriesMetrics>> {
       });
     }
   } catch {
-    // RPC not deployed yet — metrics show as 0 / N/A instead of fake numbers
+    // RPC not deployed yet — metrics are left undefined and shown as "—" instead of fake numbers
   }
   return map;
 }
@@ -196,7 +196,8 @@ export async function getTestSeries(examId?: string): Promise<TestSeries[]> {
       return {
         ...mapSeriesRow(row, iconCache),
         ...countTests(Array.isArray(row.tests) ? row.tests : []),
-        enrollmentCount: m?.enrollmentCount ?? 0,
+        // Undefined (rendered as "—") when the metrics RPC is unavailable — never a fake 0.
+        enrollmentCount: m?.enrollmentCount,
         avgAccuracy: m?.avgAccuracy,
       };
     });

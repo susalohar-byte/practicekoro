@@ -1509,54 +1509,12 @@ export const AdminTestAttempts: React.FC = () => {
               <div className="space-y-3 text-xs">
                 <h4 className="font-bold text-slate-900 text-xs">Section Performance</h4>
                 <div className="space-y-2.5">
-                  {(
-                    selectedAttempt.sectionAnalysis || [
-                      {
-                        sectionName: 'General Awareness',
-                        totalQuestions: 25,
-                        attempted: 24,
-                        correct: 20,
-                        wrong: 4,
-                        marksScored: 19,
-                        maxMarks: 25,
-                        accuracy: 83.3,
-                        timeSpentMin: 12,
-                      },
-                      {
-                        sectionName: 'Mathematics',
-                        totalQuestions: 25,
-                        attempted: 25,
-                        correct: 21,
-                        wrong: 4,
-                        marksScored: 20,
-                        maxMarks: 25,
-                        accuracy: 84.0,
-                        timeSpentMin: 18,
-                      },
-                      {
-                        sectionName: 'Reasoning',
-                        totalQuestions: 25,
-                        attempted: 24,
-                        correct: 21,
-                        wrong: 3,
-                        marksScored: 20.25,
-                        maxMarks: 25,
-                        accuracy: 87.5,
-                        timeSpentMin: 14,
-                      },
-                      {
-                        sectionName: 'English',
-                        totalQuestions: 10,
-                        attempted: 9,
-                        correct: 8,
-                        wrong: 1,
-                        marksScored: 7.75,
-                        maxMarks: 10,
-                        accuracy: 88.9,
-                        timeSpentMin: 4,
-                      },
-                    ]
-                  ).map((sec) => (
+                  {(selectedAttempt.sectionAnalysis ?? []).length === 0 && (
+                    <p className="py-6 text-center text-slate-400">
+                      Section analysis is unavailable for this attempt.
+                    </p>
+                  )}
+                  {(selectedAttempt.sectionAnalysis ?? []).map((sec) => (
                     <div
                       key={sec.sectionName}
                       className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1.5"
@@ -1571,7 +1529,9 @@ export const AdminTestAttempts: React.FC = () => {
                       <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                         <div
                           className="bg-blue-600 h-full rounded-full transition-all"
-                          style={{ width: `${(sec.marksScored / sec.maxMarks) * 100}%` }}
+                          style={{
+                            width: `${sec.maxMarks > 0 ? Math.min(100, Math.max(0, (sec.marksScored / sec.maxMarks) * 100)) : 0}%`,
+                          }}
                         />
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-slate-500">

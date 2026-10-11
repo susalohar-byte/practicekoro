@@ -28,7 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -379,10 +379,6 @@ export const AdminStaff: React.FC = () => {
   const [formStatus, setFormStatus] = useState<AdminUserStatus>('Active');
   const formWelcomeEmail = false;
 
-  // Create Role Modal
-  const [isCreateRoleModalOpen, setIsCreateRoleModalOpen] = useState(false);
-  const [newRoleName, setNewRoleName] = useState('');
-  const [newRoleDesc, setNewRoleDesc] = useState('');
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -443,6 +439,29 @@ export const AdminStaff: React.FC = () => {
     showToast('Filters reset.');
   };
 
+  // Send a Supabase Auth password recovery email (same flow as Students).
+  const handleResetPassword = async (email: string) => {
+    if (isWorking) return;
+    if (!email) {
+      showToast('This admin has no email address on record.', true);
+      return;
+    }
+    setIsWorking(true);
+    try {
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+      }
+      showToast(`Password recovery email initiated for ${email}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to send password recovery email.', true);
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
   // Create New Admin submit
   const handleCreateAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -452,7 +471,8 @@ export const AdminStaff: React.FC = () => {
     }
 
     if (isWorking) return;
-    if (!['Super Admin', 'Content Manager', 'Support Manager'].includes(formRole)) {
+    // Super Admin is reserved for the platform owner account and cannot be assigned here.
+    if (!['Content Manager', 'Support Manager'].includes(formRole)) {
       showToast('This role has no supported backend permission mapping.', true);
       return;
     }
@@ -462,12 +482,7 @@ export const AdminStaff: React.FC = () => {
     }
     setIsWorking(true);
     try {
-      const backendRole =
-        formRole === 'Super Admin'
-          ? 'super_admin'
-          : formRole === 'Support Manager'
-            ? 'support_agent'
-            : 'content_writer';
+      const backendRole = formRole === 'Support Manager' ? 'support_agent' : 'content_writer';
       const result = await api.assignStaffByEmail(formEmail.trim(), backendRole, currentAdmin);
       if (!result.success || !result.member) {
         showToast(result.error || 'Staff assignment was not confirmed.', true);
@@ -588,13 +603,6 @@ export const AdminStaff: React.FC = () => {
           >
             <Plus className="w-4 h-4" />
             <span>Add Admin</span>
-          </button>
-          <button
-            onClick={() => setIsCreateRoleModalOpen(true)}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl px-4 py-2.5 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Role</span>
           </button>
         </div>
       </div>
@@ -1035,8 +1043,8 @@ export const AdminStaff: React.FC = () => {
 
                                     <button
                                       onClick={() => {
-                                        showToast(`Sent password reset link to ${row.email}`);
                                         setActiveMenuId(null);
+                                        void handleResetPassword(row.email);
                                       }}
                                       className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                     >
@@ -1237,7 +1245,6 @@ export const AdminStaff: React.FC = () => {
                     onChange={(e) => setFormRole(e.target.value as SystemAdminRole)}
                     className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   >
-                    <option value="Super Admin">Super Admin</option>
                     <option value="Content Manager">Content Manager</option>
                     <option value="Support Manager">Support Manager</option>
                     <option value="Finance Manager">Finance Manager</option>
@@ -1332,95 +1339,6 @@ export const AdminStaff: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* ==================================================================== */}
-      {/* 6. MODAL: CREATE ROLE                                                */}
-      {/* ==================================================================== */}
-      {isCreateRoleModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-base text-slate-900">Create New System Role</h3>
-              <button
-                onClick={() => setIsCreateRoleModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">
-                  Role Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={newRoleName}
-                  onChange={(e) => setNewRoleName(e.target.value)}
-                  placeholder="e.g. Operations Executive"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  value={newRoleDesc}
-                  onChange={(e) => setNewRoleDesc(e.target.value)}
-                  placeholder="Describe duties and system access scope..."
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
-                />
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <span className="font-semibold text-slate-700 block">Default Permissions</span>
-                <div className="space-y-1 text-slate-600">
-                  {['Manage Tests', 'Manage Students', 'View Analytics', 'Customer Support'].map(
-                    (p) => (
-                      <label key={p} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          className="rounded border-slate-300 text-blue-600 focus:ring-0"
-                        />
-                        <span>{p}</span>
-                      </label>
-                    )
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateRoleModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!newRoleName.trim()) {
-                      showToast('Please enter role name.');
-                      return;
-                    }
-                    setIsCreateRoleModalOpen(false);
-                    showToast(`Role "${newRoleName}" created successfully!`);
-                    setNewRoleName('');
-                    setNewRoleDesc('');
-                  }}
-                  className="px-5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-semibold shadow-2xs cursor-pointer"
-                >
-                  Save Role
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ==================================================================== */}
       {/* 7. ACTIVITY LOG TAB (When active)                                    */}

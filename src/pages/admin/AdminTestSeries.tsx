@@ -481,7 +481,8 @@ export const AdminTestSeries: React.FC = () => {
     let totalTests = 0;
     let published = 0;
     let draft = 0;
-    let totalEnrollments = 0;
+    // Stays null when enrollment metrics are unavailable (no fake zero).
+    let totalEnrollments: number | null = null;
 
     for (const s of seriesList) {
       totalTests +=
@@ -493,7 +494,9 @@ export const AdminTestSeries: React.FC = () => {
       } else if (s.status === 'draft' || !s.isActive) {
         draft += 1;
       }
-      totalEnrollments += s.enrollmentCount || 0;
+      if (s.enrollmentCount != null) {
+        totalEnrollments = (totalEnrollments ?? 0) + s.enrollmentCount;
+      }
     }
 
     return {
@@ -739,7 +742,7 @@ export const AdminTestSeries: React.FC = () => {
       s.testCount ||
         s.testsCount ||
         (s.fullMockCount || 0) + (s.topicTestCount || 0) + (s.pyqTestCount || 0),
-      s.enrollmentCount || 0,
+      s.enrollmentCount ?? '',
       s.status || (s.isActive ? 'published' : 'draft'),
       s.isPremium ? 'Pro' : 'Free',
     ]);
@@ -822,9 +825,11 @@ export const AdminTestSeries: React.FC = () => {
         ? await api.updateTestSeries(editingSeries.id, input)
         : await api.createTestSeries(input);
       setSeriesList((prev) =>
-        editingSeries ? prev.map((s) => (s.id === saved.id ? saved : s)) : [saved, ...prev]
+        editingSeries
+          ? prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s))
+          : [saved, ...prev]
       );
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      setActiveSeries((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
       setIsEditModalOpen(false);
       setIsCreateModalOpen(false);
       setActionNotice({ type: 'success', message: 'Test series saved.' });
@@ -843,8 +848,8 @@ export const AdminTestSeries: React.FC = () => {
         status,
         isActive: status === 'published',
       });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
       setActionNotice({ type: 'success', message: 'Series status saved.' });
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Save failed') });
@@ -855,8 +860,8 @@ export const AdminTestSeries: React.FC = () => {
   const handleArchiveSeries = async (series: TestSeries) => {
     try {
       const saved = await api.updateTestSeries(series.id, { status: 'archived', isActive: false });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
       setActionNotice({ type: 'success', message: 'Series archived.' });
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Archive failed') });
@@ -903,8 +908,8 @@ export const AdminTestSeries: React.FC = () => {
       const saved = await api.updateTestSeries(activeSeries.id, {
         description: drawerDescriptionText,
       });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
       setIsEditingDescription(false);
       setActionNotice({ type: 'success', message: 'Description saved.' });
     } catch (err) {
@@ -936,8 +941,8 @@ export const AdminTestSeries: React.FC = () => {
       };
 
       const saved = await api.updateTestSeries(activeSeries.id, updated);
-      setSeriesList((prev) => prev.map((s) => (s.id === activeSeries.id ? saved : s)));
-      setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === activeSeries.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
       setActionNotice({ message: 'Series settings saved successfully!', type: 'success' });
     } catch (err) {
       alert(`Error saving settings: ${getErrorMessage(err, 'Failed to update')}`);
@@ -953,13 +958,18 @@ export const AdminTestSeries: React.FC = () => {
     const [moved] = reordered.splice(index, 1);
     reordered.splice(targetIndex, 0, moved);
 
+    const previous = seriesList;
     const updated = reordered.map((s, idx) => ({ ...s, orderIndex: idx + 1 }));
     setSeriesList(updated);
 
     try {
       await api.reorderTestSeries(updated);
     } catch (err) {
-      console.warn('Could not save reordered list to backend:', err);
+      setSeriesList(previous);
+      setActionNotice({
+        type: 'error',
+        message: getErrorMessage(err, 'Could not save the new series order'),
+      });
     }
   };
 
@@ -1241,10 +1251,9 @@ export const AdminTestSeries: React.FC = () => {
           </div>
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
-              {stats.totalEnrollments.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +28%
+              {stats.totalEnrollments != null
+                ? stats.totalEnrollments.toLocaleString('en-IN')
+                : '—'}
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">student attempts</p>
@@ -1566,7 +1575,9 @@ export const AdminTestSeries: React.FC = () => {
 
                           {/* Enrollments Count */}
                           <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white whitespace-nowrap">
-                            {(series.enrollmentCount || 0).toLocaleString('en-IN')}
+                            {series.enrollmentCount != null
+                              ? series.enrollmentCount.toLocaleString('en-IN')
+                              : '—'}
                           </td>
 
                           {/* Status Badge */}
@@ -1826,7 +1837,7 @@ export const AdminTestSeries: React.FC = () => {
                   tab === 'overview'
                     ? 'Overview'
                     : tab === 'tests'
-                      ? `Tests (${activeSeriesTests.length || activeSeries.testCount || 25})`
+                      ? `Tests (${activeSeriesTests.length || activeSeries.testCount || 0})`
                       : tab === 'settings'
                         ? 'Settings'
                         : 'Analytics';
@@ -1858,7 +1869,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-blue-600 mb-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.fullMockCount ?? 5}
+                        {activeSeries.fullMockCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Full Mock Tests</p>
@@ -1869,7 +1880,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.topicTestCount ?? 12}
+                        {activeSeries.topicTestCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Topic Tests</p>
@@ -1880,7 +1891,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-rose-600 mb-1">
                       <Award className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.pyqTestCount ?? 8}
+                        {activeSeries.pyqTestCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Official PYQs</p>
@@ -1891,7 +1902,9 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-purple-600 mb-1">
                       <Users className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {(activeSeries.enrollmentCount ?? 1240).toLocaleString('en-IN')}
+                        {activeSeries.enrollmentCount != null
+                          ? activeSeries.enrollmentCount.toLocaleString('en-IN')
+                          : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Total Enrollments</p>
@@ -1902,7 +1915,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.avgCompletion ?? 78}%
+                        {activeSeries.avgCompletion != null ? `${activeSeries.avgCompletion}%` : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Avg. Completion</p>
@@ -1913,7 +1926,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-teal-600 mb-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.avgAccuracy ?? 82}%
+                        {activeSeries.avgAccuracy != null ? `${activeSeries.avgAccuracy}%` : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Avg. Accuracy</p>
@@ -2350,9 +2363,9 @@ export const AdminTestSeries: React.FC = () => {
                           orderIndex: popularCards.length + 1,
                           route: `/test-series/${activeSeries.slug || activeSeries.id}`,
                           isActive: true,
-                          fullMockCount: activeSeries.fullMockCount || 40,
-                          topicTestCount: activeSeries.topicTestCount || 120,
-                          pyqTestCount: activeSeries.pyqTestCount || 25,
+                          fullMockCount: activeSeries.fullMockCount ?? 0,
+                          topicTestCount: activeSeries.topicTestCount ?? 0,
+                          pyqTestCount: activeSeries.pyqTestCount ?? 0,
                         }
                       );
                       setIsPopularModalOpen(true);
@@ -2378,25 +2391,25 @@ export const AdminTestSeries: React.FC = () => {
                   <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                     <p className="text-[10px] font-bold text-slate-400">Total Attempts</p>
                     <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
-                      {activeSeries.enrollmentCount
-                        ? Math.round(activeSeries.enrollmentCount * 2.5)
-                        : 0}
+                      {/* No per-series attempt metric is available from the backend yet. */}
+                      —
                     </p>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                     <p className="text-[10px] font-bold text-slate-400">Unique Students</p>
                     <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
-                      {(activeSeries.enrollmentCount || 0).toLocaleString('en-IN')}
+                      {activeSeries.enrollmentCount != null
+                        ? activeSeries.enrollmentCount.toLocaleString('en-IN')
+                        : '—'}
                     </p>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                     <p className="text-[10px] font-bold text-slate-400">Average Score</p>
                     <p className="text-lg font-black text-blue-600 mt-0.5">
-                      {activeSeries.avgAccuracy
-                        ? `${(activeSeries.avgAccuracy * 0.85).toFixed(1)} / 100`
-                        : '—'}
+                      {/* No per-series average-score metric is available from the backend yet. */}
+                      —
                     </p>
                   </div>
 

@@ -1,5 +1,5 @@
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
@@ -71,17 +71,26 @@ export const AdminExamTopics: React.FC = () => {
     }
   }, [queryExamId, exams, selectedExamId]);
 
-  // Load mappings when selected exam changes
+  // Load mappings when selected exam changes. Only the latest request may apply its
+  // result, and Save stays disabled until the selected exam's mappings are loaded.
+  const latestMappingRequest = useRef(0);
+  const [mappingsLoadedFor, setMappingsLoadedFor] = useState<string | null>(null);
   const loadMappingsForExam = useCallback(async (examId: string) => {
     if (!examId) return;
+    const requestId = ++latestMappingRequest.current;
+    setMappingsLoadedFor(null);
+    setMappedTopicIds(new Set());
+    setInitialMappedIds(new Set());
     try {
       setErrorMessage('');
       const mappings = await api.getExamTopicMappings(examId);
-      const set = new Set(mappings);
-      setMappedTopicIds(set);
+      if (requestId !== latestMappingRequest.current) return;
+      setMappedTopicIds(new Set(mappings));
       setInitialMappedIds(new Set(mappings));
+      setMappingsLoadedFor(examId);
     } catch (err) {
-      console.error('Error loading topic mappings:', err);
+      if (requestId !== latestMappingRequest.current) return;
+      setErrorMessage(getErrorMessage(err, 'Topic mappings could not be loaded for this exam.'));
     }
   }, []);
 
@@ -90,6 +99,8 @@ export const AdminExamTopics: React.FC = () => {
       loadMappingsForExam(selectedExamId);
     }
   }, [selectedExamId, loadMappingsForExam]);
+
+  const mappingsReady = Boolean(selectedExamId) && mappingsLoadedFor === selectedExamId;
 
   // Toggle single topic
   const toggleTopic = (topicId: string) => {
@@ -129,7 +140,7 @@ export const AdminExamTopics: React.FC = () => {
 
   // Save mappings
   const handleSave = async () => {
-    if (!selectedExamId) return;
+    if (!selectedExamId || !mappingsReady) return;
     try {
       setIsSaving(true);
       setErrorMessage('');
@@ -226,7 +237,7 @@ export const AdminExamTopics: React.FC = () => {
           <Button
             onClick={handleSave}
             isLoading={isSaving}
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || isSaving || !mappingsReady}
             className="gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30"
           >
             <Save className="w-4 h-4 text-white" />

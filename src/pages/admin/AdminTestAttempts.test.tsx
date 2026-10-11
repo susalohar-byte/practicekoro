@@ -157,4 +157,39 @@ describe('AdminTestAttempts pagination', () => {
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
   });
+
+  it('filters by real Kolkata-day bounds and shows an error state on load failure', async () => {
+    const now = new Date();
+    const today = { ...createMockAttempt('today', 'Today Student'), createdAt: now.toISOString() };
+    const old = {
+      ...createMockAttempt('old', 'Old Student'),
+      createdAt: '2020-01-01T06:00:00Z',
+      status: 'Not Completed' as const,
+      score: 0,
+    };
+    vi.mocked(api.getAllAdminTestAttempts).mockResolvedValue([today, old]);
+    render(
+      <MemoryRouter>
+        <AdminTestAttempts />
+      </MemoryRouter>
+    );
+    expect(await screen.findByText('Old Student')).toBeInTheDocument();
+    // Average score counts only completed attempts: 75/100, not (75 + 0) / 2.
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.queryByText('September 2026')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByDisplayValue('All Time'), { target: { value: 'Today' } });
+    expect(screen.getByText('Today Student')).toBeInTheDocument();
+    expect(screen.queryByText('Old Student')).not.toBeInTheDocument();
+  });
+
+  it('renders an error state instead of an empty list when loading fails', async () => {
+    vi.mocked(api.getAllAdminTestAttempts).mockRejectedValue(new Error('permission denied'));
+    render(
+      <MemoryRouter>
+        <AdminTestAttempts />
+      </MemoryRouter>
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
 });
