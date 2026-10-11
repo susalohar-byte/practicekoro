@@ -184,7 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onRefresh: _refresh,
           color: PK.blue,
           child: ListView(
-            padding: PKBottomSpacing.edgeInsets(context, horizontal: PK.gutter, top: 10),
+            padding: PKBottomSpacing.edgeInsets(context, horizontal: PK.gutter, top: 10, additionalGap: 2.0),
             children: [
               // 1. Header & Branding
               _buildHeader(
@@ -233,11 +233,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // 10. Recommended for You
               _buildRecommendedForYou(subjects),
-              const SizedBox(height: 24),
-
-              // 11. Motivational Banner
-              _buildMotivationalBanner(),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -2315,131 +2310,92 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 1.6,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemCount: topics.length,
-          itemBuilder: (context, i) {
-            final t = topics[i];
-            return InkWell(
-              onTap: () => context.push('/practice/subject/${t.id}'),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: t.bg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: t.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(t.icon, color: t.iconColor, size: 24),
-                        const Spacer(),
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: t.circleBg,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.arrow_forward_rounded, size: 11, color: t.iconColor),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t.title,
-                          maxLines: 2,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F1E4A),
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          t.qs,
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+        for (var r = 0; r < topics.length; r += 2) ...[
+          if (r > 0) const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildRecommendedTopicCard(topics[r]),
               ),
-            );
-          },
-        ),
+              const SizedBox(width: 10),
+              if (r + 1 < topics.length)
+                Expanded(
+                  child: _buildRecommendedTopicCard(topics[r + 1]),
+                )
+              else
+                const Expanded(child: SizedBox.shrink()),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  // ─── 11. Motivational Banner ───────────────────────────────────────────────
-
-  Widget _buildMotivationalBanner() {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 140),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xFFD9EBFF),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/dashboard/motivation_banner_clean.png'),
-          fit: BoxFit.cover,
-          alignment: Alignment.centerRight,
+  Widget _buildRecommendedTopicCard(({
+    Color bg,
+    Color border,
+    Color circleBg,
+    IconData icon,
+    Color iconColor,
+    String id,
+    String qs,
+    String title,
+  }) t) {
+    return InkWell(
+      onTap: () => context.push('/practice/subject/${t.id}'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: t.bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: t.border),
         ),
-        border: Border.all(color: const Color(0xFFCCE2FF)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C0158FC),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.fromLTRB(16, 16, 125, 16),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Consistent\nPractice Creates\nBig Results!',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0A2569),
-              height: 1.15,
-              letterSpacing: -0.3,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(t.icon, color: t.iconColor, size: 26),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    t.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1E4A),
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    t.qs,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            'Stay focused. Keep practicing.\nYour goal is closer than you think.',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF4B5E80),
-              height: 1.3,
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: Color(0xFF0158FC),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
