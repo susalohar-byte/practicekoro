@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -149,7 +150,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final parts = _userName.split(RegExp(r'\s+'));
       if (parts.isNotEmpty && parts.first.isNotEmpty) return parts.first;
     }
-    return 'Rahul';
+    // Unknown name: greet without inventing one.
+    return '';
   }
 
   @override
@@ -226,8 +228,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 20),
 
               // 4.1 Live Mock Test
-              _buildLiveMockTest(liveTestAsync),
-              const SizedBox(height: 24),
+              if (_hasVisibleLiveTest(liveTestAsync)) ...[
+                _buildLiveMockTest(liveTestAsync),
+                const SizedBox(height: 24),
+              ],
 
               // 5. Exams for You
               _buildExamsForYou(exams, popularExams),
@@ -245,16 +249,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildRecentTests(userAttempts),
               const SizedBox(height: 24),
 
-              // 9. Recently Added Tests
-              _buildRecentlyAddedTests(recentTests),
-              const SizedBox(height: 24),
+              // 9. Recently Added Tests (only real, published tests)
+              if (recentTests.isNotEmpty) ...[
+                _buildRecentlyAddedTests(recentTests),
+                const SizedBox(height: 24),
+              ],
 
-              // 10. Recommended for You
-              _buildRecommendedForYou(subjects),
+              // 10. Recommended for You (only real subjects)
+              if (subjects.isNotEmpty) _buildRecommendedForYou(subjects),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Section heading used by every Home section (icon, title, optional "View All").
+  Widget _sectionHeader(IconData icon, Color color, String title, {VoidCallback? onViewAll}) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F1E4A),
+              letterSpacing: -0.3,
+            ),
+          ),
+        ),
+        if (onViewAll != null)
+          InkWell(
+            onTap: onViewAll,
+            borderRadius: BorderRadius.circular(8),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View All',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 14),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -590,9 +636,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Hello, ',
-                  style: TextStyle(
+                Text(
+                  _firstName.isEmpty ? 'Hello' : 'Hello, ',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F275E),
@@ -760,7 +806,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PKSectionTitle(title: 'Continue Your Practice'),
+          _sectionHeader(Icons.adjust_rounded, const Color(0xFFEF4444), 'Continue Your Practice'),
           const SizedBox(height: 10),
           PKEmptyCard(
             icon: Icons.play_arrow_rounded,
@@ -777,15 +823,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final test = attempt['tests'] as Map<String, dynamic>?;
     final testId = (attempt['test_id'] ?? test?['id'] ?? '').toString();
 
-    final title = (test?['title'] ?? 'General Awareness').toString();
+    // Only real attempt data is shown; missing fields are omitted rather than invented.
+    final title = (test?['title'] ?? '').toString().trim().isNotEmpty
+        ? test!['title'].toString()
+        : 'Unfinished test';
     final examSubtitle = [
-      (test?['exams']?['title'] ?? test?['test_series']?['title'] ?? 'WBP Constable').toString(),
-      (test?['subjects']?['name'] ?? 'Topic Test').toString(),
-    ].where((s) => s.isNotEmpty).join(' • ');
+      (test?['exams']?['title'] ?? test?['test_series']?['title'] ?? '').toString(),
+      (test?['subjects']?['name'] ?? '').toString(),
+    ].where((s) => s.trim().isNotEmpty).join(' • ');
 
-    final total = (test?['total_questions'] as num?)?.toInt() ?? 25;
-    final answered = (attempt['_answered_count'] as num?)?.toInt() ?? 12;
-    final progress = total > 0 ? (answered / total).clamp(0.0, 1.0) : 0.48;
+    final total = (test?['total_questions'] as num?)?.toInt();
+    final answered = (attempt['_answered_count'] as num?)?.toInt();
+    final hasProgress = total != null && total > 0 && answered != null;
+    final progress = hasProgress ? (answered / total).clamp(0.0, 1.0) : 0.0;
 
     void onContinue() {
       if (testId.isNotEmpty) {
@@ -867,7 +917,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          examSubtitle,
+                          examSubtitle.isNotEmpty ? examSubtitle : 'Resume where you left off',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -879,27 +929,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                     '$answered/$total Questions',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0158FC)),
+              if (hasProgress) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Text(
+                      '$answered of $total answered',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${(progress * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0158FC),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFF1F5F9),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0158FC)),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               InkWell(
                 onTap: onContinue,
@@ -1039,15 +1104,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 4.1 Live Mock Test ────────────────────────────────────────────────────
 
+  /// A live test card is shown only for a real, published, not-yet-finished event.
+  bool _hasVisibleLiveTest(AsyncValue<LiveTestModel?> liveTestAsync) {
+    final lt = liveTestAsync.asData?.value;
+    return lt != null &&
+        lt.id.isNotEmpty &&
+        lt.isPublished &&
+        lt.status != 'cancelled' &&
+        !lt.isCompleted;
+  }
+
   Widget _buildLiveMockTest(AsyncValue<LiveTestModel?> liveTestAsync) {
     final liveTest = liveTestAsync.asData?.value;
+    if (liveTest == null) return const SizedBox.shrink();
+    final isLive = liveTest.isLiveNow;
 
-    final duration = '${liveTest?.durationMinutes ?? 60} Mins';
-    final questions = '${liveTest?.totalQuestions ?? 100} Questions';
+    final duration = '${liveTest.durationMinutes} Mins';
+    final questions = '${liveTest.totalQuestions} Questions';
 
-    String scheduleTime = 'Today, 7:00 PM';
-    if (liveTest?.scheduledStartTime != null) {
-      final start = liveTest!.scheduledStartTime.toLocal();
+    String scheduleTime;
+    {
+      final start = liveTest.scheduledStartTime.toLocal();
       final now = DateTime.now();
       final isToday = start.year == now.year && start.month == now.month && start.day == now.day;
       final hour = start.hour > 12 ? start.hour - 12 : (start.hour == 0 ? 12 : start.hour);
@@ -1062,13 +1139,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    void onJoin() {
-      if (liveTest != null && liveTest.id.isNotEmpty) {
-        context.push('/live-test/${liveTest.id}');
-      } else {
-        context.push('/test-series');
-      }
-    }
+    void onJoin() => context.push('/live-test/${liveTest.id}');
+
+    // Red while the test is running, brand blue while it is upcoming.
+    final accent = isLive ? const Color(0xFFEF4444) : PK.blue;
+    final gradientColors = isLive
+        ? const [Color(0xFFFFF1F2), Color(0xFFFFE4E6)]
+        : const [Color(0xFFF2F7FF), Color(0xFFE6F0FF)];
+    final borderColor = isLive ? const Color(0xFFFECDD3) : const Color(0xFFCFE0FF);
+    final title = liveTest.title.trim().isNotEmpty ? liveTest.title.trim() : 'Live Mock Test';
 
     return InkWell(
       onTap: onJoin,
@@ -1076,18 +1155,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFF1F2), Color(0xFFFFE4E6)],
+          gradient: LinearGradient(
+            colors: gradientColors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFECDD3)),
-          boxShadow: const [
+          border: Border.all(color: borderColor),
+          boxShadow: [
             BoxShadow(
-              color: Color(0x0AE11D48),
+              color: accent.withValues(alpha: 0.06),
               blurRadius: 10,
-              offset: Offset(0, 3),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -1095,13 +1174,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.sensors_rounded, color: Color(0xFFEF4444), size: 18),
-                const Flexible(
+                Icon(isLive ? Icons.sensors_rounded : Icons.event_rounded, color: accent, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
                   child: Text(
-                    'Live Mock Test',
+                    title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0F1E4A),
@@ -1112,12 +1192,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444),
+                    color: accent,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'LIVE',
-                    style: TextStyle(
+                  child: Text(
+                    isLive ? 'LIVE' : 'UPCOMING',
+                    style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
@@ -1125,18 +1205,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE9FE),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF7C3AED), size: 17),
-                ),
                 const SizedBox(width: 2),
-                const Icon(Icons.chevron_right_rounded, color: Color(0xFFC084FC), size: 18),
+                Icon(Icons.chevron_right_rounded, color: accent.withValues(alpha: 0.6), size: 20),
               ],
             ),
             const SizedBox(height: 10),
@@ -1180,29 +1250,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444),
+                      color: accent,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Color(0x33EF4444),
+                          color: accent.withValues(alpha: 0.2),
                           blurRadius: 6,
-                          offset: Offset(0, 2),
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Join Now',
-                          style: TextStyle(
+                          isLive ? 'Join Now' : 'View Details',
+                          style: const TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
                       ],
                     ),
                   ),
@@ -1221,243 +1291,187 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<ExamModel> exams, [
     List<Map<String, dynamic>> popularExams = const [],
   ]) {
-    final defaultConfigs = [
-      (
-        title: 'WBP Constable',
-        displayTitle: 'WBP\nConstable',
-        tests: '25 Tests',
-        slug: 'wbp-constable',
-        imageUrl: null as String?,
-      ),
-      (
-        title: 'WBSSC Group C & D',
-        displayTitle: 'WBSSC\nGroup C & D',
-        tests: '30 Tests',
-        slug: 'wbssc-group-c-d',
-        imageUrl: null as String?,
-      ),
-      (
-        title: 'Railway NTPC',
-        displayTitle: 'Railway\nNTPC',
-        tests: '40 Tests',
-        slug: 'railway-ntpc',
-        imageUrl: null as String?,
-      ),
+    // Ring colours from the reference: blue, amber, pink, green, purple, orange.
+    const ringColors = [
+      Color(0xFF3B82F6),
+      Color(0xFFF2B705),
+      Color(0xFFF43F5E),
+      Color(0xFF22C55E),
+      Color(0xFFA855F7),
+      Color(0xFFF97316),
     ];
 
-    String formatDisplayTitle(String title) {
-      if (title.contains('\n')) return title;
-      final parts = title.split(' ');
-      if (parts.length <= 1) return title;
-      if (parts.length == 2) return '${parts[0]}\n${parts[1]}';
-      return '${parts[0]}\n${parts.sublist(1).join(' ')}';
+    // Published exams only, in the admin-defined order.
+    final visible = exams.where((e) => e.isActive).toList()
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+    bool looksLikeImage(String? v) {
+      final t = v?.trim() ?? '';
+      if (t.isEmpty) return false;
+      return t.contains('/') || RegExp(r'\.(png|jpe?g|webp|svg|gif)(\?.*)?$', caseSensitive: false).hasMatch(t);
     }
 
-    final examConfigs = exams.isNotEmpty
-        ? [
-            for (var i = 0; i < exams.take(3).length; i++) ...[
-              () {
-                final ex = exams[i];
-                final popularCard = popularExams.cast<Map<String, dynamic>?>().firstWhere(
-                      (c) =>
-                          c != null &&
-                          (c['examId'] == ex.id ||
-                              c['slug'] == ex.slug ||
-                              c['title'] == ex.title),
-                      orElse: () => null,
-                    );
-                String? bg;
-                if (ex.bannerUrl != null && ex.bannerUrl!.trim().isNotEmpty) {
-                  bg = ex.bannerUrl!.trim();
-                } else if (popularCard != null) {
-                  final cardBg = popularCard['cardBgImage'] as String?;
-                  final cardEmblem = popularCard['cardEmblemUrl'] as String?;
-                  bg = (cardBg != null && cardBg.isNotEmpty) ? cardBg : cardEmblem;
-                }
-
-                String testsCount;
-                if (ex.totalTests != null && ex.totalTests! > 0) {
-                  testsCount = '${ex.totalTests} Tests';
-                } else if (popularCard != null && popularCard['testsCount'] != null) {
-                  testsCount = popularCard['testsCount'].toString();
-                } else {
-                  testsCount = i == 0 ? '25 Tests' : (i == 1 ? '30 Tests' : '40 Tests');
-                }
-
-                return (
-                  title: ex.title,
-                  displayTitle: formatDisplayTitle(ex.title),
-                  tests: testsCount,
-                  slug: ex.slug,
-                  imageUrl: bg,
-                );
-              }(),
-            ],
-          ]
-        : defaultConfigs;
-
-    String defaultAssetForSlug(String slug) {
-      final s = slug.toLowerCase();
-      if (s.contains('wbp') || s.contains('police')) {
-        return 'assets/images/dashboard/exam_card_wbp_art.png';
-      } else if (s.contains('wbssc') || s.contains('clerk') || s.contains('wbpsc') || s.contains('group')) {
-        return 'assets/images/dashboard/exam_card_wbssc_art.png';
-      } else if (s.contains('railway') || s.contains('ntpc') || s.contains('rrb')) {
-        return 'assets/images/dashboard/exam_card_railway_art.png';
-      }
-      return 'assets/images/dashboard/exam_card_wbp_art.png';
-    }
-
-    Widget buildCardImage(String? bgImage, String slug) {
-      final fallbackAsset = defaultAssetForSlug(slug);
-      final resolved = ImageUrlHelper.resolveAdminImageUrl(bgImage);
-      if (resolved != null && resolved.isNotEmpty) {
-        if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
-          return Image.network(
-            resolved,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Image.asset(
-              fallbackAsset,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: const Color(0xFFEFF6FF),
-                child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
-              ),
-            ),
+    // Admin-managed image for an exam: the exam logo uploaded in Admin → Exams
+    // (stored in icon_name), then the popular-exam emblem/card art, then the banner.
+    String? examImage(ExamModel ex) {
+      if (looksLikeImage(ex.iconName)) return ex.iconName.trim();
+      final card = popularExams.cast<Map<String, dynamic>?>().firstWhere(
+            (c) => c != null && (c['examId'] == ex.id || c['slug'] == ex.slug),
+            orElse: () => null,
           );
-        }
-        String assetPath = resolved;
-        if (assetPath.startsWith('/')) {
-          assetPath = 'assets$assetPath';
-        } else if (!assetPath.startsWith('assets/')) {
-          assetPath = 'assets/$assetPath';
-        }
-        return Image.asset(
-          assetPath,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Image.asset(
-            fallbackAsset,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              color: const Color(0xFFEFF6FF),
-              child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
+      for (final key in const ['cardEmblemUrl', 'cardBgImage']) {
+        final v = card?[key] as String?;
+        if (v != null && v.trim().isNotEmpty) return v.trim();
+      }
+      final banner = ex.bannerUrl?.trim();
+      return (banner != null && banner.isNotEmpty) ? banner : null;
+    }
+
+    final header = Row(
+      children: [
+        const Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 22),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text(
+            'Exams for You',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F1E4A),
+              letterSpacing: -0.3,
             ),
           ),
-        );
-      }
-      return Image.asset(
-        fallbackAsset,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
-          color: const Color(0xFFEFF6FF),
-          child: const Center(child: Icon(Icons.school_rounded, color: PK.blue, size: 28)),
         ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 19),
-            const SizedBox(width: 6),
-            const Expanded(
-              child: Text(
-                'Exams for You',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F1E4A),
-                  letterSpacing: -0.3,
+        InkWell(
+          onTap: () => _navigateToTab(1, '/exams'),
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'View All',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
                 ),
-              ),
+                SizedBox(width: 3),
+                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 15),
+              ],
             ),
-            InkWell(
-              onTap: () => _navigateToTab(1, '/test-series'),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'View All',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
-                  ),
-                  SizedBox(width: 2),
-                  Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 14),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            for (var i = 0; i < examConfigs.length; i++) ...[
-              if (i > 0) const SizedBox(width: 10),
-              Expanded(
-                child: InkWell(
-                  onTap: () => context.push(
-                    '/test-series?exam=${examConfigs[i].slug}&title=${Uri.encodeComponent(examConfigs[i].title)}',
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: PK.cardBox(r: 16),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: 64,
-                          width: double.infinity,
-                          child: buildCardImage(examConfigs[i].imageUrl, examConfigs[i].slug),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
-                          child: Column(
-                            children: [
-                              Text(
-                                examConfigs[i].displayTitle,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F1E4A),
-                                  height: 1.15,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      examConfigs[i].tests,
-                                      style: const TextStyle(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ],
+    );
+
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.4);
+    const ring = 74.0; // dashed ring diameter
+    const disc = 62.0; // pastel image disc diameter
+    const itemWidth = 86.0;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEDF2F9)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0D0F1E4A), blurRadius: 18, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 14),
+          if (visible.isEmpty)
+            const PKEmptyCard(
+              icon: Icons.school_rounded,
+              title: 'No exams published yet',
+              message: 'Exams will appear here as soon as they are available.',
+            )
+          else
+            SizedBox(
+              height: ring + 10 + 34 * textScale,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: visible.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                itemBuilder: (context, i) {
+                  final ex = visible[i];
+                  final color = ringColors[i % ringColors.length];
+                  final image = examImage(ex);
+                  // Admin logos keep their full shape (contain, padded); the bundled
+                  // default artwork fills the circle like the reference illustrations.
+                  final inset = image != null ? 8.0 : 0.0;
+                  return SizedBox(
+                    width: itemWidth,
+                    child: Semantics(
+                      button: true,
+                      label: ex.title,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => context.push(
+                          '/exams/${Uri.encodeComponent(ex.id)}?title=${Uri.encodeComponent(ex.title)}',
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: ring,
+                              height: ring,
+                              child: CustomPaint(
+                                painter: _DashedRingPainter(color: color),
+                                child: Center(
+                                  child: Container(
+                                    width: disc,
+                                    height: disc,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: color.withValues(alpha: 0.12),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    padding: EdgeInsets.all(inset),
+                                    child: Transform.scale(
+                                      // Bundled card art has wide margins; enlarge it a little
+                                      // so the illustration reads clearly without being cut.
+                                      scale: image != null ? 1.0 : 1.2,
+                                      child: PkAdminImage(
+                                        imageUrl: image,
+                                        width: disc - inset * 2,
+                                        height: disc - inset * 2,
+                                        fit: BoxFit.contain,
+                                        fallbackExamTitle: ex.title,
+                                        fallbackColor: color,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              ex.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F1E4A),
+                                height: 1.15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -1467,12 +1481,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final series = seriesAsync.asData?.value ?? const <TestSeriesModel>[];
 
     if (seriesAsync.isLoading && series.isEmpty) {
-      return const Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PKSectionTitle(title: 'Popular Test Series'),
-          SizedBox(height: 12),
-          Center(
+          _sectionHeader(Icons.local_fire_department_rounded, const Color(0xFFEF4444), 'Popular Test Series'),
+          const SizedBox(height: 12),
+          const Center(
             child: SizedBox(
               width: 24,
               height: 24,
@@ -1484,12 +1498,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (series.isEmpty) {
-      return const Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PKSectionTitle(title: 'Popular Test Series'),
-          SizedBox(height: 10),
-          PKEmptyCard(
+          _sectionHeader(Icons.local_fire_department_rounded, const Color(0xFFEF4444), 'Popular Test Series'),
+          const SizedBox(height: 10),
+          const PKEmptyCard(
             icon: Icons.library_books_outlined,
             title: 'No test series yet',
             message: 'Published test series will appear here.',
@@ -1498,11 +1512,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
-    final defaultSeriesThumbnails = [
-      'assets/images/dashboard/exam_card_wbp_art.png',
-      'assets/images/dashboard/exam_card_wbssc_art.png',
-      'assets/images/dashboard/exam_card_railway_art.png',
-    ];
+    String? resolveSeriesIcon(TestSeriesModel s) {
+      final icon = s.iconUrl?.trim();
+      if (icon != null && icon.isNotEmpty) return icon;
+      final logo = s.examLogo?.trim();
+      if (logo != null &&
+          (logo.startsWith('http') ||
+              logo.startsWith('/') ||
+              logo.startsWith('assets/'))) {
+        return logo;
+      }
+      return null;
+    }
 
     final cardItems = [
       for (var i = 0; i < series.length.clamp(0, 5); i++) ...[
@@ -1510,13 +1531,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           title: series[i].title,
           sub: PK.seriesLabel(series[i].title, series[i].description, series[i].examTitle),
           isPopular: series[i].isPopular,
-          tests: '${series[i].testCount > 0 ? series[i].testCount : (i == 0 ? 25 : (i == 1 ? 30 : 40))} Full Mock Tests',
-          qs: series[i].questionCount > 0
-              ? '${PK.formatCount(series[i].questionCount)} Qs'
-              : (i == 0 ? '12,500+ Questions' : (i == 1 ? '15,000+ Questions' : '1,525 Qs')),
-          thumbnail: series[i].iconUrl ??
-              series[i].bannerUrl ??
-              defaultSeriesThumbnails[i % defaultSeriesThumbnails.length],
+          // Real counts only; unknown values are left out of the meta line.
+          tests: series[i].testCount > 0 ? '${series[i].testCount} Tests' : '',
+          qs: series[i].questionCount > 0 ? '${PK.formatCount(series[i].questionCount)} Qs' : '',
+          thumbnail: resolveSeriesIcon(series[i]),
+          examTitle: series[i].examTitle,
+          slug: series[i].slug,
           id: series[i].id,
         )
       ]
@@ -1584,13 +1604,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           color: Color(0xFFEFF6FF),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: item.thumbnail.startsWith('assets/')
-                            ? Image.asset(item.thumbnail, fit: BoxFit.cover)
-                            : Image.network(
-                                item.thumbnail,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Container(color: const Color(0xFFEFF6FF)),
-                              ),
+                        // Admin image, else this exam's own bundled art, else a monogram.
+                        child: PKSeriesArt(
+                          title: item.title,
+                          examTitle: item.examTitle,
+                          slug: item.slug,
+                          imageUrl: item.thumbnail,
+                          width: 46,
+                          height: 46,
+                          radius: 23,
+                          isIcon: true,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1633,37 +1657,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    item.tests,
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  const Text(
-                                    ' • ',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  Text(
-                                    item.qs,
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              [item.tests, item.qs].where((v) => v.isNotEmpty).isNotEmpty
+                                  ? [item.tests, item.qs].where((v) => v.isNotEmpty).join(' • ')
+                                  : item.sub,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -1850,54 +1853,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRecentTests([List<TestAttemptModel> userAttempts = const []]) {
-    final defaultTests = [
-      (
-        title: 'Full Mock Test 1',
-        exam: 'WBP Constable',
-        date: '12 Sep 2026',
-        time: '90 Mins',
-        marks: '100 Marks',
-        score: '85/100',
-        grade: 'Good',
-        hasTrophy: true,
-        pillBg: const Color(0xFFDCFCE7),
-        pillColor: const Color(0xFF16A34A),
-        iconColor: const Color(0xFF2563EB),
-        iconBg: const Color(0xFFEFF6FF),
-        attemptId: null as String?,
-      ),
-      (
-        title: 'General Awareness – Topic Test',
-        exam: 'WBP Constable',
-        date: '10 Sep 2026',
-        time: '25 Mins',
-        marks: '25 Marks',
-        score: '18/25',
-        grade: 'Great',
-        hasTrophy: false,
-        pillBg: const Color(0xFFDCFCE7),
-        pillColor: const Color(0xFF16A34A),
-        iconColor: const Color(0xFF16A34A),
-        iconBg: const Color(0xFFF0FDF4),
-        attemptId: null as String?,
-      ),
-      (
-        title: 'Mathematics – Topic Test',
-        exam: 'WBSSC Group C & D',
-        date: '08 Sep 2026',
-        time: '30 Mins',
-        marks: '30 Marks',
-        score: '12/30',
-        grade: 'Keep Going',
-        hasTrophy: false,
-        pillBg: const Color(0xFFFFE4E6),
-        pillColor: const Color(0xFFEF4444),
-        iconColor: const Color(0xFFEA580C),
-        iconBg: const Color(0xFFFFF7ED),
-        attemptId: null as String?,
-      ),
-    ];
-
     final tests = userAttempts.isNotEmpty
         ? [
             for (final a in userAttempts.take(3)) ...[
@@ -1905,8 +1860,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 final d = a.completedAt.toLocal();
                 final dateStr = '${d.day.toString().padLeft(2, '0')} ${_monthName(d.month)} ${d.year}';
                 final timeMins = (a.timeSpentSeconds / 60).round().clamp(1, 180);
-                final totalM = a.totalMarks > 0 ? a.totalMarks : 100.0;
-                final scoreStr = '${a.score.toInt()}/${totalM.toInt()}';
+                final totalM = a.totalMarks;
+                String fmt(double v) =>
+                    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+                final scoreStr = totalM > 0 ? '${fmt(a.score)}/${fmt(totalM)}' : fmt(a.score);
                 final pct = a.percentage > 0
                     ? a.percentage
                     : (totalM > 0 ? (a.score / totalM * 100) : 0.0);
@@ -1927,7 +1884,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   exam: a.testSeriesTitle ?? 'Practice Test',
                   date: dateStr,
                   time: '$timeMins Mins',
-                  marks: '${totalM.toInt()} Marks',
+                  marks: totalM > 0 ? '${fmt(totalM)} Marks' : '',
                   score: scoreStr,
                   grade: grade,
                   hasTrophy: isTop,
@@ -1940,7 +1897,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               }(),
             ],
           ]
-        : defaultTests;
+        : const <({
+            String title,
+            String exam,
+            String date,
+            String time,
+            String marks,
+            String score,
+            String grade,
+            bool hasTrophy,
+            Color pillBg,
+            Color pillColor,
+            Color iconColor,
+            Color iconBg,
+            String? attemptId,
+          })>[];
+
+    if (tests.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(Icons.schedule_rounded, const Color(0xFF2563EB), 'Recent Tests'),
+          const SizedBox(height: 10),
+          PKEmptyCard(
+            icon: Icons.history_rounded,
+            title: 'No tests taken yet',
+            message: 'Your scores and solutions will appear here after your first test.',
+            actionLabel: 'Take a Test',
+            onAction: () => _navigateToTab(1, '/test-series'),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2105,50 +2093,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─── 9. Recently Added Tests ───────────────────────────────────────────────
 
   Widget _buildRecentlyAddedTests(List<MockTestModel> recentTests) {
-    final defaultTests = [
-      (
-        id: 'default-1',
-        title: 'WBP Constable – Full Mock Test 5',
-        exam: 'WBP Constable',
-        qs: '85 Qs',
-        time: '90 Mins',
-        marks: '100 Marks',
-        isNew: true,
-        isFree: true,
-        icon: Icons.description_rounded,
-        iconColor: const Color(0xFF2563EB),
-        iconBg: const Color(0xFFEFF6FF),
-      ),
-      (
-        id: 'default-2',
-        title: 'Static GK – Important Questions',
-        exam: 'All Competitive Exams',
-        qs: '50 Qs',
-        time: '30 Mins',
-        marks: '50 Marks',
-        isNew: true,
-        isFree: true,
-        icon: Icons.track_changes_rounded,
-        iconColor: const Color(0xFFEA580C),
-        iconBg: const Color(0xFFFFF7ED),
-      ),
-      (
-        id: 'default-3',
-        title: 'Current Affairs – Daily Quiz',
-        exam: 'All Competitive Exams',
-        qs: '25 Qs',
-        time: '15 Mins',
-        marks: '25 Marks',
-        isNew: true,
-        isFree: true,
-        icon: Icons.article_rounded,
-        iconColor: const Color(0xFF16A34A),
-        iconBg: const Color(0xFFF0FDF4),
-      ),
-    ];
-
-    final tests = recentTests.isNotEmpty
-        ? [
+    final tests = [
             for (var i = 0; i < recentTests.take(3).length; i++) ...[
               () {
                 final t = recentTests[i];
@@ -2181,8 +2126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               }(),
             ],
-          ]
-        : defaultTests;
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2341,49 +2285,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─── 10. Recommended for You ───────────────────────────────────────────────
 
   Widget _buildRecommendedForYou([List<SubjectModel> subjects = const []]) {
-    final defaultTopics = [
-      (
-        id: 'reasoning',
-        title: 'Reasoning\nTopic Tests',
-        qs: '200+ Questions',
-        icon: Icons.psychology_rounded,
-        iconColor: const Color(0xFFEC4899),
-        bg: const Color(0xFFFDF2F8),
-        border: const Color(0xFFFCE7F3),
-        circleBg: const Color(0xFFFCE7F3),
-      ),
-      (
-        id: 'science',
-        title: 'Science\nTopic Tests',
-        qs: '150+ Questions',
-        icon: Icons.science_rounded,
-        iconColor: const Color(0xFF06B6D4),
-        bg: const Color(0xFFF0FDFA),
-        border: const Color(0xFFCCFBF1),
-        circleBg: const Color(0xFFCCFBF1),
-      ),
-      (
-        id: 'history',
-        title: 'History\nTopic Tests',
-        qs: '180+ Questions',
-        icon: Icons.account_balance_rounded,
-        iconColor: const Color(0xFFF59E0B),
-        bg: const Color(0xFFFFFBEB),
-        border: const Color(0xFFFEF3C7),
-        circleBg: const Color(0xFFFEF3C7),
-      ),
-      (
-        id: 'polity',
-        title: 'Polity\nTopic Tests',
-        qs: '120+ Questions',
-        icon: Icons.description_rounded,
-        iconColor: const Color(0xFF10B981),
-        bg: const Color(0xFFF0FDF4),
-        border: const Color(0xFFDCFCE7),
-        circleBg: const Color(0xFFDCFCE7),
-      ),
-    ];
-
     final themeSlots = [
       (
         icon: Icons.psychology_rounded,
@@ -2426,16 +2327,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return themeSlots[slotIndex % themeSlots.length].icon;
     }
 
-    final topics = subjects.isNotEmpty
-        ? [
+    final topics = [
             for (var i = 0; i < subjects.take(4).length; i++) ...[
               () {
                 final s = subjects[i];
                 final slot = themeSlots[i % themeSlots.length];
                 final title = s.name.contains('\n') ? s.name : '${s.name}\nTopic Tests';
+                // Real chapter count only; no estimated question totals.
                 final qs = s.chaptersCount != null && s.chaptersCount! > 0
-                    ? '${s.chaptersCount! * 15}+ Questions'
-                    : '150+ Questions';
+                    ? '${s.chaptersCount} Chapters'
+                    : 'Topic Tests';
 
                 return (
                   id: s.slug.isNotEmpty ? s.slug : s.id,
@@ -2449,8 +2350,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               }(),
             ],
-          ]
-        : defaultTopics;
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2576,4 +2476,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+}
+
+/// Thin dashed circle drawn around each exam image in the "Exams" row.
+class _DashedRingPainter extends CustomPainter {
+  final Color color;
+  const _DashedRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 1.6;
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    const dashCount = 28;
+    const sweep = 2 * math.pi / dashCount;
+    for (var k = 0; k < dashCount; k++) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        k * sweep,
+        sweep * 0.55,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRingPainter oldDelegate) => oldDelegate.color != color;
 }

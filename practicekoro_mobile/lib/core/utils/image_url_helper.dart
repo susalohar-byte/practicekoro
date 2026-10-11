@@ -23,6 +23,22 @@ class ImageUrlHelper {
       'hero_wbtet_banner.png': 'assets/images/hero_wbtet_banner.png',
       'hero_banner_ref.png': 'assets/images/hero_banner_ref.png',
       'test_series_hero_banner.png': 'assets/images/exams/test_series_hero_banner.png',
+      'icon_kolkata_police.png': 'assets/images/exams/emblem_series_kp.png',
+      'emblem_series_kp.png': 'assets/images/exams/emblem_series_kp.png',
+      'emblem_series_wbp.png': 'assets/images/exams/emblem_series_wbp.png',
+      'exam_card_wbp_art.png': 'assets/images/dashboard/exam_card_wbp_art.png',
+      'exam_wbp_cap.png': 'assets/images/dashboard/exam_card_wbp_art.png',
+      'emblem_railway.png': 'assets/images/exams/emblem_railway.png',
+      'logo_railway.png': 'assets/images/exams/emblem_railway.png',
+      'exam_card_railway_art.png': 'assets/images/dashboard/exam_card_railway_art.png',
+      'emblem_wbssc.png': 'assets/images/exams/emblem_wbssc.png',
+      'exam_card_wbssc_art.png': 'assets/images/dashboard/exam_card_wbssc_art.png',
+      'emblem_series_ssc.png': 'assets/images/exams/emblem_series_ssc.png',
+      'logo_ssc.png': 'assets/images/exams/emblem_series_ssc.png',
+      'emblem_wbpsc.png': 'assets/images/exams/emblem_wbpsc.png',
+      'logo_wbpsc.png': 'assets/images/exams/emblem_wbpsc.png',
+      'emblem_wbtet_seal.png': 'assets/images/exams/emblem_wbtet_seal.png',
+      'logo_wbtet.png': 'assets/images/exams/emblem_wbtet_seal.png',
     };
     if (localAssetMap.containsKey(filename)) {
       return localAssetMap[filename]!;
@@ -124,17 +140,26 @@ class PkAdminImage extends StatelessWidget {
 
   Widget _buildFallback() {
     if (fallbackExamTitle != null) {
-      final emblem = ExamAssets.getEmblemAsset(fallbackExamTitle!);
-      if (emblem != null) {
-        return Padding(
-          padding: const EdgeInsets.all(4),
-          child: Image.asset(
-            emblem,
-            width: width,
-            height: height,
-            fit: BoxFit.contain,
-          ),
-        );
+      final iconOrEmblem = ExamAssets.getIconAsset(fallbackExamTitle!) ??
+          ExamAssets.getEmblemAsset(fallbackExamTitle!);
+      if (iconOrEmblem != null) {
+        final isCoverCard = iconOrEmblem.contains('exam_card_');
+        return isCoverCard
+            ? Image.asset(
+                iconOrEmblem,
+                width: width,
+                height: height,
+                fit: fit,
+              )
+            : Padding(
+                padding: const EdgeInsets.all(4),
+                child: Image.asset(
+                  iconOrEmblem,
+                  width: width,
+                  height: height,
+                  fit: BoxFit.contain,
+                ),
+              );
       }
     }
     final hasFiniteDims = width != null &&

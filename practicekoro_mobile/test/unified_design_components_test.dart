@@ -27,6 +27,8 @@ import 'package:practicekoro_mobile/features/navigation/main_scaffold.dart';
 import 'package:practicekoro_mobile/features/exams/exams_catalog_screen.dart';
 import 'package:practicekoro_mobile/features/practice/practice_screen.dart';
 import 'package:practicekoro_mobile/features/onboarding/splash_screen.dart';
+import 'package:practicekoro_mobile/core/components/pk_ui.dart';
+import 'package:practicekoro_mobile/core/constants/exam_assets.dart';
 import 'package:practicekoro_mobile/features/profile/profile_screen.dart';
 
 void main() {
@@ -108,6 +110,36 @@ void main() {
       expect(find.text('View All'), findsOneWidget);
       await tester.tap(find.text('View All'));
       expect(actionTapped, isTrue);
+    });
+
+    test('ExamAssets resolves 3D icons for major exams', () {
+      expect(ExamAssets.getIconAsset('WBP Constable'), equals('assets/images/dashboard/exam_card_wbp_art.png'));
+      expect(ExamAssets.getIconAsset('Railway NTPC'), equals('assets/images/dashboard/exam_card_railway_art.png'));
+      expect(ExamAssets.getIconAsset('WBSSC Group C & D'), equals('assets/images/dashboard/exam_card_wbssc_art.png'));
+      expect(ExamAssets.getIconAsset('KP Constable'), equals('assets/images/exams/emblem_series_kp.png'));
+      expect(ExamAssets.getIconAsset('SSC GD'), equals('assets/images/exams/emblem_series_ssc.png'));
+    });
+
+    testWidgets('PKSeriesArt in icon mode renders bundled 3D artwork for test series', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: PKSeriesArt(
+              title: 'WBP Constable Complete Test Series',
+              examTitle: 'WBP Constable',
+              slug: 'wbp-constable',
+              width: 46,
+              height: 46,
+              radius: 23,
+            ),
+          ),
+        ),
+      );
+
+      final imageFinder = find.byType(Image);
+      expect(imageFinder, findsOneWidget);
+      final img = tester.widget<Image>(imageFinder);
+      expect((img.image as AssetImage).assetName, equals('assets/images/dashboard/exam_card_wbp_art.png'));
     });
   });
 
@@ -389,14 +421,18 @@ void main() {
         'Popular Test Series',
         'Your Progress',
         'Recent Tests',
-        'Recently Added Tests',
-        'Recommended for You',
       ]) {
         expect(find.text(title), findsOneWidget, reason: title);
       }
+      // This catalogue has no recently added tests or subjects, so those sections
+      // stay hidden instead of showing sample content.
+      expect(find.text('Recently Added Tests'), findsNothing);
+      expect(find.text('Recommended for You'), findsNothing);
+      expect(find.text('Rahul'), findsNothing);
       expect(find.text('Railway NTPC'), findsWidgets); // exam cards & popular carousel
       expect(find.text('POPULAR'), findsWidgets); // only the admin-flagged series
-      expect(find.text('1,525 Qs'), findsWidgets);
+      expect(find.textContaining('1,525 Qs'), findsWidgets); // real count only
+      expect(find.textContaining('25 Tests'), findsWidgets);
     });
 
     testWidgets('Home page shows empty states instead of sample catalogue data', (tester) async {
@@ -412,6 +448,12 @@ void main() {
 
       expect(find.text('No practice in progress'), findsOneWidget);
       expect(find.text('No test series yet'), findsOneWidget);
+      expect(find.text('No tests taken yet'), findsOneWidget);
+      expect(find.text('No exams published yet'), findsOneWidget);
+      // No invented live test, attempts or sample catalogue content.
+      expect(find.text('Join Now'), findsNothing);
+      expect(find.text('Full Mock Test 1'), findsNothing);
+      expect(find.text('Reasoning\nTopic Tests'), findsNothing);
       expect(find.text('Complete a test to start tracking'), findsOneWidget);
       expect(find.text('KP Constable'), findsNothing);
       expect(find.text('POPULAR'), findsNothing);

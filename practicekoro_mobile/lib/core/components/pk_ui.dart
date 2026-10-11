@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/exam_assets.dart';
 import '../utils/image_url_helper.dart';
 
 /// Minimal PracticeKoro design tokens and building blocks shared by the Home and
@@ -334,8 +335,8 @@ class PKEmptyCard extends StatelessWidget {
 }
 
 /// Exam artwork for a test series. Admin-uploaded images first; otherwise the bundled
-/// banner that belongs to that exam only (each has the exam name baked in); otherwise
-/// a neutral monogram, never another exam's artwork.
+/// icon/emblem (when rendered as an icon avatar) or bundled banner (when rendered as a banner);
+/// otherwise a neutral monogram, never another exam's artwork.
 class PKSeriesArt extends StatelessWidget {
   final String title;
   final String? examTitle;
@@ -344,6 +345,7 @@ class PKSeriesArt extends StatelessWidget {
   final double width;
   final double height;
   final double radius;
+  final bool? isIcon;
 
   const PKSeriesArt({
     super.key,
@@ -354,7 +356,12 @@ class PKSeriesArt extends StatelessWidget {
     required this.width,
     required this.height,
     this.radius = 12,
+    this.isIcon,
   });
+
+  static String? bundledIcon(String title, String? examTitle, String? slug) {
+    return ExamAssets.getIconAsset('$title ${examTitle ?? ''} ${slug ?? ''}');
+  }
 
   static String? bundledBanner(String title, String? examTitle, String? slug) {
     final t = '$title ${examTitle ?? ''} ${slug ?? ''}'.toLowerCase();
@@ -380,24 +387,47 @@ class PKSeriesArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final admin = imageUrl?.trim();
-    final bundled = bundledBanner(title, examTitle, slug);
+    final bool asIcon = isIcon ?? (width <= 60);
+
+    // In icon mode, ignore rectangular banner URLs so we don't crop a wide banner into a circle
+    final bool isBannerUrl = admin != null &&
+        (admin.contains('banner_') || admin.contains('_banner') || admin.contains('banner.'));
+    final effectiveAdmin = (asIcon && isBannerUrl) ? null : admin;
+
+    final bundled = asIcon
+        ? (bundledIcon(title, examTitle, slug) ?? bundledBanner(title, examTitle, slug))
+        : (bundledBanner(title, examTitle, slug) ?? bundledIcon(title, examTitle, slug));
+
     Widget child;
-    if (admin != null && admin.isNotEmpty) {
+    if (effectiveAdmin != null && effectiveAdmin.isNotEmpty) {
       child = PkAdminImage(
-        imageUrl: admin,
+        imageUrl: effectiveAdmin,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        fit: asIcon ? BoxFit.contain : BoxFit.cover,
         fallbackExamTitle: examTitle ?? title,
       );
     } else if (bundled != null) {
-      child = Image.asset(
-        bundled,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        alignment: Alignment.centerLeft,
-      );
+      final isEmblem = bundled.contains('emblem_');
+      if (asIcon && isEmblem) {
+        child = Padding(
+          padding: const EdgeInsets.all(3),
+          child: Image.asset(
+            bundled,
+            width: width,
+            height: height,
+            fit: BoxFit.contain,
+          ),
+        );
+      } else {
+        child = Image.asset(
+          bundled,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          alignment: asIcon ? Alignment.center : Alignment.centerLeft,
+        );
+      }
     } else {
       final initials = title
           .split(RegExp(r'\s+'))
