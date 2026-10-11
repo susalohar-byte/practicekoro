@@ -434,7 +434,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
           horizontal: 16,
           top: 16,
-          additionalGap: 24,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,7 +604,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
           ],
         ),
       ),

@@ -478,10 +478,9 @@ class _ResultsHubScreenState extends State<ResultsHubScreen>
 
                       // 6. Side-by-Side: Recent Test Performance & All Student Rankings
                       _buildBottomCardsRow(context),
-                      const SizedBox(height: 24),
 
                       // Clearance for floating Playful Gen-Z navbar
-                      const PKBottomNavSpacer(additionalGap: 16),
+                      const PKBottomNavSpacer(),
                     ]),
                   ),
                 ),
@@ -498,8 +497,7 @@ class _ResultsHubScreenState extends State<ResultsHubScreen>
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       _buildDetailedProgressCard(context),
-                      const SizedBox(height: 24),
-                      const PKBottomNavSpacer(additionalGap: 16),
+                      const PKBottomNavSpacer(),
                     ]),
                   ),
                 ),

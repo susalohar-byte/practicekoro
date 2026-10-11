@@ -66,6 +66,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             context,
             horizontal: 16,
             top: 12,
+            // The Practice tab's mascot rises ~26dp above the navbar pill.
+            additionalGap: PKBottomSpacing.defaultBreathingGap + 26,
           ),
           children: [
             // 1. Top Bar
@@ -135,8 +137,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _buildSubjectCard(item),
                 )),
-
-            const SizedBox(height: 24),
           ],
         ),
       ),

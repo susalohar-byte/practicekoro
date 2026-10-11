@@ -138,8 +138,6 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _buildTestCard(test, displayTopicTitle, displaySubjectTitle),
                       )),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             ),

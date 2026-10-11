@@ -579,7 +579,6 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
                   padding: PKBottomSpacing.edgeInsets(
                     context,
                     horizontal: 16,
-                    additionalGap: 24,
                   ),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(

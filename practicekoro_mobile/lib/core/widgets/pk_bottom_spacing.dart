@@ -9,14 +9,21 @@ class PKBottomNavScope extends InheritedWidget {
   /// Height of the floating pill navigation bar itself (default: 70.0).
   final double navBarHeight;
 
-  /// Bottom margin from the safe-area/screen edge (default: 10.0).
+  /// Gap between the pill and the device safe area (default: 8.0).
   final double navBarBottomMargin;
+
+  /// The device's bottom safe-area inset, captured *outside* the Scaffold.
+  /// Inside a Scaffold body with a bottomNavigationBar, Flutter rewrites
+  /// `padding.bottom` to the whole bar area and zeroes `viewPadding.bottom`,
+  /// so descendants cannot read the real inset themselves.
+  final double deviceBottomInset;
 
   const PKBottomNavScope({
     super.key,
     this.hasFloatingNavBar = true,
     this.navBarHeight = 70.0,
-    this.navBarBottomMargin = 10.0,
+    this.navBarBottomMargin = 8.0,
+    this.deviceBottomInset = 0.0,
     required super.child,
   });
 
@@ -32,35 +39,39 @@ class PKBottomNavScope extends InheritedWidget {
   bool updateShouldNotify(PKBottomNavScope oldWidget) =>
       hasFloatingNavBar != oldWidget.hasFloatingNavBar ||
       navBarHeight != oldWidget.navBarHeight ||
-      navBarBottomMargin != oldWidget.navBarBottomMargin;
+      navBarBottomMargin != oldWidget.navBarBottomMargin ||
+      deviceBottomInset != oldWidget.deviceBottomInset;
 }
 
 /// Centralized layout spacing utility for bottom navigation clearance across PracticeKoro.
 ///
-/// Ensures that scrollable pages, cards, buttons, and bottom sheets always have sufficient
-/// clearance so that the last element can scroll completely above the floating bottom navigation
-/// bar without any overlap.
+/// Gives scrollable pages exactly enough bottom padding for their last item to sit
+/// [defaultBreathingGap] above the floating navbar (or the device safe area on
+/// screens without one) — and no more.
+///
+/// Note: [MainScaffold] uses `extendBody: true`, so inside the tabs Flutter already
+/// reports the whole bottom-bar area (including the mascot headroom above the pill)
+/// as `MediaQuery.padding.bottom`. Adding the bar height on top of that double-counts
+/// it, which is what used to leave a large blank area under every tab. The navbar case
+/// therefore uses the pill footprint plus [PKBottomNavScope.deviceBottomInset].
 class PKBottomSpacing {
   PKBottomSpacing._();
 
-  /// The standard height of the floating glassmorphic navbar pill.
+  /// The standard height of the floating navbar pill.
   static const double floatingBarHeight = 70.0;
 
-  /// The bottom margin applied to the floating navbar above the safe area.
-  static const double floatingBarBottomMargin = 10.0;
+  /// The gap between the navbar pill and the device safe area.
+  static const double floatingBarBottomMargin = 8.0;
 
-  /// Total vertical footprint of the floating navbar above safe area (70 + 10 = 80.0).
+  /// Total vertical footprint of the floating navbar above the safe area.
   static const double totalFloatingBarFootprint =
       floatingBarHeight + floatingBarBottomMargin;
 
-  /// Recommended visual breathing gap between the top of the navbar bubble/pill and the content.
+  /// Visual breathing gap between the last content item and the navbar pill.
   static const double defaultBreathingGap = 12.0;
 
-  /// Recommended spacing for screens without a floating bar (safe-area + gap).
+  /// Gap below the last item on screens without a floating bar (above the safe area).
   static const double defaultDetailGap = 20.0;
-
-  /// Adjustment offset to calibrate visual clearance with the floating navbar (reduced by 50px).
-  static const double floatingBarOffset = 50.0;
 
   /// Keeps the standard gutters useful on compact phones without changing spacing
   /// on normal-width devices or tablets.
@@ -71,54 +82,42 @@ class PKBottomSpacing {
     return preferred;
   }
 
-  /// Calculates the required bottom padding dynamically based on context.
+  /// Bottom padding for the current context.
   ///
-  /// If inside a [PKBottomNavScope] with an active floating navbar (such as the 5 main tabs),
-  /// this returns:
-  /// `(totalFloatingBarFootprint + MediaQuery.paddingOf(context).bottom + additionalGap - 50.0)`
+  /// Inside a [PKBottomNavScope] with an active floating navbar (the 5 main tabs):
+  /// `navBarHeight + navBarBottomMargin + deviceBottomInset + gap`.
   ///
-  /// If outside [PKBottomNavScope] (such as standalone detail or settings screens),
-  /// this returns:
-  /// `MediaQuery.paddingOf(context).bottom + additionalGap`
+  /// Everywhere else (pushed detail/settings screens):
+  /// `MediaQuery.padding.bottom + gap`.
   static double of(BuildContext context, {double? additionalGap}) {
     final scope = PKBottomNavScope.maybeOf(context);
-    // If scope is explicitly defined, use its hasFloatingNavBar flag.
-    // If no scope is found, check if we're on a route that uses MainScaffold or assume true for safety.
-    final isInsideNavBar = scope != null ? scope.hasFloatingNavBar : true;
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-
-    if (isInsideNavBar) {
-      final barHeight = scope?.navBarHeight ?? floatingBarHeight;
-      final barMargin = scope?.navBarBottomMargin ?? floatingBarBottomMargin;
-      final gap = additionalGap ?? defaultBreathingGap;
-      return (barHeight + barMargin + bottomInset + gap - floatingBarOffset)
-          .clamp(0.0, double.infinity);
-    } else {
-      final gap = additionalGap ?? defaultDetailGap;
-      return bottomInset + gap;
+    if (scope != null && scope.hasFloatingNavBar) {
+      return scope.navBarHeight +
+          scope.navBarBottomMargin +
+          scope.deviceBottomInset +
+          (additionalGap ?? defaultBreathingGap);
     }
+    return MediaQuery.paddingOf(context).bottom + (additionalGap ?? defaultDetailGap);
   }
 
-  /// Calculates the bottom padding specifically for pages with the floating navbar.
+  /// Bottom padding for a page that is known to sit above the floating navbar.
   static double floatingBarOf(
     BuildContext context, {
     double additionalGap = defaultBreathingGap,
   }) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    return (totalFloatingBarFootprint +
-            bottomInset +
-            additionalGap -
-            floatingBarOffset)
-        .clamp(0.0, double.infinity);
+    final scope = PKBottomNavScope.maybeOf(context);
+    return (scope?.navBarHeight ?? floatingBarHeight) +
+        (scope?.navBarBottomMargin ?? floatingBarBottomMargin) +
+        (scope?.deviceBottomInset ?? MediaQuery.paddingOf(context).bottom) +
+        additionalGap;
   }
 
-  /// Calculates the bottom padding for detail screens without a floating bar.
+  /// Bottom padding for detail screens without a floating bar.
   static double safeAreaOf(
     BuildContext context, {
     double additionalGap = defaultDetailGap,
   }) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    return bottomInset + additionalGap;
+    return MediaQuery.paddingOf(context).bottom + additionalGap;
   }
 
   /// Returns [EdgeInsets] with dynamically calculated bottom clearance.

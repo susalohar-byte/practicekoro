@@ -273,13 +273,16 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: MediaQuery(
+            // Inside MainScaffold (extendBody) padding already includes the bar area;
+            // the scope carries the real device inset.
             data: const MediaQueryData(
-              padding: EdgeInsets.only(bottom: 34.0), // iPhone safe-area inset
+              padding: EdgeInsets.only(bottom: 138.0),
             ),
             child: PKBottomNavScope(
               hasFloatingNavBar: true,
               navBarHeight: 78.0,
               navBarBottomMargin: 10.0,
+              deviceBottomInset: 34.0,
               child: Builder(
                 builder: (context) {
                   calculatedInside = PKBottomSpacing.of(context);
@@ -291,8 +294,9 @@ void main() {
         ),
       );
 
-      // 78 (height) + 10 (margin) + 34 (bottom inset) + 12 (breathing gap) - 50 = 84.0
-      expect(calculatedInside, equals(84.0));
+      // 78 (height) + 10 (margin) + 34 (device inset) + 12 (breathing gap) = 134.0,
+      // without double-counting the bar area already reported in padding.bottom.
+      expect(calculatedInside, equals(134.0));
 
       await tester.pumpWidget(
         MaterialApp(
@@ -326,6 +330,7 @@ void main() {
             ),
             child: PKBottomNavScope(
               hasFloatingNavBar: true,
+              deviceBottomInset: 20.0,
               child: Scaffold(
                 body: Column(
                   children: [
@@ -339,9 +344,9 @@ void main() {
         ),
       );
 
-      // 70 + 10 + 20 + 12 - 50 = 62.0
+      // 70 (pill) + 8 (margin) + 20 (device inset) + 12 (breathing gap) = 110.0
       final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox).last);
-      expect(sizedBox.height, equals(62.0));
+      expect(sizedBox.height, equals(110.0));
     });
 
     testWidgets('Popular Test Series section renders compact landscape cards', (tester) async {

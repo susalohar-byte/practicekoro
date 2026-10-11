@@ -253,11 +253,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: _blue,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: PKBottomSpacing.safeAreaEdgeInsets(
+                  padding: PKBottomSpacing.edgeInsets(
                     context,
                     horizontal: 16,
                     top: 8,
-                    additionalGap: 24,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

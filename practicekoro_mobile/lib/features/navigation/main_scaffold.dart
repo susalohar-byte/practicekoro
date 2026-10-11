@@ -137,8 +137,11 @@ class _MainScaffoldState extends State<MainScaffold>
       backgroundColor: const Color(0xFFF8FAFC),
       body: PKBottomNavScope(
         hasFloatingNavBar: true,
-        navBarHeight: 74.0,
-        navBarBottomMargin: 12.0,
+        // Must match the pill below: 70dp tall (66 on compact widths) with an 8dp bottom margin.
+        navBarHeight: 70.0,
+        navBarBottomMargin: 8.0,
+        // Read here, outside the Scaffold body, where the real device inset is still visible.
+        deviceBottomInset: MediaQuery.paddingOf(context).bottom,
         child: IndexedStack(
           index: _currentIndex,
           children: [

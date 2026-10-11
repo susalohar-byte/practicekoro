@@ -446,7 +446,6 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
               ),
             );
           }),
-        const SizedBox(height: 20),
       ],
     );
   }

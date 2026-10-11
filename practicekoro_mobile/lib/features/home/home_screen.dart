@@ -162,7 +162,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   // 9. Daily Practice (Highlighted Challenge Card, Admin-controlled)
                   padded(_buildDailyPracticeSection(dailyContent)),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
