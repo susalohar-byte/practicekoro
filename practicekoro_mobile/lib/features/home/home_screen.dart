@@ -262,137 +262,156 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildHeader(int unreadNotifsCount, [String? userAvatarUrl]) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // PracticeKoro Logo & Brand Text
-        Flexible(
-          child: InkWell(
-            onTap: () => _refresh(),
-            borderRadius: BorderRadius.circular(10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/images/logo-circle.png',
-                  width: 36,
-                  height: 36,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => Container(
+        // PracticeKoro Logo & Brand Text on the Left (Expanded pushes right actions to the edge)
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: () => _refresh(),
+              borderRadius: BorderRadius.circular(10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/logo-circle.png',
                     width: 36,
                     height: 36,
-                    decoration: const BoxDecoration(
-                      color: PK.blue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text('P', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'PracticeKoro',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0F1E4A),
-                        letterSpacing: -0.4,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: PK.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text('P', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  const Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'PracticeKoro',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F1E4A),
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         const SizedBox(width: 8),
-        // Search Action Button
-        _circularHeaderButton(
-          icon: Icons.search_rounded,
-          tooltip: 'Search test series',
-          onTap: () => _navigateToTab(1, '/test-series'),
-        ),
-        const SizedBox(width: 8),
-        // Notifications Action Button with Dynamic Badge
-        Stack(
-          clipBehavior: Clip.none,
+
+        // Right Actions: Search, Notifications, Profile (all grouped and hugging the right edge)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Search Action Button
             _circularHeaderButton(
-              icon: Icons.notifications_none_rounded,
-              tooltip: 'Notifications',
-              onTap: () => context.push('/notifications'),
+              icon: Icons.search_rounded,
+              tooltip: 'Search test series',
+              onTap: () => _navigateToTab(1, '/test-series'),
             ),
-            if (unreadNotifsCount > 0)
-              Positioned(
-                right: 1,
-                top: 1,
-                child: Container(
-                  padding: const EdgeInsets.all(3.5),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Center(
-                    child: Text(
-                      unreadNotifsCount > 99 ? '99+' : '$unreadNotifsCount',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.0,
-                      ),
-                    ),
-                  ),
+            const SizedBox(width: 8),
+            // Notifications Action Button with Dynamic Badge
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _circularHeaderButton(
+                  icon: Icons.notifications_none_rounded,
+                  tooltip: 'Notifications',
+                  onTap: () => context.push('/notifications'),
                 ),
-              ),
-          ],
-        ),
-        const SizedBox(width: 8),
-        // Student Profile Avatar on the far right
-        Tooltip(
-          message: 'Profile',
-          child: InkWell(
-            onTap: () => _navigateToTab(4, '/profile'),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE5EAF2), width: 1.5),
-                color: const Color(0xFFDBEAFE),
-              ),
-              child: ClipOval(
-                child: (userAvatarUrl != null && userAvatarUrl.isNotEmpty)
-                    ? Image.network(
-                        userAvatarUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Image.asset(
-                          'assets/images/profile_avatar_boy.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
-                            Icons.person_rounded,
-                            size: 22,
-                            color: Color(0xFF0158FC),
+                if (unreadNotifsCount > 0)
+                  Positioned(
+                    right: 1,
+                    top: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Center(
+                        child: Text(
+                          unreadNotifsCount > 99 ? '99+' : '$unreadNotifsCount',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.0,
                           ),
                         ),
-                      )
-                    : Image.asset(
-                        'assets/images/profile_avatar_boy.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Icon(
-                          Icons.person_rounded,
-                          size: 22,
-                          color: Color(0xFF0158FC),
-                        ),
                       ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            // Student Profile Avatar on the far right (hugging the right edge)
+            Tooltip(
+              message: 'Profile',
+              child: InkWell(
+                onTap: () => _navigateToTab(4, '/profile'),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE5EAF2), width: 1.5),
+                    color: const Color(0xFFDBEAFE),
+                  ),
+                  child: ClipOval(
+                    child: (userAvatarUrl != null && userAvatarUrl.isNotEmpty)
+                        ? Image.network(
+                            userAvatarUrl,
+                            fit: BoxFit.cover,
+                            width: 38,
+                            height: 38,
+                            errorBuilder: (context, error, stackTrace) => Image.asset(
+                              'assets/images/profile_avatar_boy.png',
+                              fit: BoxFit.cover,
+                              width: 38,
+                              height: 38,
+                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                Icons.person_rounded,
+                                size: 22,
+                                color: Color(0xFF0158FC),
+                              ),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/images/profile_avatar_boy.png',
+                            fit: BoxFit.cover,
+                            width: 38,
+                            height: 38,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.person_rounded,
+                              size: 22,
+                              color: Color(0xFF0158FC),
+                            ),
+                          ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
     );
