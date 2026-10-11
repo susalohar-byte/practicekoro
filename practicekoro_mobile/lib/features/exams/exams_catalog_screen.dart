@@ -6,6 +6,7 @@ import '../../core/widgets/pk_bottom_spacing.dart';
 import '../../data/models/exam_model.dart';
 import '../../data/models/test_series_model.dart';
 import '../../data/repositories/catalog_repository.dart';
+import '../../core/utils/image_url_helper.dart';
 
 /// Test Series listing: search, test-type and exam filters, one featured series and
 /// the list of published series. Everything shown comes from `test_series` rows.
@@ -154,7 +155,11 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
               _buildSearchRow(exams),
               const SizedBox(height: 12),
               _buildTypeFilters(),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
+              if (!_hasActiveFilters) ...[
+                _buildHeroBanner(),
+                const SizedBox(height: 16),
+              ],
               if (seriesAsync.isLoading && all.isEmpty)
                 ..._buildSkeleton()
               else if (seriesAsync.hasError && all.isEmpty)
@@ -246,7 +251,122 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
             ],
           ),
         ),
+        Material(
+          color: PK.card,
+          shape: const CircleBorder(side: BorderSide(color: PK.border)),
+          child: IconButton(
+            tooltip: 'Search',
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            icon: const Icon(Icons.search_rounded, size: 20, color: PK.text),
+            onPressed: () {},
+          ),
+        ),
       ],
+    );
+  }
+
+  // ─── Hero Banner ───────────────────────────────────────────────────────────
+
+  Widget _buildHeroBanner() {
+    final heroBanners = ref.watch(heroBannersProvider).asData?.value;
+    String? adminImageUrl;
+    if (heroBanners != null && heroBanners.isNotEmpty) {
+      for (final b in heroBanners) {
+        final placement = (b['placement'] ?? '').toString();
+        final isActive = b['is_active'] ?? b['isActive'] ?? true;
+        final url = (b['image_url'] ?? b['imageUrl'] ?? b['banner_url']) as String?;
+        if ((placement == 'test_series' || placement == 'catalog') && isActive == true && url != null && url.trim().isNotEmpty) {
+          adminImageUrl = url.trim();
+          break;
+        }
+      }
+    }
+
+    if (adminImageUrl != null) {
+      return Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0C000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: PkAdminImage(
+            imageUrl: adminImageUrl,
+            fit: BoxFit.cover,
+            fallbackExamTitle: 'Test Series',
+          ),
+        ),
+      );
+    }
+
+    // Default sample illustration with soft shadow (Admin uploadable banner fallback)
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFD9EEFE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBAE6FD)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A026BFC),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 110, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Structured\nTest Series for\nYour Success!',
+                    style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                      height: 1.2,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Exam-focused tests,\nreal exam pattern, better results.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF334155),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 8,
+              bottom: 4,
+              child: Image.asset(
+                'assets/images/nimo_ready.png',
+                height: 86,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -538,7 +658,7 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
       onTap: () => _open(s),
       borderRadius: BorderRadius.circular(PK.radius),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: PK.cardBox(),
         child: Row(
           children: [
@@ -547,8 +667,8 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
               examTitle: s.examTitle,
               slug: s.slug,
               imageUrl: s.bannerUrl ?? s.iconUrl,
-              width: 84,
-              height: 76,
+              width: 76,
+              height: 72,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -573,12 +693,12 @@ class _ExamsCatalogScreenState extends ConsumerState<ExamsCatalogScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _label(s),
+                    'Complete Test Series',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: PK.textMuted),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: PK.textMuted),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Expanded(child: _meta(s)),

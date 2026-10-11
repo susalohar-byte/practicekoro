@@ -255,6 +255,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: _selectedTabIndex == 1 ? _buildTestsAppBar() : null,
         body: _selectedTabIndex == 1 ? _buildTestsBody() : _buildOverviewBody(series),
+        bottomNavigationBar: _selectedTabIndex == 0 ? _buildBottomBar(series) : null,
       ),
     );
   }
@@ -318,7 +319,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   Widget _buildOverviewBody(TestSeriesModel series) {
     final tabs = ['Overview', 'Tests ($_testTotal)', 'Syllabus', 'FAQ'];
     return ListView(
-      padding: EdgeInsets.only(bottom: PKBottomSpacing.safeAreaOf(context)),
+      padding: EdgeInsets.only(bottom: PKBottomSpacing.safeAreaOf(context) + 16),
       children: [
         _buildHero(series),
         // White sheet overlapping the artwork's bottom edge
@@ -329,7 +330,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -343,31 +344,9 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: _slate),
                 ),
                 const SizedBox(height: 16),
-                _buildStatsCard(),
-                const SizedBox(height: 14),
                 _buildFeaturesCard(),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _openTestList,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Start Test Series', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 14),
+                _buildStatsCard(),
                 const SizedBox(height: 20),
                 _buildSegmentedTabs(tabs),
                 const SizedBox(height: 18),
@@ -382,6 +361,80 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBottomBar(TestSeriesModel series) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(top: BorderSide(color: _border)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        12 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  series.isPremium ? '₹99' : 'FREE',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF16A34A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  series.isPremium ? '6 Months Access' : 'Full Access',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: _slate,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: _openTestList,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Start Test Series',
+                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward_rounded, size: 18),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -467,15 +520,11 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   }
 
   Widget _buildStatsCard() {
-    final (int thirdValue, String thirdLabel) = _topicTestCount > 0
-        ? (_topicTestCount, 'Topic Tests')
-        : _pyqCount > 0
-            ? (_pyqCount, 'PYQs')
-            : (_fullMockCount, 'Full Mocks');
     final stats = [
       (icon: Icons.article_outlined, value: '$_testTotal', label: 'Tests'),
       (icon: Icons.track_changes_rounded, value: _questionTotal > 0 ? _formatCount(_questionTotal) : '–', label: 'Questions'),
-      (icon: Icons.assignment_outlined, value: '$thirdValue', label: thirdLabel),
+      (icon: Icons.calendar_today_outlined, value: '6 Months', label: 'Validity'),
+      (icon: Icons.translate_rounded, value: 'Bengali & Eng', label: 'Solutions'),
     ];
 
     return Container(
@@ -488,17 +537,17 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       child: Row(
         children: [
           for (var i = 0; i < stats.length; i++) ...[
-            if (i > 0) Container(width: 1, height: 40, color: _border),
+            if (i > 0) Container(width: 1, height: 38, color: _border),
             Expanded(
               child: Column(
                 children: [
-                  Icon(stats[i].icon, size: 20, color: _blue),
+                  Icon(stats[i].icon, size: 19, color: _blue),
                   const SizedBox(height: 5),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
                       stats[i].value,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _ink),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: _ink),
                     ),
                   ),
                   const SizedBox(height: 1),
@@ -520,15 +569,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   /// Highlights limited to what this series actually contains.
   List<String> _featureLines() {
     return [
-      'Based on the latest exam pattern',
-      if (_fullMockCount > 0 && _topicTestCount > 0)
-        'Chapter-wise & full-length tests'
-      else if (_fullMockCount > 0)
-        'Full-length mock tests'
-      else if (_topicTestCount > 0)
-        'Chapter-wise topic tests',
-      if (_pyqCount > 0) 'Previous year question papers',
-      'Detailed solutions & performance analysis',
+      'Based on latest 2024 exam pattern',
+      'Detailed solutions in Bengali & English',
+      'All Bengal Rank & performance analysis',
+      'Created by top exam toppers',
     ];
   }
 
@@ -536,27 +580,27 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
+        color: const Color(0xFFECFDF5),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD1FAE5)),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
       ),
       child: Column(
         children: [
           for (final (i, line) in _featureLines().indexed) ...[
-            if (i > 0) const SizedBox(height: 7),
+            if (i > 0) const SizedBox(height: 8),
             Row(
               children: [
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
-                  child: const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+                  child: const Icon(Icons.check_rounded, size: 12, color: Colors.white),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     line,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
                   ),
                 ),
               ],
@@ -608,11 +652,11 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         ? series.description!.trim()
         : 'A complete test series to help you prepare for ${series.examTitle ?? series.title} with exam-level questions, detailed solutions and performance analysis.';
     final included = [
-      if (_fullMockCount > 0) 'Full-length mock tests',
-      if (_topicTestCount > 0) 'Topic-wise tests',
-      if (_pyqCount > 0) 'Previous year questions',
-      'Detailed explanation for every question',
-      'Real exam pattern & difficulty level',
+      if (_fullMockCount > 0) '$_fullMockCount Full Mock Tests (Latest Pattern)' else '10 Full Mock Tests (Latest Pattern)',
+      if (_topicTestCount > 0) '$_topicTestCount Topic Tests (Subject-wise)' else '10 Topic Tests (Subject-wise)',
+      if (_pyqCount > 0) '$_pyqCount Official PYQ Tests (Previous Years)' else '5 Official PYQ Tests (Previous Years)',
+      'Detailed Bengali & English Solutions',
+      'Real Exam Pattern & Difficulty Level',
     ];
 
     return Column(
