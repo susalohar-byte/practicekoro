@@ -41,6 +41,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Radio,
+  Headphones,
 } from 'lucide-react';
 import { useMaintenance } from '@/context/MaintenanceContext';
 import { cn } from '@/lib/utils';
@@ -214,6 +215,13 @@ export const AdminLayout: React.FC = () => {
           path: '/admin/topics',
           altPaths: ['/admin/topic-manage', '/admin/chapters'],
           icon: FolderTree,
+          permission: 'canManageExams',
+        },
+        {
+          key: 'audio-books',
+          label: 'Audio Book',
+          path: '/admin/audio-books',
+          icon: Headphones,
           permission: 'canManageExams',
         },
         {

@@ -238,6 +238,11 @@ const AdminLiveTests = lazyWithRetry(() =>
     default: module.AdminLiveTests,
   }))
 );
+const AdminAudioBooks = lazyWithRetry(() =>
+  import('@/pages/admin/AdminAudioBooks').then((module) => ({
+    default: module.AdminAudioBooks,
+  }))
+);
 const AdminBlog = lazyWithRetry(() =>
   import('@/pages/admin/AdminBlog').then((module) => ({
     default: module.AdminBlog,
@@ -535,6 +540,14 @@ export const App: React.FC = () => {
             element={
               <AdminRoute requiredPermission="canManageExams">
                 <AdminTopics />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="audio-books"
+            element={
+              <AdminRoute requiredPermission="canManageExams">
+                <AdminAudioBooks />
               </AdminRoute>
             }
           />
