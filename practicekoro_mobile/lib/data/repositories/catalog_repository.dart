@@ -139,6 +139,63 @@ class CatalogRepository {
     }
   }
 
+  static const List<ExamModel> defaultExams = [
+    ExamModel(
+      id: 'wbp-constable',
+      title: 'WBP Constable',
+      slug: 'wbp-constable',
+      category: 'Police',
+      iconName: 'assets/images/exams/exam_round_wbp.png',
+      orderIndex: 1,
+      isActive: true,
+    ),
+    ExamModel(
+      id: 'wbssc-group-c-d',
+      title: 'WBSSC Group C & D',
+      slug: 'wbssc-group-c-d',
+      category: 'State Govt.',
+      iconName: 'assets/images/exams/exam_round_wbssc.png',
+      orderIndex: 2,
+      isActive: true,
+    ),
+    ExamModel(
+      id: 'railway-ntpc',
+      title: 'Railway NTPC',
+      slug: 'railway-ntpc',
+      category: 'Railways',
+      iconName: 'assets/images/exams/exam_round_railway.png',
+      orderIndex: 3,
+      isActive: true,
+    ),
+    ExamModel(
+      id: 'food-si',
+      title: 'Food SI',
+      slug: 'food-si',
+      category: 'WBPSC',
+      iconName: 'assets/images/exams/exam_round_food_si.png',
+      orderIndex: 4,
+      isActive: true,
+    ),
+    ExamModel(
+      id: 'ssc',
+      title: 'SSC',
+      slug: 'ssc',
+      category: 'Central Govt.',
+      iconName: 'assets/images/exams/exam_round_ssc.png',
+      orderIndex: 5,
+      isActive: true,
+    ),
+    ExamModel(
+      id: 'bank-exams',
+      title: 'Bank Exams',
+      slug: 'bank-exams',
+      category: 'Banking',
+      iconName: 'assets/images/exams/exam_round_bank.png',
+      orderIndex: 6,
+      isActive: true,
+    ),
+  ];
+
   Future<List<ExamModel>> getExams() async {
     final client = _supabase;
     if (client != null) {
@@ -154,7 +211,7 @@ class CatalogRepository {
               .toList();
         }
       } catch (_) {
-        // Fallback to local mock data
+        // Fallback to empty list
       }
     }
     return [];
