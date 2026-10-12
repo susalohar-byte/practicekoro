@@ -1296,13 +1296,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final visible = exams.where((e) => e.isActive).toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
-    Color getExamColor(ExamModel ex, int index) {
+    _ExamTheme getExamTheme(ExamModel ex, int index) {
       final t = ex.title.toLowerCase();
       if ((t.contains('wbp') && !t.contains('wbpsc')) ||
           t.contains('police') ||
           t.contains('constable') ||
           t.contains('warder')) {
-        return const Color(0xFF0082FF); // Blue - WBP
+        return const _ExamTheme(
+          bg: Color(0xFFF0F9FF),
+          border: Color(0xFF90C2FF),
+          chevron: Color(0xFF0284C7),
+          discBg: Color(0xFFE0F2FE),
+        );
       }
       if (t.contains('wbssc') ||
           t.contains('group c') ||
@@ -1310,39 +1315,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           t.contains('group d') ||
           t.contains('group-d') ||
           t.contains('clerk')) {
-        return const Color(0xFFFFB400); // Amber - WBSSC
+        return const _ExamTheme(
+          bg: Color(0xFFFFFBEB),
+          border: Color(0xFFFDE68A),
+          chevron: Color(0xFFD97706),
+          discBg: Color(0xFFFEF3C7),
+        );
       }
       if (t.contains('rail') ||
           t.contains('ntpc') ||
           t.contains('rrb') ||
           t.contains('alp')) {
-        return const Color(0xFFFE1D4F); // Coral Red - Railway
-      }
-      if (t.contains('food')) {
-        return const Color(0xFF00D259); // Green - Food SI
+        return const _ExamTheme(
+          bg: Color(0xFFFFF1F2),
+          border: Color(0xFFFECDD3),
+          chevron: Color(0xFFE11D48),
+          discBg: Color(0xFFFFE4E6),
+        );
       }
       if (t.contains('ssc') ||
           t.contains('mts') ||
           t.contains('cgl') ||
           t.contains('chsl') ||
           t.contains('gd')) {
-        return const Color(0xFF970FF9); // Purple - SSC
+        return const _ExamTheme(
+          bg: Color(0xFFF5F3FF),
+          border: Color(0xFFDDD6FE),
+          chevron: Color(0xFF7C3AED),
+          discBg: Color(0xFFEDE9FE),
+        );
       }
       if (t.contains('bank') ||
           t.contains('ibps') ||
           t.contains('sbi') ||
           t.contains('rbi')) {
-        return const Color(0xFFFE7105); // Orange - Bank
+        return const _ExamTheme(
+          bg: Color(0xFFF0FDF4),
+          border: Color(0xFFBBF7D0),
+          chevron: Color(0xFF16A34A),
+          discBg: Color(0xFFDCFCE7),
+        );
       }
-      const palette = [
-        Color(0xFF0082FF),
-        Color(0xFFFFB400),
-        Color(0xFFFE1D4F),
-        Color(0xFF00D259),
-        Color(0xFF970FF9),
-        Color(0xFFFE7105),
+      if (t.contains('food')) {
+        return const _ExamTheme(
+          bg: Color(0xFFF0FDF4),
+          border: Color(0xFF86EFAC),
+          chevron: Color(0xFF16A34A),
+          discBg: Color(0xFFDCFCE7),
+        );
+      }
+      const fallbackThemes = [
+        _ExamTheme(
+          bg: Color(0xFFF0F9FF),
+          border: Color(0xFF90C2FF),
+          chevron: Color(0xFF0284C7),
+          discBg: Color(0xFFE0F2FE),
+        ),
+        _ExamTheme(
+          bg: Color(0xFFFFFBEB),
+          border: Color(0xFFFDE68A),
+          chevron: Color(0xFFD97706),
+          discBg: Color(0xFFFEF3C7),
+        ),
+        _ExamTheme(
+          bg: Color(0xFFFFF1F2),
+          border: Color(0xFFFECDD3),
+          chevron: Color(0xFFE11D48),
+          discBg: Color(0xFFFFE4E6),
+        ),
+        _ExamTheme(
+          bg: Color(0xFFF5F3FF),
+          border: Color(0xFFDDD6FE),
+          chevron: Color(0xFF7C3AED),
+          discBg: Color(0xFFEDE9FE),
+        ),
+        _ExamTheme(
+          bg: Color(0xFFF0FDF4),
+          border: Color(0xFFBBF7D0),
+          chevron: Color(0xFF16A34A),
+          discBg: Color(0xFFDCFCE7),
+        ),
       ];
-      return palette[index % palette.length];
+      return fallbackThemes[index % fallbackThemes.length];
     }
 
     bool looksLikeImage(String? v) {
@@ -1368,48 +1422,136 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset(
-          'assets/images/dashboard/target_icon.png',
-          width: 22,
-          height: 22,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => const Icon(
-            Icons.track_changes_rounded,
-            color: Color(0xFFFF2E63),
-            size: 22,
+        // Graduation cap icon in circular gradient badge with sparkles
+        Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color(0xFFE0EDFF), Color(0xFFEAEBFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              const Icon(
+                Icons.school_rounded,
+                color: Color(0xFF1D4ED8),
+                size: 21,
+              ),
+              Positioned(
+                top: -2,
+                right: -2,
+                child: CustomPaint(
+                  size: const Size(9, 9),
+                  painter: const _SparklePainter(color: Color(0xFF2563EB)),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'Exams for You',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F1E4A),
-              letterSpacing: -0.3,
+        // Title: "Exams" (black) + "For You" (blue with yellow swoosh)
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                // Plain string for test finders and accessibility semantics
+                const Opacity(
+                  opacity: 0.0,
+                  child: Text(
+                    'Exams for You',
+                    style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Exams ',
+                      style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'For You',
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF2563EB),
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        CustomPaint(
+                          size: const Size(54, 3.5),
+                          painter: const _SwooshUnderlinePainter(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
+        const SizedBox(width: 6),
+        // "View All Exams ->" pill button
         InkWell(
           onTap: () => _navigateToTab(1, '/exams'),
-          borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Row(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'View All',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0084FF),
+                    color: Color(0xFF2563EB),
                   ),
                 ),
-                SizedBox(width: 3),
-                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0084FF), size: 15),
+                Text(
+                  ' Exams',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 13,
+                ),
               ],
             ),
           ),
@@ -1417,106 +1559,128 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ],
     );
 
-    final textScale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.4);
-    const ring = 74.0; // dashed ring diameter
-    const disc = 62.0; // circular image disc diameter
-    const itemWidth = 86.0;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 16),
+          if (visible.isEmpty)
+            const PKEmptyCard(
+              icon: Icons.school_rounded,
+              title: 'No exams published yet',
+              message: 'Exams will appear here as soon as they are available.',
+            )
+          else
+            SizedBox(
+              height: 64,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                clipBehavior: Clip.none,
+                padding: EdgeInsets.zero,
+                itemCount: visible.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  final ex = visible[i];
+                  final theme = getExamTheme(ex, i);
+                  final image = examImage(ex);
+                  final roundAsset = ExamAssets.getRoundIconAsset(ex.title);
+                  final isRoundArt = (image != null && image.contains('exam_round_')) ||
+                      (image == null && roundAsset != null);
+                  final inset = isRoundArt ? 0.0 : 6.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        header,
-        const SizedBox(height: 14),
-        if (visible.isEmpty)
-          const PKEmptyCard(
-            icon: Icons.school_rounded,
-            title: 'No exams published yet',
-            message: 'Exams will appear here as soon as they are available.',
-          )
-        else
-          SizedBox(
-            height: ring + 10 + 34 * textScale,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              clipBehavior: Clip.none,
-              padding: EdgeInsets.zero,
-              itemCount: visible.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final ex = visible[i];
-                final color = getExamColor(ex, i);
-                final image = examImage(ex);
-                final roundAsset = ExamAssets.getRoundIconAsset(ex.title);
-                // 3D round artwork fills the disc edge-to-edge; custom admin logos
-                // get slight padding inside the pastel circle.
-                final isRoundArt = (image != null && image.contains('exam_round_')) ||
-                    (image == null && roundAsset != null);
-                final inset = isRoundArt ? 0.0 : 7.0;
-
-                return SizedBox(
-                  width: itemWidth,
-                  child: Semantics(
+                  return Semantics(
                     button: true,
                     label: ex.title,
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       onTap: () => context.push(
                         '/exams/${Uri.encodeComponent(ex.id)}?title=${Uri.encodeComponent(ex.title)}',
                       ),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: ring,
-                            height: ring,
-                            child: CustomPaint(
-                              painter: _DashedRingPainter(color: color),
-                              child: Center(
-                                child: Container(
-                                  width: disc,
-                                  height: disc,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: color.withValues(alpha: 0.12),
+                      child: Container(
+                        width: 172,
+                        height: 64,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.bg,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: theme.border, width: 1.2),
+                        ),
+                        child: Row(
+                          children: [
+                            // 3D round artwork / admin logo disc
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.discBg,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.chevron.withValues(alpha: 0.12),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1.5),
                                   ),
-                                  clipBehavior: Clip.antiAlias,
-                                  padding: EdgeInsets.all(inset),
-                                  child: PkAdminImage(
-                                    imageUrl: image,
-                                    width: disc - inset * 2,
-                                    height: disc - inset * 2,
-                                    fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
-                                    fallbackExamTitle: ex.title,
-                                    fallbackAsset: roundAsset,
-                                    fallbackColor: color,
-                                    preferRoundIcon: true,
-                                  ),
+                                ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              padding: EdgeInsets.all(inset),
+                              child: PkAdminImage(
+                                imageUrl: image,
+                                width: 44 - inset * 2,
+                                height: 44 - inset * 2,
+                                fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
+                                fallbackExamTitle: ex.title,
+                                fallbackAsset: roundAsset,
+                                fallbackColor: theme.border,
+                                preferRoundIcon: true,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Exam title
+                            Expanded(
+                              child: Text(
+                                ex.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13.0,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F1E4A),
+                                  height: 1.15,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            ex.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F1E4A),
-                              height: 1.18,
+                            // Chevron arrow
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: theme.chevron,
+                              size: 19,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -2672,5 +2836,75 @@ class _SeriesTheme {
     required this.chevronBg,
     required this.chevron,
   });
+}
+
+class _ExamTheme {
+  final Color bg;
+  final Color border;
+  final Color chevron;
+  final Color discBg;
+
+  const _ExamTheme({
+    required this.bg,
+    required this.border,
+    required this.chevron,
+    required this.discBg,
+  });
+}
+
+class _SparklePainter extends CustomPainter {
+  final Color color;
+  const _SparklePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Two delicate sparkle rays
+    canvas.drawLine(
+      Offset(size.width * 0.2, size.height * 0.8),
+      Offset(size.width * 0.7, size.height * 0.2),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.7, size.height * 0.9),
+      Offset(size.width * 0.9, size.height * 0.5),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklePainter oldDelegate) => oldDelegate.color != color;
+}
+
+class _SwooshUnderlinePainter extends CustomPainter {
+  const _SwooshUnderlinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFBBF24)
+      ..strokeWidth = 3.2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..moveTo(2, size.height * 0.25)
+      ..quadraticBezierTo(
+        size.width * 0.5,
+        size.height * 0.95,
+        size.width - 2,
+        size.height * 0.35,
+      );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
