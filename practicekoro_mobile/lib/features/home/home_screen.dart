@@ -14,6 +14,7 @@ import '../../data/models/test_series_model.dart';
 import '../../data/models/test_model.dart';
 import '../../data/models/subject_model.dart';
 import '../../data/repositories/catalog_repository.dart';
+import '../../core/constants/exam_assets.dart';
 import '../../core/utils/image_url_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -1291,19 +1292,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<ExamModel> exams, [
     List<Map<String, dynamic>> popularExams = const [],
   ]) {
-    // Ring colours from the reference: blue, amber, pink, green, purple, orange.
-    const ringColors = [
-      Color(0xFF3B82F6),
-      Color(0xFFF2B705),
-      Color(0xFFF43F5E),
-      Color(0xFF22C55E),
-      Color(0xFFA855F7),
-      Color(0xFFF97316),
-    ];
-
     // Published exams only, in the admin-defined order.
     final visible = exams.where((e) => e.isActive).toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+    Color getExamColor(ExamModel ex, int index) {
+      final t = ex.title.toLowerCase();
+      if ((t.contains('wbp') && !t.contains('wbpsc')) ||
+          t.contains('police') ||
+          t.contains('constable') ||
+          t.contains('warder')) {
+        return const Color(0xFF0082FF); // Blue - WBP
+      }
+      if (t.contains('wbssc') ||
+          t.contains('group c') ||
+          t.contains('group-c') ||
+          t.contains('group d') ||
+          t.contains('group-d') ||
+          t.contains('clerk')) {
+        return const Color(0xFFFFB400); // Amber - WBSSC
+      }
+      if (t.contains('rail') ||
+          t.contains('ntpc') ||
+          t.contains('rrb') ||
+          t.contains('alp')) {
+        return const Color(0xFFFE1D4F); // Coral Red - Railway
+      }
+      if (t.contains('food')) {
+        return const Color(0xFF00D259); // Green - Food SI
+      }
+      if (t.contains('ssc') ||
+          t.contains('mts') ||
+          t.contains('cgl') ||
+          t.contains('chsl') ||
+          t.contains('gd')) {
+        return const Color(0xFF970FF9); // Purple - SSC
+      }
+      if (t.contains('bank') ||
+          t.contains('ibps') ||
+          t.contains('sbi') ||
+          t.contains('rbi')) {
+        return const Color(0xFFFE7105); // Orange - Bank
+      }
+      const palette = [
+        Color(0xFF0082FF),
+        Color(0xFFFFB400),
+        Color(0xFFFE1D4F),
+        Color(0xFF00D259),
+        Color(0xFF970FF9),
+        Color(0xFFFE7105),
+      ];
+      return palette[index % palette.length];
+    }
 
     bool looksLikeImage(String? v) {
       final t = v?.trim() ?? '';
@@ -1329,7 +1369,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final header = Row(
       children: [
-        const Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 22),
+        Image.asset(
+          'assets/images/dashboard/target_icon.png',
+          width: 22,
+          height: 22,
+          fit: BoxFit.contain,
+          errorBuilder: (_, _, _) => const Icon(
+            Icons.track_changes_rounded,
+            color: Color(0xFFFF2E63),
+            size: 22,
+          ),
+        ),
         const SizedBox(width: 8),
         const Expanded(
           child: Text(
@@ -1352,10 +1402,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Text(
                   'View All',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0084FF),
+                  ),
                 ),
                 SizedBox(width: 3),
-                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 15),
+                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0084FF), size: 15),
               ],
             ),
           ),
@@ -1365,17 +1419,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final textScale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.4);
     const ring = 74.0; // dashed ring diameter
-    const disc = 62.0; // pastel image disc diameter
+    const disc = 62.0; // circular image disc diameter
     const itemWidth = 86.0;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFEDF2F9)),
         boxShadow: const [
-          BoxShadow(color: Color(0x0D0F1E4A), blurRadius: 18, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Color(0x0A0F1E4A),
+            blurRadius: 18,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -1400,11 +1458,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 separatorBuilder: (_, _) => const SizedBox(width: 6),
                 itemBuilder: (context, i) {
                   final ex = visible[i];
-                  final color = ringColors[i % ringColors.length];
+                  final color = getExamColor(ex, i);
                   final image = examImage(ex);
-                  // Admin logos keep their full shape (contain, padded); the bundled
-                  // default artwork fills the circle like the reference illustrations.
-                  final inset = image != null ? 8.0 : 0.0;
+                  final roundAsset = ExamAssets.getRoundIconAsset(ex.title);
+                  // 3D round artwork fills the disc edge-to-edge; custom admin logos
+                  // get slight padding inside the pastel circle.
+                  final isRoundArt = (image != null && image.contains('exam_round_')) ||
+                      (image == null && roundAsset != null);
+                  final inset = isRoundArt ? 0.0 : 7.0;
+
                   return SizedBox(
                     width: itemWidth,
                     child: Semantics(
@@ -1432,18 +1494,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                     clipBehavior: Clip.antiAlias,
                                     padding: EdgeInsets.all(inset),
-                                    child: Transform.scale(
-                                      // Bundled card art has wide margins; enlarge it a little
-                                      // so the illustration reads clearly without being cut.
-                                      scale: image != null ? 1.0 : 1.2,
-                                      child: PkAdminImage(
-                                        imageUrl: image,
-                                        width: disc - inset * 2,
-                                        height: disc - inset * 2,
-                                        fit: BoxFit.contain,
-                                        fallbackExamTitle: ex.title,
-                                        fallbackColor: color,
-                                      ),
+                                    child: PkAdminImage(
+                                      imageUrl: image,
+                                      width: disc - inset * 2,
+                                      height: disc - inset * 2,
+                                      fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
+                                      fallbackExamTitle: ex.title,
+                                      fallbackAsset: roundAsset,
+                                      fallbackColor: color,
+                                      preferRoundIcon: true,
                                     ),
                                   ),
                                 ),
@@ -1456,10 +1515,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w700,
                                 color: Color(0xFF0F1E4A),
-                                height: 1.15,
+                                height: 1.18,
                               ),
                             ),
                           ],

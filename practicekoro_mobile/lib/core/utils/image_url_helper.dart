@@ -39,6 +39,12 @@ class ImageUrlHelper {
       'logo_wbpsc.png': 'assets/images/exams/emblem_wbpsc.png',
       'emblem_wbtet_seal.png': 'assets/images/exams/emblem_wbtet_seal.png',
       'logo_wbtet.png': 'assets/images/exams/emblem_wbtet_seal.png',
+      'exam_round_wbp.png': 'assets/images/exams/exam_round_wbp.png',
+      'exam_round_wbssc.png': 'assets/images/exams/exam_round_wbssc.png',
+      'exam_round_railway.png': 'assets/images/exams/exam_round_railway.png',
+      'exam_round_food_si.png': 'assets/images/exams/exam_round_food_si.png',
+      'exam_round_ssc.png': 'assets/images/exams/exam_round_ssc.png',
+      'exam_round_bank.png': 'assets/images/exams/exam_round_bank.png',
     };
     if (localAssetMap.containsKey(filename)) {
       return localAssetMap[filename]!;
@@ -121,9 +127,11 @@ class PkAdminImage extends StatelessWidget {
   final BoxFit fit;
   final BorderRadius? borderRadius;
   final String? fallbackExamTitle;
+  final String? fallbackAsset;
   final IconData fallbackIcon;
   final Color? fallbackColor;
   final Color? backgroundColor;
+  final bool preferRoundIcon;
 
   const PkAdminImage({
     super.key,
@@ -133,17 +141,31 @@ class PkAdminImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.fallbackExamTitle,
+    this.fallbackAsset,
     this.fallbackIcon = Icons.school_rounded,
     this.fallbackColor,
     this.backgroundColor,
+    this.preferRoundIcon = false,
   });
 
   Widget _buildFallback() {
+    if (fallbackAsset != null) {
+      return Image.asset(
+        fallbackAsset!,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
     if (fallbackExamTitle != null) {
-      final iconOrEmblem = ExamAssets.getIconAsset(fallbackExamTitle!) ??
-          ExamAssets.getEmblemAsset(fallbackExamTitle!);
+      final iconOrEmblem = preferRoundIcon
+          ? (ExamAssets.getRoundIconAsset(fallbackExamTitle!) ??
+              ExamAssets.getIconAsset(fallbackExamTitle!) ??
+              ExamAssets.getEmblemAsset(fallbackExamTitle!))
+          : (ExamAssets.getIconAsset(fallbackExamTitle!) ??
+              ExamAssets.getEmblemAsset(fallbackExamTitle!));
       if (iconOrEmblem != null) {
-        final isCoverCard = iconOrEmblem.contains('exam_card_');
+        final isCoverCard = iconOrEmblem.contains('exam_card_') || iconOrEmblem.contains('exam_round_');
         return isCoverCard
             ? Image.asset(
                 iconOrEmblem,
