@@ -1,11 +1,6 @@
 import { AdminSectionSkeleton } from './AdminSkeleton';
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Search,
-  BookOpen,
-  Filter,
-} from 'lucide-react';
+import { X, Search, BookOpen, Filter } from 'lucide-react';
 import type { MockTest, Question, Subject, Chapter } from '@/types';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
@@ -21,6 +16,15 @@ interface AddQuestionsToTestModalProps {
   onQuestionsAssigned: () => void;
 }
 
+const isTopicType = (t: MockTest) => t.testType === 'topic' || t.testType === 'chapter_mock';
+const topicOf = (t: MockTest) => t.chapterId || t.topicId || '';
+
+/** A selected question is out of context for a Topic Test when it is not under the test's topic. */
+const outsideTopic = (test: MockTest, q: { chapterId?: string; topicId?: string }) =>
+  test.testType === 'topic' &&
+  Boolean(topicOf(test)) &&
+  (q.chapterId || q.topicId || '') !== topicOf(test);
+
 export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = ({
   test,
   isOpen,
@@ -31,57 +35,122 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
+  /** Saved marks of questions already in the test, so re-saving keeps them. */
+  const [assignedMarks, setAssignedMarks] = useState<Map<string, number>>(new Map());
+  /** Question metadata for everything selected (assigned rows + picked bank rows). */
+  const [selectedMeta, setSelectedMeta] = useState<
+    Map<string, { label: string; chapterId?: string; topicId?: string }>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(test?.subjectId || '');
-  const [selectedChapterId, setSelectedChapterId] = useState<string>(test?.chapterId || '');
+  const [selectedChapterId, setSelectedChapterId] = useState<string>(test ? topicOf(test) : '');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<'pyq' | 'all'>('all');
+  const [yearFilter, setYearFilter] = useState('');
+
+  const isPyq = test?.testType === 'pyq';
+  const isTopic = test?.testType === 'topic';
+
+  const fetchQuestions = async (filters: {
+    subjectId: string;
+    chapterId: string;
+    difficulty: string;
+    search: string;
+    source: 'pyq' | 'all';
+    year: string;
+  }) => {
+    const rows = await api.getAllAdminQuestions({
+      subjectId: filters.subjectId || undefined,
+      chapterId: filters.chapterId || undefined,
+      difficulty: filters.difficulty !== 'all' ? filters.difficulty : undefined,
+      search: filters.search.trim() || undefined,
+      sourceType: filters.source === 'pyq' ? 'pyq' : undefined,
+    });
+    const year = Number(filters.year);
+    return filters.year && Number.isFinite(year) ? rows.filter((q) => q.sourceYear === year) : rows;
+  };
 
   useEffect(() => {
     if (!test || !isOpen) return;
+    // Context defaults: Topic Test -> its subject + topic; PYQ -> PYQ source + the test's year.
+    const subjectId = test.subjectId || '';
+    const chapterId = topicOf(test);
+    const source: 'pyq' | 'all' = test.testType === 'pyq' ? 'pyq' : 'all';
+    const year = test.testType === 'pyq' && test.year ? String(test.year) : '';
+    setSelectedSubjectId(subjectId);
+    setSelectedChapterId(chapterId);
+    setSourceFilter(source);
+    setYearFilter(year);
+    setSearchTerm('');
+    setSelectedDifficulty('all');
 
-    setSelectedSubjectId(test.subjectId || '');
-    setSelectedChapterId(test.chapterId || '');
-    loadInitialData();
-  }, [test?.id, isOpen]);
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        // 1. Already assigned questions (by ID, never duplicated)
+        const assigned = await api.getTestAssignedQuestions(test.id);
+        if (cancelled) return;
+        setSelectedQuestionIds(new Set(assigned.map((a) => a.questionId)));
+        setAssignedMarks(new Map(assigned.map((a) => [a.questionId, a.marks])));
+        setSelectedMeta(
+          new Map(
+            assigned.map((a) => [
+              a.questionId,
+              {
+                label: a.questionBengaliText || a.questionText || a.questionId,
+                chapterId: a.chapterId,
+              },
+            ])
+          )
+        );
 
-  const loadInitialData = async () => {
-    if (!test) return;
-    setIsLoading(true);
-    try {
-      // 1. Get already assigned questions
-      const assigned = await api.getTestAssignedQuestions(test.id);
-      const assignedIds = new Set(assigned.map((a) => a.questionId));
-      setSelectedQuestionIds(new Set(assignedIds));
-
-      // 2. Load available questions from Central Question Bank
-      const allQs = await api.getAllAdminQuestions({
-        subjectId: test.subjectId || undefined,
-        chapterId: test.chapterId || undefined,
-      });
-      setQuestions(allQs);
-    } catch (err) {
-      console.error('Failed to load question bank:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        // 2. Available questions from the central Question Bank in the test's context
+        const rows = await fetchQuestions({
+          subjectId: isTopicType(test) ? subjectId : '',
+          chapterId: isTopicType(test) ? chapterId : '',
+          difficulty: 'all',
+          search: '',
+          source,
+          year,
+        });
+        if (!cancelled) setQuestions(rows);
+      } catch (err) {
+        console.error('Failed to load question bank:', err);
+        if (!cancelled) setLoadError(getErrorMessage(err, 'Questions could not be loaded.'));
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the target test or visibility changes
+  }, [test?.id, test?.subjectId, test?.chapterId, test?.topicId, test?.year, isOpen]);
 
   const handleApplyFilter = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const filtered = await api.getAllAdminQuestions({
-        subjectId: selectedSubjectId || undefined,
-        chapterId: selectedChapterId || undefined,
-        difficulty: selectedDifficulty !== 'all' ? selectedDifficulty : undefined,
-        search: searchTerm.trim() || undefined,
-      });
-      setQuestions(filtered);
+      setQuestions(
+        await fetchQuestions({
+          subjectId: selectedSubjectId,
+          chapterId: selectedChapterId,
+          difficulty: selectedDifficulty,
+          search: searchTerm,
+          source: sourceFilter,
+          year: yearFilter,
+        })
+      );
     } catch (err) {
       console.error('Failed to filter questions:', err);
+      setLoadError(getErrorMessage(err, 'Questions could not be loaded.'));
     } finally {
       setIsLoading(false);
     }
@@ -93,19 +162,43 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
     (c) => !selectedSubjectId || c.subjectId === selectedSubjectId
   );
 
-  const toggleSelectQuestion = (id: string) => {
+  // Selected questions that are not under this Topic Test's topic (e.g. after the topic changed).
+  const mismatched = Array.from(selectedQuestionIds)
+    .map((id) => ({ id, meta: selectedMeta.get(id) }))
+    .filter((x) => x.meta && outsideTopic(test, x.meta));
+  const topicName = chapters.find((c) => c.id === topicOf(test))?.name || test.chapterName;
+
+  const toggleSelectQuestion = (q: Question) => {
     const next = new Set(selectedQuestionIds);
-    if (next.has(id)) {
-      next.delete(id);
+    if (next.has(q.id)) {
+      next.delete(q.id);
     } else {
-      next.add(id);
+      if (outsideTopic(test, q)) return; // Topic Tests only take questions from their topic.
+      next.add(q.id);
+      setSelectedMeta((prev) =>
+        new Map(prev).set(q.id, {
+          label: q.questionBengaliText || q.questionText,
+          chapterId: q.chapterId,
+          topicId: q.topicId,
+        })
+      );
     }
     setSelectedQuestionIds(next);
   };
 
   const handleSelectAllVisible = () => {
     const next = new Set(selectedQuestionIds);
-    questions.forEach((q) => next.add(q.id));
+    const meta = new Map(selectedMeta);
+    questions.forEach((q) => {
+      if (outsideTopic(test, q)) return;
+      next.add(q.id);
+      meta.set(q.id, {
+        label: q.questionBengaliText || q.questionText,
+        chapterId: q.chapterId,
+        topicId: q.topicId,
+      });
+    });
+    setSelectedMeta(meta);
     setSelectedQuestionIds(next);
   };
 
@@ -115,16 +208,22 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
     setSelectedQuestionIds(next);
   };
 
+  const handleRemoveMismatched = () => {
+    const next = new Set(selectedQuestionIds);
+    mismatched.forEach((m) => next.delete(m.id));
+    setSelectedQuestionIds(next);
+  };
+
   const handleSaveAssignments = async () => {
-    if (!test) return;
+    if (!test || mismatched.length > 0) return;
     setIsSaving(true);
     try {
-      // Build question assignments preserving previous orders where possible
+      // A Set keeps each question once; previously assigned questions keep their order and marks.
       const orderedIds = Array.from(selectedQuestionIds);
       const payload = orderedIds.map((qId, idx) => ({
         questionId: qId,
         orderIndex: idx + 1,
-        marks: 1.0,
+        marks: assignedMarks.get(qId) ?? 1.0,
         negativeMarks: test.negativeMarking || 0,
       }));
 
@@ -151,8 +250,24 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
               Assign Questions from Central Question Bank
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Target Test: <span className="font-semibold text-blue-600 dark:text-blue-400">{test.title}</span> • Questions are referenced without duplication.
+              Target Test:{' '}
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{test.title}</span> •
+              Questions are referenced without duplication.
             </p>
+            {(test.examTitle || isPyq || isTopic) && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Context:{' '}
+                {[
+                  test.examTitle && `Exam ${test.examTitle}`,
+                  isPyq && test.year && `Year ${test.year}`,
+                  isPyq && test.paperName,
+                  isTopic && test.subjectName && `Subject ${test.subjectName}`,
+                  isTopic && topicName && `Topic ${topicName}`,
+                ]
+                  .filter(Boolean)
+                  .join(' • ')}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -165,7 +280,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
         {/* Filter Bar */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080E22] shrink-0 space-y-3">
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className={cn('grid gap-2.5', isPyq ? 'grid-cols-6' : 'grid-cols-4')}>
             {/* Search Input */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -181,7 +296,9 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
             {/* Subject Dropdown */}
             <select
+              aria-label="Subject filter"
               value={selectedSubjectId}
+              disabled={isTopic}
               onChange={(e) => {
                 setSelectedSubjectId(e.target.value);
                 setSelectedChapterId('');
@@ -198,7 +315,9 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
             {/* Topic Dropdown */}
             <select
+              aria-label="Topic filter"
               value={selectedChapterId}
+              disabled={isTopic}
               onChange={(e) => setSelectedChapterId(e.target.value)}
               className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#070D1E] text-xs text-slate-900 dark:text-white"
             >
@@ -221,7 +340,69 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>
             </select>
+
+            {isPyq && (
+              <>
+                <select
+                  aria-label="Question source"
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value as 'pyq' | 'all')}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#070D1E] text-xs text-slate-900 dark:text-white"
+                >
+                  <option value="pyq">PYQ questions</option>
+                  <option value="all">All sources</option>
+                </select>
+                <input
+                  type="number"
+                  aria-label="Question year"
+                  placeholder="Any year"
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#070D1E] text-xs text-slate-900 dark:text-white"
+                />
+              </>
+            )}
           </div>
+
+          {isTopic && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Topic Tests take questions only from their own subject and topic, so these filters are
+              fixed.
+            </p>
+          )}
+
+          {mismatched.length > 0 && (
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs space-y-1.5"
+            >
+              <p className="font-semibold">
+                {mismatched.length} selected question{mismatched.length === 1 ? ' is' : 's are'} not
+                under this test&apos;s topic{topicName ? ` (${topicName})` : ''}. Remove{' '}
+                {mismatched.length === 1 ? 'it' : 'them'} before saving.
+              </p>
+              <ul className="list-disc pl-4 max-h-20 overflow-y-auto">
+                {mismatched.map((m) => (
+                  <li key={m.id} className="line-clamp-1">
+                    {m.meta?.label}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={handleRemoveMismatched}
+                className="font-semibold underline"
+              >
+                Remove questions outside the topic
+              </button>
+            </div>
+          )}
+
+          {loadError && (
+            <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+              {loadError}
+            </p>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs">
@@ -256,7 +437,13 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
         {/* Question List - Scrollable */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-          {isLoading ? <AdminSectionSkeleton label="Loading questions from Question Bank..." variant="table" className="p-4" /> : questions.length === 0 ? (
+          {isLoading ? (
+            <AdminSectionSkeleton
+              label="Loading questions from Question Bank..."
+              variant="table"
+              className="p-4"
+            />
+          ) : questions.length === 0 ? (
             <div className="py-16 text-center text-xs text-slate-400">
               No questions found matching the selected filters.
             </div>
@@ -266,7 +453,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
               return (
                 <div
                   key={q.id}
-                  onClick={() => toggleSelectQuestion(q.id)}
+                  onClick={() => toggleSelectQuestion(q)}
                   className={cn(
                     'p-3 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3',
                     isSelected
@@ -300,6 +487,12 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
                     <div className="flex items-center gap-3 text-[10.5px] text-slate-400">
                       {q.subjectName && <span>Subject: {q.subjectName}</span>}
                       {q.chapterName && <span>Topic: {q.chapterName}</span>}
+                      {q.sourceType === 'pyq' && (
+                        <span>
+                          PYQ{q.sourceExam ? ` ${q.sourceExam}` : ''}
+                          {q.sourceYear ? ` ${q.sourceYear}` : ''}
+                        </span>
+                      )}
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                         Correct: Option {q.correctOption}
                       </span>
@@ -314,7 +507,11 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
         {/* Bottom Actions */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-[#070D1E] shrink-0 flex items-center justify-between">
           <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Selected: <span className="font-bold text-blue-600 dark:text-blue-400">{selectedQuestionIds.size}</span> questions
+            Selected:{' '}
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              {selectedQuestionIds.size}
+            </span>{' '}
+            questions
           </div>
 
           <div className="flex items-center gap-2">
@@ -324,7 +521,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
             <Button
               size="sm"
               onClick={handleSaveAssignments}
-              disabled={isSaving}
+              disabled={isSaving || mismatched.length > 0}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4"
             >
               {isSaving ? 'Assigning...' : `Assign ${selectedQuestionIds.size} Questions`}

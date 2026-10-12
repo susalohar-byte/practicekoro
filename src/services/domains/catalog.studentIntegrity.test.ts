@@ -23,6 +23,9 @@ vi.mock('@/lib/supabase', () => ({
       const q: any = {
         select: () => q,
         order: () => q,
+        // PostgREST OR filters (e.g. published-or-null status) are server semantics; rows
+        // seeded here already satisfy them.
+        or: () => q,
         eq: (k: string, v: any) => {
           filters.push((r) => r[k] === v);
           return q;
@@ -212,11 +215,39 @@ describe('Student backend integrity', () => {
       JSON.stringify({ s: 'https://stale.example.test/icon.png' })
     );
     m.rows.test_series = [
-      { id: 's', is_active: true, title: 'Saved Series', icon_url: null, tests: [] },
+      { id: 's', is_active: true, title: 'Saved Series', icon_url: null, test_series_tests: [] },
     ];
     const result = await catalogApi.getStudentTestSeries();
     expect(result[0].iconUrl).toBeUndefined();
     expect(result[0].testCount).toBe(0);
+  });
+  it('returns series tests from memberships in saved order, hiding unpublished tests', async () => {
+    const t = (id: string, status = 'published') => ({
+      id,
+      title: id,
+      test_type: 'full_mock',
+      is_active: true,
+      status,
+    });
+    m.rows.test_series_tests = [
+      { series_id: 's', test_id: 'b', order_index: 0, tests: t('b') },
+      { series_id: 's', test_id: 'd', order_index: 1, tests: t('d', 'draft') },
+      { series_id: 's', test_id: 'a', order_index: 2, tests: t('a') },
+      { series_id: 'other', test_id: 'c', order_index: 0, tests: t('c') },
+    ];
+    m.rows.test_series = [
+      {
+        id: 's',
+        is_active: true,
+        title: 'S',
+        test_series_tests: m.rows.test_series_tests.slice(0, 3),
+      },
+    ];
+    const tests = await catalogApi.getSeriesTestsForStudent('s');
+    expect(tests.map((x) => x.id)).toEqual(['b', 'a']);
+    const [series] = await catalogApi.getStudentTestSeries();
+    expect(series.testCount).toBe(2);
+    expect(series.fullMockCount).toBe(2);
   });
   it('propagates series catalog and series-test read failures', async () => {
     m.error = 'catalog denied';

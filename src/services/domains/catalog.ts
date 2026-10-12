@@ -181,9 +181,19 @@ export const catalogApi = {
         .eq('is_active', true)
         .order('order_index', { ascending: true });
 
-      // Include universal subjects (exam_id IS NULL) alongside exam-specific ones
       if (examId) {
-        query = query.or(`exam_id.eq.${examId},exam_id.is.null`);
+        // Subjects assigned in Exam Management (exam_subjects) are authoritative. Exams with
+        // no assignments yet keep the legacy view: exam-owned plus universal subjects.
+        const { data: assigned, error: assignedError } = await supabase
+          .from('exam_subjects')
+          .select('subject_id')
+          .eq('exam_id', examId)
+          .order('order_index', { ascending: true });
+        if (assignedError) throw assignedError;
+        const assignedIds = (assigned ?? []).map((r: { subject_id: string }) => r.subject_id);
+        query = assignedIds.length
+          ? query.in('id', assignedIds)
+          : query.or(`exam_id.eq.${examId},exam_id.is.null`);
       }
 
       const { data, error } = await query;
@@ -344,11 +354,11 @@ export const catalogApi = {
           .eq('status', 'published');
         if (chapterId) query = query.eq('chapter_id', chapterId);
         if (examId) {
-          if (assocTestIds.length > 0) {
-            query = query.or(`id.in.(${assocTestIds.join(',')}),exam_id.eq.${examId}`);
-          } else {
-            query = query.eq('exam_id', examId);
-          }
+          // Exam-independent tests (Topic Tests with no exam) stay visible in exam contexts;
+          // Full Mocks and Official PYQs always carry an exam (DB rule).
+          query = assocTestIds.length
+            ? query.or(`id.in.(${assocTestIds.join(',')}),exam_id.eq.${examId},exam_id.is.null`)
+            : query.or(`exam_id.eq.${examId},exam_id.is.null`);
         }
         return query.order('order_index', { ascending: true }).order('id', { ascending: true });
       };
@@ -1532,11 +1542,12 @@ export const catalogApi = {
           `
           *,
           exams:exam_id (id, title, category, slug),
-          tests (id, test_type, is_active, status)
+          test_series_tests (order_index, tests (id, test_type, is_active, status))
         `,
           { count: 'exact' }
         )
         .eq('is_active', true)
+        .or('status.is.null,status.eq.published')
         .order('order_index', { ascending: true })
         .order('id', { ascending: true });
 
@@ -1546,7 +1557,10 @@ export const catalogApi = {
     });
 
     return data.map((item: any) => {
-      const rawTests = Array.isArray(item.tests) ? item.tests : [];
+      // Counts derive from real memberships; RLS already hides unpublished tests.
+      const rawTests = (Array.isArray(item.test_series_tests) ? item.test_series_tests : [])
+        .map((m: any) => m.tests)
+        .filter(Boolean);
       const activeTests = rawTests.filter(
         (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
       );
@@ -1562,7 +1576,7 @@ export const catalogApi = {
 
       return {
         id: item.id,
-        examId: item.exam_id,
+        examId: item.exam_id ?? '',
         title: item.title,
         slug: item.slug,
         description: item.description ?? undefined,
@@ -1592,24 +1606,31 @@ export const catalogApi = {
   async getSeriesTestsForStudent(seriesId: string): Promise<MockTest[]> {
     if (!isSupabaseConfigured) return [];
 
-      const { data, error } = await supabase
-        .from('tests')
-        .select(
-          `
-          *,
-          exams:exam_id (title),
-          subjects:subject_id (name),
-          chapters:chapter_id (name),
-          test_series:test_series_id (title)
-        `
-        )
-        .eq('test_series_id', seriesId)
-        .eq('is_active', true)
-        .eq('status', 'published')
-        .order('order_index', { ascending: true });
-
-      if (error) throw new Error(error.message || 'Series tests could not be loaded');
-      if (!data) throw new Error('Series tests were not confirmed');
+      // Membership order is the order the admin saved for this series (test_id breaks ties so
+      // pages stay stable). Read every page so long series are never silently truncated.
+      const memberships = await readCompleteQuery(() =>
+        supabase
+          .from('test_series_tests')
+          .select(
+            `
+          order_index,
+          tests (
+            *,
+            exams:exam_id (title),
+            subjects:subject_id (name),
+            chapters:chapter_id (name),
+            test_series:test_series_id (title)
+          )
+        `,
+            { count: 'exact' }
+          )
+          .eq('series_id', seriesId)
+          .order('order_index', { ascending: true })
+          .order('test_id', { ascending: true })
+      );
+      const data = memberships
+        .map((m: any) => m.tests)
+        .filter((t: any) => t && t.is_active && t.status === 'published');
       if (data.length === 0) {
         return [];
       }

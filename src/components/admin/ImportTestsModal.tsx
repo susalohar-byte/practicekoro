@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Upload,
-  Download,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
+import { X, Upload, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
+import { csvCell } from '@/utils/csvExport';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/lib/errors';
+import { validateTestImportCsv, type TestImportRowResult } from '@/services/domains/admin.tests';
 import type { Exam, Subject, Chapter } from '@/types';
 
 interface ImportTestsModalProps {
@@ -31,6 +28,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
+  const [rowErrors, setRowErrors] = useState<TestImportRowResult[]>([]);
 
   if (!isOpen) return null;
 
@@ -45,10 +43,11 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       'totalMarks',
       'passingMarks',
       'negativeMarking',
-      'status', // published or draft
-      'isPremium', // true or false
-      'year',
-      'paperName',
+      'status', // draft (default) or published
+      'isPremium', // true = Paid, false = Free
+      'year', // required for pyq
+      'paperName', // optional, pyq only
+      'setName', // optional, pyq only
       'iconUrl',
     ];
 
@@ -62,8 +61,10 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       '100',
       '40',
       '0.25',
-      'published',
+      'draft',
       'false',
+      '',
+      '',
       '',
       '',
     ];
@@ -78,17 +79,35 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       '25',
       '10',
       '0.25',
-      'published',
+      'draft',
       'false',
+      '',
+      '',
       '',
       '',
     ];
 
-    const csvContent = [
-      headers.join(','),
-      sampleRow1.join(','),
-      sampleRow2.join(','),
-    ].join('\n');
+    const sampleRow3 = [
+      'WBP Constable 2023 Prelims Official PYQ',
+      'pyq',
+      'WBP Constable',
+      '',
+      '',
+      '60',
+      '85',
+      '35',
+      '0.25',
+      'draft',
+      'true',
+      '2023',
+      'Prelims',
+      '',
+      '',
+    ];
+
+    const csvContent = [headers, sampleRow1, sampleRow2, sampleRow3]
+      .map((r) => r.map(csvCell).join(','))
+      .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -103,6 +122,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setSuccessCount(null);
+    setRowErrors([]);
     if (e.target.files && e.target.files[0]) {
       setCsvFile(e.target.files[0]);
     }
@@ -116,84 +136,42 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    setRowErrors([]);
+    setSuccessCount(null);
 
+    let createdCount = 0;
     try {
-      const text = await csvFile.text();
-      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-      if (lines.length < 2) {
-        throw new Error('CSV file contains no data rows.');
+      const rows = validateTestImportCsv(await csvFile.text(), { exams, subjects, chapters });
+      if (rows.length === 0) throw new Error('CSV file contains no data rows.');
+
+      // Validate everything first: nothing is imported while any row has a problem.
+      const invalid = rows.filter((r) => r.errors.length > 0);
+      if (invalid.length > 0) {
+        setRowErrors(invalid);
+        setError(
+          `${invalid.length} of ${rows.length} rows have problems. Fix them and upload again; nothing was imported.`
+        );
+        return;
       }
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-      let createdCount = 0;
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map((v) => v.trim());
-        const row: Record<string, string> = {};
-        headers.forEach((h, idx) => {
-          row[h] = values[idx] || '';
-        });
-
-        if (!row.title) continue;
-
-        const testType = (row.testtype as any) || 'full_mock';
-        let foundExamId: string | undefined;
-        let foundSubId: string | undefined;
-        let foundChapId: string | undefined;
-
-        if (row.examname) {
-          const matchExam = exams.find(
-            (e) => e.title.toLowerCase() === row.examname.toLowerCase()
+      for (const row of rows) {
+        try {
+          await api.createTest(row.input!);
+          createdCount++;
+        } catch (err) {
+          throw new Error(
+            `Row ${row.line} ("${row.title}") could not be created: ${getErrorMessage(err, 'save failed')}. ` +
+              `${createdCount} earlier row(s) were imported; remove them from the file before retrying.`
           );
-          if (matchExam) foundExamId = matchExam.id;
         }
-
-        if (row.subjectname) {
-          const matchSub = subjects.find(
-            (s) => s.name.toLowerCase() === row.subjectname.toLowerCase()
-          );
-          if (matchSub) foundSubId = matchSub.id;
-        }
-
-        if (row.topicname) {
-          const matchChap = chapters.find(
-            (c) => c.name.toLowerCase() === row.topicname.toLowerCase()
-          );
-          if (matchChap) foundChapId = matchChap.id;
-        }
-
-        await api.createTest({
-          title: row.title,
-          testType,
-          examId: foundExamId,
-          subjectId: foundSubId,
-          chapterId: foundChapId,
-          durationMinutes: Number(row.durationminutes || 90),
-          totalMarks: Number(row.totalmarks || 100),
-          passingMarks: Number(row.passingmarks || 40),
-          negativeMarking: Number(row.negativemarking || 0.25),
-          status: row.status === 'published' ? 'published' : 'draft',
-          isPremium: row.ispremium === 'true',
-          year: row.year ? Number(row.year) : undefined,
-          paperName: row.papername || undefined,
-          iconUrl: row.iconurl || row.icon_url || row.icon || undefined,
-          totalQuestions: 0,
-          orderIndex: 0,
-          slug: row.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, ''),
-          isActive: true,
-        });
-
-        createdCount++;
       }
 
       setSuccessCount(createdCount);
       onImportComplete();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Import failed:', err);
-      setError(err?.message || 'Failed to import tests. Please check CSV format.');
+      setError(getErrorMessage(err, 'Failed to import tests. Please check CSV format.'));
+      if (createdCount > 0) onImportComplete();
     } finally {
       setIsProcessing(false);
     }
@@ -222,6 +200,23 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
+          )}
+
+          {rowErrors.length > 0 && (
+            <ul
+              aria-label="Row errors"
+              className="max-h-48 overflow-y-auto space-y-1.5 p-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-white dark:bg-[#070D1E]"
+            >
+              {rowErrors.map((r) => (
+                <li key={r.line} className="text-rose-600 dark:text-rose-300">
+                  <span className="font-semibold">
+                    Row {r.line}
+                    {r.title ? ` (${r.title})` : ''}:
+                  </span>{' '}
+                  {r.errors.join(' ')}
+                </li>
+              ))}
+            </ul>
           )}
 
           {successCount !== null && (

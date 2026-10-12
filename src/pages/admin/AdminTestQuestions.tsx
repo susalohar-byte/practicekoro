@@ -248,6 +248,13 @@ export const AdminTestQuestions: React.FC = () => {
     return allTests.filter((t) => t.id === test.id);
   }, [test, allTests, testChapter]);
 
+  // Assigned questions that are no longer under a Topic Test's topic (e.g. after its topic changed).
+  const assignedOutsideTopic = useMemo(() => {
+    const topicId = test?.testType === 'topic' ? test.chapterId || test.topicId : undefined;
+    if (!topicId) return [];
+    return assignedQuestions.filter((q) => q.chapterId !== topicId);
+  }, [test, assignedQuestions]);
+
   // Set of already assigned Question IDs for this test
   const assignedQuestionIds = useMemo(() => {
     return new Set(assignedQuestions.map((q) => q.questionId));
@@ -740,7 +747,8 @@ export const AdminTestQuestions: React.FC = () => {
 
   const totalAssignedMarks = assignedQuestions.reduce((acc, q) => acc + (q.marks || 0), 0);
 
-  if (isLoading || referencesLoading) return <AdminPageSkeleton label="Loading Test Workspace" variant="detail" />;
+  if (isLoading || referencesLoading)
+    return <AdminPageSkeleton label="Loading Test Workspace" variant="detail" />;
 
   if (!test) {
     return (
@@ -889,6 +897,19 @@ export const AdminTestQuestions: React.FC = () => {
               >
                 {test.title}
               </h1>
+
+              {assignedOutsideTopic.length > 0 && (
+                <p
+                  role="alert"
+                  className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-200 border border-amber-500/40"
+                >
+                  {assignedOutsideTopic.length} assigned question
+                  {assignedOutsideTopic.length === 1 ? ' is' : 's are'} not under this test&apos;s
+                  topic ({testChapter?.name || test.chapterName || 'selected topic'}). Remove{' '}
+                  {assignedOutsideTopic.length === 1 ? 'it' : 'them'} so the Topic Test only uses
+                  questions from its topic.
+                </p>
+              )}
 
               {/* Sub-meta specs bar */}
               <div

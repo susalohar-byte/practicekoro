@@ -1,8 +1,9 @@
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ExamLinkedSubjects } from '@/components/admin/ExamLinkedSubjects';
-import { subjectsForExam } from '@/utils/examSubjectLinks';
+import { ExamCurriculumPicker } from '@/components/admin/ExamCurriculumPicker';
+import { pruneTopicsToSubjects, type ExamCurriculum } from '@/services/domains/admin.contentLinks';
 import { EXAMS_UPDATED_EVENT } from '@/lib/dataSync';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
@@ -30,7 +31,7 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { supabaseRuntime, isSupabaseConfigured } from '@/lib/supabase';
-import type { Exam, MockTest, Subject, TestSeries } from '@/types';
+import type { Chapter, Exam, MockTest, Subject, TestSeries, TestSeriesStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { LEGACY_EXAM_CATEGORY_NAMES } from '@/services/domains/admin.examCategories';
@@ -48,6 +49,13 @@ const DEFAULT_EXAM_CATEGORIES = [
   'SSC & Central Govt.',
   'Railways (RRB)',
 ];
+
+const SERIES_STATUS_LABELS: Record<TestSeriesStatus, string> = {
+  published: 'Published',
+  draft: 'Draft',
+  under_review: 'Under review',
+  archived: 'Archived',
+};
 
 const EXAM_LOGO_CACHE_KEY = 'practicekoro_exam_logos';
 
@@ -75,8 +83,10 @@ export function saveExamLogoCache(examId: string, logoUrl: string) {
 interface EnrichedExamRow extends Exam {
   subtitle?: string;
   categoryLabel?: string;
+  /** Assigned subjects (exam_subjects); undefined when the assignments could not be read. */
   subjectsCount: number | undefined;
-  testSeriesCount: number;
+  /** Real series targeting this exam; undefined when series could not be read. */
+  testSeriesCount: number | undefined;
   totalTestsCount: number;
   enrollmentsCount: number;
   enrollmentsFormatted: string;
@@ -565,8 +575,17 @@ export const AdminExams: React.FC = () => {
   const [, setDbTests] = useState<MockTest[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectLoadError, setSubjectLoadError] = useState('');
+  const [topics, setTopics] = useState<Chapter[]>([]);
+  /** Per-exam assignments; null = could not be read. */
+  const [curricula, setCurricula] = useState<Record<string, ExamCurriculum | null>>({});
+  // Drawer Test Series tab: real series for the selected exam.
+  const [drawerSeries, setDrawerSeries] = useState<TestSeries[]>([]);
+  const [drawerSeriesLoading, setDrawerSeriesLoading] = useState(false);
+  const [drawerSeriesError, setDrawerSeriesError] = useState('');
+  const [drawerSeriesReload, setDrawerSeriesReload] = useState(0);
   const loadRequest = useRef(0);
-  const [testSeriesList, setTestSeriesList] = useState<TestSeries[]>([]);
+  /** null when the series list could not be read. */
+  const [testSeriesList, setTestSeriesList] = useState<TestSeries[] | null>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -630,6 +649,20 @@ export const AdminExams: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [formIconName, setFormIconName] = useState('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  // Exam modal: assign existing subjects/topics (never creates them).
+  const [pickerSubjects, setPickerSubjects] = useState<Subject[]>([]);
+  const [pickerTopics, setPickerTopics] = useState<Chapter[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerError, setPickerError] = useState('');
+  /** True once the lists (and, when editing, the existing assignments) were read. */
+  const [curriculumReady, setCurriculumReady] = useState(false);
+  const [formSubjectIds, setFormSubjectIds] = useState<string[]>([]);
+  const [formTopicIds, setFormTopicIds] = useState<string[]>([]);
+  const [initialCurriculum, setInitialCurriculum] = useState<ExamCurriculum>({
+    subjectIds: [],
+    topicIds: [],
+  });
+  const pickerRequest = useRef(0);
 
   // File upload helper: uploads to Supabase storage if available, falls back to Base64 data URL
   const handleUploadImageFile = async (file: File): Promise<string> => {
@@ -658,7 +691,7 @@ export const AdminExams: React.FC = () => {
   };
 
   // The confirmed backend record remains authoritative even if a later refresh fails.
-  const applySavedExam = (saved: Exam) => {
+  const applySavedExam = (saved: Exam): EnrichedExamRow => {
     const merge = (previous?: EnrichedExamRow): EnrichedExamRow => ({
       subjectsCount: 0,
       testSeriesCount: 0,
@@ -683,6 +716,7 @@ export const AdminExams: React.FC = () => {
         : [...previous, merge()]
     );
     setSelectedExam((previous) => (previous?.id === saved.id ? merge(previous) : previous));
+    return merge(exams.find((exam) => exam.id === saved.id));
   };
 
   // Quick direct upload exam logo (e.g. from drawer or table hover)
@@ -750,19 +784,48 @@ export const AdminExams: React.FC = () => {
     try {
       setIsLoading(true);
       setLoadError('');
-      const [rawExams, allTests, allSubjects, allSeries, dbCats] = await Promise.all([
+      const [rawExams, allTests, allSubjects, allTopics, allSeries, dbCats] = await Promise.all([
         api.getAllAdminExams(),
         api.getAllAdminTests().catch(() => []),
-        api.getAllAdminSubjects().then(data => ({ data, error: '' })).catch(error => ({ data: [] as Subject[], error: getErrorMessage(error, 'Linked subjects could not be loaded.') })),
-        api.getTestSeries().catch(() => []),
+        api
+          .getAllAdminSubjects()
+          .then((data) => ({ data, error: '' }))
+          .catch((error) => ({
+            data: [] as Subject[],
+            error: getErrorMessage(error, 'Subjects could not be loaded.'),
+          })),
+        Promise.resolve()
+          .then(() => api.getAllAdminChapters())
+          .then((data) => ({ data, error: '' }))
+          .catch((error) => ({
+            data: [] as Chapter[],
+            error: getErrorMessage(error, 'Topics could not be loaded.'),
+          })),
+        api
+          .getTestSeries()
+          .then((data) => data || [])
+          .catch(() => null),
         api.getExamCategories().catch(() => []),
       ]);
+      // Real per-exam assignments in one bulk read; a failed read stays "Unavailable"
+      // instead of a fake zero.
+      const allCurricula = await Promise.resolve()
+        .then(() => api.getAllExamCurricula())
+        .catch(() => null);
+      const curriculumMap: Record<string, ExamCurriculum | null> = Object.fromEntries(
+        rawExams.map((dbEx) => [
+          dbEx.id,
+          allCurricula ? (allCurricula[dbEx.id] ?? { subjectIds: [], topicIds: [] }) : null,
+        ])
+      );
 
       if (token !== loadRequest.current) return;
       setDbTests(allTests || []);
       setSubjects(allSubjects.data);
-      setSubjectLoadError(allSubjects.error);
-      setTestSeriesList(allSeries || []);
+      setTopics(allTopics.data);
+      setSubjectLoadError(allSubjects.error || allTopics.error);
+      setCurricula(curriculumMap);
+      setTestSeriesList(allSeries);
 
       if (dbCats && dbCats.length > 0) {
         const catNames = dbCats
@@ -784,8 +847,10 @@ export const AdminExams: React.FC = () => {
           shortName: dbEx.shortName || dbEx.title.split(' ')[0],
           subtitle: dbEx.subtitle || dbEx.description || '',
           categoryLabel: dbEx.category,
-          subjectsCount: allSubjects.error ? undefined : subjectsForExam(allSubjects.data, dbEx.id).length,
-          testSeriesCount: allSeries.filter((x) => x.examId === dbEx.id).length,
+          subjectsCount: curriculumMap[dbEx.id]?.subjectIds.length,
+          testSeriesCount: allSeries
+            ? allSeries.filter((x) => x.examId === dbEx.id).length
+            : undefined,
           totalTestsCount: dbEx.testsCount ?? allTests.filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,
           enrollmentsFormatted: 'Unavailable',
@@ -805,7 +870,8 @@ export const AdminExams: React.FC = () => {
       });
     } catch (err) {
       console.error('Error loading exams data:', err);
-      if (token === loadRequest.current) setLoadError(getErrorMessage(err, 'Exams could not be loaded.'));
+      if (token === loadRequest.current)
+        setLoadError(getErrorMessage(err, 'Exams could not be loaded.'));
     } finally {
       if (token === loadRequest.current) setIsLoading(false);
     }
@@ -813,20 +879,55 @@ export const AdminExams: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-    const refresh = () => { void loadData(); };
+    const refresh = () => {
+      void loadData();
+    };
     window.addEventListener(EXAMS_UPDATED_EVENT, refresh);
     window.addEventListener('focus', refresh);
     const requests = loadRequest;
-    return () => { requests.current++; window.removeEventListener(EXAMS_UPDATED_EVENT, refresh); window.removeEventListener('focus', refresh); };
+    return () => {
+      requests.current++;
+      window.removeEventListener(EXAMS_UPDATED_EVENT, refresh);
+      window.removeEventListener('focus', refresh);
+    };
   }, [loadData]);
 
-  useEffect(() => { openedRoute.current = ''; }, [routeExamId]);
+  useEffect(() => {
+    openedRoute.current = '';
+  }, [routeExamId]);
+
+  // Drawer Test Series tab reads the real series for the selected exam.
+  const selectedExamId = selectedExam?.id;
+  useEffect(() => {
+    if (!selectedExamId || detailsTab !== 'test_series') return;
+    let cancelled = false;
+    setDrawerSeriesLoading(true);
+    setDrawerSeriesError('');
+    setDrawerSeries([]);
+    api
+      .getTestSeries(selectedExamId)
+      .then((rows) => {
+        if (!cancelled) setDrawerSeries(rows || []);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setDrawerSeriesError(getErrorMessage(err, 'Test series could not be loaded.'));
+      })
+      .finally(() => {
+        if (!cancelled) setDrawerSeriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExamId, detailsTab, drawerSeriesReload]);
   useEffect(() => {
     if (!routeExamId || isLoading || openedRoute.current === routeExamId) return;
-    const exam = exams.find(row => row.id === routeExamId);
+    const exam = exams.find((row) => row.id === routeExamId);
     if (!exam) return;
     openedRoute.current = routeExamId;
-    setSelectedExam(exam); setShowDetailsPanel(true); setDetailsTab(routeTab === 'subjects' ? 'subjects' : 'overview');
+    setSelectedExam(exam);
+    setShowDetailsPanel(true);
+    setDetailsTab(routeTab === 'subjects' ? 'subjects' : 'overview');
   }, [routeExamId, routeTab, exams, isLoading]);
 
   // Auto-dismiss success notification
@@ -945,6 +1046,55 @@ export const AdminExams: React.FC = () => {
     setShowDetailsPanel(true);
   };
 
+  const resetCurriculumForm = () => {
+    pickerRequest.current++;
+    setCurriculumReady(false);
+    setPickerError('');
+    setFormSubjectIds([]);
+    setFormTopicIds([]);
+    setInitialCurriculum({ subjectIds: [], topicIds: [] });
+  };
+
+  /**
+   * Reads existing subjects and topics (and, when editing, the exam's saved assignments).
+   * `keepSelection` refreshes only the lists so unsaved choices survive a "Refresh lists".
+   */
+  const loadPickerData = async (examId: string | undefined, keepSelection: boolean) => {
+    const token = ++pickerRequest.current;
+    setPickerLoading(true);
+    setPickerError('');
+    try {
+      const [allSubjects, allTopics, saved] = await Promise.all([
+        api.getAllAdminSubjects(),
+        api.getAllAdminChapters(),
+        examId && !keepSelection ? api.getExamCurriculum(examId) : Promise.resolve(null),
+      ]);
+      if (token !== pickerRequest.current) return;
+      setPickerSubjects(allSubjects);
+      setPickerTopics(allTopics);
+      if (saved) {
+        setInitialCurriculum(saved);
+        setFormSubjectIds(saved.subjectIds);
+        setFormTopicIds(saved.topicIds);
+      }
+      setCurriculumReady(true);
+    } catch (err) {
+      if (token !== pickerRequest.current) return;
+      setPickerError(
+        getErrorMessage(err, 'Subjects and topics could not be loaded.') +
+          ' Assignments will not be changed until they load.'
+      );
+    } finally {
+      if (token === pickerRequest.current) setPickerLoading(false);
+    }
+  };
+
+  const closeExamModal = () => {
+    if (isSaving) return;
+    pickerRequest.current++;
+    setIsModalOpen(false);
+  };
+
   // Open Create Modal
   const handleOpenCreateModal = () => {
     setEditingExam(null);
@@ -957,7 +1107,9 @@ export const AdminExams: React.FC = () => {
     setFormIsActive(true);
     setFormIconName('');
     setFormError('');
+    resetCurriculumForm();
     setIsModalOpen(true);
+    void loadPickerData(undefined, false);
   };
 
   // Open Edit Modal
@@ -972,7 +1124,9 @@ export const AdminExams: React.FC = () => {
     setFormIsActive(exam.isActive);
     setFormIconName(exam.iconName || '');
     setFormError('');
+    resetCurriculumForm();
     setIsModalOpen(true);
+    void loadPickerData(exam.id, false);
   };
 
   // Save Exam (Create / Edit)
@@ -1008,7 +1162,28 @@ export const AdminExams: React.FC = () => {
         ? await api.updateExam(editingExam.id, input)
         : await api.createExam(input);
       if (!saved?.id) throw new Error('Exam save was not confirmed.');
-      applySavedExam(saved);
+      const savedRow = applySavedExam(saved);
+      const topicIds = pruneTopicsToSubjects(formTopicIds, formSubjectIds, pickerTopics);
+      const curriculumChanged =
+        formSubjectIds.join() !== initialCurriculum.subjectIds.join() ||
+        topicIds.join() !== initialCurriculum.topicIds.join();
+      if (curriculumReady && curriculumChanged) {
+        try {
+          await api.saveExamCurriculum(saved.id, formSubjectIds, topicIds);
+        } catch (curriculumErr) {
+          // The exam exists now: retrying must update it, never create a duplicate.
+          setEditingExam(savedRow);
+          setFormError(
+            `Exam details were saved, but the subject and topic assignments were not: ${getErrorMessage(
+              curriculumErr,
+              'Assignment save failed.'
+            )} Select Update Exam to retry.`
+          );
+          void loadData();
+          return;
+        }
+        setInitialCurriculum({ subjectIds: formSubjectIds, topicIds });
+      }
       await loadData();
       setIsModalOpen(false);
       setActionSuccessMessage('Exam saved in the backend.');
@@ -1192,11 +1367,7 @@ export const AdminExams: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {exams.length}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 20%
-              </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
           </div>
         </div>
 
@@ -1213,9 +1384,6 @@ export const AdminExams: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {exams.filter((e) => e.isActive).length}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 14%
-              </span>
             </div>
           </div>
         </div>
@@ -1231,10 +1399,7 @@ export const AdminExams: React.FC = () => {
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                {testSeriesList.length || 42}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 28%
+                {testSeriesList ? testSeriesList.length : 'Unavailable'}
               </span>
             </div>
           </div>
@@ -1253,9 +1418,6 @@ export const AdminExams: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 248
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 32%
-              </span>
             </div>
           </div>
         </div>
@@ -1272,9 +1434,6 @@ export const AdminExams: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 1,24,860
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 26%
               </span>
             </div>
           </div>
@@ -1549,7 +1708,7 @@ export const AdminExams: React.FC = () => {
 
                           {/* Test Series Count */}
                           <td className="py-3.5 px-2 text-center text-slate-600 dark:text-slate-300 font-medium">
-                            {e.testSeriesCount}
+                            {e.testSeriesCount ?? 'Unavailable'}
                           </td>
 
                           {/* Total Tests */}
@@ -1894,10 +2053,13 @@ export const AdminExams: React.FC = () => {
               {(
                 [
                   { key: 'overview', label: 'Overview' },
-                  { key: 'subjects', label: `Subjects (${selectedExam.subjectsCount ?? 'Unavailable'})` },
+                  {
+                    key: 'subjects',
+                    label: `Subjects (${selectedExam.subjectsCount ?? 'Unavailable'})`,
+                  },
                   {
                     key: 'test_series',
-                    label: `Test Series (${selectedExam.testSeriesCount || 5})`,
+                    label: `Test Series (${selectedExam.testSeriesCount ?? 'Unavailable'})`,
                   },
                   { key: 'settings', label: 'Settings' },
                 ] as const
@@ -1946,7 +2108,7 @@ export const AdminExams: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-                        {selectedExam.testSeriesCount}
+                        {selectedExam.testSeriesCount ?? 'Unavailable'}
                       </span>
                       <span className="text-[9.5px] text-slate-400 block truncate">
                         Test Series
@@ -2064,7 +2226,7 @@ export const AdminExams: React.FC = () => {
 
                     <span className="text-slate-400">Total Test Series</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                      {selectedExam.testSeriesCount}
+                      {selectedExam.testSeriesCount ?? 'Unavailable'}
                     </span>
 
                     <span className="text-slate-400">Total Tests</span>
@@ -2133,73 +2295,95 @@ export const AdminExams: React.FC = () => {
 
             {/* TAB CONTENT: SUBJECTS */}
             {detailsTab === 'subjects' && (
-              <ExamLinkedSubjects exam={selectedExam} subjects={subjects} error={subjectLoadError} loading={isLoading} onRetry={() => void loadData()} />
+              <ExamLinkedSubjects
+                exam={selectedExam}
+                subjects={subjects}
+                topics={topics}
+                curriculum={curricula[selectedExam.id]}
+                error={subjectLoadError}
+                loading={isLoading}
+                onRetry={() => void loadData()}
+                onEdit={() => handleOpenEditModal(selectedExam)}
+              />
             )}
 
-            {/* TAB CONTENT: TEST SERIES */}
+            {/* TAB CONTENT: TEST SERIES — real series targeting this exam */}
             {detailsTab === 'test_series' && (
-              <div className="space-y-3 text-xs">
+              <section aria-label="Exam test series" className="space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-900 dark:text-white">
-                    Test Series ({selectedExam.testSeriesCount})
+                    Test Series (
+                    {drawerSeriesLoading
+                      ? 'Loading…'
+                      : drawerSeriesError
+                        ? 'Unavailable'
+                        : drawerSeries.length}
+                    )
                   </span>
-                  <a
-                    href="/admin/test-series"
+                  <Link
+                    to="/admin/test-series"
                     className="text-xs text-[#026BFC] hover:underline font-semibold"
                   >
-                    View All Series
-                  </a>
+                    Manage Test Series
+                  </Link>
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {[
-                    {
-                      id: 'ts-1',
-                      title: `${selectedExam.title} Mega Full Mock Series`,
-                      tests: 15,
-                      enrolls: '8,400',
-                    },
-                    {
-                      id: 'ts-2',
-                      title: `${selectedExam.title} Official PYQ 2018-2024`,
-                      tests: 8,
-                      enrolls: '3,200',
-                    },
-                    {
-                      id: 'ts-3',
-                      title: `${selectedExam.title} High-Yield Topic Tests`,
-                      tests: 12,
-                      enrolls: '2,900',
-                    },
-                    {
-                      id: 'ts-4',
-                      title: `${selectedExam.title} Speed Booster Math & GI`,
-                      tests: 6,
-                      enrolls: '1,800',
-                    },
-                    {
-                      id: 'ts-5',
-                      title: `${selectedExam.title} Special Bengali Mock Set`,
-                      tests: 4,
-                      enrolls: '1,200',
-                    },
-                  ]
-                    .slice(0, selectedExam.testSeriesCount)
-                    .map((ts) => (
-                      <div
-                        key={ts.id}
-                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1"
-                      >
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block truncate">
-                          {ts.title}
-                        </span>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span>{ts.tests} Tests</span>
-                          <span>{ts.enrolls} Students</span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+                {drawerSeriesLoading ? (
+                  <p role="status" className="text-slate-500">
+                    Loading test series…
+                  </p>
+                ) : drawerSeriesError ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800 dark:bg-red-950/30 dark:text-red-200"
+                  >
+                    {drawerSeriesError}
+                    <button
+                      type="button"
+                      onClick={() => setDrawerSeriesReload((n) => n + 1)}
+                      className="ml-2 font-semibold underline"
+                    >
+                      Retry test series
+                    </button>
+                  </div>
+                ) : drawerSeries.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-slate-300 p-3 text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                    No test series target this exam yet. Create one on the Test Series page.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {drawerSeries.map((ts) => {
+                      const tests = ts.testCount ?? ts.testsCount ?? 0;
+                      return (
+                        <li
+                          key={ts.id}
+                          className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 block truncate flex-1">
+                              {ts.title}
+                            </span>
+                            <span className="text-[10px] text-slate-500 shrink-0">
+                              {
+                                SERIES_STATUS_LABELS[
+                                  ts.status ?? (ts.isActive ? 'published' : 'draft')
+                                ]
+                              }
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                            <span>
+                              {tests} {tests === 1 ? 'Test' : 'Tests'}
+                            </span>
+                            <span>{ts.fullMockCount ?? 0} Full Mock</span>
+                            <span>{ts.pyqTestCount ?? 0} PYQ</span>
+                            <span>{ts.topicTestCount ?? 0} Topic</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
             )}
 
             {/* TAB CONTENT: SETTINGS */}
@@ -2405,22 +2589,35 @@ export const AdminExams: React.FC = () => {
       {/* MODAL: Create / Edit Exam Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-50">
-          <div className="bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exam-modal-title"
+            className="bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4"
+          >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+              <h3
+                id="exam-modal-title"
+                className="font-bold text-base text-slate-900 dark:text-white"
+              >
                 {editingExam ? `Edit Exam — ${editingExam.title}` : 'Create Target Exam'}
               </h3>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                aria-label="Close exam form"
+                onClick={closeExamModal}
+                disabled={isSaving}
+                className="text-slate-400 hover:text-slate-600 disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {formError && (
-              <div className="p-2.5 rounded-xl bg-rose-50 text-rose-700 text-xs font-semibold">
+              <div
+                role="alert"
+                className="p-2.5 rounded-xl bg-rose-50 text-rose-700 text-xs font-semibold"
+              >
                 {formError}
               </div>
             )}
@@ -2685,12 +2882,29 @@ export const AdminExams: React.FC = () => {
                 </label>
               </div>
 
+              <ExamCurriculumPicker
+                subjects={pickerSubjects}
+                topics={pickerTopics}
+                subjectIds={formSubjectIds}
+                topicIds={formTopicIds}
+                initialSubjectIds={initialCurriculum.subjectIds}
+                onChange={(next) => {
+                  setFormSubjectIds(next.subjectIds);
+                  setFormTopicIds(next.topicIds);
+                }}
+                loading={pickerLoading}
+                error={pickerError}
+                disabled={isSaving}
+                onRefresh={() => void loadPickerData(editingExam?.id, curriculumReady)}
+              />
+
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeExamModal}
+                  disabled={isSaving}
                   className="text-xs"
                 >
                   Cancel

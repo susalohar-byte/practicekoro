@@ -14,6 +14,10 @@ vi.mock('@/services/api', () => ({
     getAllAdminExams: mocks.load,
     getAllAdminTests: async () => [],
     getAllAdminSubjects: async () => [],
+    getAllAdminChapters: async () => [],
+    getExamCurriculum: async () => ({ subjectIds: [], topicIds: [] }),
+    getAllExamCurricula: async () => ({}),
+    saveExamCurriculum: async () => ({ subjectCount: 0, topicCount: 0 }),
     getTestSeries: async () => [],
     getExamCategories: async () => [],
     createExam: mocks.create,
@@ -39,7 +43,8 @@ const mount = () =>
     </MemoryRouter>
   );
 const form = () => screen.getByPlaceholderText('e.g. WBP Constable').closest('form')!;
-const openCreate = async () => fireEvent.click(await screen.findByRole('button', { name: 'Create Exam' }));
+const openCreate = async () =>
+  fireEvent.click(await screen.findByRole('button', { name: 'Create Exam' }));
 const openActions = async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Actions for Disposable Exam' }));
 };

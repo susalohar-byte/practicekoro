@@ -1,7 +1,7 @@
 import { csvCell } from '@/utils/csvExport';
-import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
-import { runConfirmedBatch, requireSuccess } from '@/services/domains/admin.mutations';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
+import { runConfirmedBatch } from '@/services/domains/admin.mutations';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import {
   Layers,
@@ -25,7 +25,6 @@ import {
   ChevronDown,
   Check,
   Award,
-  TrendingUp,
   Clock,
   ArrowRight,
   AlertTriangle,
@@ -42,138 +41,12 @@ import {
   DEFAULT_POPULAR_TEST_SERIES,
   DEFAULT_SHOWCASE_SERIES,
 } from '@/services/domains/admin.testSeries';
+import type { SeriesMembership } from '@/services/domains/admin.contentLinks';
+import { IncludedTestsPanel } from '@/components/admin/testSeries/IncludedTestsPanel';
 
-// Showcase default tests for selected series (e.g. WBP Constable)
-const DEFAULT_WBP_SERIES_TESTS: MockTest[] = [
-  {
-    id: 'test-wbp-fm-01',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'WBP Constable Full Mock 1',
-    slug: 'wbp-constable-full-mock-1',
-    testType: 'full_mock',
-    totalQuestions: 85,
-    durationMinutes: 60,
-    totalMarks: 85,
-    passingMarks: 40,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 1,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-fm-02',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'WBP Constable Full Mock 2',
-    slug: 'wbp-constable-full-mock-2',
-    testType: 'full_mock',
-    totalQuestions: 85,
-    durationMinutes: 60,
-    totalMarks: 85,
-    passingMarks: 40,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 2,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-fm-03',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'WBP Constable Full Mock 3',
-    slug: 'wbp-constable-full-mock-3',
-    testType: 'full_mock',
-    totalQuestions: 85,
-    durationMinutes: 60,
-    totalMarks: 85,
-    passingMarks: 40,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 3,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-topic-01',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'Modern India',
-    slug: 'modern-india-history-test',
-    testType: 'topic',
-    totalQuestions: 30,
-    durationMinutes: 25,
-    totalMarks: 30,
-    passingMarks: 15,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 4,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-topic-02',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'Indian Polity',
-    slug: 'indian-polity-prelims-drill',
-    testType: 'topic',
-    totalQuestions: 30,
-    durationMinutes: 25,
-    totalMarks: 30,
-    passingMarks: 15,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 5,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-pyq-2025',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'WBP Constable PYQ 2025',
-    slug: 'wbp-constable-pyq-2025',
-    testType: 'pyq',
-    totalQuestions: 85,
-    durationMinutes: 60,
-    totalMarks: 85,
-    passingMarks: 40,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 6,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-pyq-2024',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'WBP Constable PYQ 2024',
-    slug: 'wbp-constable-pyq-2024',
-    testType: 'pyq',
-    totalQuestions: 85,
-    durationMinutes: 60,
-    totalMarks: 85,
-    passingMarks: 40,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 7,
-    isActive: true,
-    status: 'published',
-  },
-  {
-    id: 'test-wbp-topic-03',
-    testSeriesId: 'wbp-prelims-2025',
-    title: 'Arithmetic Speed Mock',
-    slug: 'arithmetic-speed-mock',
-    testType: 'topic',
-    totalQuestions: 25,
-    durationMinutes: 20,
-    totalMarks: 25,
-    passingMarks: 12,
-    negativeMarking: 0.25,
-    isPremium: false,
-    orderIndex: 8,
-    isActive: true,
-    status: 'published',
-  },
-];
+/** Access model is Free / Paid only (`isPremium`). */
+export const accessLabel = (isPremium?: boolean) => (isPremium ? 'Paid' : 'Free');
+const NO_EXAM_LABEL = 'No target exam (subject/topic collection)';
 
 export const AdminTestSeries: React.FC = () => {
   const [seriesList, setSeriesList] = useState<TestSeries[]>(() =>
@@ -181,6 +54,9 @@ export const AdminTestSeries: React.FC = () => {
   );
   const [exams, setExams] = useState<Exam[]>([]);
   const [allAvailableTests, setAllAvailableTests] = useState<MockTest[]>([]);
+  const [testExamLinks, setTestExamLinks] = useState<Record<string, string[]>>({});
+  const [memberships, setMemberships] = useState<SeriesMembership[]>([]);
+  const [testsLoadError, setTestsLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters State
@@ -197,8 +73,10 @@ export const AdminTestSeries: React.FC = () => {
   const [drawerTab, setDrawerTab] = useState<'overview' | 'tests' | 'settings' | 'analytics'>(
     'overview'
   );
-  const [activeSeriesTests, setActiveSeriesTests] = useState<MockTest[]>([]);
-  const [isLoadingDrawerTests, setIsLoadingDrawerTests] = useState(false);
+  // Included Tests: staged edits live in IncludedTestsPanel; we only track whether any are unsaved.
+  const [includedTestsDirty, setIncludedTestsDirty] = useState(false);
+  const [addTestsRequested, setAddTestsRequested] = useState(false);
+  const addTestsAfterCreateRef = useRef(false);
 
   // Drawer Inline Edit Description State
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -226,14 +104,6 @@ export const AdminTestSeries: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSeries, setEditingSeries] = useState<TestSeries | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [isAssigningTests, setIsAssigningTests] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignTargetSeriesId, setAssignTargetSeriesId] = useState('');
-  const [selectedTestsToAssign, setSelectedTestsToAssign] = useState<Set<string>>(new Set());
-  const [assignSearchTerm, setAssignSearchTerm] = useState('');
-  const [assignTypeFilter, setAssignTypeFilter] = useState<string>('all');
-  const [assignTab, setAssignTab] = useState<'available' | 'csv'>('available');
-  const [csvInputText, setCsvInputText] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [seriesToDelete, setSeriesToDelete] = useState<TestSeries | null>(null);
   const [actionNotice, setActionNotice] = useState<{
@@ -282,12 +152,6 @@ export const AdminTestSeries: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Tests Tab Search & Filter inside Drawer
-  const [drawerTestSearch, setDrawerTestSearch] = useState('');
-  const [drawerTestTypeFilter, setDrawerTestTypeFilter] = useState<
-    'all' | 'full_mock' | 'topic' | 'pyq'
-  >('all');
-
   // Close menus on outside click
   useEffect(() => {
     const handleGlobalClick = () => {
@@ -309,17 +173,36 @@ export const AdminTestSeries: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [allExams, allSeries, allTests, popCards] = await Promise.all([
-        api.getAllAdminExams().catch(() => []),
-        api.getTestSeries(),
-        api.getAllAdminTests().catch(() => []),
-        api
-          .getPopularTestSeriesCards()
-          .catch(() => (isSupabaseConfigured ? [] : DEFAULT_POPULAR_TEST_SERIES)),
-      ]);
+      let testsError: string | null = null;
+      const noteTestsError = (err: unknown) => {
+        testsError ??= getErrorMessage(err, 'Tests could not be loaded.');
+      };
+      const [allExams, allSeries, allTests, examLinks, allMemberships, popCards] =
+        await Promise.all([
+          api.getAllAdminExams().catch(() => []),
+          api.getTestSeries(),
+          api.getAllAdminTests().catch((err: unknown) => {
+            noteTestsError(err);
+            return [] as MockTest[];
+          }),
+          api.getTestExamLinks().catch((err: unknown) => {
+            noteTestsError(err);
+            return {} as Record<string, string[]>;
+          }),
+          api.getSeriesMemberships().catch((err: unknown) => {
+            noteTestsError(err);
+            return [] as SeriesMembership[];
+          }),
+          api
+            .getPopularTestSeriesCards()
+            .catch(() => (isSupabaseConfigured ? [] : DEFAULT_POPULAR_TEST_SERIES)),
+        ]);
 
       setExams(allExams);
       setAllAvailableTests(allTests);
+      setTestExamLinks(examLinks);
+      setMemberships(allMemberships);
+      setTestsLoadError(testsError);
       if (popCards && popCards.length > 0) setPopularCards(popCards);
 
       if (allSeries && allSeries.length > 0) {
@@ -347,18 +230,14 @@ export const AdminTestSeries: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Load tests when activeSeries changes
+  // Sync drawer forms when the active series changes
   useEffect(() => {
-    if (!activeSeries) {
-      setActiveSeriesTests([]);
-      return;
-    }
-
+    if (!activeSeries) return;
     setDrawerDescriptionText(activeSeries.description || '');
     setDrawerSettingsForm({
       title: activeSeries.title,
       subtitle: activeSeries.subtitle || '',
-      examId: activeSeries.examId,
+      examId: activeSeries.examId || '',
       isPremium: Boolean(activeSeries.isPremium),
       isActive: Boolean(activeSeries.isActive),
       orderIndex: activeSeries.orderIndex || 1,
@@ -367,113 +246,51 @@ export const AdminTestSeries: React.FC = () => {
       iconUrl: activeSeries.iconUrl || '/images/exams/logo_wbp.png',
       bannerUrl: activeSeries.bannerUrl || '',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSeries?.id]); // Only reset when the active series ID changes
 
-    const loadSeriesTests = async () => {
-      try {
-        setIsLoadingDrawerTests(true);
+  // Admin tests with every exam they are linked to (test_exams), for series compatibility.
+  const testsWithExamLinks = useMemo(
+    () =>
+      allAvailableTests.map((t) =>
+        testExamLinks[t.id] ? { ...t, associatedExamIds: testExamLinks[t.id] } : t
+      ),
+    [allAvailableTests, testExamLinks]
+  );
+  const examOptions = useMemo(() => exams.map((e) => ({ id: e.id, title: e.title })), [exams]);
 
-        // Check local storage first for persisted additions/removals
-        let localSaved: MockTest[] | null = null;
-        try {
-          const raw = localStorage.getItem(`pk_series_tests_${activeSeries.id}`);
-          if (raw) localSaved = JSON.parse(raw);
-        } catch {
-          /* Optional browser cache is unavailable. Backend remains authoritative. */
-        }
+  /** Guard against silently dropping staged Included Tests edits. */
+  const confirmLeaveIncludedTests = useCallback(
+    () =>
+      !includedTestsDirty ||
+      window.confirm('Discard unsaved changes to this series’ included tests?'),
+    [includedTestsDirty]
+  );
+  const openSeries = (series: TestSeries | null) => {
+    if (series?.id === activeSeries?.id) return;
+    if (!confirmLeaveIncludedTests()) return;
+    setIncludedTestsDirty(false);
+    setActiveSeries(series);
+  };
+  const handleAddRequestHandled = useCallback(() => setAddTestsRequested(false), []);
 
-        if (
-          !isSupabaseConfigured &&
-          localSaved &&
-          Array.isArray(localSaved) &&
-          localSaved.length > 0
-        ) {
-          setActiveSeriesTests(localSaved);
-          return;
-        }
-
-        const tests = await api.getSeriesTests(activeSeries.id);
-        if (tests && tests.length > 0) {
-          setActiveSeriesTests(tests);
-        } else if (isSupabaseConfigured) {
-          setActiveSeriesTests([]);
-        } else if (activeSeries.id === 'wbp-prelims-2025') {
-          setActiveSeriesTests(DEFAULT_WBP_SERIES_TESTS);
-        } else {
-          // Generate sample tests matching series testCount
-          const sampleCount = activeSeries.fullMockCount || 3;
-          const sampleTopicCount = activeSeries.topicTestCount || 2;
-          const samplePyqCount = activeSeries.pyqTestCount || 1;
-
-          const samples: MockTest[] = [];
-          for (let i = 1; i <= sampleCount; i++) {
-            samples.push({
-              id: `${activeSeries.id}-fm-${i.toString().padStart(2, '0')}`,
-              testSeriesId: activeSeries.id,
-              examId: activeSeries.examId,
-              title: `${activeSeries.title} Full Mock ${i.toString().padStart(2, '0')}`,
-              slug: `${activeSeries.slug || activeSeries.id}-full-mock-${i}`,
-              testType: 'full_mock',
-              totalQuestions: 85,
-              durationMinutes: 60,
-              totalMarks: 85,
-              passingMarks: 40,
-              negativeMarking: 0.25,
-              isPremium: false,
-              orderIndex: i,
-              isActive: true,
-              status: 'published',
-            });
-          }
-          for (let i = 1; i <= sampleTopicCount; i++) {
-            samples.push({
-              id: `${activeSeries.id}-topic-${i.toString().padStart(2, '0')}`,
-              testSeriesId: activeSeries.id,
-              examId: activeSeries.examId,
-              title: `General Drill ${i}`,
-              slug: `${activeSeries.slug || activeSeries.id}-drill-${i}`,
-              testType: 'topic',
-              totalQuestions: 30,
-              durationMinutes: 25,
-              totalMarks: 30,
-              passingMarks: 15,
-              negativeMarking: 0.25,
-              isPremium: false,
-              orderIndex: sampleCount + i,
-              isActive: true,
-              status: 'published',
-            });
-          }
-          for (let i = 1; i <= samplePyqCount; i++) {
-            samples.push({
-              id: `${activeSeries.id}-pyq-${i.toString().padStart(2, '0')}`,
-              testSeriesId: activeSeries.id,
-              examId: activeSeries.examId,
-              title: `${activeSeries.title} Official PYQ ${2025 - i}`,
-              slug: `${activeSeries.slug || activeSeries.id}-pyq-${2025 - i}`,
-              testType: 'pyq',
-              totalQuestions: 85,
-              durationMinutes: 60,
-              totalMarks: 85,
-              passingMarks: 40,
-              negativeMarking: 0.25,
-              isPremium: false,
-              orderIndex: sampleCount + sampleTopicCount + i,
-              isActive: true,
-              status: 'published',
-            });
-          }
-          setActiveSeriesTests(samples);
-        }
-      } catch (err) {
-        console.warn('Could not load series tests:', err);
-        setActiveSeriesTests(isSupabaseConfigured ? [] : DEFAULT_WBP_SERIES_TESTS);
-      } finally {
-        setIsLoadingDrawerTests(false);
-      }
-    };
-
-    loadSeriesTests();
-  }, [activeSeries?.id]); // Only refetch when active series ID changes
+  // Real counts come from test_series_tests: refresh series + memberships after a save.
+  const handleIncludedTestsSaved = useCallback(async () => {
+    try {
+      const [allSeries, allMemberships] = await Promise.all([
+        api.getTestSeries(),
+        api.getSeriesMemberships(),
+      ]);
+      setSeriesList(allSeries);
+      setMemberships(allMemberships);
+      setActiveSeries((prev) => (prev ? allSeries.find((s) => s.id === prev.id) || prev : prev));
+    } catch (err) {
+      setActionNotice({
+        type: 'error',
+        message: getErrorMessage(err, 'Saved, but series counts could not be refreshed.'),
+      });
+    }
+  }, []);
 
   // Derived Summary Analytics
   const stats = useMemo(() => {
@@ -568,27 +385,6 @@ export const AdminTestSeries: React.FC = () => {
     }
   }, [currentPage, totalPages]);
 
-  // Filtered Tests inside Selected Series Drawer
-  const filteredDrawerTests = useMemo(() => {
-    return activeSeriesTests.filter((t) => {
-      if (drawerTestSearch.trim()) {
-        const q = drawerTestSearch.toLowerCase();
-        if (!t.title.toLowerCase().includes(q)) return false;
-      }
-      if (drawerTestTypeFilter !== 'all') {
-        if (drawerTestTypeFilter === 'full_mock' && t.testType !== 'full_mock') return false;
-        if (
-          drawerTestTypeFilter === 'topic' &&
-          t.testType !== 'topic' &&
-          t.testType !== 'chapter_mock'
-        )
-          return false;
-        if (drawerTestTypeFilter === 'pyq' && t.testType !== 'pyq') return false;
-      }
-      return true;
-    });
-  }, [activeSeriesTests, drawerTestSearch, drawerTestTypeFilter]);
-
   // Handlers for Row Selection
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -668,7 +464,7 @@ export const AdminTestSeries: React.FC = () => {
       api.updateTestSeries(id, { status: 'archived', isActive: false })
     );
     const saved = new Map(batch.results.map((r) => [r.input, r.value]));
-    setSeriesList((prev) => prev.map((s) => saved.get(s.id) || s));
+    setSeriesList((prev) => prev.map((s) => (saved.has(s.id) ? { ...s, ...saved.get(s.id) } : s)));
     setSelectedRowIds(new Set(batch.failures.map((f) => f.input)));
     setActionNotice({
       type: batch.failures.length ? 'error' : 'success',
@@ -724,14 +520,14 @@ export const AdminTestSeries: React.FC = () => {
       'Total Tests',
       'Enrollments',
       'Status',
-      'Access Tier',
+      'Access',
     ];
 
     const rows = dataToExport.map((s) => [
       s.id,
       s.title || '',
       s.subtitle || '',
-      s.examTitle || s.examId || '',
+      s.examId ? s.examTitle || s.examId : '',
       s.examCategory || '',
       s.fullMockCount || 0,
       s.topicTestCount || 0,
@@ -741,7 +537,7 @@ export const AdminTestSeries: React.FC = () => {
         (s.fullMockCount || 0) + (s.topicTestCount || 0) + (s.pyqTestCount || 0),
       s.enrollmentCount || 0,
       s.status || (s.isActive ? 'published' : 'draft'),
-      s.isPremium ? 'Pro' : 'Free',
+      accessLabel(s.isPremium),
     ]);
 
     const csvContent =
@@ -766,9 +562,11 @@ export const AdminTestSeries: React.FC = () => {
 
   // Open Create Modal
   const handleOpenCreateModal = () => {
+    setEditingSeries(null);
     setFormName('');
     setFormSubtitle('');
-    setFormExamId(exams[0]?.id || 'wbp-constable');
+    // Target exam is optional; the admin picks one explicitly or keeps "No target exam".
+    setFormExamId('');
     setFormDescription('');
     setFormIconUrl('/images/exams/logo_wbp.png');
     setFormBannerUrl('');
@@ -783,7 +581,7 @@ export const AdminTestSeries: React.FC = () => {
     setEditingSeries(series);
     setFormName(series.title);
     setFormSubtitle(series.subtitle || '');
-    setFormExamId(series.examId);
+    setFormExamId(series.examId || '');
     setFormDescription(series.description || '');
     setFormIconUrl(series.iconUrl || '/images/exams/logo_wbp.png');
     setFormBannerUrl(series.bannerUrl || '');
@@ -799,7 +597,9 @@ export const AdminTestSeries: React.FC = () => {
     if (isSubmittingForm) return;
     try {
       setIsSubmittingForm(true);
-      if (!formName.trim() || !formExamId) throw new Error('Title and exam are required.');
+      if (!formName.trim()) throw new Error('Series title is required.');
+      const addTestsNext = !editingSeries && addTestsAfterCreateRef.current;
+      addTestsAfterCreateRef.current = false;
       const input = {
         title: formName.trim(),
         subtitle: formSubtitle.trim(),
@@ -822,12 +622,24 @@ export const AdminTestSeries: React.FC = () => {
         ? await api.updateTestSeries(editingSeries.id, input)
         : await api.createTestSeries(input);
       setSeriesList((prev) =>
-        editingSeries ? prev.map((s) => (s.id === saved.id ? saved : s)) : [saved, ...prev]
+        editingSeries
+          ? prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s))
+          : [{ ...saved, testCount: 0, testsCount: 0 }, ...prev]
       );
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      if (activeSeries?.id === saved.id)
+        setActiveSeries((prev) => (prev ? { ...prev, ...saved } : saved));
       setIsEditModalOpen(false);
       setIsCreateModalOpen(false);
-      setActionNotice({ type: 'success', message: 'Test series saved.' });
+      setEditingSeries(null);
+      if (addTestsNext && confirmLeaveIncludedTests()) {
+        setIncludedTestsDirty(false);
+        setActiveSeries({ ...saved, testCount: 0, testsCount: 0 });
+        setDrawerTab('tests');
+        setAddTestsRequested(true);
+        setActionNotice({ type: 'success', message: 'Test series created. Add existing tests.' });
+      } else {
+        setActionNotice({ type: 'success', message: 'Test series saved.' });
+      }
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Save failed') });
     } finally {
@@ -843,8 +655,9 @@ export const AdminTestSeries: React.FC = () => {
         status,
         isActive: status === 'published',
       });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      if (activeSeries?.id === saved.id)
+        setActiveSeries((prev) => (prev ? { ...prev, ...saved } : saved));
       setActionNotice({ type: 'success', message: 'Series status saved.' });
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Save failed') });
@@ -855,8 +668,9 @@ export const AdminTestSeries: React.FC = () => {
   const handleArchiveSeries = async (series: TestSeries) => {
     try {
       const saved = await api.updateTestSeries(series.id, { status: 'archived', isActive: false });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      if (activeSeries?.id === saved.id) setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      if (activeSeries?.id === saved.id)
+        setActiveSeries((prev) => (prev ? { ...prev, ...saved } : saved));
       setActionNotice({ type: 'success', message: 'Series archived.' });
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Archive failed') });
@@ -873,8 +687,11 @@ export const AdminTestSeries: React.FC = () => {
         status: 'draft',
         isActive: false,
       });
-      setSeriesList((prev) => [saved, ...prev]);
-      setActionNotice({ type: 'success', message: 'Draft series created.' });
+      setSeriesList((prev) => [{ ...saved, testCount: 0, testsCount: 0 }, ...prev]);
+      setActionNotice({
+        type: 'success',
+        message: 'Draft series created. Its tests are not copied — add existing tests to it.',
+      });
     } catch (err) {
       setActionNotice({ type: 'error', message: getErrorMessage(err, 'Duplicate failed') });
     }
@@ -903,8 +720,8 @@ export const AdminTestSeries: React.FC = () => {
       const saved = await api.updateTestSeries(activeSeries.id, {
         description: drawerDescriptionText,
       });
-      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
-      setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === saved.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev ? { ...prev, ...saved } : saved));
       setIsEditingDescription(false);
       setActionNotice({ type: 'success', message: 'Description saved.' });
     } catch (err) {
@@ -924,8 +741,12 @@ export const AdminTestSeries: React.FC = () => {
         title: drawerSettingsForm.title.trim(),
         subtitle: drawerSettingsForm.subtitle.trim() || undefined,
         examId: drawerSettingsForm.examId,
-        examTitle: targetExam?.title || activeSeries.examTitle,
-        examCategory: targetExam?.category || activeSeries.examCategory || 'General',
+        examTitle: drawerSettingsForm.examId
+          ? targetExam?.title || activeSeries.examTitle
+          : undefined,
+        examCategory: drawerSettingsForm.examId
+          ? targetExam?.category || activeSeries.examCategory
+          : undefined,
         isPremium: drawerSettingsForm.isPremium,
         isActive: drawerSettingsForm.status === 'published',
         orderIndex: Number(drawerSettingsForm.orderIndex),
@@ -936,8 +757,8 @@ export const AdminTestSeries: React.FC = () => {
       };
 
       const saved = await api.updateTestSeries(activeSeries.id, updated);
-      setSeriesList((prev) => prev.map((s) => (s.id === activeSeries.id ? saved : s)));
-      setActiveSeries(saved);
+      setSeriesList((prev) => prev.map((s) => (s.id === activeSeries.id ? { ...s, ...saved } : s)));
+      setActiveSeries((prev) => (prev ? { ...prev, ...saved } : saved));
       setActionNotice({ message: 'Series settings saved successfully!', type: 'success' });
     } catch (err) {
       alert(`Error saving settings: ${getErrorMessage(err, 'Failed to update')}`);
@@ -962,85 +783,6 @@ export const AdminTestSeries: React.FC = () => {
       console.warn('Could not save reordered list to backend:', err);
     }
   };
-
-  // Assign Tests Modal Submit
-  const handleExecuteAssignTests = async () => {
-    if (!assignTargetSeriesId || isAssigningTests) return;
-    setIsAssigningTests(true);
-    try {
-      if (assignTab === 'csv')
-        throw new Error(
-          'CSV test import is unavailable here. Create valid draft tests first, then assign them.'
-        );
-      requireSuccess(
-        await api.assignTestsToSeries(Array.from(selectedTestsToAssign), assignTargetSeriesId)
-      );
-      const tests = await api.getSeriesTests(assignTargetSeriesId);
-      if (activeSeries?.id === assignTargetSeriesId) setActiveSeriesTests(tests);
-      setSeriesList(await api.getTestSeries());
-      setIsAssignModalOpen(false);
-      setActionNotice({ type: 'success', message: 'Tests assigned in the backend.' });
-    } catch (err) {
-      setActionNotice({ type: 'error', message: getErrorMessage(err, 'Assignment failed') });
-    } finally {
-      setIsAssigningTests(false);
-    }
-  };
-
-  // Remove test from series
-  const handleRemoveTestFromSeries = async (testId: string, testTitle: string) => {
-    if (!activeSeries) return;
-    if (!window.confirm(`Remove "${testTitle}" from ${activeSeries.title}?`)) return;
-
-    try {
-      await api.assignTestsToSeries([testId], null);
-
-      const remainingTests = activeSeriesTests.filter((t) => t.id !== testId);
-      setActiveSeriesTests(remainingTests);
-
-      try {
-        localStorage.setItem(`pk_series_tests_${activeSeries.id}`, JSON.stringify(remainingTests));
-      } catch {
-        /* Optional browser cache is unavailable. Backend remains authoritative. */
-      }
-
-      const fullMocks = remainingTests.filter((t) => t.testType === 'full_mock').length;
-      const topicTests = remainingTests.filter((t) => t.testType === 'topic').length;
-      const pyqs = remainingTests.filter((t) => t.testType === 'pyq').length;
-
-      const countUpdates = {
-        fullMockCount: fullMocks,
-        topicTestCount: topicTests,
-        pyqTestCount: pyqs,
-        testCount: remainingTests.length,
-        testsCount: remainingTests.length,
-      };
-
-      setSeriesList((prev) =>
-        prev.map((s) => (s.id === activeSeries.id ? { ...s, ...countUpdates } : s))
-      );
-
-      setActiveSeries((prev) => (prev ? { ...prev, ...countUpdates } : null));
-
-      setActionNotice({ message: `Removed "${testTitle}" from series.`, type: 'success' });
-    } catch (err) {
-      alert(`Error removing test: ${getErrorMessage(err, 'Error')}`);
-    }
-  };
-
-  // Filtered available tests for Assign Modal
-  const filteredAvailableTestsToAssign = useMemo(() => {
-    return allAvailableTests.filter((t) => {
-      if (assignSearchTerm.trim()) {
-        const q = assignSearchTerm.toLowerCase();
-        if (!t.title.toLowerCase().includes(q)) return false;
-      }
-      if (assignTypeFilter !== 'all' && t.testType !== assignTypeFilter) {
-        return false;
-      }
-      return true;
-    });
-  }, [allAvailableTests, assignSearchTerm, assignTypeFilter]);
 
   return withAdminSkeleton(
     isLoading,
@@ -1095,17 +837,24 @@ export const AdminTestSeries: React.FC = () => {
             <span>Export CSV</span>
           </button>
 
-          {/* Import Tests */}
+          {/* Add existing tests to the open series */}
           <button
             type="button"
             onClick={() => {
-              setAssignTargetSeriesId(activeSeries?.id || seriesList[0]?.id || '');
-              setIsAssignModalOpen(true);
+              if (!activeSeries) {
+                setActionNotice({
+                  type: 'error',
+                  message: 'Open a test series first, then add existing tests to it.',
+                });
+                return;
+              }
+              setDrawerTab('tests');
+              setAddTestsRequested(true);
             }}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B132B] text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors shadow-2xs cursor-pointer"
           >
             <Upload className="w-3.5 h-3.5 text-slate-500" />
-            <span>Import Tests</span>
+            <span>Add Existing Tests</span>
           </button>
 
           {/* Test Series Order */}
@@ -1150,11 +899,8 @@ export const AdminTestSeries: React.FC = () => {
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.total.toLocaleString('en-IN')}
             </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +20%
-            </span>
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">all series</p>
         </div>
 
         {/* Total Tests */}
@@ -1170,9 +916,6 @@ export const AdminTestSeries: React.FC = () => {
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.totalTests.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +15%
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">across all series</p>
@@ -1198,9 +941,6 @@ export const AdminTestSeries: React.FC = () => {
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.published.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +11%
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">active in apps</p>
@@ -1242,9 +982,6 @@ export const AdminTestSeries: React.FC = () => {
           <div className="mt-2.5 flex items-baseline gap-2">
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.totalEnrollments.toLocaleString('en-IN')}
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" /> +28%
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-0.5">student attempts</p>
@@ -1482,7 +1219,7 @@ export const AdminTestSeries: React.FC = () => {
                       return (
                         <tr
                           key={series.id}
-                          onClick={() => setActiveSeries(series)}
+                          onClick={() => openSeries(series)}
                           className={cn(
                             'hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors cursor-pointer select-none',
                             isRowActive && 'bg-blue-50/70 dark:bg-blue-950/40 font-semibold'
@@ -1536,7 +1273,11 @@ export const AdminTestSeries: React.FC = () => {
 
                           {/* Associated Exam */}
                           <td className="py-3 px-3 text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap">
-                            {series.examTitle || series.examId}
+                            {series.examId ? (
+                              series.examTitle || series.examId
+                            ) : (
+                              <span className="text-slate-400 font-semibold">No target exam</span>
+                            )}
                           </td>
 
                           {/* Tests breakdown: Full Mock, Topic, PYQ, Total */}
@@ -1618,7 +1359,7 @@ export const AdminTestSeries: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setActiveSeries(series);
+                                      openSeries(series);
                                       setActiveActionMenuId(null);
                                     }}
                                     className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg flex items-center gap-2 cursor-pointer"
@@ -1773,7 +1514,7 @@ export const AdminTestSeries: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveSeries(null);
+                    openSeries(null);
                   }}
                   title="Close Details"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
@@ -1826,7 +1567,7 @@ export const AdminTestSeries: React.FC = () => {
                   tab === 'overview'
                     ? 'Overview'
                     : tab === 'tests'
-                      ? `Tests (${activeSeriesTests.length || activeSeries.testCount || 25})`
+                      ? `Tests (${activeSeries.testCount ?? 0})`
                       : tab === 'settings'
                         ? 'Settings'
                         : 'Analytics';
@@ -1858,7 +1599,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-blue-600 mb-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.fullMockCount ?? 5}
+                        {activeSeries.fullMockCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Full Mock Tests</p>
@@ -1869,7 +1610,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
                       <FileText className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.topicTestCount ?? 12}
+                        {activeSeries.topicTestCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Topic Tests</p>
@@ -1880,7 +1621,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-rose-600 mb-1">
                       <Award className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.pyqTestCount ?? 8}
+                        {activeSeries.pyqTestCount ?? 0}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Official PYQs</p>
@@ -1891,7 +1632,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-purple-600 mb-1">
                       <Users className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {(activeSeries.enrollmentCount ?? 1240).toLocaleString('en-IN')}
+                        {(activeSeries.enrollmentCount ?? 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Total Enrollments</p>
@@ -1902,7 +1643,9 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-amber-600 mb-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.avgCompletion ?? 78}%
+                        {activeSeries.avgCompletion != null
+                          ? `${activeSeries.avgCompletion}%`
+                          : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Avg. Completion</p>
@@ -1913,7 +1656,7 @@ export const AdminTestSeries: React.FC = () => {
                     <div className="flex items-center gap-1.5 text-teal-600 mb-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span className="text-base font-black text-slate-900 dark:text-white">
-                        {activeSeries.avgAccuracy ?? 82}%
+                        {activeSeries.avgAccuracy != null ? `${activeSeries.avgAccuracy}%` : '—'}
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500">Avg. Accuracy</p>
@@ -1960,214 +1703,45 @@ export const AdminTestSeries: React.FC = () => {
                   )}
                 </div>
 
-                {/* Tests in This Series Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
+                {/* Included tests summary (managed in the Tests tab) */}
+                <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div>
                     <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">
-                      Tests in This Series ({activeSeriesTests.length})
+                      Included Tests ({activeSeries.testCount ?? 0})
                     </h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAssignTargetSeriesId(activeSeries.id);
-                        setIsAssignModalOpen(true);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-[#026BFC] hover:bg-blue-600 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" /> Add Test
-                    </button>
+                    <p className="text-[11px] text-slate-500">
+                      Target exam:{' '}
+                      {activeSeries.examId
+                        ? activeSeries.examTitle || activeSeries.examId
+                        : NO_EXAM_LABEL}
+                    </p>
                   </div>
-
-                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden text-xs">
-                    <table className="w-full text-left">
-                      <thead className="bg-[#F8FAFC] dark:bg-[#1E293B] text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                          <th className="p-2 w-6 text-center">#</th>
-                          <th className="p-2">Test Name</th>
-                          <th className="p-2 text-center">Type</th>
-                          <th className="p-2 text-right">Questions</th>
-                          <th className="p-2 text-right w-8">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
-                        {isLoadingDrawerTests ? (
-                          <tr>
-                            <td colSpan={5} className="p-4">
-                              <AdminSectionSkeleton variant="table" label="Loading series tests…" />
-                            </td>
-                          </tr>
-                        ) : (
-                          activeSeriesTests.slice(0, 5).map((test, i) => (
-                            <tr
-                              key={test.id}
-                              className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                            >
-                              <td className="p-2 text-center text-slate-400 text-[11px]">
-                                {i + 1}
-                              </td>
-                              <td className="p-2 font-bold text-slate-900 dark:text-white truncate max-w-[140px]">
-                                {test.title}
-                              </td>
-                              <td className="p-2 text-center whitespace-nowrap">
-                                <span
-                                  className={cn(
-                                    'px-2 py-0.5 rounded text-[10px] font-black',
-                                    test.testType === 'full_mock'
-                                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                                      : test.testType === 'pyq'
-                                        ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                  )}
-                                >
-                                  {test.testType === 'full_mock'
-                                    ? 'Full Mock'
-                                    : test.testType === 'pyq'
-                                      ? 'PYQ'
-                                      : 'Topic'}
-                                </span>
-                              </td>
-                              <td className="p-2 text-right font-black">{test.totalQuestions}</td>
-                              <td className="p-2 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTestFromSeries(test.id, test.title)}
-                                  className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer"
-                                  title="Remove test from series"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="mt-2.5 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setDrawerTab('tests')}
-                      className="text-xs font-bold text-[#026BFC] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      View All Tests ({activeSeriesTests.length}){' '}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: TESTS */}
-            {drawerTab === 'tests' && (
-              <div className="p-4 space-y-3 text-xs">
-                {/* Search & Filter inside Tests Tab */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search tests..."
-                      value={drawerTestSearch}
-                      onChange={(e) => setDrawerTestSearch(e.target.value)}
-                      className="w-full pl-7 pr-3 py-1.5 text-xs bg-[#F8FAFC] dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-
-                  <select
-                    value={drawerTestTypeFilter}
-                    onChange={(e) =>
-                      setDrawerTestTypeFilter(
-                        e.target.value as 'all' | 'full_mock' | 'topic' | 'pyq'
-                      )
-                    }
-                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F8FAFC] dark:bg-[#1E293B] text-xs font-bold cursor-pointer"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="full_mock">Full Mock</option>
-                    <option value="topic">Topic Test</option>
-                    <option value="pyq">Official PYQ</option>
-                  </select>
-
                   <button
                     type="button"
-                    onClick={() => {
-                      setAssignTargetSeriesId(activeSeries.id);
-                      setIsAssignModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white font-bold flex items-center gap-1 shrink-0 cursor-pointer"
+                    onClick={() => setDrawerTab('tests')}
+                    className="text-xs font-bold text-[#026BFC] hover:underline inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add
+                    Manage included tests <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-                </div>
-
-                {/* Tests Table */}
-                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden max-h-[480px] overflow-y-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8FAFC] dark:bg-[#1E293B] text-[10px] font-bold text-slate-500 uppercase sticky top-0 border-b border-slate-200 dark:border-slate-800">
-                      <tr>
-                        <th className="p-2 w-6 text-center">#</th>
-                        <th className="p-2">Test Name</th>
-                        <th className="p-2 text-center">Type</th>
-                        <th className="p-2 text-center">Questions</th>
-                        <th className="p-2 text-center">Duration</th>
-                        <th className="p-2 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
-                      {filteredDrawerTests.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="p-6 text-center text-slate-400">
-                            No tests match the current filter.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredDrawerTests.map((t, idx) => (
-                          <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="p-2 text-center text-slate-400">{idx + 1}</td>
-                            <td className="p-2 font-bold text-slate-900 dark:text-white truncate max-w-[130px]">
-                              {t.title}
-                            </td>
-                            <td className="p-2 text-center whitespace-nowrap">
-                              <span
-                                className={cn(
-                                  'px-2 py-0.5 rounded text-[10px] font-black',
-                                  t.testType === 'full_mock'
-                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                                    : t.testType === 'pyq'
-                                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                )}
-                              >
-                                {t.testType === 'full_mock'
-                                  ? 'Full Mock'
-                                  : t.testType === 'pyq'
-                                    ? 'Official PYQ'
-                                    : 'Topic Test'}
-                              </span>
-                            </td>
-                            <td className="p-2 text-center font-bold">{t.totalQuestions} Qs</td>
-                            <td className="p-2 text-center text-slate-500 whitespace-nowrap">
-                              {t.durationMinutes || 60} Mins
-                            </td>
-                            <td className="p-2 text-right whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTestFromSeries(t.id, t.title)}
-                                className="text-rose-600 hover:text-rose-700 p-1 cursor-pointer"
-                                title="Remove test"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}
+
+            {/* TAB 2: INCLUDED TESTS (kept mounted so staged edits survive tab switches) */}
+            <div className={cn('p-4', drawerTab !== 'tests' && 'hidden')}>
+              <IncludedTestsPanel
+                key={activeSeries.id}
+                series={activeSeries}
+                tests={testsWithExamLinks}
+                exams={examOptions}
+                memberships={memberships}
+                testsError={testsLoadError}
+                addRequested={addTestsRequested}
+                onAddRequestHandled={handleAddRequestHandled}
+                onDirtyChange={setIncludedTestsDirty}
+                onSaved={handleIncludedTestsSaved}
+              />
+            </div>
 
             {/* TAB 3: SETTINGS */}
             {drawerTab === 'settings' && (
@@ -2214,6 +1788,7 @@ export const AdminTestSeries: React.FC = () => {
                       }
                       className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F8FAFC] dark:bg-[#1E293B] font-bold cursor-pointer"
                     >
+                      <option value="">{NO_EXAM_LABEL}</option>
                       {exams.map((ex) => (
                         <option key={ex.id} value={ex.id}>
                           {ex.title}
@@ -2264,20 +1839,21 @@ export const AdminTestSeries: React.FC = () => {
 
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Access Tier
+                      Access
                     </label>
                     <select
-                      value={drawerSettingsForm.isPremium ? 'pro' : 'free'}
+                      aria-label="Access"
+                      value={drawerSettingsForm.isPremium ? 'paid' : 'free'}
                       onChange={(e) =>
                         setDrawerSettingsForm({
                           ...drawerSettingsForm,
-                          isPremium: e.target.value === 'pro',
+                          isPremium: e.target.value === 'paid',
                         })
                       }
                       className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F8FAFC] dark:bg-[#1E293B] font-bold cursor-pointer"
                     >
-                      <option value="free">Free / Public</option>
-                      <option value="pro">Pro Pass Required</option>
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
                     </select>
                   </div>
                 </div>
@@ -2350,9 +1926,9 @@ export const AdminTestSeries: React.FC = () => {
                           orderIndex: popularCards.length + 1,
                           route: `/test-series/${activeSeries.slug || activeSeries.id}`,
                           isActive: true,
-                          fullMockCount: activeSeries.fullMockCount || 40,
-                          topicTestCount: activeSeries.topicTestCount || 120,
-                          pyqTestCount: activeSeries.pyqTestCount || 25,
+                          fullMockCount: activeSeries.fullMockCount ?? 0,
+                          topicTestCount: activeSeries.topicTestCount ?? 0,
+                          pyqTestCount: activeSeries.pyqTestCount ?? 0,
                         }
                       );
                       setIsPopularModalOpen(true);
@@ -2376,11 +1952,9 @@ export const AdminTestSeries: React.FC = () => {
               <div className="p-4 space-y-4 text-xs">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-400">Total Attempts</p>
+                    <p className="text-[10px] font-bold text-slate-400">Included Tests</p>
                     <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
-                      {activeSeries.enrollmentCount
-                        ? Math.round(activeSeries.enrollmentCount * 2.5)
-                        : 0}
+                      {activeSeries.testCount ?? 0}
                     </p>
                   </div>
 
@@ -2392,10 +1966,10 @@ export const AdminTestSeries: React.FC = () => {
                   </div>
 
                   <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-400">Average Score</p>
+                    <p className="text-[10px] font-bold text-slate-400">Average Accuracy</p>
                     <p className="text-lg font-black text-blue-600 mt-0.5">
-                      {activeSeries.avgAccuracy
-                        ? `${(activeSeries.avgAccuracy * 0.85).toFixed(1)} / 100`
+                      {activeSeries.avgAccuracy != null
+                        ? `${Number(activeSeries.avgAccuracy).toFixed(1)}%`
                         : '—'}
                     </p>
                   </div>
@@ -2408,23 +1982,9 @@ export const AdminTestSeries: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-[#F8FAFC] dark:bg-[#1E293B]/40 space-y-2">
-                  <p className="font-extrabold text-slate-900 dark:text-white">Highlights</p>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                    <span>Most Attempted Test:</span>
-                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
-                      {activeSeriesTests.length > 0 ? activeSeriesTests[0].title : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                    <span>Average Time Spent:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">48.2 Minutes</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                    <span>Overall Pass Ratio:</span>
-                    <span className="font-bold text-emerald-600">68.4%</span>
-                  </div>
-                </div>
+                <p className="text-[11px] text-slate-500">
+                  Per-test attempt analytics are not available for series yet.
+                </p>
               </div>
             )}
           </div>
@@ -2460,6 +2020,7 @@ export const AdminTestSeries: React.FC = () => {
                 <input
                   type="text"
                   required
+                  aria-label="Test Series Name"
                   placeholder="e.g. WBP Constable"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
@@ -2483,14 +2044,15 @@ export const AdminTestSeries: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Target Exam *
+                    Target Exam (optional)
                   </label>
                   <select
+                    aria-label="Target Exam"
                     value={formExamId}
                     onChange={(e) => setFormExamId(e.target.value)}
-                    required
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] font-bold cursor-pointer"
                   >
+                    <option value="">{NO_EXAM_LABEL}</option>
                     {exams.map((ex) => (
                       <option key={ex.id} value={ex.id}>
                         {ex.title}
@@ -2594,15 +2156,16 @@ export const AdminTestSeries: React.FC = () => {
 
                 <div>
                   <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Access Tier
+                    Access
                   </label>
                   <select
-                    value={formIsPremium ? 'pro' : 'free'}
-                    onChange={(e) => setFormIsPremium(e.target.value === 'pro')}
+                    aria-label="Access"
+                    value={formIsPremium ? 'paid' : 'free'}
+                    onChange={(e) => setFormIsPremium(e.target.value === 'paid')}
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] font-bold cursor-pointer"
                   >
-                    <option value="free">Free for all students</option>
-                    <option value="pro">Pro Pass Subscription</option>
+                    <option value="free">Free</option>
+                    <option value="paid">Paid</option>
                   </select>
                 </div>
               </div>
@@ -2631,9 +2194,20 @@ export const AdminTestSeries: React.FC = () => {
                 >
                   Cancel
                 </button>
+                {!editingSeries && (
+                  <button
+                    type="submit"
+                    disabled={isSubmittingForm}
+                    onClick={() => (addTestsAfterCreateRef.current = true)}
+                    className="px-4 py-2 rounded-xl border border-[#026BFC] text-[#026BFC] font-bold disabled:opacity-50 cursor-pointer"
+                  >
+                    Save &amp; add tests
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isSubmittingForm}
+                  onClick={() => (addTestsAfterCreateRef.current = false)}
                   className="px-6 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white font-bold cursor-pointer"
                 >
                   {isSubmittingForm
@@ -2725,202 +2299,6 @@ export const AdminTestSeries: React.FC = () => {
                 className="px-5 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white text-xs font-bold cursor-pointer"
               >
                 Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. IMPORT / ASSIGN TESTS MODAL */}
-      {isAssignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-[#0B132B] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-6 shadow-2xl animate-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-[#026BFC]" />
-                  Import / Add Tests into Series
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Select available Mock Tests or PYQs to assign to this series.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAssignModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Target Test Series Select */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Target Test Series:
-              </label>
-              <select
-                value={assignTargetSeriesId}
-                onChange={(e) => setAssignTargetSeriesId(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] text-xs font-bold cursor-pointer"
-              >
-                {seriesList.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title} ({s.examTitle || s.examId})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mode Switch Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-              <button
-                type="button"
-                onClick={() => setAssignTab('available')}
-                className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer',
-                  assignTab === 'available'
-                    ? 'bg-[#026BFC] text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                )}
-              >
-                From Existing Test Catalog
-              </button>
-              <button
-                type="button"
-                onClick={() => setAssignTab('csv')}
-                className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer',
-                  assignTab === 'csv'
-                    ? 'bg-[#026BFC] text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                )}
-              >
-                Bulk Import from CSV
-              </button>
-            </div>
-
-            {assignTab === 'available' ? (
-              <div className="space-y-2.5">
-                {/* Search & Filter within Assign Modal */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search mock tests..."
-                      value={assignSearchTerm}
-                      onChange={(e) => setAssignSearchTerm(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8FAFC] dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700 rounded-xl"
-                    />
-                  </div>
-
-                  <select
-                    value={assignTypeFilter}
-                    onChange={(e) => setAssignTypeFilter(e.target.value)}
-                    className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F8FAFC] dark:bg-[#1E293B] text-xs font-bold cursor-pointer"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="full_mock">Full Mock</option>
-                    <option value="topic">Topic Test</option>
-                    <option value="pyq">Official PYQ</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedTestsToAssign.size === filteredAvailableTestsToAssign.length) {
-                        setSelectedTestsToAssign(new Set());
-                      } else {
-                        setSelectedTestsToAssign(
-                          new Set(filteredAvailableTestsToAssign.map((t) => t.id))
-                        );
-                      }
-                    }}
-                    className="px-2.5 py-1.5 text-xs font-bold border rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                  >
-                    {selectedTestsToAssign.size === filteredAvailableTestsToAssign.length &&
-                    filteredAvailableTestsToAssign.length > 0
-                      ? 'Deselect All'
-                      : 'Select All'}
-                  </button>
-                </div>
-
-                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {filteredAvailableTestsToAssign.length === 0 ? (
-                    <div className="p-6 text-center text-slate-400">
-                      No available tests found matching your search.
-                    </div>
-                  ) : (
-                    filteredAvailableTestsToAssign.map((test) => {
-                      const isChecked = selectedTestsToAssign.has(test.id);
-                      return (
-                        <label
-                          key={test.id}
-                          className="p-2.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              const next = new Set(selectedTestsToAssign);
-                              if (next.has(test.id)) next.delete(test.id);
-                              else next.add(test.id);
-                              setSelectedTestsToAssign(next);
-                            }}
-                            className="rounded border-slate-300 text-[#026BFC] cursor-pointer"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {test.title}
-                            </p>
-                            <p className="text-[11px] text-slate-400">
-                              {test.testType} • {test.totalQuestions} Questions •{' '}
-                              {test.durationMinutes} Mins
-                            </p>
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Paste Test Details (Format: Title, TestType, Questions, Duration)
-                </label>
-                <textarea
-                  rows={6}
-                  value={csvInputText}
-                  onChange={(e) => setCsvInputText(e.target.value)}
-                  placeholder="WBP Constable Full Mock 4, full_mock, 85, 60&#10;History Speed Drill 1, topic, 30, 25&#10;WBP 2023 Preliminary Paper, pyq, 85, 60"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F8FAFC] dark:bg-[#1E293B] font-mono text-xs"
-                />
-                <p className="text-[11px] text-slate-400">
-                  Tip: Supports Bengali exam test names. Columns:{' '}
-                  <code>Title, Type, Questions, Duration</code>
-                </p>
-              </div>
-            )}
-
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setIsAssignModalOpen(false)}
-                className="px-4 py-2 rounded-xl border font-bold cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={assignTab === 'available' && selectedTestsToAssign.size === 0}
-                onClick={handleExecuteAssignTests}
-                className="px-5 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white font-bold disabled:opacity-40 cursor-pointer"
-              >
-                {assignTab === 'csv'
-                  ? 'Import CSV Tests'
-                  : `Add ${selectedTestsToAssign.size} Tests`}
               </button>
             </div>
           </div>

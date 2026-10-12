@@ -36,8 +36,26 @@ import { CreateMockTestModal } from '@/components/admin/CreateMockTestModal';
 import { MockTestPreviewModal } from '@/components/admin/MockTestPreviewModal';
 import { AddQuestionsToTestModal } from '@/components/admin/AddQuestionsToTestModal';
 import { ImportTestsModal } from '@/components/admin/ImportTestsModal';
+import { TEST_TYPE_LABELS } from '@/services/domains/admin.contentLinks';
 
 type TestTypeTab = 'all' | 'full_mock' | 'topic' | 'pyq';
+
+const testTypeLabel = (type: string) => TEST_TYPE_LABELS[type] || type;
+
+/** Real per-type counts for the KPI cards and tabs (legacy types count only in the total). */
+function countTestsByType(tests: MockTest[]) {
+  const attemptsKnown = tests.some((t) => typeof t.attemptsCount === 'number');
+  return {
+    total: tests.length,
+    fullMock: tests.filter((t) => t.testType === 'full_mock').length,
+    topic: tests.filter((t) => t.testType === 'topic').length,
+    pyq: tests.filter((t) => t.testType === 'pyq').length,
+    // Attempt counts are not part of the admin test read; show a dash instead of a made-up 0.
+    attempts: attemptsKnown
+      ? tests.reduce((acc, t) => acc + (t.attemptsCount || 0), 0).toLocaleString('en-IN')
+      : '—',
+  };
+}
 
 // Police shield badge matching WBP crest from the reference design
 const PoliceShieldBadge: React.FC<{ className?: string }> = ({ className = 'w-9 h-10' }) => (
@@ -429,8 +447,9 @@ export const AdminTests: React.FC = () => {
     try {
       const [testsData, examsData, subjectsData, chaptersData] = await Promise.all([
         api.getAllAdminTests(),
-        api.getExams(),
-        api.getSubjects(),
+        // Admin reads include draft/inactive exams and subjects (student reads drop them).
+        api.getAllAdminExams(),
+        api.getAllAdminSubjects(),
         api.getAllAdminChapters(),
       ]);
 
@@ -510,30 +529,8 @@ export const AdminTests: React.FC = () => {
     return chapters.filter((c) => c.subjectId === selectedSubjectId);
   }, [chapters, selectedSubjectId]);
 
-  // Counts for Top KPI cards and Tabs
-  const counts = useMemo(() => {
-    if (isSupabaseConfigured) {
-      const total = tests.length;
-      const fullMock = tests.filter((t) => t.testType === 'full_mock').length;
-      const topic = tests.filter((t) => t.testType === 'topic').length;
-      const pyq = tests.filter((t) => t.testType === 'pyq').length;
-      const attemptsSum = tests.reduce((acc, t) => acc + ((t as any).attemptsCount || 0), 0);
-      return {
-        total,
-        fullMock,
-        topic,
-        pyq,
-        attempts: attemptsSum.toLocaleString('en-IN'),
-      };
-    }
-    return {
-      total: 248,
-      fullMock: 85,
-      topic: 120,
-      pyq: 43,
-      attempts: '1,24,860',
-    };
-  }, [tests]);
+  // Counts for Top KPI cards and Tabs — always computed from the loaded tests.
+  const counts = useMemo(() => countTestsByType(tests), [tests]);
 
   // Filtered Tests
   const filteredTests = useMemo(() => {
@@ -841,11 +838,7 @@ export const AdminTests: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.total}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 18%
-              </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
           </div>
         </div>
 
@@ -861,9 +854,6 @@ export const AdminTests: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.fullMock}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 12%
               </span>
             </div>
           </div>
@@ -882,9 +872,6 @@ export const AdminTests: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.topic}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 26%
-              </span>
             </div>
           </div>
         </div>
@@ -901,9 +888,6 @@ export const AdminTests: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.pyq}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 15%
               </span>
             </div>
           </div>
@@ -922,9 +906,6 @@ export const AdminTests: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.attempts}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 32%
-              </span>
             </div>
           </div>
         </div>
@@ -940,13 +921,13 @@ export const AdminTests: React.FC = () => {
           )}
         >
           <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xs overflow-hidden">
-            {/* Horizontal Tabs: All Tests (248), Full Mock (85), Topic Test (120), Official PYQ (43) */}
+            {/* Horizontal Tabs with real counts from the loaded tests */}
             <div className="px-5 pt-3.5 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center gap-8 overflow-x-auto">
               {[
-                { key: 'all', label: 'All Tests (248)' },
-                { key: 'full_mock', label: 'Full Mock (85)' },
-                { key: 'topic', label: 'Topic Test (120)' },
-                { key: 'pyq', label: 'Official PYQ (43)' },
+                { key: 'all', label: `All Tests (${counts.total})` },
+                { key: 'full_mock', label: `Full Mock (${counts.fullMock})` },
+                { key: 'topic', label: `Topic Test (${counts.topic})` },
+                { key: 'pyq', label: `Official PYQ (${counts.pyq})` },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -1090,7 +1071,13 @@ export const AdminTests: React.FC = () => {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {isLoading && pagedTests.length === 0 ? <tr><td colSpan={10} className="p-4"><AdminSectionSkeleton label="Loading tests..." variant="table" /></td></tr> : pagedTests.length === 0 ? (
+                  {isLoading && pagedTests.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="p-4">
+                        <AdminSectionSkeleton label="Loading tests..." variant="table" />
+                      </td>
+                    </tr>
+                  ) : pagedTests.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="py-12 text-center text-slate-400">
                         No tests found matching the selected filters.
@@ -1155,11 +1142,7 @@ export const AdminTests: React.FC = () => {
                                         : 'text-rose-500 dark:text-rose-400'
                                   )}
                                 >
-                                  {isFullMock
-                                    ? 'Full Mock'
-                                    : isTopic
-                                      ? 'Topic Test'
-                                      : 'Official PYQ'}
+                                  {testTypeLabel(t.testType)}
                                 </span>
                               </div>
                             </div>
@@ -1177,15 +1160,13 @@ export const AdminTests: React.FC = () => {
                                     : 'bg-[#FEECEC] text-[#EF4444] dark:bg-rose-950/60 dark:text-rose-300'
                               )}
                             >
-                              {isFullMock ? 'Full Mock' : isTopic ? 'Topic Test' : 'Official PYQ'}
+                              {testTypeLabel(t.testType)}
                             </span>
                           </td>
 
                           {/* Exam / Subject */}
                           <td className="py-3 px-2.5 text-slate-600 dark:text-slate-300 font-normal">
-                            {isTopic
-                              ? t.subjectName || 'General Science'
-                              : t.examTitle || 'WBP Constable'}
+                            {isTopic ? t.subjectName || '—' : t.examTitle || t.subjectName || '—'}
                           </td>
 
                           {/* Topic (for Topic Test) */}
@@ -1195,7 +1176,7 @@ export const AdminTests: React.FC = () => {
 
                           {/* Questions */}
                           <td className="py-3 px-2 text-center text-slate-700 dark:text-slate-300">
-                            {t.totalQuestions || 85}
+                            {t.totalQuestions ?? 0}
                           </td>
 
                           {/* Duration */}
@@ -1449,11 +1430,7 @@ export const AdminTests: React.FC = () => {
                   </h3>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#EBF5FF] text-[#026BFC] dark:bg-blue-950/60 dark:text-blue-300">
-                      {selectedTest.testType === 'full_mock'
-                        ? 'Full Mock'
-                        : selectedTest.testType === 'topic'
-                          ? 'Topic Test'
-                          : 'Official PYQ'}
+                      {testTypeLabel(selectedTest.testType)}
                     </span>
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E8F8F0] text-[#10B981] dark:bg-emerald-950/60 dark:text-emerald-300">
                       {selectedTest.status === 'published' ? 'Published' : 'Draft'}
@@ -1587,7 +1564,7 @@ export const AdminTests: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-                        {(selectedTest as any).attemptsCount ? '72%' : '—'}
+                        —
                       </span>
                       <span className="text-[9.5px] text-slate-400 block truncate">Completion</span>
                     </div>
@@ -1628,11 +1605,7 @@ export const AdminTests: React.FC = () => {
 
                     <span className="text-slate-400">Test Type</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                      {selectedTest.testType === 'full_mock'
-                        ? 'Full Mock'
-                        : selectedTest.testType === 'topic'
-                          ? 'Topic Test'
-                          : 'Official PYQ'}
+                      {testTypeLabel(selectedTest.testType)}
                     </span>
 
                     <span className="text-slate-400">Total Questions</span>
@@ -1947,12 +1920,12 @@ export const AdminTests: React.FC = () => {
                       Access Plan
                     </label>
                     <select
-                      value={editIsPremium ? 'pro' : 'free'}
-                      onChange={(e) => setEditIsPremium(e.target.value === 'pro')}
+                      value={editIsPremium ? 'paid' : 'free'}
+                      onChange={(e) => setEditIsPremium(e.target.value === 'paid')}
                       className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="free">Free Practice</option>
-                      <option value="pro">PRO Members Only</option>
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
                     </select>
                   </div>
                 </div>
@@ -1971,22 +1944,18 @@ export const AdminTests: React.FC = () => {
             {detailsTab === 'analytics' && (
               <div className="space-y-3 text-xs">
                 <span className="font-bold text-slate-800 dark:text-slate-200 block">
-                  Live Analytics & Attempt Data
+                  Attempt Data
                 </span>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#070D1E] space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Total Attempts:</span>
-                    <span className="font-bold">3,240</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Average Score:</span>
-                    <span className="font-bold text-blue-600">68%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Pass Percentage:</span>
-                    <span className="font-bold text-emerald-600">72%</span>
-                  </div>
-                </div>
+                <p className="p-3 rounded-xl bg-slate-50 dark:bg-[#070D1E] text-slate-500 dark:text-slate-400">
+                  Attempt analytics are not loaded on this page. Open{' '}
+                  <a
+                    href="/admin/test-attempts"
+                    className="font-semibold text-blue-600 hover:underline"
+                  >
+                    Test Attempts
+                  </a>{' '}
+                  to see real attempt counts and scores for this test.
+                </p>
               </div>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpen,
@@ -69,11 +69,7 @@ const getSubjectTheme = (subjectName: string) => {
       badgeBg: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300',
     };
   }
-  if (
-    lower.includes('awareness') ||
-    lower.includes('current') ||
-    lower.includes('সাম্প্রতিক')
-  ) {
+  if (lower.includes('awareness') || lower.includes('current') || lower.includes('সাম্প্রতিক')) {
     return {
       icon: Globe,
       isSigma: false,
@@ -113,12 +109,27 @@ const getSubjectTheme = (subjectName: string) => {
   };
 };
 
+// Topic Tests are subject/topic based and independent of exams. Full Mocks and Official PYQs
+// can carry a chapter too, so the topic list must filter by type explicitly.
+const TOPIC_TEST_TYPES: ReadonlySet<string> = new Set(['topic', 'chapter_mock']);
+
 export const TopicTests: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { exams, selectedExam, setSelectedExam } = useExam();
   const { hasAccessToTest } = useSubscription();
+  const selectedExamId = selectedExam?.id ?? '';
+
+  // Deep-link support: ?subjectId=&topicId= (e.g. from Practice subject cards or Exam Detail).
+  const paramSubjectId = searchParams.get('subjectId') || '';
+  const paramTopicId = searchParams.get('topicId') || '';
+  const paramSubjectRef = useRef(paramSubjectId);
+  const paramTopicRef = useRef(paramTopicId);
+  paramSubjectRef.current = paramSubjectId;
+  paramTopicRef.current = paramTopicId;
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [examTopicIds, setExamTopicIds] = useState<string[]>([]);
   const [topics, setTopics] = useState<Chapter[]>([]);
   const [tests, setTests] = useState<MockTest[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -144,17 +155,41 @@ export const TopicTests: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // 1. Load subjects when active exam changes
+  const selectSubject = (subjectId: string) => {
+    setSelectedSubjectId(subjectId);
+    const next = new URLSearchParams(searchParams);
+    next.set('subjectId', subjectId);
+    next.delete('topicId');
+    setSearchParams(next, { replace: true });
+  };
+
+  const selectTopic = (topicId: string) => {
+    setSelectedTopicId(topicId);
+    const next = new URLSearchParams(searchParams);
+    if (selectedSubjectId) next.set('subjectId', selectedSubjectId);
+    next.set('topicId', topicId);
+    setSearchParams(next, { replace: true });
+  };
+
+  // Follow later deep-link changes while mounted (e.g. a new subject card click).
+  useEffect(() => {
+    if (paramSubjectId && subjects.some((s) => s.id === paramSubjectId)) {
+      setSelectedSubjectId(paramSubjectId);
+    }
+  }, [paramSubjectId, subjects]);
+
+  useEffect(() => {
+    if (paramTopicId && topics.some((t) => t.id === paramTopicId)) {
+      setSelectedTopicId(paramTopicId);
+    }
+  }, [paramTopicId, topics]);
+
+  // 1. Load subjects. With a selected exam, scope to its assigned subjects and its exam_topics
+  // mapping; without one, every active subject is available (Topic Tests need no exam).
   useEffect(() => {
     let active = true;
 
     const loadSubjects = async () => {
-      if (!selectedExam) {
-        setSubjects([]);
-        setSelectedSubjectId('');
-        return;
-      }
-
       setLoadingSubjects(true);
       setSelectedSubjectId('');
       setSelectedTopicId('');
@@ -162,12 +197,23 @@ export const TopicTests: React.FC = () => {
       setTests([]);
 
       try {
-        const result = await api.getSubjects(selectedExam.id);
+        let result: Subject[] = [];
+        let mappedTopicIds: string[] = [];
+        if (selectedExamId) {
+          [result, mappedTopicIds] = await Promise.all([
+            api.getSubjects(selectedExamId),
+            api.getExamTopicMappings(selectedExamId),
+          ]);
+          if (result.length === 0) result = await api.getSubjects();
+        } else {
+          result = await api.getSubjects();
+        }
         if (!active) return;
         setSubjects(result);
-        if (result.length > 0) {
-          setSelectedSubjectId(result[0].id);
-        }
+        setExamTopicIds(mappedTopicIds);
+        const wanted = paramSubjectRef.current;
+        const initial = result.find((s) => s.id === wanted) ?? result[0];
+        if (initial) setSelectedSubjectId(initial.id);
       } catch (err) {
         console.error('Failed to load subjects:', err);
       } finally {
@@ -179,7 +225,7 @@ export const TopicTests: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [selectedExam]);
+  }, [selectedExamId]);
 
   // 2. Load topics when active subject changes
   useEffect(() => {
@@ -197,12 +243,14 @@ export const TopicTests: React.FC = () => {
       setTests([]);
 
       try {
-        const result = await api.getChapters(selectedSubjectId);
+        const chapters = await api.getChapters(selectedSubjectId);
         if (!active) return;
+        const mapped = new Set(examTopicIds);
+        const result = mapped.size > 0 ? chapters.filter((c) => mapped.has(c.id)) : chapters;
         setTopics(result);
-        if (result.length > 0) {
-          setSelectedTopicId(result[0].id);
-        }
+        const wanted = paramTopicRef.current;
+        const initial = result.find((t) => t.id === wanted) ?? result[0];
+        if (initial) setSelectedTopicId(initial.id);
       } catch (err) {
         console.error('Failed to load topics:', err);
       } finally {
@@ -214,22 +262,22 @@ export const TopicTests: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [selectedSubjectId]);
+  }, [selectedSubjectId, examTopicIds]);
 
-  // 3. Load tests when active topic changes
+  // 3. Load tests when active topic changes. Exam-independent topic tests are always included.
   useEffect(() => {
     let active = true;
 
     const loadTests = async () => {
-      if (!selectedTopicId || !selectedExam) {
+      if (!selectedTopicId) {
         setTests([]);
         return;
       }
 
       setLoadingTests(true);
       try {
-        const result = await api.getTests(selectedTopicId, selectedExam.id);
-        if (active) setTests(result);
+        const result = await api.getTests(selectedTopicId, selectedExamId || undefined);
+        if (active) setTests(result.filter((t) => TOPIC_TEST_TYPES.has(t.testType)));
       } catch (err) {
         console.error('Failed to load tests:', err);
       } finally {
@@ -241,7 +289,7 @@ export const TopicTests: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [selectedTopicId, selectedExam]);
+  }, [selectedTopicId, selectedExamId]);
 
   const selectedSubject = useMemo(
     () => subjects.find((s) => s.id === selectedSubjectId),
@@ -380,13 +428,17 @@ export const TopicTests: React.FC = () => {
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0158FC] text-[11px] font-black text-white">
               1
             </span>
-            <h2 id="subject-tabs-heading" className="text-sm font-black text-slate-900 dark:text-white">
+            <h2
+              id="subject-tabs-heading"
+              className="text-sm font-black text-slate-900 dark:text-white"
+            >
               Choose Subject (বিষয় নির্বাচন করুন)
             </h2>
           </div>
           {selectedSubject && (
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-              Active: <strong className="text-slate-800 dark:text-slate-200">{selectedSubject.name}</strong>
+              Active:{' '}
+              <strong className="text-slate-800 dark:text-slate-200">{selectedSubject.name}</strong>
             </span>
           )}
         </div>
@@ -403,7 +455,11 @@ export const TopicTests: React.FC = () => {
         ) : subjects.length === 0 ? (
           <EmptyState
             title="No subjects available"
-            description="No active subjects are configured for the selected exam yet."
+            description={
+              selectedExam
+                ? 'No active subjects are configured for the selected exam yet.'
+                : 'No active subjects are configured yet.'
+            }
           />
         ) : (
           <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-hide pt-0.5">
@@ -416,7 +472,7 @@ export const TopicTests: React.FC = () => {
                 <button
                   key={subject.id}
                   type="button"
-                  onClick={() => setSelectedSubjectId(subject.id)}
+                  onClick={() => selectSubject(subject.id)}
                   aria-pressed={selected}
                   className={`shrink-0 rounded-2xl border px-4 py-2.5 text-left transition-all flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-[#0158FC] focus:ring-offset-2 ${
                     selected
@@ -444,7 +500,9 @@ export const TopicTests: React.FC = () => {
                     {subject.chaptersCount !== undefined && (
                       <span
                         className={`text-[10px] block mt-0.5 ${
-                          selected ? 'text-blue-100 font-medium' : 'text-slate-400 dark:text-slate-500'
+                          selected
+                            ? 'text-blue-100 font-medium'
+                            : 'text-slate-400 dark:text-slate-500'
                         }`}
                       >
                         {subject.chaptersCount} Topics
@@ -582,7 +640,7 @@ export const TopicTests: React.FC = () => {
                     <button
                       key={topic.id}
                       type="button"
-                      onClick={() => setSelectedTopicId(topic.id)}
+                      onClick={() => selectTopic(topic.id)}
                       className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 group focus:outline-none focus:ring-2 focus:ring-[#0158FC] ${
                         isSelected
                           ? 'border-[#0158FC] bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 shadow-2xs ring-1 ring-[#0158FC]'
@@ -855,7 +913,7 @@ export const TopicTests: React.FC = () => {
               return (
                 <div
                   key={topic.id}
-                  onClick={() => setSelectedTopicId(topic.id)}
+                  onClick={() => selectTopic(topic.id)}
                   className={`cursor-pointer rounded-2xl border p-5 transition-all shadow-2xs hover:shadow-xs flex flex-col justify-between ${
                     isSelected
                       ? 'border-[#0158FC] bg-blue-50/40 dark:bg-blue-950/30 ring-1 ring-[#0158FC]'

@@ -1,6 +1,7 @@
 import { uploadValidatedImage, validateRasterFile } from '@/lib/rasterUploads';
 import { requireSavedRow } from './admin.mutations';
 import { deleteAdminRecord } from './admin.mutations';
+import { readCompleteQuery } from './admin.reporting';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
   localExams,
@@ -17,7 +18,9 @@ export { DEFAULT_SHOWCASE_SERIES };
 // TEST SERIES API
 // --------------------------------------------------------------------------
 
-const SERIES_SELECT = '*, exams:exam_id(title, category), tests(id, test_type)';
+// Memberships come from test_series_tests (a test may belong to several series).
+const SERIES_SELECT =
+  '*, exams:exam_id(title, category), test_series_tests(test_id, tests(id, test_type))';
 const SERIES_RETURN_SELECT = '*, exams:exam_id(title, category)';
 
 /**
@@ -117,7 +120,7 @@ function mapSeriesRow(row: any, iconCache: Record<string, string>): TestSeries {
   const status = resolveStatus(row);
   return {
     id: row.id,
-    examId: row.exam_id,
+    examId: row.exam_id ?? '',
     title: row.title,
     subtitle: row.subtitle ?? undefined,
     slug: row.slug,
@@ -195,12 +198,17 @@ export async function getTestSeries(examId?: string): Promise<TestSeries[]> {
       const m = metrics.get(row.id);
       return {
         ...mapSeriesRow(row, iconCache),
-        ...countTests(Array.isArray(row.tests) ? row.tests : []),
+        ...countTests(
+          (Array.isArray(row.test_series_tests) ? row.test_series_tests : [])
+            .map((m: { tests?: { id: string; test_type: string } | null }) => m.tests)
+            .filter(Boolean)
+        ),
         enrollmentCount: m?.enrollmentCount ?? 0,
         avgAccuracy: m?.avgAccuracy,
       };
     });
-    saveStoredTestSeries(fetched);
+    // Only a full load may replace the admin cache; an exam-scoped read would truncate it.
+    if (!examId) saveStoredTestSeries(fetched);
     return fetched;
   }
 }
@@ -220,7 +228,8 @@ function slugify(text: string): string {
 export async function createTestSeries(
   input: Omit<TestSeries, 'id'> | TestSeries
 ): Promise<TestSeries> {
-  if (!input.title.trim() || !input.examId) throw new Error('Series title and exam are required.');
+  // Target exam is optional: subject/topic collections are exam-independent.
+  if (!input.title.trim()) throw new Error('Series title is required.');
   const id = crypto.randomUUID(),
     status = input.status || (input.isActive ? 'published' : 'draft'),
     saved = {
@@ -249,6 +258,7 @@ export async function createTestSeries(
     isFeatured: 'is_popular',
   }))
     if ((saved as any)[k] !== undefined) payload[c] = (saved as any)[k];
+  payload.exam_id = saved.examId || null;
   const d = await writeWithSchemaFallback(payload, (p) =>
     supabase.from('test_series').insert(p).select(SERIES_RETURN_SELECT).single()
   );
@@ -284,6 +294,7 @@ export async function updateTestSeries(
     isFeatured: 'is_popular',
   }))
     if ((input as any)[k] !== undefined) payload[c] = (input as any)[k];
+  if (input.examId !== undefined) payload.exam_id = input.examId || null;
   if (input.status !== undefined) {
     payload.status = input.status;
     payload.is_active = input.status === 'published';
@@ -305,13 +316,33 @@ export async function reorderTestSeries(
   for (const r of ordered) await updateTestSeries(r.id, { orderIndex: r.orderIndex });
 }
 
-/** Link (or unlink with `null`) many tests to a series in a single request. */
-export async function assignTestsToSeries(ids: string[], seriesId: string | null): Promise<void> {
+/**
+ * Exam links of every test from the test_exams junction, keyed by test id. Admin test reads
+ * do not include these, and series compatibility needs them (a Full Mock / Official PYQ may be
+ * linked to several exams). Returns an empty map without a database.
+ */
+export async function getTestExamLinks(): Promise<Record<string, string[]>> {
+  if (!isSupabaseConfigured) return {};
+  const rows = await readCompleteQuery(() =>
+    supabase
+      .from('test_exams')
+      .select('test_id, exam_id', { count: 'exact' })
+      .order('test_id')
+      .order('exam_id')
+  );
+  const links: Record<string, string[]> = {};
+  for (const r of rows as { test_id: string; exam_id: string }[])
+    (links[r.test_id] ??= []).push(r.exam_id);
+  return links;
+}
+
+/**
+ * Adds tests to a series (appended to its order). A test may belong to several series, so
+ * this never removes it from others. Incompatible tests are rejected with a readable reason.
+ */
+export async function assignTestsToSeries(ids: string[], seriesId: string): Promise<void> {
   if (!ids.length) return;
-  if (!isSupabaseConfigured) {
-    for (const t of localTests) if (ids.includes(t.id)) t.testSeriesId = seriesId || undefined;
-    return;
-  }
+  if (!isSupabaseConfigured) throw new Error('Connect to the database to add tests to a series.');
   const { data, error } = await supabase.rpc('admin_assign_series_tests', {
     p_ids: ids,
     p_series_id: seriesId,
@@ -320,10 +351,9 @@ export async function assignTestsToSeries(ids: string[], seriesId: string | null
   if (
     data?.success !== true ||
     !Array.isArray(data.saved_ids) ||
-    data.saved_ids.length !== ids.length ||
     ids.some((id) => !data.saved_ids.includes(id))
   )
-    throw new Error('Not all assignments were confirmed.');
+    throw new Error('Not all series assignments were confirmed.');
 }
 
 export async function deleteTestSeries(id: string): Promise<boolean> {
@@ -459,15 +489,23 @@ async function attachPopularTestSeriesCounts(
   }
 }
 
-export async function getPopularTestSeriesCards(options?: { configuredOnly?: boolean }): Promise<PopularTestSeriesCard[]> {
+export async function getPopularTestSeriesCards(options?: {
+  configuredOnly?: boolean;
+}): Promise<PopularTestSeriesCard[]> {
   if (options?.configuredOnly) {
     if (!isSupabaseConfigured) return [];
-    const { data, error } = await supabase.from('app_settings').select('value').eq('id', 'popular_test_series_config').maybeSingle();
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('id', 'popular_test_series_config')
+      .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data?.value) return [];
     const value: unknown = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
     if (!Array.isArray(value)) throw new Error('Invalid homepage showcase configuration');
-    return (value as PopularTestSeriesCard[]).filter(card => card && typeof card.id === 'string').sort((a,b) => a.orderIndex - b.orderIndex);
+    return (value as PopularTestSeriesCard[])
+      .filter((card) => card && typeof card.id === 'string')
+      .sort((a, b) => a.orderIndex - b.orderIndex);
   }
   if (!isSupabaseConfigured) return attachPopularTestSeriesCounts(DEFAULT_POPULAR_TEST_SERIES);
 
@@ -541,16 +579,26 @@ export async function uploadPopularTestSeriesImage(
   file: File,
   _cardId: string,
   _kind: 'logo' | 'background'
-): Promise<string>{
+): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
-export async function uploadTestSeriesIcon(file: File, _id: string = 'custom'): Promise<string>{
+export async function uploadTestSeriesIcon(file: File, _id: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function subscribeToPopularTestSeriesUpdates(callback: () => void): () => void {
@@ -589,4 +637,5 @@ export const adminTestSeriesApi = {
   deleteTestSeries,
   reorderTestSeries,
   assignTestsToSeries,
+  getTestExamLinks,
 };

@@ -28,10 +28,15 @@ import type { QuestionRow } from '@/services/domains/localStore';
 // TESTS API
 // --------------------------------------------------------------------------
 /** Upload custom test icon to Supabase storage with robust bucket fallback */
-export async function uploadTestIcon(file: File, _testId: string = 'custom'): Promise<string>{
+export async function uploadTestIcon(file: File, _testId: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
-  return new Promise<string>((resolve,reject)=>{const reader=new FileReader(); reader.onload=()=>resolve(reader.result as string);reader.onerror=()=>reject(new Error('Image read failed'));reader.readAsDataURL(file);});
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export async function getAllAdminTests(filter?: {
@@ -698,13 +703,237 @@ export function exportTestQuestionsToCsv(testTitle: string, questions: Question[
   URL.revokeObjectURL(url);
 }
 
+/** Linking fields the per-type rules look at (mirrors public.enforce_test_type_rules()). */
+export interface TestTypeLinks {
+  testType: string;
+  examId?: string | null;
+  year?: number | null;
+  subjectId?: string | null;
+  /** The topic. Topic Tests store it in chapter_id. */
+  chapterId?: string | null;
+}
+
+/** Test types an admin may create. Legacy chapter_mock / subject_mock rows are display-only. */
+export const CREATABLE_TEST_TYPES = ['full_mock', 'pyq', 'topic'] as const;
+export type CreatableTestType = (typeof CREATABLE_TEST_TYPES)[number];
+
+export function isCreatableTestType(type: string): type is CreatableTestType {
+  return (CREATABLE_TEST_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Per-type linking rules: Full Mock needs an exam; Official PYQ needs an exam and an exam year;
+ * Topic Test needs a subject and a topic that belongs to it (exam optional). `topicSubjectId` is
+ * the subject the selected topic belongs to (undefined when it is unknown / not found).
+ * Returns readable errors; empty when the links are valid.
+ */
+export function testTypeLinkErrors(links: TestTypeLinks, topicSubjectId?: string | null): string[] {
+  const errors: string[] = [];
+  switch (links.testType) {
+    case 'full_mock':
+      if (!links.examId) errors.push('A Full Mock test must be linked to an exam.');
+      break;
+    case 'pyq':
+      if (!links.examId || !links.year)
+        errors.push('An Official PYQ needs an exam and an exam year.');
+      else if (links.year < 1950 || links.year > 2100)
+        errors.push(`Exam year ${links.year} is not valid.`);
+      break;
+    case 'topic':
+      if (!links.subjectId || !links.chapterId)
+        errors.push('A Topic Test needs a subject and a topic.');
+      else if (topicSubjectId !== links.subjectId)
+        errors.push('The selected topic does not belong to the selected subject.');
+      break;
+    default:
+      // Legacy types are not checked here; the database rejects saving them as new tests.
+      break;
+  }
+  return errors;
+}
+
+// --------------------------------------------------------------------------
+// CSV IMPORT VALIDATION
+// --------------------------------------------------------------------------
+export type TestImportInput = Omit<MockTest, 'id' | 'status'> & {
+  status?: 'draft' | 'published' | 'archived';
+};
+
+export interface TestImportRowResult {
+  /** 1-based line number in the CSV file (header is line 1). */
+  line: number;
+  title: string;
+  errors: string[];
+  input?: TestImportInput;
+}
+
+/** Splits one CSV line, honouring double-quoted cells ("a, b" and "" escapes). */
+export function splitCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') {
+      cells.push(cur.trim());
+      cur = '';
+    } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+const sameName = (a: string | undefined, b: string) =>
+  (a || '').trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * Validates every data row of a mock-test CSV against the per-type rules and resolves exam,
+ * subject and topic names to IDs. Rows with errors carry no `input`; nothing is guessed.
+ */
+export function validateTestImportCsv(
+  text: string,
+  refs: {
+    exams: { id: string; title: string }[];
+    subjects: { id: string; name: string }[];
+    chapters: { id: string; name: string; subjectId: string }[];
+  }
+): TestImportRowResult[] {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  const header = splitCsvLine(lines[0] || '').map((h) => h.toLowerCase());
+  const results: TestImportRowResult[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const values = splitCsvLine(lines[i]);
+    const row: Record<string, string> = {};
+    header.forEach((h, idx) => (row[h] = values[idx] || ''));
+    const errors: string[] = [];
+    const title = row.title || '';
+    if (!title) errors.push('Title is required.');
+
+    const testType = (row.testtype || '').trim().toLowerCase();
+    if (!testType) errors.push('testType is required (full_mock, pyq or topic).');
+    else if (testType === 'subject_mock' || testType === 'chapter_mock')
+      errors.push(`"${testType}" is a legacy test type; create a Topic Test (topic) instead.`);
+    else if (!isCreatableTestType(testType))
+      errors.push(`Unknown testType "${row.testtype}". Use full_mock, pyq or topic.`);
+
+    let examId: string | undefined;
+    if (row.examname) {
+      const matches = refs.exams.filter((e) => sameName(e.title, row.examname));
+      if (matches.length === 0) errors.push(`Unknown exam "${row.examname}".`);
+      else if (matches.length > 1) errors.push(`Exam name "${row.examname}" is ambiguous.`);
+      else examId = matches[0].id;
+    }
+
+    let subjectId: string | undefined;
+    if (row.subjectname) {
+      const matches = refs.subjects.filter((s) => sameName(s.name, row.subjectname));
+      if (matches.length === 0) errors.push(`Unknown subject "${row.subjectname}".`);
+      else if (matches.length > 1) errors.push(`Subject name "${row.subjectname}" is ambiguous.`);
+      else subjectId = matches[0].id;
+    }
+
+    let chapterId: string | undefined;
+    if (row.topicname) {
+      const named = refs.chapters.filter((c) => sameName(c.name, row.topicname));
+      const underSubject = subjectId ? named.filter((c) => c.subjectId === subjectId) : named;
+      if (named.length === 0) errors.push(`Unknown topic "${row.topicname}".`);
+      else if (subjectId && underSubject.length === 0)
+        errors.push(`Topic "${row.topicname}" does not belong to subject "${row.subjectname}".`);
+      else if (underSubject.length > 1)
+        errors.push(`Topic name "${row.topicname}" is ambiguous; add its subject.`);
+      else chapterId = underSubject[0].id;
+    }
+
+    let year: number | undefined;
+    if (row.year) {
+      year = Number(row.year);
+      if (!Number.isInteger(year)) {
+        errors.push(`Year "${row.year}" is not a number.`);
+        year = undefined;
+      }
+    }
+
+    const num = (key: string, fallback: number, label: string, min: number) => {
+      if (!row[key]) return fallback;
+      const n = Number(row[key]);
+      if (!Number.isFinite(n) || n < min) {
+        errors.push(`${label} "${row[key]}" is not valid.`);
+        return fallback;
+      }
+      return n;
+    };
+    const durationMinutes = num('durationminutes', 90, 'durationMinutes', 1);
+    const totalMarks = num('totalmarks', 100, 'totalMarks', 1);
+    const passingMarks = num('passingmarks', 40, 'passingMarks', 0);
+    const negativeMarking = num('negativemarking', 0.25, 'negativeMarking', 0);
+
+    const status = (row.status || 'draft').toLowerCase();
+    if (status !== 'draft' && status !== 'published')
+      errors.push(`Status "${row.status}" must be draft or published.`);
+    const premium = (row.ispremium || 'false').toLowerCase();
+    if (premium !== 'true' && premium !== 'false')
+      errors.push(`isPremium "${row.ispremium}" must be true (Paid) or false (Free).`);
+
+    // Missing-link rules, unless a name was given but could not be resolved (already reported).
+    const nameUnresolved =
+      (row.examname && !examId) || (row.subjectname && !subjectId) || (row.topicname && !chapterId);
+    if (isCreatableTestType(testType) && !nameUnresolved) {
+      const topicSubjectId = refs.chapters.find((c) => c.id === chapterId)?.subjectId;
+      errors.push(
+        ...testTypeLinkErrors({ testType, examId, year, subjectId, chapterId }, topicSubjectId)
+      );
+    }
+
+    const result: TestImportRowResult = { line: i + 1, title, errors };
+    if (errors.length === 0) {
+      const t = testType as CreatableTestType;
+      result.input = {
+        title,
+        testType: t,
+        examId,
+        subjectId: t === 'full_mock' || t === 'pyq' ? undefined : subjectId,
+        chapterId: t === 'topic' ? chapterId : undefined,
+        year: t === 'pyq' ? year : undefined,
+        paperName: t === 'pyq' ? row.papername || undefined : undefined,
+        setName: t === 'pyq' ? row.setname || undefined : undefined,
+        durationMinutes,
+        totalMarks,
+        passingMarks,
+        negativeMarking,
+        status: status as 'draft' | 'published',
+        isPremium: premium === 'true',
+        iconUrl: row.iconurl || row.icon_url || row.icon || undefined,
+        totalQuestions: 0,
+        orderIndex: 0,
+        slug: title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, ''),
+        isActive: status === 'published',
+      };
+    }
+    results.push(result);
+  }
+  return results;
+}
+
 export async function validateTestForPublish(testId: string): Promise<PublishValidationResult> {
   const errors: string[] = [];
 
   if (!isSupabaseConfigured) {
     const test = localTests.find((t) => t.id === testId);
     if (!test) return { isValid: false, errors: ['Test not found.'] };
-    if (!test.examId) errors.push('Exam must be selected.');
+    const topicId = test.chapterId || test.topicId;
+    const topicSubjectId = localChapters.find((c) => c.id === topicId)?.subjectId;
+    errors.push(...testTypeLinkErrors({ ...test, chapterId: topicId }, topicSubjectId));
     if (test.durationMinutes <= 0) errors.push('Test duration must be greater than 0 minutes.');
     if (test.totalMarks <= 0) errors.push('Total marks must be greater than 0.');
     const assigned = localTestQuestions.filter((tq) => tq.testId === testId);
@@ -723,9 +952,28 @@ export async function validateTestForPublish(testId: string): Promise<PublishVal
   if (testError) return { isValid: false, errors: [testError.message] };
   if (!testData) return { isValid: false, errors: ['Test not found in database.'] };
 
-  if (!testData.exam_id) {
-    errors.push('Exam must be selected.');
+  let topicSubjectId: string | undefined;
+  if (testData.test_type === 'topic' && testData.chapter_id) {
+    const { data: topic, error: topicError } = await supabase
+      .from('chapters')
+      .select('subject_id')
+      .eq('id', testData.chapter_id)
+      .maybeSingle();
+    if (topicError) return { isValid: false, errors: [topicError.message] };
+    topicSubjectId = topic?.subject_id ?? undefined;
   }
+  errors.push(
+    ...testTypeLinkErrors(
+      {
+        testType: testData.test_type,
+        examId: testData.exam_id,
+        year: testData.year ? Number(testData.year) : null,
+        subjectId: testData.subject_id,
+        chapterId: testData.chapter_id,
+      },
+      topicSubjectId
+    )
+  );
   if (testData.duration_minutes <= 0) {
     errors.push('Test duration must be greater than 0 minutes.');
   }

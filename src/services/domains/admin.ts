@@ -19,6 +19,7 @@ import { adminSupportApi } from './admin.support';
 import { adminSettingsApi } from './admin.settings';
 import { adminLiveTestsApi } from './admin.liveTests';
 import { adminBlogApi } from './admin.blog';
+import { adminContentLinksApi } from './admin.contentLinks';
 
 export const adminApi = {
   ...adminExamsApi,
@@ -35,5 +36,6 @@ export const adminApi = {
   ...adminNotificationsApi,
   ...adminSupportApi,
   ...adminSettingsApi,
+  ...adminContentLinksApi,
 };
 

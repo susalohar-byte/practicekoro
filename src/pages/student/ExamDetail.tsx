@@ -118,7 +118,7 @@ export const ExamDetail: React.FC = () => {
           api.getTestsForExam(currentExam.id, 'topic'),
           api.getSubjects(currentExam.id),
           api.getExamSubjectsWithTopics(currentExam.id),
-          api.getTestSeries(currentExam.id).catch(() => []),
+          api.getStudentTestSeries(currentExam.id).catch(() => []),
         ]);
 
         setFullMockTests(fullMocks);
@@ -136,6 +136,41 @@ export const ExamDetail: React.FC = () => {
 
     loadExamData();
   }, [currentExam]);
+
+  // Real series membership (a test can belong to several series). Null while not loaded.
+  const [seriesTestOrder, setSeriesTestOrder] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (selectedSeriesId === 'all') {
+      setSeriesTestOrder(null);
+      return;
+    }
+    let active = true;
+    setSeriesTestOrder(null);
+    api
+      .getSeriesTestsForStudent(selectedSeriesId)
+      .then((tests) => {
+        if (active) setSeriesTestOrder(tests.map((t) => t.id));
+      })
+      .catch((err) => {
+        console.error('Failed to load series tests:', err);
+        if (active) setSeriesTestOrder([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedSeriesId]);
+
+  // Restrict a list to the selected series' members, in the series' saved order.
+  const scopeToSeries = useMemo(() => {
+    if (selectedSeriesId === 'all') return (list: MockTest[]) => list;
+    const position = new Map((seriesTestOrder ?? []).map((id, index) => [id, index]));
+    return (list: MockTest[]) =>
+      list
+        .filter((t) => position.has(t.id))
+        .sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0));
+  }, [selectedSeriesId, seriesTestOrder]);
+  const listLoading = loading || (selectedSeriesId !== 'all' && seriesTestOrder === null);
 
   // Lookup helper for active series
   const activeSeries = useMemo(() => {
@@ -161,9 +196,8 @@ export const ExamDetail: React.FC = () => {
 
   // Filtered Full Mock tests (scoped to selected series if active)
   const displayedFullMockTests = useMemo(() => {
-    if (selectedSeriesId === 'all') return fullMockTests;
-    return fullMockTests.filter((t) => t.testSeriesId === selectedSeriesId);
-  }, [fullMockTests, selectedSeriesId]);
+    return scopeToSeries(fullMockTests);
+  }, [fullMockTests, scopeToSeries]);
 
   // Filtered PYQ tests (scoped to selected year & series if active)
   const displayedPyqTests = useMemo(() => {
@@ -171,11 +205,8 @@ export const ExamDetail: React.FC = () => {
     if (selectedYear !== 'all') {
       list = list.filter((t) => t.year?.toString() === selectedYear);
     }
-    if (selectedSeriesId !== 'all') {
-      list = list.filter((t) => t.testSeriesId === selectedSeriesId);
-    }
-    return list;
-  }, [pyqTests, selectedYear, selectedSeriesId]);
+    return scopeToSeries(list);
+  }, [pyqTests, selectedYear, scopeToSeries]);
 
   // Filtered Topic tests (scoped to selected subject & series if active)
   const displayedTopicTests = useMemo(() => {
@@ -183,11 +214,8 @@ export const ExamDetail: React.FC = () => {
     if (selectedSubjectId !== 'all') {
       list = list.filter((t) => t.subjectId === selectedSubjectId);
     }
-    if (selectedSeriesId !== 'all') {
-      list = list.filter((t) => t.testSeriesId === selectedSeriesId);
-    }
-    return list;
-  }, [topicTests, selectedSubjectId, selectedSeriesId]);
+    return scopeToSeries(list);
+  }, [topicTests, selectedSubjectId, scopeToSeries]);
 
   const visibleSubjectGroups = useMemo(() => {
     if (selectedSubjectId === 'all') return examSubjectsWithTopics;
@@ -321,7 +349,8 @@ export const ExamDetail: React.FC = () => {
                     </span>
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Filter by curated package: each series neatly combines Full Mocks, Topic Tests & PYQ papers.
+                    Filter by curated package: each series neatly combines Full Mocks, Topic Tests &
+                    PYQ papers.
                   </p>
                 </div>
               </div>
@@ -614,7 +643,7 @@ export const ExamDetail: React.FC = () => {
               </span>
             </div>
 
-            {loading ? (
+            {listLoading ? (
               <div className="space-y-3">
                 {[1, 2].map((n) => (
                   <div key={n} className="h-28 bg-slate-200 animate-pulse rounded-2xl" />
@@ -784,7 +813,7 @@ export const ExamDetail: React.FC = () => {
               )}
             </div>
 
-            {loading ? (
+            {listLoading ? (
               <div className="space-y-3">
                 {[1, 2].map((n) => (
                   <div key={n} className="h-28 bg-slate-200 animate-pulse rounded-2xl" />
@@ -952,7 +981,7 @@ export const ExamDetail: React.FC = () => {
               )}
             </div>
 
-            {loading ? (
+            {listLoading ? (
               <div className="space-y-3">
                 {[1, 2].map((n) => (
                   <div key={n} className="h-28 bg-slate-200 animate-pulse rounded-2xl" />
@@ -1151,7 +1180,11 @@ export const ExamDetail: React.FC = () => {
                                     size="sm"
                                     variant="outline"
                                     className="text-xs py-1 px-3 border-blue-200 text-blue-600 hover:bg-blue-50"
-                                    onClick={() => navigate(`/practice?chapterId=${topic.id}`)}
+                                    onClick={() =>
+                                      navigate(
+                                        `/practice?tab=topics&subjectId=${group.subject.id}&topicId=${topic.id}`
+                                      )
+                                    }
                                   >
                                     Practice Drill
                                   </Button>

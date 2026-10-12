@@ -58,16 +58,15 @@ export const Practice: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: practiceCatalog = { subjects: [], chapters: [], tests: [], attempts: [] } } = useQuery({
+  const { data: practiceCatalog = { subjects: [], chapters: [], attempts: [] } } = useQuery({
     queryKey: ['practice-catalog', user?.id],
     queryFn: async () => {
-      const [subjects, chapters, tests, attempts] = await Promise.all([
+      const [subjects, chapters, attempts] = await Promise.all([
         api.getSubjects(),
         api.getAllChapters(),
-        api.getTests(),
         user?.id ? api.getUserAttempts(user.id) : Promise.resolve([]),
       ]);
-      return { subjects, chapters, tests, attempts };
+      return { subjects, chapters, attempts };
     },
     enabled: Boolean(user?.id),
     staleTime: 30_000,
@@ -921,7 +920,8 @@ export const Practice: React.FC = () => {
                         <button
                           type="button"
                           key={sub.id}
-                          onClick={() => handleTabChange('topics')}
+                          // Practice -> subject -> topic -> Topic Tests
+                          onClick={() => setSearchParams({ tab: 'topics', subjectId: sub.id })}
                           className="w-full h-16 px-3 py-2 text-left rounded-2xl bg-white dark:bg-slate-900 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_2px_8px_rgba(11,31,91,0.03)] hover:border-[#0877FF]/40 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">

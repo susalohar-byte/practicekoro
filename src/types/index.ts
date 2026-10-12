@@ -251,6 +251,7 @@ export type TestSeriesStatus = 'published' | 'draft' | 'under_review' | 'archive
 
 export interface TestSeries {
   id: string;
+  /** Target exam; '' for exam-independent (subject/topic) collections. */
   examId: string;
   title: string;
   subtitle?: string;
