@@ -1422,115 +1422,101 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     const disc = 62.0; // circular image disc diameter
     const itemWidth = 86.0;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDF2F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0F1E4A),
-            blurRadius: 18,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: 14),
-          if (visible.isEmpty)
-            const PKEmptyCard(
-              icon: Icons.school_rounded,
-              title: 'No exams published yet',
-              message: 'Exams will appear here as soon as they are available.',
-            )
-          else
-            SizedBox(
-              height: ring + 10 + 34 * textScale,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.zero,
-                itemCount: visible.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
-                itemBuilder: (context, i) {
-                  final ex = visible[i];
-                  final color = getExamColor(ex, i);
-                  final image = examImage(ex);
-                  final roundAsset = ExamAssets.getRoundIconAsset(ex.title);
-                  // 3D round artwork fills the disc edge-to-edge; custom admin logos
-                  // get slight padding inside the pastel circle.
-                  final isRoundArt = (image != null && image.contains('exam_round_')) ||
-                      (image == null && roundAsset != null);
-                  final inset = isRoundArt ? 0.0 : 7.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 14),
+        if (visible.isEmpty)
+          const PKEmptyCard(
+            icon: Icons.school_rounded,
+            title: 'No exams published yet',
+            message: 'Exams will appear here as soon as they are available.',
+          )
+        else
+          SizedBox(
+            height: ring + 10 + 34 * textScale,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              clipBehavior: Clip.none,
+              padding: EdgeInsets.zero,
+              itemCount: visible.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final ex = visible[i];
+                final color = getExamColor(ex, i);
+                final image = examImage(ex);
+                final roundAsset = ExamAssets.getRoundIconAsset(ex.title);
+                // 3D round artwork fills the disc edge-to-edge; custom admin logos
+                // get slight padding inside the pastel circle.
+                final isRoundArt = (image != null && image.contains('exam_round_')) ||
+                    (image == null && roundAsset != null);
+                final inset = isRoundArt ? 0.0 : 7.0;
 
-                  return SizedBox(
-                    width: itemWidth,
-                    child: Semantics(
-                      button: true,
-                      label: ex.title,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => context.push(
-                          '/exams/${Uri.encodeComponent(ex.id)}?title=${Uri.encodeComponent(ex.title)}',
-                        ),
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              width: ring,
-                              height: ring,
-                              child: CustomPaint(
-                                painter: _DashedRingPainter(color: color),
-                                child: Center(
-                                  child: Container(
-                                    width: disc,
-                                    height: disc,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: color.withValues(alpha: 0.12),
-                                    ),
-                                    clipBehavior: Clip.antiAlias,
-                                    padding: EdgeInsets.all(inset),
-                                    child: PkAdminImage(
-                                      imageUrl: image,
-                                      width: disc - inset * 2,
-                                      height: disc - inset * 2,
-                                      fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
-                                      fallbackExamTitle: ex.title,
-                                      fallbackAsset: roundAsset,
-                                      fallbackColor: color,
-                                      preferRoundIcon: true,
-                                    ),
+                return SizedBox(
+                  width: itemWidth,
+                  child: Semantics(
+                    button: true,
+                    label: ex.title,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => context.push(
+                        '/exams/${Uri.encodeComponent(ex.id)}?title=${Uri.encodeComponent(ex.title)}',
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: ring,
+                            height: ring,
+                            child: CustomPaint(
+                              painter: _DashedRingPainter(color: color),
+                              child: Center(
+                                child: Container(
+                                  width: disc,
+                                  height: disc,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: color.withValues(alpha: 0.12),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  padding: EdgeInsets.all(inset),
+                                  child: PkAdminImage(
+                                    imageUrl: image,
+                                    width: disc - inset * 2,
+                                    height: disc - inset * 2,
+                                    fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
+                                    fallbackExamTitle: ex.title,
+                                    fallbackAsset: roundAsset,
+                                    fallbackColor: color,
+                                    preferRoundIcon: true,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              ex.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F1E4A),
-                                height: 1.18,
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            ex.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F1E4A),
+                              height: 1.18,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
