@@ -1586,64 +1586,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     if (seriesAsync.isLoading && series.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEDF2F9)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A0F1E4A),
-              blurRadius: 18,
-              offset: Offset(0, 4),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 14),
+          const Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: PK.blue),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            const SizedBox(height: 16),
-            const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: PK.blue),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     if (series.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEDF2F9)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A0F1E4A),
-              blurRadius: 18,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            const SizedBox(height: 14),
-            const PKEmptyCard(
-              icon: Icons.library_books_outlined,
-              title: 'No test series yet',
-              message: 'Published test series will appear here.',
-            ),
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 14),
+          const PKEmptyCard(
+            icon: Icons.library_books_outlined,
+            title: 'No test series yet',
+            message: 'Published test series will appear here.',
+          ),
+        ],
       );
     }
 
@@ -1694,142 +1664,129 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ]
     ];
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDF2F9)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0F1E4A),
-            blurRadius: 18,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 68,
-            child: ListView.separated(
-              controller: _seriesScrollController,
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemCount: cardItems.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (context, i) {
-                final item = cardItems[i];
-                final theme = _getSeriesTheme(item.examTitle ?? item.title, i);
-                final roundAsset = ExamAssets.getRoundIconAsset(item.examTitle ?? item.title);
-                final isRoundArt = (item.thumbnail != null && item.thumbnail!.contains('exam_round_')) ||
-                    (item.thumbnail == null && roundAsset != null);
-                final inset = isRoundArt ? 0.0 : 6.0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 72,
+          child: ListView.separated(
+            controller: _seriesScrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.zero,
+            itemCount: cardItems.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (context, i) {
+              final item = cardItems[i];
+              final theme = _getSeriesTheme(item.examTitle ?? item.title, i);
+              final roundAsset = ExamAssets.getRoundIconAsset(item.examTitle ?? item.title);
+              final isRoundArt = (item.thumbnail != null && item.thumbnail!.contains('exam_round_')) ||
+                  (item.thumbnail == null && roundAsset != null);
+              final inset = isRoundArt ? 0.0 : 6.0;
 
-                return InkWell(
-                  onTap: () => context.push('/test-series/${item.id}'),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: 172,
-                    height: 68,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: theme.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          padding: EdgeInsets.all(inset),
-                          child: PkAdminImage(
-                            imageUrl: item.thumbnail,
-                            width: 44 - inset * 2,
-                            height: 44 - inset * 2,
-                            fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
-                            fallbackExamTitle: item.examTitle ?? item.title,
-                            fallbackAsset: roundAsset,
-                            fallbackColor: theme.chevron,
-                            preferRoundIcon: true,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F1E4A),
-                                  height: 1.15,
-                                ),
-                              ),
-                              SizedBox(
-                                width: 0,
-                                height: 0,
-                                child: Opacity(
-                                  opacity: 0,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (item.isPopular) const Text('POPULAR'),
-                                      if (item.tests.isNotEmpty) Text(item.tests),
-                                      if (item.qs.isNotEmpty) Text(item.qs),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.chevronBg,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.chevron_right_rounded,
-                            color: theme.chevron,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
+              return InkWell(
+                onTap: () => context.push('/test-series/${item.id}'),
+                borderRadius: BorderRadius.circular(24),
+                child: Container(
+                  width: 180,
+                  height: 72,
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.cardBg,
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                );
-              },
-            ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x0F0F1E4A),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        padding: EdgeInsets.all(inset),
+                        child: PkAdminImage(
+                          imageUrl: item.thumbnail,
+                          width: 46 - inset * 2,
+                          height: 46 - inset * 2,
+                          fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
+                          fallbackExamTitle: item.examTitle ?? item.title,
+                          fallbackAsset: roundAsset,
+                          fallbackColor: theme.chevron,
+                          preferRoundIcon: true,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F1E4A),
+                                height: 1.2,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 0,
+                              height: 0,
+                              child: Opacity(
+                                opacity: 0,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (item.isPopular) const Text('POPULAR'),
+                                    if (item.tests.isNotEmpty) Text(item.tests),
+                                    if (item.qs.isNotEmpty) Text(item.qs),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.chevronBg,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: theme.chevron,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
