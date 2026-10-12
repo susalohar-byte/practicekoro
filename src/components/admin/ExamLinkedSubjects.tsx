@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Search, ArrowRight } from 'lucide-react';
+import { BookOpen, Search, ArrowRight, Plus } from 'lucide-react';
 import type { Exam, Subject } from '@/types';
-import { subjectsForExam, subjectManagementPath } from '@/utils/examSubjectLinks';
+import { ExamCurriculumDialog, type CurriculumTarget } from './ExamCurriculumDialog';
+import {
+  subjectsForExam,
+  subjectManagementPath,
+  topicManagementPath,
+} from '@/utils/examSubjectLinks';
 export function ExamLinkedSubjects({
   exam,
   subjects,
@@ -16,11 +21,15 @@ export function ExamLinkedSubjects({
   loading: boolean;
   onRetry: () => void;
 }) {
+  const [editor, setEditor] = useState<CurriculumTarget | null>(null);
+  const [notice, setNotice] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   useEffect(() => {
     setSearch('');
     setStatus('all');
+    setEditor(null);
+    setNotice('');
   }, [exam.id]);
   const linked = useMemo(() => subjectsForExam(subjects, exam.id), [subjects, exam.id]);
   const visible = linked.filter(
@@ -42,6 +51,23 @@ export function ExamLinkedSubjects({
           Manage Subjects <ArrowRight size={16} className="ml-1" />
         </Link>
       </div>
+      <button
+        type="button"
+        disabled={loading || !!error}
+        onClick={() => setEditor({ kind: 'subject', exam })}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+      >
+        <Plus size={18} />
+        Add Subject
+      </button>
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl bg-green-50 p-3 text-green-800 dark:bg-green-950/30 dark:text-green-200"
+        >
+          {notice}
+        </p>
+      )}
       <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
         Subjects available for {exam.title}. Exam-specific subjects belong to this exam; shared
         subjects apply to all exams. Draft subjects are visible to admins only.
@@ -112,6 +138,23 @@ export function ExamLinkedSubjects({
                         : `${subject.chaptersCount} topics`}
                     </span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditor({ kind: 'topic', exam, subject })}
+                      aria-label={`Add topic to ${subject.name}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 font-semibold text-blue-700 dark:border-blue-800 dark:bg-slate-900 dark:text-blue-300"
+                    >
+                      <Plus size={16} />
+                      Add Topic
+                    </button>
+                    <Link
+                      to={topicManagementPath(exam.id, subject.id)}
+                      className="inline-flex min-h-11 items-center rounded-xl px-3 font-semibold text-blue-700 dark:text-blue-300"
+                    >
+                      Manage Topics
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -119,7 +162,7 @@ export function ExamLinkedSubjects({
             <p className="rounded-xl border border-dashed border-slate-300 p-4 text-slate-600 dark:text-slate-300">
               {linked.length
                 ? 'No linked subjects match these filters.'
-                : 'No subjects are available for this exam yet. Use Manage Subjects to create an exam-specific subject.'}
+                : 'No subjects are available for this exam yet. Use Add Subject above to create an exam-specific subject without leaving this page.'}
             </p>
           )}
           <p className="text-slate-500 dark:text-slate-400">
@@ -127,6 +170,21 @@ export function ExamLinkedSubjects({
             per-exam links; editing them affects every exam.
           </p>
         </>
+      )}
+      {editor && (
+        <ExamCurriculumDialog
+          target={editor}
+          onClose={() => setEditor(null)}
+          onSaved={(record) => {
+            setEditor(null);
+            setSearch('');
+            setStatus('all');
+            setNotice(
+              `${editor.kind === 'subject' ? 'Subject' : 'Topic'} "${record.name}" saved. The list and counts are being refreshed.`
+            );
+            onRetry();
+          }}
+        />
       )}
     </section>
   );

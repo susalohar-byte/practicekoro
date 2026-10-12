@@ -33,3 +33,6 @@ export function applyExamImportScope(rows: Omit<Subject, 'id'>[], examId: string
   }
   return scoped;
 }
+export function topicManagementPath(examId: string, subjectId: string) {
+  return `/admin/topics?${new URLSearchParams({ examId, subject: subjectId })}`;
+}

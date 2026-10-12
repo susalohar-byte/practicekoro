@@ -2,7 +2,7 @@ import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/services/api';
 import {
   Upload,
@@ -798,7 +798,7 @@ export const AdminTopics: React.FC = () => {
     setSelectedSubjectFilter('all');
     setSelectedStatusFilter('all');
     setCurrentPage(1);
-    setSearchParams({});
+    setSearchParams(searchParams.get('examId') ? { examId: searchParams.get('examId')! } : {});
   };
 
   // Create Modal Handlers
@@ -806,7 +806,10 @@ export const AdminTopics: React.FC = () => {
     setFormData({
       name: '',
       slug: '',
-      subjectId: subjectsList[0]?.id || 'sub-general-science',
+      subjectId:
+        subjectsList.find((subject) => subject.id === selectedSubjectFilter)?.id ||
+        subjectsList[0]?.id ||
+        '',
       orderIndex: topicsList.length + 1,
       statusLabel: 'Published',
       description: '',
@@ -1043,6 +1046,14 @@ export const AdminTopics: React.FC = () => {
       {/* 1. Page Header with Title and Top Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
+          {searchParams.get('examId') && (
+            <Link
+              to={`/admin/exams?${new URLSearchParams({ examId: searchParams.get('examId')!, tab: 'subjects' })}`}
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-blue-700 dark:text-blue-300"
+            >
+              Back to Exams
+            </Link>
+          )}
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             Topics
           </h1>

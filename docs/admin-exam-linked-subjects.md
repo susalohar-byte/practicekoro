@@ -38,7 +38,7 @@ This fix does not pretend that the current schema supports linking one subject t
 ## Validation
 
 - TypeScript project check: passed.
-- Full app suite: **855 tests across 115 files passed**.
+- Full app suite: **866 tests across 116 files passed**.
 - Production build: passed.
 - ESLint: zero errors; existing warnings remain in unrelated admin/rank modules.
 - Desktop/mobile linked-list, shared/draft labels, actual zero, read-error recovery, scoped creation and dark mode were rendered and visually inspected with local fixture records.
@@ -50,3 +50,21 @@ This fix does not pretend that the current schema supports linking one subject t
 Source-only GitHub update: no hosting deployment was performed, and no database migration is required. Build/deploy through the existing release process to make it live.
 
 After release: Exams → select a real exam → Subjects → Manage Subjects → Create Subject. Verify that the displayed scope is the selected exam, save, then use Back to Exams. The new subject should appear in that exam's linked list and count. Shared subjects should be clearly marked, while subjects owned by a different exam must not appear. Use a draft subject for a safe initial manual check, then publish intentionally.
+
+## Direct creation in the Exams drawer
+
+The Subjects tab now offers **Add Subject**, and each real linked-subject card offers **Add Topic** and **Manage Topics**. Creation happens in a context-locked modal without leaving Exams:
+
+- Add Subject verifies the selected exam, checks existing exam-scoped slugs and uses `createSubject` with that exact `examId`.
+- Add Topic re-reads the parent subject, verifies that it belongs to the exam or is shared, checks sibling topic slugs and calls `createChapter` with the locked `subjectId`.
+- Shared-subject topics require explicit acknowledgement. They belong to the shared subject, not exclusively to the selected exam. Optional existing exam-topic filters are not modified. For exclusive content, create an exam-specific subject first.
+- Both forms support name, separate URL slug (including Bengali names), description, display order and intentional publication. New records default to Draft. Publishing a topic does not publish its parent.
+- Failed verification prevents writes; API errors keep the form open; synchronous duplicate submissions are locked. Confirmed response IDs and parent associations are required before success. The linked list and counts reload from the normal API, clearing list filters so the new record can be found.
+- Manage Topics retains the exact parent subject filter and exam return context. Create Topic there prefills a valid currently selected parent rather than silently choosing the first subject. Resetting list filters retains the Back to Exams context. This remains the existing general-purpose topic manager, not a separate scoped CMS.
+- Modal keyboard focus is contained, Escape closes only when not saving, background scrolling is blocked and opener focus is restored on close.
+
+No data migration is required. No live records are created by local tests or fixture-based preview validation.
+
+After deployment: **Exams → select exam → Subjects → Add Subject → save**. Then on that subject card: **Add Topic → save**. Use Manage Topics for the existing detailed topic-management screen.
+
+Direct-creation validation: 11 dedicated regression tests plus the existing exam-linked tests passed. Desktop/mobile, dark mode, shared confirmation and write-error states were rendered and inspected with fixture data. Mobile dialog scrolling keeps both save and cancel reachable. A browser fixture flow created a subject, added its topic and verified the refreshed topic count. ESLint reported no errors (10 existing warnings elsewhere); production build passed.
