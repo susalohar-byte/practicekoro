@@ -408,11 +408,11 @@ void main() {
       expect(find.byTooltip('Search test series'), findsOneWidget);
       expect(find.byType(TextField), findsNothing); // no second search bar
 
-      // Exactly the four quick actions; no Audio Book anywhere
-      for (final label in ['Mock Test', 'Topic Test', 'Official PYQ', 'Results']) {
+      // Exactly the four feature cards matching reference UI
+      for (final label in ['AudioBook', 'Official PYQ', 'My Rank']) {
         expect(find.text(label), findsWidgets, reason: label);
       }
-      expect(find.textContaining('Audio'), findsNothing);
+      expect(find.text('Saved\nQuestions'), findsWidgets);
 
       // Sections in order, from real data
       for (final title in [

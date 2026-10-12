@@ -1008,98 +1008,184 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ─── 4. Quick Actions ──────────────────────────────────────────────────────
+  // ─── 4. Quick Feature Cards ────────────────────────────────────────────────
 
   Widget _buildQuickActions() {
-    final actions = [
+    final items = [
       (
-        title: 'Mock Test',
-        sub: 'Full Length',
-        icon: Icons.assignment_outlined,
-        color: const Color(0xFF9333EA),
-        bg: const Color(0xFFF3E8FF),
-        onTap: () => _navigateToTab(1, '/test-series'),
+        title: 'AudioBook',
+        iconWidget: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(Icons.headphones_rounded, color: Color(0xFF7C3AED), size: 21),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 1.5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C3AED),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                const SizedBox(width: 1.5),
+                Container(
+                  width: 1.5,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C3AED),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                const SizedBox(width: 1.5),
+                Container(
+                  width: 1.5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C3AED),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        bg: const Color(0xFFF6F3FF),
+        border: const Color(0xFFEDE9FE),
+        iconBg: const Color(0xFFEDE5FF),
+        arrowColor: const Color(0xFF7C3AED),
+        arrowBg: const Color(0xFFEDE5FF),
+        onTap: () => context.push('/audio-books'),
       ),
       (
-        title: 'Topic Test',
-        sub: 'Chapter-wise',
-        icon: Icons.track_changes_rounded,
-        color: const Color(0xFF16A34A),
-        bg: const Color(0xFFDCFCE7),
-        onTap: () => _navigateToTab(2, '/practice'),
+        title: 'Saved\nQuestions',
+        iconWidget: const Icon(Icons.bookmark_rounded, color: Color(0xFF059669), size: 21),
+        bg: const Color(0xFFF0FDF4),
+        border: const Color(0xFFDCFCE7),
+        iconBg: const Color(0xFFDCFCE7),
+        arrowColor: const Color(0xFF059669),
+        arrowBg: const Color(0xFFDCFCE7),
+        onTap: () => context.push('/saved-questions'),
       ),
       (
         title: 'Official PYQ',
-        sub: 'Previous Year',
-        icon: Icons.article_outlined,
-        color: const Color(0xFFEA580C),
-        bg: const Color(0xFFFFEDD5),
+        iconWidget: const Icon(Icons.description_rounded, color: Color(0xFFEA580C), size: 21),
+        bg: const Color(0xFFFFFBEB),
+        border: const Color(0xFFFEF3C7),
+        iconBg: const Color(0xFFFFEDD5),
+        arrowColor: const Color(0xFFEA580C),
+        arrowBg: const Color(0xFFFFEDD5),
         onTap: () => context.push('/test-series?filter=pyq'),
       ),
       (
-        title: 'Results',
-        sub: 'Track Progress',
-        icon: Icons.bar_chart_rounded,
-        color: const Color(0xFFE11D48),
-        bg: const Color(0xFFFFE4E6),
-        onTap: () => _navigateToTab(3, '/results'),
+        title: 'My Rank',
+        iconWidget: const Icon(Icons.bar_chart_rounded, color: Color(0xFFE11D48), size: 23),
+        bg: const Color(0xFFFFF1F2),
+        border: const Color(0xFFFFE4E6),
+        iconBg: const Color(0xFFFFE4E6),
+        arrowColor: const Color(0xFFE11D48),
+        arrowBg: const Color(0xFFFFE4E6),
+        onTap: () => context.push('/leaderboard'),
       ),
     ];
 
-    return Row(
-      children: [
-        for (var i = 0; i < actions.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: InkWell(
-              onTap: actions[i].onTap,
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                decoration: PK.cardBox(r: 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: actions[i].bg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(actions[i].icon, color: actions[i].color, size: 22),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      actions[i].title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F1E4A),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      actions[i].sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
+    Widget buildCard(dynamic item) {
+      return Semantics(
+        button: true,
+        label: (item.title as String).replaceAll('\n', ' '),
+        child: InkWell(
+          onTap: item.onTap as VoidCallback,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            width: 156,
+            height: 58,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: item.bg as Color,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: item.border as Color, width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: (item.arrowColor as Color).withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: item.iconBg as Color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: item.iconWidget as Widget,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item.title as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F1E4A),
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: item.arrowBg as Color,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: item.arrowColor as Color,
+                    size: 17,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 640) {
+          return Row(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                Expanded(child: buildCard(items[i])),
+              ],
+            ],
+          );
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(width: 10),
+                buildCard(items[i]),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
