@@ -24,6 +24,8 @@ import { StudentLoadError } from '@/components/student/StudentLoadState';
 import { getErrorMessage } from '@/lib/errors';
 import type { SupportTicketItem } from '@/types';
 import type { SupportCategory } from '@/components/student/StudentSupportModal';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
+import { cn } from '@/lib/utils';
 
 export const Support: React.FC = () => {
   const { user, isPro } = useAuth();
@@ -152,102 +154,130 @@ export const Support: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 pk-student-page">
-      {/* Hero Header */}
-      <div className="rounded-3xl bg-gradient-to-br from-blue-700 via-indigo-700 to-indigo-900 text-white p-6 sm:p-8 shadow-xl shadow-indigo-950/10 relative overflow-hidden">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-bold border border-white/20">
-            <LifeBuoy className="w-3.5 h-3.5 text-blue-200" />
-            <span>PracticeKoro Support Desk</span>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <PageHeader
+          eyebrow="Help Desk & Academic Support"
+          title="Help & Support"
+          subtitle="Report question discrepancies, mock test errors, or get prompt assistance from the PracticeKoro team"
+          icon={LifeBuoy}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={activeTab === 'create' ? 'primary' : 'outline'}
+                className={activeTab === 'create' ? 'bg-[#026BFC] hover:bg-[#0256ca] text-white font-bold rounded-xl' : 'text-xs font-bold rounded-xl'}
+                onClick={() => setActiveTab('create')}
+              >
+                New Ticket
+              </Button>
+              <Button
+                size="sm"
+                variant={activeTab === 'history' ? 'primary' : 'outline'}
+                className={activeTab === 'history' ? 'bg-[#026BFC] hover:bg-[#0256ca] text-white font-bold rounded-xl' : 'text-xs font-bold rounded-xl'}
+                onClick={() => setActiveTab('history')}
+              >
+                My Tickets ({myTickets.length})
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Hero Header */}
+        <div className="rounded-3xl bg-gradient-to-br from-[#0B1B3F] via-[#102356] to-[#1C3B8B] text-white p-6 sm:p-8 shadow-xl shadow-blue-900/10 relative overflow-hidden border border-blue-900/30">
+          <div className="absolute right-0 top-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 max-w-2xl space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-bold border border-white/20">
+              <LifeBuoy className="w-3.5 h-3.5 text-blue-200" />
+              <span>PracticeKoro Support Desk</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              How can we help you today?
+            </h1>
+            <p className="text-sm text-blue-100/90 leading-relaxed">
+              Report question discrepancies, mock test errors, or get prompt assistance from the
+              PracticeKoro academic & tech team.
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            How can we help you today?
-          </h1>
-          <p className="text-sm text-blue-100/90 leading-relaxed">
-            Report question discrepancies, mock test errors, or get prompt assistance from the
-            PracticeKoro academic & tech team.
-          </p>
         </div>
-      </div>
 
-      {/* Support Channels Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        <Card className="p-4 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 bg-white dark:bg-slate-900">
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
-            <Mail className="w-5 h-5" />
+        {/* Support Channels Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <div className={cn(studentCard, "p-4.5 flex items-center gap-3.5")}>
+            <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-[#026BFC] dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Email Helpline</p>
+              <a
+                href={supportEmail ? `mailto:${supportEmail}` : undefined}
+                className="text-xs sm:text-sm font-black text-slate-900 dark:text-white hover:text-blue-600 truncate block"
+              >
+                {supportEmail || 'Use the ticket form below'}
+              </a>
+              <p className="text-[10px] text-slate-400">Contact the support team</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Email Helpline</p>
-            <a
-              href={supportEmail ? `mailto:${supportEmail}` : undefined}
-              className="text-xs sm:text-sm font-black text-slate-900 dark:text-white hover:text-blue-600 truncate block"
-            >
-              {supportEmail || 'Use the ticket form below'}
-            </a>
-            <p className="text-[10px] text-slate-400">Contact the support team</p>
-          </div>
-        </Card>
 
-        <Card className="p-4 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 bg-white dark:bg-slate-900">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
-            <Phone className="w-5 h-5" />
+          <div className={cn(studentCard, "p-4.5 flex items-center gap-3.5")}>
+            <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
+              <Phone className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Direct Helpline / WhatsApp
+              </p>
+              <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                {supportWhatsapp ? (
+                  <a
+                    href={
+                      /^[+\d\s()-]+$/.test(supportWhatsapp) &&
+                      supportWhatsapp.replace(/\D/g, '').length >= 7
+                        ? `https://wa.me/${supportWhatsapp.replace(/\D/g, '')}`
+                        : undefined
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {supportWhatsapp}
+                  </a>
+                ) : supportPhone ? (
+                  <a
+                    href={
+                      /^[+\d\s()-]+$/.test(supportPhone) &&
+                      supportPhone.replace(/\D/g, '').length >= 7
+                        ? `tel:${supportPhone.replace(/[^+\d]/g, '')}`
+                        : undefined
+                    }
+                  >
+                    {supportPhone}
+                  </a>
+                ) : (
+                  'Direct helpline not configured'
+                )}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {supportHours || 'Availability depends on the support team'}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              Direct Helpline / WhatsApp
-            </p>
-            <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-              {supportWhatsapp ? (
-                <a
-                  href={
-                    /^[+\d\s()-]+$/.test(supportWhatsapp) &&
-                    supportWhatsapp.replace(/\D/g, '').length >= 7
-                      ? `https://wa.me/${supportWhatsapp.replace(/\D/g, '')}`
-                      : undefined
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {supportWhatsapp}
-                </a>
-              ) : supportPhone ? (
-                <a
-                  href={
-                    /^[+\d\s()-]+$/.test(supportPhone) &&
-                    supportPhone.replace(/\D/g, '').length >= 7
-                      ? `tel:${supportPhone.replace(/[^+\d]/g, '')}`
-                      : undefined
-                  }
-                >
-                  {supportPhone}
-                </a>
-              ) : (
-                'Direct helpline not configured'
-              )}
-            </p>
-            <p className="text-[10px] text-slate-400">
-              {supportHours || 'Availability depends on the support team'}
-            </p>
-          </div>
-        </Card>
 
-        <Card className="p-4 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 bg-white dark:bg-slate-900">
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
-            <ShieldCheck className="w-5 h-5" />
+          <div className={cn(studentCard, "p-4.5 flex items-center gap-3.5")}>
+            <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Account Status</p>
+              <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white flex items-center gap-1">
+                <span>{isPro ? 'Pro Pass Active' : 'Free Aspirant'}</span>
+                {isPro && <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {isPro ? 'Pro subscription enabled' : 'Submit a ticket for assistance'}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Account Status</p>
-            <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white flex items-center gap-1">
-              <span>{isPro ? 'Pro Pass Active' : 'Free Aspirant'}</span>
-              {isPro && <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
-            </p>
-            <p className="text-[10px] text-slate-400">
-              {isPro ? 'Pro subscription enabled' : 'Submit a ticket for assistance'}
-            </p>
-          </div>
-        </Card>
-      </div>
+        </div>
 
       {/* Main Support Interaction: Tabs for Raise Ticket & My Tickets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -608,6 +638,7 @@ export const Support: React.FC = () => {
             </div>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );

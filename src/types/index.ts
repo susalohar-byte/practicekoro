@@ -370,6 +370,8 @@ export interface LiveTest {
   testSeriesTitle?: string;
   logo?: string;
   examLogo?: string;
+  bgImageUrl?: string;
+  cardBgImage?: string;
   userParticipant?: LiveTestParticipant | null;
 }
 
@@ -1014,6 +1016,17 @@ export interface CouponQuote {
   listPrice?: number;
   discountAmount: number;
   finalAmount?: number;
+  message: string;
+}
+
+export interface CouponValidationResult {
+  valid: boolean;
+  couponId?: string;
+  code?: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  discountAmount: number;
+  finalPrice: number;
   message: string;
 }
 

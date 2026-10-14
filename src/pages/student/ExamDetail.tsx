@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useExam } from '@/context/ExamContext';
 import { api } from '@/services/api';
@@ -8,7 +8,6 @@ import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { EmptyState } from '@/components/common/EmptyState';
 import {
-  ArrowLeft,
   Clock,
   CheckCircle,
   Lock,
@@ -22,6 +21,7 @@ import {
   Layers,
 } from 'lucide-react';
 import type { MockTest, Subject, Chapter, TestSeries } from '@/types';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
 
 type ExamTab = 'full-mock' | 'pyq' | 'topic-tests';
 
@@ -244,62 +244,79 @@ export const ExamDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <Link to="/exams" className="hover:text-slate-900 inline-flex items-center gap-1">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            All Examinations
-          </Link>
-          <span>/</span>
-          <span className="text-slate-900 font-bold">{currentExam?.title}</span>
-        </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Navigation & Header */}
+        <PageHeader
+          eyebrow="Examination"
+          title={currentExam?.title || 'Examination'}
+          subtitle={currentExam?.description || 'Structured preparation system with Full Mocks, PYQ papers, and Topic Tests.'}
+          icon={Layers}
+          onBack={() => navigate('/test-series')}
+          actions={
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs font-bold text-blue-700 dark:text-blue-300">
+                {currentExam?.category || 'Competitive Exam'}
+              </span>
+              {currentExam?.totalVacancies && (
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl">
+                  {currentExam.totalVacancies.toLocaleString()} Vacancies
+                </span>
+              )}
+              {isPro && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-3 py-1.5 rounded-xl">
+                  <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  Pro Pass Unlocked
+                </span>
+              )}
+            </div>
+          }
+        />
 
         {/* Exam Header Hero Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1B3F] via-[#102356] to-[#1C3B8B] text-white p-6 sm:p-8 shadow-[0_12px_32px_-12px_rgba(11,27,63,0.35)] border border-[#1E3A8A]/30">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold uppercase tracking-wider text-brand-700 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
+                <span className="px-3 py-1 rounded-lg bg-white/10 backdrop-blur-xs border border-white/15 text-xs font-extrabold uppercase tracking-wider text-blue-200">
                   {currentExam?.category || 'Competitive Exam'}
                 </span>
                 {currentExam?.totalVacancies && (
-                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-blue-100 bg-white/10 px-3 py-1 rounded-lg border border-white/10">
                     {currentExam.totalVacancies.toLocaleString()} Vacancies
                   </span>
                 )}
                 {isPro && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                    <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-400/20 border border-amber-300/30 px-2.5 py-1 rounded-lg">
+                    <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
                     Pro Pass Unlocked
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 {currentExam?.title}
-              </h1>
+              </h2>
 
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-blue-100/90 leading-relaxed font-medium">
                 {currentExam?.description ||
                   'Structured preparation system: simulate the complete exam pattern with Full Mocks, analyze previous patterns with PYQs, and master individual chapters with reusable Topic Tests.'}
               </p>
             </div>
 
             {/* Quick Stats Pill */}
-            <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 shrink-0">
+            <div className="grid grid-cols-3 gap-3 bg-white/10 backdrop-blur-xs p-4 rounded-2xl border border-white/15 shrink-0">
               <div className="text-center">
-                <div className="text-lg font-black text-brand-700">{fullMockTests.length}</div>
-                <div className="text-[11px] font-semibold text-slate-500">Full Mocks</div>
+                <div className="text-xl font-black text-blue-200">{fullMockTests.length}</div>
+                <div className="text-[11px] font-bold text-blue-100/80">Full Mocks</div>
               </div>
-              <div className="text-center border-x border-slate-200 px-2">
-                <div className="text-lg font-black text-amber-700">{pyqTests.length}</div>
-                <div className="text-[11px] font-semibold text-slate-500">PYQ Papers</div>
+              <div className="text-center border-x border-white/15 px-3">
+                <div className="text-xl font-black text-amber-300">{pyqTests.length}</div>
+                <div className="text-[11px] font-bold text-blue-100/80">PYQ Papers</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-black text-blue-700">{topicTests.length}</div>
-                <div className="text-[11px] font-semibold text-slate-500">Topic Tests</div>
+                <div className="text-xl font-black text-emerald-300">{topicTests.length}</div>
+                <div className="text-[11px] font-bold text-blue-100/80">Topic Tests</div>
               </div>
             </div>
           </div>
@@ -531,14 +548,15 @@ export const ExamDetail: React.FC = () => {
         )}
 
         {/* 3 Core Architecture Tabs */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm">
+        <div className={`${studentCard} p-1.5`}>
           <div className="grid grid-cols-3 gap-1">
             <button
+              type="button"
               onClick={() => handleTabChange('full-mock')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'full-mock'
-                  ? 'bg-brand-600 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#026BFC] text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <Award className="w-4 h-4 shrink-0" />
@@ -547,7 +565,7 @@ export const ExamDetail: React.FC = () => {
                 className={`text-[11px] py-0.5 px-2 rounded-full font-extrabold ml-1 hidden sm:inline-block ${
                   activeTab === 'full-mock'
                     ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {displayedFullMockTests.length}
@@ -555,18 +573,19 @@ export const ExamDetail: React.FC = () => {
             </button>
 
             <button
+              type="button"
               onClick={() => handleTabChange('pyq')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'pyq'
-                  ? 'bg-amber-600 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#026BFC] text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <History className="w-4 h-4 shrink-0" />
               <span>PYQ (Previous Years)</span>
               <span
                 className={`text-[11px] py-0.5 px-2 rounded-full font-extrabold ml-1 hidden sm:inline-block ${
-                  activeTab === 'pyq' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  activeTab === 'pyq' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {displayedPyqTests.length}
@@ -574,11 +593,12 @@ export const ExamDetail: React.FC = () => {
             </button>
 
             <button
+              type="button"
               onClick={() => handleTabChange('topic-tests')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeTab === 'topic-tests'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-[#026BFC] text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <BookOpen className="w-4 h-4 shrink-0" />
@@ -587,7 +607,7 @@ export const ExamDetail: React.FC = () => {
                 className={`text-[11px] py-0.5 px-2 rounded-full font-extrabold ml-1 hidden sm:inline-block ${
                   activeTab === 'topic-tests'
                     ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}
               >
                 {displayedTopicTests.length}

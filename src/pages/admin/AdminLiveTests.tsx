@@ -29,6 +29,7 @@ import {
   Monitor,
   AlertCircle,
   Download,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -1553,6 +1554,9 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
   const [logo, setLogo] = useState(
     initialData?.logo || initialData?.examLogo || PRESET_LOGOS[0].url
   );
+  const [bgImageUrl, setBgImageUrl] = useState(
+    initialData?.bgImageUrl || initialData?.cardBgImage || ''
+  );
   // Date/time inputs are in the admin's local timezone (IST); stored as UTC ISO.
   const initialStartParts = initialData?.startAt
     ? isoToLocalDateTimeParts(initialData.startAt)
@@ -1568,6 +1572,7 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
     initialData?.rankingEnabled !== undefined ? initialData.rankingEnabled : true
   );
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSourceTestChange = (testId: string) => {
@@ -1616,6 +1621,8 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           examTitle,
           logo,
           examLogo: logo,
+          bgImageUrl: bgImageUrl.trim() || undefined,
+          cardBgImage: bgImageUrl.trim() || undefined,
           startAt: startIso,
           scheduledStartTime: startIso,
           scheduledEndTime: endIso,
@@ -1639,6 +1646,8 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           rankingEnabled,
           logo,
           examLogo: logo,
+          bgImageUrl: bgImageUrl.trim() || undefined,
+          cardBgImage: bgImageUrl.trim() || undefined,
           status: status as LiveTest['status'],
         });
       }
@@ -1930,6 +1939,100 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                     <span className="whitespace-nowrap text-[11px] font-medium">{pl.name}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Card Background Image */}
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Card Background Image
+              </label>
+              <span className="text-[11px] text-slate-400">Right-side banner backdrop</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Preview Thumbnail */}
+              <div className="w-20 h-12 rounded-lg bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0 relative">
+                {bgImageUrl ? (
+                  <img
+                    src={bgImageUrl}
+                    alt="Card Background"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <ImageIcon className="w-5 h-5 text-slate-400" />
+                )}
+              </div>
+
+              {/* Upload & Actions */}
+              <div className="flex-1 space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold text-xs cursor-pointer shadow-2xs transition-colors',
+                      isUploadingBg
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-[#026BFC] hover:bg-blue-700 text-white'
+                    )}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {isUploadingBg
+                      ? 'Uploading...'
+                      : bgImageUrl
+                        ? 'Change Image'
+                        : 'Upload Image'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploadingBg}
+                      className="hidden"
+                      onChange={async (ev) => {
+                        const file = ev.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          setIsUploadingBg(true);
+                          const uploadedUrl = await api.uploadLiveTestBackground(
+                            file,
+                            initialData?.id || 'new'
+                          );
+                          setBgImageUrl(uploadedUrl);
+                        } catch (err: any) {
+                          toast.error(
+                            'Failed to upload background image: ' + (err?.message || 'Error')
+                          );
+                        } finally {
+                          setIsUploadingBg(false);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {bgImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setBgImageUrl('')}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-semibold text-xs border border-slate-200 text-rose-600 hover:bg-rose-50 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  )}
+
+                  <span className="text-[11px] text-slate-400">or image URL:</span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="https://... or data:image/..."
+                  value={bgImageUrl}
+                  onChange={(e) => setBgImageUrl(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-mono text-slate-700 placeholder:font-sans focus:outline-none focus:border-blue-500"
+                />
               </div>
             </div>
           </div>

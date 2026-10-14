@@ -5,7 +5,6 @@ import { useContentLanguage } from '@/context/MaintenanceContext';
 import { StudentLoading, StudentLoadError } from '@/components/student/StudentLoadState';
 import { getErrorMessage } from '@/lib/errors';
 import { api } from '@/services/api';
-import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { ShortNotesBox } from '@/components/common/ShortNotesBox';
@@ -15,13 +14,14 @@ import {
   XCircle,
   MinusCircle,
   Bookmark,
-  ArrowLeft,
   AlertTriangle,
   Flag,
 } from 'lucide-react';
 import { StudentSupportModal } from '@/components/student/StudentSupportModal';
 import { MathText } from '@/components/common/MathText';
 import type { QuestionSolution, MockTest } from '@/types';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
+import { cn } from '@/lib/utils';
 
 export const TestSolutions: React.FC = () => {
   const { testId, attemptId } = useParams<{ testId: string; attemptId: string }>();
@@ -125,108 +125,107 @@ export const TestSolutions: React.FC = () => {
     return <StudentLoadError message={loadError} onRetry={() => setRetryLoad((v) => v + 1)} />;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {bookmarkError && (
-        <p
-          role="alert"
-          className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl"
-        >
-          {bookmarkError}
-        </p>
-      )}
-      {solutions.length === 0 && (
-        <p role="status" className="text-sm text-slate-500">
-          No recorded solutions are available for this attempt.
-        </p>
-      )}
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate(`/exams/${testId}/results/${attemptId}`)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Scorecard
-        </button>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {bookmarkError && (
+          <p
+            role="alert"
+            className="p-4 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 rounded-xl"
+          >
+            {bookmarkError}
+          </p>
+        )}
+        {solutions.length === 0 && (
+          <p role="status" className="text-sm text-slate-500">
+            No recorded solutions are available for this attempt.
+          </p>
+        )}
 
-        <div className="flex items-center gap-2">
-          <Link to="/practice">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs"
-              leftIcon={<AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-            >
-              Open Mistakes Notebook
-            </Button>
-          </Link>
+        <PageHeader
+          eyebrow="Answer Key & Solutions"
+          title={testMeta?.title || 'Detailed Solutions & Explanations'}
+          subtitle="Question-wise authoritative answer key, student selection comparison, and detailed notes"
+          icon={CheckCircle2}
+          onBack={() => navigate(`/exams/${testId}/results/${attemptId}`)}
+          actions={
+            <div className="flex items-center gap-2">
+              <Link to="/practice">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-bold rounded-xl"
+                  leftIcon={<AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                >
+                  Mistakes Notebook
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="text-xs font-bold rounded-xl"
+                onClick={() => navigate(`/exams/${testId}/results/${attemptId}`)}
+              >
+                Back to Scorecard
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button
+            onClick={() => setFilter('all')}
+            className={`min-h-10 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              filter === 'all'
+                ? 'bg-[#026BFC] text-white shadow-md shadow-[#026BFC]/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200'
+            }`}
+          >
+            All Questions ({solutions.length})
+          </button>
+
+          <button
+            onClick={() => setFilter('wrong')}
+            className={`min-h-10 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              filter === 'wrong'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                : 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-400 border border-slate-200/80 dark:border-slate-800 hover:border-rose-200'
+            }`}
+          >
+            Incorrect Answers ({wrongCount})
+          </button>
+
+          <button
+            onClick={() => setFilter('correct')}
+            className={`min-h-10 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              filter === 'correct'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                : 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200'
+            }`}
+          >
+            Correct Answers ({correctCount})
+          </button>
+
+          <button
+            onClick={() => setFilter('skipped')}
+            className={`min-h-10 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              filter === 'skipped'
+                ? 'bg-slate-700 text-white shadow-md shadow-slate-700/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            Skipped ({skippedCount})
+          </button>
         </div>
-      </div>
 
-      <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-          Detailed Solutions & Explanations
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Question-wise authoritative answer key, student selection comparison, and detailed notes
-        </p>
-      </div>
+        {/* Solutions List */}
+        <div className="space-y-4">
+          {filteredSolutions.map((sol, idx) => {
+            const isWrong = sol.selectedOption !== null && !sol.isCorrect;
+            const isSkipped = sol.selectedOption === null;
 
-      {/* Filter Tabs (Stitch rounded-full pills — Reference Screen 9) */}
-      <div className="grid grid-cols-2 sm:flex items-center gap-2 pb-2 border-b border-slate-200">
-        <button
-          onClick={() => setFilter('all')}
-          className={`min-h-11 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            filter === 'all'
-              ? 'bg-[#026BFC] text-white shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          All Questions ({solutions.length})
-        </button>
-
-        <button
-          onClick={() => setFilter('wrong')}
-          className={`min-h-11 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            filter === 'wrong'
-              ? 'bg-rose-600 text-white shadow-xs'
-              : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-          }`}
-        >
-          Incorrect Answers ({wrongCount})
-        </button>
-
-        <button
-          onClick={() => setFilter('correct')}
-          className={`min-h-11 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            filter === 'correct'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-          }`}
-        >
-          Correct Answers ({correctCount})
-        </button>
-
-        <button
-          onClick={() => setFilter('skipped')}
-          className={`min-h-11 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            filter === 'skipped'
-              ? 'bg-slate-600 text-white shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          Skipped ({skippedCount})
-        </button>
-      </div>
-
-      {/* Solutions List */}
-      <div className="space-y-4">
-        {filteredSolutions.map((sol, idx) => {
-          const isWrong = sol.selectedOption !== null && !sol.isCorrect;
-          const isSkipped = sol.selectedOption === null;
-
-          return (
-            <Card key={sol.id} className="p-6 border-slate-200 space-y-4">
+            return (
+              <div key={sol.id} className={cn(studentCard, "p-6 sm:p-7 space-y-4")}>
               {/* Question Header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center flex-wrap gap-2">
@@ -370,7 +369,7 @@ export const TestSolutions: React.FC = () => {
                   />
                 );
               })()}
-            </Card>
+            </div>
           );
         })}
       </div>
@@ -382,6 +381,7 @@ export const TestSolutions: React.FC = () => {
         defaultSubject={reportSubject}
         defaultIssue={reportIssue}
       />
+      </div>
     </div>
   );
 };

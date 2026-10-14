@@ -28,6 +28,7 @@ import {
 import { openRazorpayCheckout } from '@/utils/razorpay';
 import type { Payment, SubscriptionPlan, CouponValidationResult } from '@/types';
 import { StudentSupportModal } from '@/components/student/StudentSupportModal';
+import { PageHeader } from '@/components/student/StudentUI';
 
 export const Subscription: React.FC = () => {
   const { user, refreshProStatus } = useAuth();
@@ -308,27 +309,15 @@ export const Subscription: React.FC = () => {
 
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pk-student-page">
-      {/* =========================================================================
-          HERO SECTION
-          ========================================================================= */}
-      <div className="text-center max-w-3xl mx-auto space-y-3 pt-2">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/25 dark:border-amber-400/20 text-amber-700 dark:text-amber-300 text-xs font-black tracking-wider uppercase shadow-2xs"
-        >
-          <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-          <span>ONE PRO PASS • ALL PREMIUM MOCK TESTS</span>
-        </motion.div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-          Practice More. <span className="text-[#0158FC] dark:text-blue-400">Rank Higher.</span>
-        </h1>
-        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Unlock every official-pattern mock test, chapter drill, and PYQ paper with detailed
-          step-by-step solutions and instant All-Bengal rank prediction.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Page Header */}
+        <PageHeader
+          title="PracticeKoro Pro Pass"
+          eyebrow="Universal Exam Access"
+          subtitle="One pass for every official-pattern mock test, chapter drill, and instant All-Bengal rank prediction"
+          icon={Crown}
+        />
 
       {/* =========================================================================
           ACTIVE SUBSCRIPTION STATUS CARD (ROYAL NAVY & GOLD AESTHETIC)
@@ -1194,6 +1183,7 @@ export const Subscription: React.FC = () => {
         defaultSubject={supportSubject}
         defaultIssue={supportIssue}
       />
+      </div>
     </div>
   );
 };

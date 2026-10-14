@@ -249,68 +249,90 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
   const enrolled = Number(lt.enrolledCount ?? lt.enrolled_count ?? 0);
   const participants = Number(lt.participantsCount ?? lt.participants_count ?? enrolled);
 
-  return {
-    id: String(lt.id),
-    testId: String(lt.testId || lt.test_id),
-    startAt,
-    registrationDeadline: lt.registrationDeadline ?? lt.registration_deadline ?? null,
-    status: derivedStatus,
-    rankingEnabled:
-      lt.rankingEnabled !== undefined
-        ? Boolean(lt.rankingEnabled)
-        : lt.ranking_enabled !== undefined
-          ? Boolean(lt.ranking_enabled)
-          : true,
-    subscriptionRequired:
-      lt.subscriptionRequired !== undefined
-        ? Boolean(lt.subscriptionRequired)
-        : lt.subscription_required !== undefined
-          ? Boolean(lt.subscription_required)
-          : false,
-    createdAt: lt.createdAt || lt.created_at || new Date().toISOString(),
-    updatedAt: lt.updatedAt || lt.updated_at || new Date().toISOString(),
+  let rawInstructions =
+    test?.description ||
+    lt.instructions ||
+    'Official examination pattern with statewide rank & percentile analysis.';
+  let parsedBgImage: string | undefined =
+    lt.bgImageUrl ||
+    lt.bg_image_url ||
+    lt.cardBgImage ||
+    lt.card_bg_image ||
+    lt.backgroundImage ||
+    lt.background_image ||
+    undefined;
 
-    // Inherited from source test
-    test: test || null,
-    title: resolvedTitle,
-    examId: exam?.id || test?.examId || lt.examId || lt.exam_id,
-    examTitle: test?.examTitle || exam?.title || lt.examTitle,
-    testTitle: test?.title || lt.testTitle || resolvedTitle,
-    durationMinutes: duration,
-    totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 100),
-    totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 100),
-    negativeMarking: Number(
-      test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0.25
-    ),
-    instructions:
-      test?.description ||
-      lt.instructions ||
-      'Official examination pattern with statewide rank & percentile analysis.',
-    enrolledCount: enrolled,
-    participantsCount: participants,
-    isPublished,
-    scheduledStartTime: startAt,
-    scheduledEndTime: endAt,
-    scheduledStartAt: startAt,
-    scheduledEndAt: endAt,
-    logo:
-      lt.logo ||
-      lt.examLogo ||
-      lt.exam_logo ||
-      exam?.iconName ||
-      (exam as any)?.icon_name ||
-      test?.iconUrl ||
-      undefined,
-    examLogo:
-      lt.logo ||
-      lt.examLogo ||
-      lt.exam_logo ||
-      exam?.iconName ||
-      (exam as any)?.icon_name ||
-      test?.iconUrl ||
-      undefined,
-  };
-}
+  if (typeof lt.instructions === 'string' && lt.instructions.trim().startsWith('{')) {
+    try {
+      const meta = JSON.parse(lt.instructions);
+      if (meta.bgImageUrl && !parsedBgImage) parsedBgImage = meta.bgImageUrl;
+      if (meta.instructions !== undefined) rawInstructions = meta.instructions;
+    } catch {
+      // preserve raw instructions if not JSON
+    }
+  }
+
+  return {
+      id: String(lt.id),
+      testId: String(lt.testId || lt.test_id),
+      startAt,
+      registrationDeadline: lt.registrationDeadline ?? lt.registration_deadline ?? null,
+      status: derivedStatus,
+      rankingEnabled:
+        lt.rankingEnabled !== undefined
+          ? Boolean(lt.rankingEnabled)
+          : lt.ranking_enabled !== undefined
+            ? Boolean(lt.ranking_enabled)
+            : true,
+      subscriptionRequired:
+        lt.subscriptionRequired !== undefined
+          ? Boolean(lt.subscriptionRequired)
+          : lt.subscription_required !== undefined
+            ? Boolean(lt.subscription_required)
+            : false,
+      createdAt: lt.createdAt || lt.created_at || new Date().toISOString(),
+      updatedAt: lt.updatedAt || lt.updated_at || new Date().toISOString(),
+
+      // Inherited from source test
+      test: test || null,
+      title: resolvedTitle,
+      examId: exam?.id || test?.examId || lt.examId || lt.exam_id,
+      examTitle: test?.examTitle || exam?.title || lt.examTitle,
+      testTitle: test?.title || lt.testTitle || resolvedTitle,
+      durationMinutes: duration,
+      totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 100),
+      totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 100),
+      negativeMarking: Number(
+        test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0.25
+      ),
+      instructions: rawInstructions,
+      enrolledCount: enrolled,
+      participantsCount: participants,
+      isPublished,
+      scheduledStartTime: startAt,
+      scheduledEndTime: endAt,
+      scheduledStartAt: startAt,
+      scheduledEndAt: endAt,
+      logo:
+        lt.logo ||
+        lt.examLogo ||
+        lt.exam_logo ||
+        exam?.iconName ||
+        (exam as any)?.icon_name ||
+        test?.iconUrl ||
+        undefined,
+      examLogo:
+        lt.logo ||
+        lt.examLogo ||
+        lt.exam_logo ||
+        exam?.iconName ||
+        (exam as any)?.icon_name ||
+        test?.iconUrl ||
+        undefined,
+      bgImageUrl: parsedBgImage,
+      cardBgImage: parsedBgImage,
+    };
+  }
 
 /** Sort LiveTests: LIVE first, then UPCOMING (soonest first), then ENDED (newest first), then CANCELLED */
 function sortLiveTests(list: LiveTest[]): LiveTest[] {
@@ -556,6 +578,8 @@ export interface ScheduleLiveTestInput {
   title?: string;
   logo?: string;
   examLogo?: string;
+  bgImageUrl?: string;
+  cardBgImage?: string;
   totalQuestions?: number;
   durationMinutes?: number;
   totalMarks?: number;
@@ -589,6 +613,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
   const sourceTest = sourceTestsMap.get(input.testId) || null;
 
   const resolvedLogo = input.logo?.trim() || input.examLogo?.trim() || undefined;
+  const resolvedBgImage = input.bgImageUrl?.trim() || input.cardBgImage?.trim() || undefined;
   const dbFields = toDbStatusFields(input.status || 'upcoming');
   const isPublished = dbFields.isPublished ?? true;
 
@@ -615,6 +640,8 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
       updated_at: new Date().toISOString(),
       logo: resolvedLogo,
       examLogo: resolvedLogo,
+      bgImageUrl: resolvedBgImage,
+      cardBgImage: resolvedBgImage,
       totalQuestions: input.totalQuestions,
       totalMarks: input.totalMarks,
       durationMinutes: input.durationMinutes,
@@ -630,6 +657,13 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
   // Also attempt Tier 1 (`public.live_tests` table) if migrated
   if (isSupabaseConfigured) {
     try {
+      const instructionsWithMeta = resolvedBgImage
+        ? JSON.stringify({
+            instructions: newLiveTest.instructions || '',
+            bgImageUrl: resolvedBgImage,
+          })
+        : newLiveTest.instructions;
+
       const payload = {
         id,
         test_id: input.testId,
@@ -645,7 +679,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
         total_questions: newLiveTest.totalQuestions,
         total_marks: newLiveTest.totalMarks,
         negative_marking: newLiveTest.negativeMarking,
-        instructions: newLiveTest.instructions,
+        instructions: instructionsWithMeta,
         is_published: isPublished,
         logo: newLiveTest.logo,
         exam_logo: newLiveTest.examLogo,
@@ -654,6 +688,15 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
       requireSavedRow(await supabase.from('live_tests').insert(payload).select('id').single(), id);
     } catch {
       throw new Error('Live-test persistence failed. Check the backend schema and permissions.');
+    }
+  }
+
+  // Also sync to app_settings so that all clients receive the updated list
+  if (isSupabaseConfigured) {
+    try {
+      await syncLiveTestsToRemote(updatedList);
+    } catch {
+      // ignore
     }
   }
 
@@ -732,19 +775,37 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
         payload.enrolled_count = updates.enrolledCount;
       }
 
+      let nextInstructions: string | undefined = updates.instructions;
+      const targetBg = updates.bgImageUrl !== undefined ? updates.bgImageUrl : updates.cardBgImage;
+      if (targetBg !== undefined) {
+        const rawBase = updates.instructions !== undefined ? updates.instructions : (existing.instructions || '');
+        nextInstructions = targetBg
+          ? JSON.stringify({
+              instructions: rawBase,
+              bgImageUrl: targetBg,
+            })
+          : rawBase;
+      }
+
       requireSavedRow(
         await supabase
           .from('live_tests')
           .update({
             ...payload,
             ...(updates.testId ? { test_id: updates.testId } : {}),
-            ...(updates.instructions !== undefined ? { instructions: updates.instructions } : {}),
+            ...(nextInstructions !== undefined ? { instructions: nextInstructions } : {}),
           })
           .eq('id', id)
           .select('id')
           .single(),
         id
       );
+
+      try {
+        await syncLiveTestsToRemote(sortLiveTests(nextList));
+      } catch {
+        // ignore
+      }
     } catch (err) {
       throw new Error(
         err instanceof Error && err.message
@@ -759,6 +820,18 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
 
 /** Upload Exam/Test Logo for Live Test to Supabase Storage */
 export async function uploadLiveTestLogo(file: File, _id: string = 'custom'): Promise<string> {
+  validateRasterFile(file, 'banners');
+  if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Upload Card Background Image for Live Test to Supabase Storage */
+export async function uploadLiveTestBackground(file: File, _id: string = 'custom'): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
   return new Promise<string>((resolve, reject) => {
@@ -1337,4 +1410,5 @@ export const adminLiveTestsApi = {
   getLiveTestLeaderboard,
   subscribeToLiveTestUpdates,
   uploadLiveTestLogo,
+  uploadLiveTestBackground,
 };

@@ -23,6 +23,8 @@ import {
   Scale,
 } from 'lucide-react';
 import { formatSeconds, cn } from '@/lib/utils';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
+import { StudentLoading } from '@/components/student/StudentLoadState';
 import type {
   GradedResult,
   QuestionSolution,
@@ -187,29 +189,48 @@ export const TestResult: React.FC = () => {
   }, [sectionBreakdown]);
 
   if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center pk-student-page">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
-      </div>
-    );
+    return <StudentLoading label="Generating performance analytics..." />;
   }
 
   if (!result) {
     return (
-      <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Result Not Found</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Unable to locate the test attempt result.
-        </p>
-        <Link to="/exams" className="mt-4 inline-block">
-          <Button size="sm">Back to Tests</Button>
-        </Link>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 py-16 px-4">
+        <div className="max-w-md mx-auto text-center bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center mx-auto mb-3">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white">Result Not Found</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Unable to locate the test attempt result.
+          </p>
+          <Button size="sm" className="mt-4" onClick={() => navigate('/exams')}>
+            Back to Tests
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <PageHeader
+          eyebrow="Performance Analytics"
+          title={result.testTitle || 'Test Performance Report'}
+          subtitle="Diagnostic evaluation, accuracy breakdown, and category-aware cutoff analysis"
+          icon={Award}
+          onBack={() => navigate('/exams')}
+          actions={
+            <Button
+              size="sm"
+              className="bg-[#026BFC] hover:bg-[#0256ca] text-white font-bold rounded-xl shadow-xs"
+              rightIcon={<ChevronRight className="w-4 h-4" />}
+              onClick={() => navigate(`/exams/${testId}/solutions/${attemptId}`)}
+            >
+              Detailed Solutions
+            </Button>
+          }
+        />
       {/* Live Test Event Banner */}
       {liveTest && (
         <div className="rounded-3xl p-5 bg-gradient-to-r from-rose-950/70 via-slate-900 to-indigo-950 border border-rose-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
@@ -718,7 +739,7 @@ export const TestResult: React.FC = () => {
 
       {/* Breakdown Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-        <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-between shadow-xs">
+        <div className={cn(studentCard, "p-5 flex items-center justify-between")}>
           <div>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Total Questions
@@ -728,11 +749,11 @@ export const TestResult: React.FC = () => {
             </p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">In this test</p>
           </div>
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-900/60">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/50 text-[#026BFC] dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-900/60">
             <Target className="w-6 h-6" />
           </div>
-        </Card>
-        <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-between shadow-xs">
+        </div>
+        <div className={cn(studentCard, "p-5 flex items-center justify-between")}>
           <div>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Correct Answers
@@ -747,9 +768,9 @@ export const TestResult: React.FC = () => {
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl border border-emerald-100 dark:border-emerald-900/60">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-between shadow-xs">
+        <div className={cn(studentCard, "p-5 flex items-center justify-between")}>
           <div>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Incorrect Answers
@@ -764,9 +785,9 @@ export const TestResult: React.FC = () => {
           <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-100 dark:border-rose-900/60">
             <XCircle className="w-6 h-6" />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-between shadow-xs">
+        <div className={cn(studentCard, "p-5 flex items-center justify-between")}>
           <div>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Skipped / Unanswered
@@ -779,9 +800,9 @@ export const TestResult: React.FC = () => {
           <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-700">
             <MinusCircle className="w-6 h-6" />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-5 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-between shadow-xs">
+        <div className={cn(studentCard, "p-5 flex items-center justify-between")}>
           <div>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Negative Marks
@@ -796,15 +817,15 @@ export const TestResult: React.FC = () => {
           <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-100 dark:border-rose-900/60">
             <MinusCircle className="w-6 h-6" />
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Section-Wise Performance Breakdown */}
       {sectionBreakdown.length > 0 && (
-        <Card className="p-5 sm:p-6 border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl space-y-4 shadow-xs">
+        <div className={cn(studentCard, "p-5 sm:p-6 space-y-4")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <Layers className="w-4 h-4 text-[#026BFC] dark:text-blue-400" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Section-Wise Performance Breakdown
               </h3>
@@ -860,7 +881,7 @@ export const TestResult: React.FC = () => {
                           {sec.attempted > 0 ? `${secAccuracy}%` : '—'}
                         </span>
                       </td>
-                      <td className="px-3.5 py-2.5 text-right font-black text-indigo-600 dark:text-indigo-400">
+                      <td className="px-3.5 py-2.5 text-right font-black text-[#026BFC] dark:text-blue-400">
                         {sec.score.toFixed(2)}
                       </td>
                     </tr>
@@ -869,14 +890,14 @@ export const TestResult: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Improve Weak Areas: close the Mock -> Practice -> Re-test loop */}
       {weakSections.length > 0 && (
-        <Card className="p-5 sm:p-6 border-indigo-200/80 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50/70 via-white to-white dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 rounded-3xl space-y-4 shadow-xs">
+        <div className={cn(studentCard, "p-5 sm:p-6 border-indigo-200/80 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50/50 via-white to-white dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 space-y-4")}>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-xs">
+            <div className="p-2 bg-[#026BFC] text-white rounded-xl shadow-xs">
               <Target className="w-4 h-4" />
             </div>
             <div>
@@ -918,7 +939,7 @@ export const TestResult: React.FC = () => {
                 >
                   <Button
                     size="sm"
-                    className="w-full text-xs font-bold"
+                    className="w-full text-xs font-bold bg-[#026BFC] hover:bg-[#0256ca] text-white"
                     leftIcon={<Zap className="w-3.5 h-3.5" />}
                   >
                     Practice Mistakes
@@ -927,7 +948,7 @@ export const TestResult: React.FC = () => {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Automatic Mistakes Notebook Banner */}
@@ -956,7 +977,7 @@ export const TestResult: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
         <Button
           size="lg"
-          className="w-full sm:w-auto font-bold shadow-md active:scale-95"
+          className="w-full sm:w-auto font-bold bg-[#026BFC] hover:bg-[#0256ca] text-white shadow-md active:scale-95"
           rightIcon={<ChevronRight className="w-4 h-4" />}
           onClick={() => navigate(`/exams/${testId}/solutions/${attemptId}`)}
         >
@@ -983,6 +1004,7 @@ export const TestResult: React.FC = () => {
             Back to Tests
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

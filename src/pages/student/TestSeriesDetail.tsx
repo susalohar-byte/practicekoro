@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -17,12 +17,12 @@ import {
   FileText,
   Layers,
   AlertCircle,
-  BarChart3,
   TrendingUp,
   Target,
 } from 'lucide-react';
 import type { MockTest, TestSeries, TestAttempt, TestSeriesAnalytics } from '@/types';
 import { StudentLoading, StudentLoadError } from '@/components/student/StudentLoadState';
+import { PageHeader, SectionTitle, studentCard } from '@/components/student/StudentUI';
 import { getErrorMessage } from '@/lib/errors';
 
 type CategoryTab = 'all' | 'full_mock' | 'topic' | 'pyq';
@@ -248,63 +248,55 @@ export const TestSeriesDetail: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
       <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* ── 0. BREADCRUMBS & BACK LINK ── */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
-            <Link
-              to="/"
-              className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            >
-              Home
-            </Link>
-            <span className="text-slate-300 dark:text-slate-600">&gt;</span>
-            <Link
-              to="/test-series"
-              className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            >
-              Test Series
-            </Link>
-            <span className="text-slate-300 dark:text-slate-600">&gt;</span>
-            <span className="text-slate-800 dark:text-slate-100 font-bold truncate max-w-[200px] sm:max-w-xs">
-              {series.title}
-            </span>
-          </div>
+        {/* ── 0. BREADCRUMBS & PAGE HEADER ── */}
+        <PageHeader
+          eyebrow="Test Series"
+          title={series.title}
+          subtitle={series.description || `${series.examTitle || 'Government Exam'} Mock Tests & Study Material`}
+          icon={Layers}
+          onBack={() => navigate('/test-series')}
+          actions={
+            <div className="flex items-center gap-2">
+              {series.isPremium ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs font-bold text-amber-700 dark:text-amber-300">
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                  Pro Pass Exclusive
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Free Access
+                </span>
+              )}
+            </div>
+          }
+        />
 
-          <button
-            type="button"
-            onClick={() => navigate('/test-series')}
-            className="inline-flex items-center gap-1 text-xs font-bold text-[#0158FC] dark:text-blue-400 hover:underline"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>All Series</span>
-          </button>
-        </div>
-
-        {/* ── 1. SERIES HEADER BANNER ── */}
-        <div className="relative overflow-hidden rounded-2xl bg-[#051A43] dark:bg-slate-900 border border-[#051A43] dark:border-slate-800 text-white p-6 sm:p-7 shadow-sm">
-          <div className="relative z-10 space-y-4">
+        {/* ── 1. SERIES OVERVIEW BANNER ── */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1B3F] via-[#102356] to-[#1C3B8B] text-white p-6 sm:p-8 shadow-[0_12px_32px_-12px_rgba(11,27,63,0.35)] border border-[#1E3A8A]/30">
+          <div className="relative z-10 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[11px] font-bold uppercase tracking-wider text-blue-200">
+                <span className="px-3 py-1 rounded-lg bg-white/10 backdrop-blur-xs border border-white/15 text-xs font-extrabold uppercase tracking-wider text-blue-200">
                   {series.examTitle || 'Government Exam'}
                 </span>
                 {series.isPremium ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-400/15 border border-amber-300/30 text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                    <Crown className="w-3 h-3 text-amber-400" />
-                    Pro Pass Exclusive
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400/20 border border-amber-300/30 text-xs font-bold text-amber-300">
+                    <Crown className="w-3 h-3 text-amber-300" />
+                    Pro Pass
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-400/15 border border-emerald-300/30 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    Free Access
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-400/20 border border-emerald-300/30 text-xs font-bold text-emerald-300">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-300" />
+                    Free Starter Pack
                   </span>
                 )}
               </div>
 
               {/* Progress pill */}
-              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xs border border-white/15 px-3.5 py-2 rounded-xl self-start sm:self-auto">
                 <div className="text-right">
-                  <p className="text-[10px] uppercase font-bold text-blue-200/80">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-blue-200/90">
                     Preparation Progress
                   </p>
                   <p className="text-xs font-black text-white">
@@ -316,7 +308,7 @@ export const TestSeriesDetail: React.FC = () => {
 
             <div className="flex items-start gap-4 sm:gap-5">
               {series.iconUrl && (
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white/10 border border-white/15 p-2 flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 p-2.5 flex items-center justify-center shrink-0 shadow-inner">
                   <img
                     src={series.iconUrl}
                     alt=""
@@ -327,12 +319,12 @@ export const TestSeriesDetail: React.FC = () => {
                   />
                 </div>
               )}
-              <div className="space-y-1 max-w-3xl flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-tight">
+              <div className="space-y-1.5 max-w-3xl flex-1">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-tight text-white">
                   {series.title}
-                </h1>
+                </h2>
                 {series.description && (
-                  <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+                  <p className="text-xs sm:text-sm text-blue-100/90 font-medium leading-relaxed">
                     {series.description}
                   </p>
                 )}
@@ -340,46 +332,44 @@ export const TestSeriesDetail: React.FC = () => {
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-white/15 h-2 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#026BFC] rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${completionPercent}%` }}
-              />
+            <div className="space-y-1.5">
+              <div className="w-full bg-white/15 h-2.5 rounded-full overflow-hidden p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-400 to-[#026BFC] rounded-full transition-all duration-700 ease-out shadow-sm"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
             </div>
 
             {/* Quick meta stats */}
-            <div className="flex flex-wrap items-center gap-4 pt-1 text-xs font-semibold text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-blue-400" />
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-1 text-xs font-semibold text-blue-100/90">
+              <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                <Layers className="w-4 h-4 text-blue-300" />
                 {tests.length} Total Tests
               </span>
-              <span className="flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-emerald-400" />
+              <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                <Award className="w-4 h-4 text-emerald-300" />
                 {tabCounts.fullMock} Full Mocks
               </span>
-              <span className="flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-sky-400" />
+              <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                <BookOpen className="w-4 h-4 text-sky-300" />
                 {tabCounts.topic} Topic Drills
               </span>
-              <span className="flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-amber-400" />
+              <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                <FileText className="w-4 h-4 text-amber-300" />
                 {tabCounts.pyq} Official PYQs
               </span>
             </div>
           </div>
         </div>
 
-        {/* ── SERIES PERFORMANCE: computed from the student's saved attempts ── */}
+        {/* ── SERIES PERFORMANCE ── */}
         <section aria-labelledby="series-performance-title" className="space-y-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-[#0158FC]" />
-            <h2
-              id="series-performance-title"
-              className="text-lg font-black text-slate-900 dark:text-white"
-            >
-              Series Performance
-            </h2>
-          </div>
+          <SectionTitle
+            title="Series Performance"
+            subtitle="Based on your latest completed attempts"
+          />
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             {[
               {
@@ -421,12 +411,12 @@ export const TestSeriesDetail: React.FC = () => {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-slate-800 dark:bg-slate-900"
               >
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                   {item.label}
                 </p>
-                <p className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+                <p className="mt-1 text-xl font-black text-[#0B1B3F] dark:text-white">
                   {item.value}
                 </p>
               </div>
@@ -435,22 +425,18 @@ export const TestSeriesDetail: React.FC = () => {
           {analyticsError && (
             <p
               role="alert"
-              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+              className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-semibold text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
             >
               Series analytics could not be loaded. Your individual test history is still available
               below.
             </p>
           )}
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Overall score weights each test by its marks using your latest completed attempt.
-            Accuracy is correct answers divided by attempted questions.
-          </p>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className={`${studentCard} p-5`}>
               <div className="mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                   Performance Trend
                 </h3>
               </div>
@@ -474,7 +460,7 @@ export const TestSeriesDetail: React.FC = () => {
                         {Math.round(point.percentage)}%
                       </span>
                       <div
-                        className="w-full max-w-8 rounded-t-md bg-gradient-to-t from-[#0158FC] to-[#0198FD]"
+                        className="w-full max-w-8 rounded-t-md bg-gradient-to-t from-[#026BFC] to-[#38BDF8]"
                         style={{ height: `${Math.max(4, (point.percentage / maxTrend) * 82)}%` }}
                       />
                       <span className="text-[9px] font-semibold text-slate-400">{index + 1}</span>
@@ -484,10 +470,10 @@ export const TestSeriesDetail: React.FC = () => {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className={`${studentCard} p-5`}>
               <div className="mb-3 flex items-center gap-2">
-                <Layers className="h-4 w-4 text-[#0158FC]" />
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                <Layers className="h-4 w-4 text-[#026BFC]" />
+                <h3 className="text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                   Performance by Test Type
                 </h3>
               </div>
@@ -511,9 +497,9 @@ export const TestSeriesDetail: React.FC = () => {
                             {item.accuracyPercent.toFixed(1)}% accuracy
                           </span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                           <div
-                            className="h-full rounded-full bg-[#0198FD]"
+                            className="h-full rounded-full bg-[#026BFC]"
                             style={{
                               width: `${Math.min(100, Math.max(0, item.averageScorePercent))}%`,
                             }}
@@ -530,8 +516,8 @@ export const TestSeriesDetail: React.FC = () => {
           seriesSummary?.weakTopics.length ||
           seriesSummary?.history.length ? (
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 className="mb-3 text-sm font-extrabold text-slate-900 dark:text-white">
+              <div className={`${studentCard} p-5`}>
+                <h3 className="mb-3 text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                   Subject Performance
                 </h3>
                 {seriesSummary?.subjects.length ? (
@@ -544,7 +530,7 @@ export const TestSeriesDetail: React.FC = () => {
                         <span className="truncate font-semibold text-slate-700 dark:text-slate-200">
                           {subject.subjectName}
                         </span>
-                        <span className="font-black text-[#0158FC]">
+                        <span className="font-black text-[#026BFC]">
                           {subject.accuracyPercent.toFixed(1)}%
                         </span>
                       </div>
@@ -556,10 +542,10 @@ export const TestSeriesDetail: React.FC = () => {
                   </p>
                 )}
               </div>
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/20">
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-amber-900/60 dark:bg-amber-950/20">
                 <div className="mb-3 flex items-center gap-2">
                   <Target className="h-4 w-4 text-amber-600" />
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  <h3 className="text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                     Needs Improvement
                   </h3>
                 </div>
@@ -583,8 +569,8 @@ export const TestSeriesDetail: React.FC = () => {
                   </p>
                 )}
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 className="mb-3 text-sm font-extrabold text-slate-900 dark:text-white">
+              <div className={`${studentCard} p-5`}>
+                <h3 className="mb-3 text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                   Your Improvement Report
                 </h3>
                 {seriesSummary?.weakTopics.length ? (
@@ -612,9 +598,9 @@ export const TestSeriesDetail: React.FC = () => {
           ) : null}
 
           {!!seriesSummary?.history.length && (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+            <div className={`overflow-hidden ${studentCard}`}>
+              <div className="border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
+                <h3 className="text-sm font-extrabold text-[#0B1B3F] dark:text-white">
                   Test History
                 </h3>
               </div>
@@ -622,7 +608,7 @@ export const TestSeriesDetail: React.FC = () => {
                 {seriesSummary.history.map((item) => (
                   <div
                     key={item.attemptId}
-                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs"
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-bold text-slate-800 dark:text-slate-100">
@@ -635,13 +621,13 @@ export const TestSeriesDetail: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-black text-[#0158FC]">
+                      <span className="font-black text-[#026BFC]">
                         {item.percentage.toFixed(1)}%
                       </span>
                       <button
                         type="button"
                         onClick={() => navigate(`/exams/${item.testId}/results/${item.attemptId}`)}
-                        className="font-bold text-[#0158FC] hover:underline"
+                        className="font-bold text-[#026BFC] hover:underline cursor-pointer"
                       >
                         View result
                       </button>
@@ -654,7 +640,7 @@ export const TestSeriesDetail: React.FC = () => {
         </section>
 
         {/* ── 2. CATEGORY TABS & CONTROLS ── */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-4">
+        <div className={`${studentCard} p-4 sm:p-5 space-y-4`}>
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             {/* 4 Category Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -670,16 +656,16 @@ export const TestSeriesDetail: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id as CategoryTab)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                       isActive
-                        ? 'bg-[#0158FC] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-[#026BFC] text-white shadow-md shadow-blue-500/20'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <span>{tab.emoji}</span>
                     <span>{tab.label}</span>
                     <span
-                      className={`text-[10px] font-black px-1.5 py-0.2 rounded-md ${
+                      className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
                         isActive
                           ? 'bg-white/20 text-white'
                           : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -697,7 +683,7 @@ export const TestSeriesDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'all'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-extrabold'
                     : 'hover:text-slate-900 dark:hover:text-slate-200'
@@ -708,7 +694,7 @@ export const TestSeriesDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('unattempted')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'unattempted'
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-extrabold'
                     : 'hover:text-slate-900 dark:hover:text-slate-200'
@@ -719,9 +705,9 @@ export const TestSeriesDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStatusFilter('completed')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   statusFilter === 'completed'
-                    ? 'bg-emerald-500 text-white shadow-xs font-extrabold'
+                    ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
                     : 'hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
@@ -738,19 +724,19 @@ export const TestSeriesDetail: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search tests in this series by test name, paper, or chapter..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#0158FC] transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#026BFC] transition-all"
             />
           </div>
         </div>
 
         {/* ── 3. TESTS LIST ── */}
         {filteredTests.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-12 text-center shadow-sm space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-[#0158FC] dark:text-blue-400 flex items-center justify-center mx-auto">
+          <div className={`${studentCard} p-12 text-center space-y-4`}>
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-[#026BFC] dark:text-blue-400 flex items-center justify-center mx-auto">
               <FileText className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto space-y-1">
-              <h3 className="text-base font-black text-slate-900 dark:text-white">
+              <h3 className="text-base font-black text-[#0B1B3F] dark:text-white">
                 No Tests Found
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -771,12 +757,12 @@ export const TestSeriesDetail: React.FC = () => {
               return (
                 <div
                   key={test.id}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl border transition-all p-5 sm:p-6 shadow-sm hover:shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5 ${
+                  className={`${studentCard} p-5 sm:p-6 transition-all hover:border-blue-300 dark:hover:border-blue-700 flex flex-col md:flex-row md:items-center justify-between gap-5 ${
                     isCompleted
-                      ? 'border-emerald-200/80 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10'
+                      ? 'border-emerald-200/80 dark:border-emerald-900/50 bg-emerald-50/15 dark:bg-emerald-950/10'
                       : isLocked
                         ? 'border-amber-200/80 dark:border-amber-900/50'
-                        : 'border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
+                        : ''
                   }`}
                 >
                   {/* Left: Test Details */}
@@ -822,7 +808,7 @@ export const TestSeriesDetail: React.FC = () => {
                       )}
                     </div>
 
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
+                    <h3 className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white leading-snug">
                       {test.title}
                     </h3>
 
@@ -870,7 +856,7 @@ export const TestSeriesDetail: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => navigate(`/exams/${test.id}/solutions/${attempt.id}`)}
-                          className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5"
+                          className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5 text-slate-500" />
                           <span>View Solutions</span>
@@ -878,7 +864,7 @@ export const TestSeriesDetail: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleStartTest(test)}
-                          className="px-4 py-2.5 rounded-xl bg-[#0158FC] hover:bg-[#0047D4] text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                          className="px-4 py-2.5 rounded-xl bg-[#026BFC] hover:bg-[#0056D2] text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Reattempt</span>
@@ -888,7 +874,7 @@ export const TestSeriesDetail: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigate(`/exams/${test.id}/runner?attemptId=${attempt.id}`)}
-                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
                         <span>Resume Test</span>
@@ -900,7 +886,7 @@ export const TestSeriesDetail: React.FC = () => {
                           setSelectedLockedTest(test);
                           setShowSubscriptionModal(true);
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
                       >
                         <Crown className="w-3.5 h-3.5" />
                         <span>Unlock with Pro Pass</span>
@@ -910,7 +896,7 @@ export const TestSeriesDetail: React.FC = () => {
                         type="button"
                         disabled={startingTestId === test.id}
                         onClick={() => handleStartTest(test)}
-                        className="px-5 py-2.5 rounded-xl bg-[#0158FC] hover:bg-[#0047D4] text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-50"
+                        className="px-5 py-2.5 rounded-xl bg-[#026BFC] hover:bg-[#0056D2] text-white font-extrabold text-xs transition-colors inline-flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-50 cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
                         <span>{startingTestId === test.id ? 'Starting...' : 'Start Test'}</span>

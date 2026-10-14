@@ -26,6 +26,7 @@ Widget _app(GoRouter router) => ProviderScope(
         popularExamsProvider.overrideWith((ref) async => const <Map<String, dynamic>>[]),
         popularTestSeriesProvider.overrideWith((ref) async => const <TestSeriesModel>[]),
         heroBannersProvider.overrideWith((ref) async => const <Map<String, dynamic>>[]),
+        activeLiveTestProvider.overrideWith((ref) async => null),
       ],
       child: MaterialApp.router(routerConfig: router),
     );

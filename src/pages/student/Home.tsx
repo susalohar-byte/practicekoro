@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { useExam } from '@/context/ExamContext';
 import { api } from '@/services/api';
 import { ExamSelectorModal } from '@/components/student/ExamSelectorModal';
+import { LiveTestSection } from '@/components/student/LiveTestSection';
 import { cn } from '@/lib/utils';
 import {
   Zap,
@@ -15,16 +16,13 @@ import {
   GraduationCap,
   Flame,
   FileText,
-  BarChart3,
   BookOpen,
-  Lightbulb,
-  Brain,
   FlaskConical,
   Landmark,
-  Globe,
   Plus,
   Check,
   Crown,
+  ChevronRight,
 } from 'lucide-react';
 import type { PopularTestSeriesCard } from '@/types';
 
@@ -42,6 +40,16 @@ const DEFAULT_DAILY_GOALS: DailyGoalItem[] = [
   { id: 'notes', label: 'Read short notes', completed: false },
   { id: 'streak', label: 'Keep your streak alive', completed: false, autoKey: 'streak' },
 ];
+
+const cleanSubjectTitle = (raw: string): string => {
+  let cleaned = raw.replace(/\s*\([^)]*\)/g, '');
+  cleaned = cleaned.replace(/[\u0980-\u09FF]+/g, '');
+  cleaned = cleaned.replace(/[\r\n]+.*/g, '');
+  cleaned = cleaned.replace(/\s*Topic Tests.*/i, '');
+  cleaned = cleaned.replace(/[:\-\–\—\s]+$/, '').trim();
+  cleaned = cleaned.replace(/^\s*[:\-\–\—]+/, '').trim();
+  return cleaned || raw.trim();
+};
 
 export const Home: React.FC = () => {
   const { user } = useAuth();
@@ -62,6 +70,115 @@ export const Home: React.FC = () => {
     enabled: Boolean(user?.id),
     staleTime: 30000,
   });
+
+  // Fetch real subjects for Recommended for You
+  const { data: dbSubjects = [] } = useQuery({
+    queryKey: ['home-subjects', selectedExam?.id],
+    queryFn: () => api.getSubjects(selectedExam?.id),
+    staleTime: 60000,
+  });
+
+  const recommendedTopics = useMemo(() => {
+    const fallbackSubjects = [
+      {
+        id: 'wbp-history',
+        name: 'Indian History',
+        slug: 'indian-history',
+        iconName: 'BookOpen',
+      },
+      {
+        id: 'wbp-math',
+        name: 'Elementary Mathematics',
+        slug: 'mathematics',
+        iconName: 'Calculator',
+      },
+      {
+        id: 'wbp-science',
+        name: 'General Science',
+        slug: 'general-science',
+        iconName: 'FlaskConical',
+      },
+      {
+        id: 'wbp-polity',
+        name: 'Indian Constitution',
+        slug: 'indian-constitution',
+        iconName: 'Scale',
+      },
+    ];
+
+    const effective = [...dbSubjects];
+    for (const fb of fallbackSubjects) {
+      if (effective.length < 4 && !effective.some((e) => e.slug === fb.slug || e.id === fb.id)) {
+        effective.push(fb as any);
+      }
+    }
+
+    const ordered: any[] = [null, null, null, null];
+    const remaining: any[] = [];
+
+    for (const s of effective) {
+      const n = (s.name || '').toLowerCase();
+      const icon = (s.iconName || '').toLowerCase();
+      if ((n.includes('hist') || n.includes('itihas') || icon === 'landmark' || icon === 'bookopen') && !ordered[0]) {
+        ordered[0] = s;
+      } else if ((n.includes('math') || n.includes('arith') || n.includes('gonit') || icon === 'calculator') && !ordered[1]) {
+        ordered[1] = s;
+      } else if ((n.includes('sci') || n.includes('bio') || n.includes('phys') || n.includes('chem') || icon === 'flaskconical') && !ordered[2]) {
+        ordered[2] = s;
+      } else if ((n.includes('const') || n.includes('polity') || n.includes('law') || icon === 'scale' || icon === 'filetext') && !ordered[3]) {
+        ordered[3] = s;
+      } else {
+        remaining.push(s);
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      if (!ordered[i]) {
+        ordered[i] = remaining.length > 0 ? remaining.shift() : fallbackSubjects[i];
+      }
+    }
+
+    const configs = [
+      {
+        cardBg: 'bg-[#131B2F]',
+        cardBorder: 'border-[#1E2B45] hover:border-[#2D3F66]',
+        iconBoxBg: 'bg-[#381F3D]',
+        iconColor: 'text-[#F472B6]',
+        arrowBg: 'bg-[#232D48] hover:bg-[#2E3C5E]',
+        type: 'history',
+      },
+      {
+        cardBg: 'bg-[#042D4B]',
+        cardBorder: 'border-[#07436B] hover:border-[#0C588A]',
+        iconBoxBg: 'bg-[#0284C7]',
+        iconColor: 'text-white',
+        arrowBg: 'bg-[#0B3B60] hover:bg-[#0E4A78]',
+        type: 'math',
+      },
+      {
+        cardBg: 'bg-[#381E09]',
+        cardBorder: 'border-[#4E2B10] hover:border-[#673814]',
+        iconBoxBg: 'bg-[#582E09]',
+        iconColor: 'text-[#FBBF24]',
+        arrowBg: 'bg-[#4D2C12] hover:bg-[#633917]',
+        type: 'science',
+      },
+      {
+        cardBg: 'bg-[#043226]',
+        cardBorder: 'border-[#074A39] hover:border-[#0B624B]',
+        iconBoxBg: 'bg-[#059669]',
+        iconColor: 'text-white',
+        arrowBg: 'bg-[#0B4536] hover:bg-[#0F5946]',
+        type: 'constitution',
+      },
+    ];
+
+    return ordered.map((item, idx) => ({
+      ...item,
+      cleanTitle: cleanSubjectTitle(item.name || ''),
+      config: configs[idx],
+    }));
+  }, [dbSubjects]);
 
   // Most recent in-progress attempt or recent attempt for Continue Your Practice
   const inProgressAttempt = useMemo(
@@ -113,6 +230,18 @@ export const Home: React.FC = () => {
       streakDays,
     };
   }, [completedAttempts]);
+
+  // Animation state for progress circle gauges
+  const [gaugesAnimated, setGaugesAnimated] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setGaugesAnimated(true), 120);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const testsProgress = performanceStats.completedCount > 0 ? Math.min(1.0, Math.max(0.2, performanceStats.completedCount / 50)) : 0.28;
+  const accuracyProgress = performanceStats.accuracy !== null ? Math.min(1.0, Math.max(0.15, performanceStats.accuracy / 100)) : 0.32;
+  const questionsProgress = performanceStats.answered > 0 ? Math.min(1.0, Math.max(0.2, performanceStats.answered / 500)) : 0.26;
+  const streakProgress = performanceStats.streakDays > 0 ? Math.min(1.0, Math.max(0.2, performanceStats.streakDays / 30)) : 0.30;
 
   // Today's goal items state with persistent toggles & real completion detection
   const [goalStates, setGoalStates] = useState<Record<string, boolean>>(() => {
@@ -552,6 +681,11 @@ export const Home: React.FC = () => {
       </section>
 
       {/* =========================================================================
+          3.1 LIVE TEST
+          ========================================================================= */}
+      <LiveTestSection />
+
+      {/* =========================================================================
           4. YOUR EXAMS
           ========================================================================= */}
       <section className="space-y-3.5">
@@ -731,74 +865,151 @@ export const Home: React.FC = () => {
           ========================================================================= */}
       <section className="grid grid-cols-1 xl:grid-cols-[1.14fr_0.86fr_1.14fr] gap-4 items-stretch">
         {/* 6A. Your Progress */}
-        <div className="flex flex-col space-y-2.5">
+        <div className="flex flex-col space-y-3">
+          {/* Header Row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4.5 h-4.5 text-[#10B981]" />
-              <h2 className="text-[15px] font-black text-[#0B1B3F] tracking-tight">Your Progress</h2>
+            <div className="flex items-center gap-2.5">
+              {/* 3-Bar Chart Icon Box */}
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#E0F2FE] to-[#F0F9FF] border border-white shadow-[0_3px_10px_rgba(2,132,199,0.15)] flex items-center justify-center">
+                <div className="flex items-end gap-[3px]">
+                  <span className="w-1 sm:w-1.2 h-3 sm:h-3.5 rounded-full bg-[#026BFC]" />
+                  <span className="w-1 sm:w-1.2 h-4.5 sm:h-5 rounded-full bg-[#00B4D8]" />
+                  <span className="w-1 sm:w-1.2 h-2.5 sm:h-3 rounded-full bg-[#06D6A0]" />
+                </div>
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white tracking-tight">
+                Your Progress
+              </h2>
             </div>
             <Link
               to="/results"
-              className="text-xs font-bold text-[#026BFC] hover:underline flex items-center gap-1"
+              className="px-3 py-1 rounded-full bg-[#EFF6FF] text-[#026BFC] hover:bg-[#DBEAFE] transition-all text-xs font-extrabold flex items-center gap-1 shadow-2xs"
             >
               <span>View Details</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="flex-1 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-[0_2px_12px_rgba(15,23,42,0.04)] flex flex-col justify-center">
-            <div className="grid grid-cols-4 gap-2">
-              {/* 1. Tests Attempted */}
-              <div className="rounded-xl p-2.5 bg-[#F0F6FF] dark:bg-blue-950/30 border border-[#DBEAFE] dark:border-blue-900/40 flex flex-col items-center justify-center text-center">
-                <div className="w-7 h-7 rounded-lg bg-[#026BFC] text-white flex items-center justify-center shadow-2xs mb-1.5">
+          {/* 4 Circular Progress Gauges */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            {/* 1. Tests Attempted */}
+            <div className="relative flex flex-col items-center justify-center p-2 rounded-full aspect-square bg-white dark:bg-slate-900 shadow-[0_6px_18px_rgba(2,107,252,0.14)] border border-[#DBEAFE]/60 text-center group">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-1" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="#DBEAFE" strokeWidth="6" fill="transparent" opacity="0.6" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  stroke="#026BFC"
+                  strokeWidth="7"
+                  strokeDasharray="276"
+                  strokeDashoffset={gaugesAnimated ? Math.round(276 * (1 - testsProgress)) : 276}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                />
+              </svg>
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center shadow-[0_3px_8px_rgba(37,99,235,0.35)] mb-1">
                   <FileText className="w-3.5 h-3.5 stroke-[2.4]" />
                 </div>
-                <p className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white leading-none">
-                  {performanceStats.completedCount || 52}
+                <p className="text-sm sm:text-base font-black text-[#0B1B3F] dark:text-white leading-tight">
+                  {performanceStats.completedCount || 0}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-tight text-center">
-                  Tests Attempted
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 leading-tight text-center">
+                  Tests<br className="sm:hidden" /> Attempted
                 </p>
               </div>
+            </div>
 
-              {/* 2. Accuracy */}
-              <div className="rounded-xl p-2.5 bg-[#ECFDF5] dark:bg-emerald-950/30 border border-[#D1FAE5] dark:border-emerald-900/40 flex flex-col items-center justify-center text-center">
-                <div className="w-7 h-7 rounded-lg bg-[#10B981] text-white flex items-center justify-center shadow-2xs mb-1.5">
+            {/* 2. Accuracy */}
+            <div className="relative flex flex-col items-center justify-center p-2 rounded-full aspect-square bg-white dark:bg-slate-900 shadow-[0_6px_18px_rgba(0,208,132,0.14)] border border-[#D1FAE5]/60 text-center group">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-1" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="#D1FAE5" strokeWidth="6" fill="transparent" opacity="0.6" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  stroke="#00D084"
+                  strokeWidth="7"
+                  strokeDasharray="276"
+                  strokeDashoffset={gaugesAnimated ? Math.round(276 * (1 - accuracyProgress)) : 276}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.08s' }}
+                />
+              </svg>
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#00D084] to-[#059669] text-white flex items-center justify-center shadow-[0_3px_8px_rgba(16,185,129,0.35)] mb-1">
                   <Target className="w-3.5 h-3.5 stroke-[2.4]" />
                 </div>
-                <p className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white leading-none">
-                  {performanceStats.accuracy !== null ? `${performanceStats.accuracy}%` : '78%'}
+                <p className="text-sm sm:text-base font-black text-[#0B1B3F] dark:text-white leading-tight">
+                  {performanceStats.accuracy !== null ? `${performanceStats.accuracy}%` : '-'}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-tight text-center">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 leading-tight text-center">
                   Accuracy
                 </p>
               </div>
+            </div>
 
-              {/* 3. Questions Solved */}
-              <div className="rounded-xl p-2.5 bg-[#F5F3FF] dark:bg-purple-950/30 border border-[#EDE9FE] dark:border-purple-900/40 flex flex-col items-center justify-center text-center">
-                <div className="w-7 h-7 rounded-lg bg-[#8B5CF6] text-white flex items-center justify-center shadow-2xs mb-1.5">
+            {/* 3. Questions Solved */}
+            <div className="relative flex flex-col items-center justify-center p-2 rounded-full aspect-square bg-white dark:bg-slate-900 shadow-[0_6px_18px_rgba(168,85,247,0.14)] border border-[#EDE9FE]/60 text-center group">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-1" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="#EDE9FE" strokeWidth="6" fill="transparent" opacity="0.6" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  stroke="#A855F7"
+                  strokeWidth="7"
+                  strokeDasharray="276"
+                  strokeDashoffset={gaugesAnimated ? Math.round(276 * (1 - questionsProgress)) : 276}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  style={{ transition: 'stroke-dashoffset 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.16s' }}
+                />
+              </svg>
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#A855F7] to-[#7C3AED] text-white flex items-center justify-center shadow-[0_3px_8px_rgba(139,92,246,0.35)] mb-1">
                   <BookOpen className="w-3.5 h-3.5 stroke-[2.4]" />
                 </div>
-                <p className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white leading-none">
+                <p className="text-sm sm:text-base font-black text-[#0B1B3F] dark:text-white leading-tight">
                   {performanceStats.answered > 0
                     ? performanceStats.answered.toLocaleString('en-IN')
-                    : '1,250'}
+                    : '0'}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-tight text-center">
-                  Questions Solved
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 leading-tight text-center">
+                  Questions<br className="sm:hidden" /> Solved
                 </p>
               </div>
+            </div>
 
-              {/* 4. Days Streak */}
-              <div className="rounded-xl p-2.5 bg-[#FFF7ED] dark:bg-orange-950/30 border border-[#FFEDD5] dark:border-orange-900/40 flex flex-col items-center justify-center text-center">
-                <div className="w-7 h-7 rounded-lg bg-[#F97316] text-white flex items-center justify-center shadow-2xs mb-1.5">
+            {/* 4. Days Streak */}
+            <div className="relative flex flex-col items-center justify-center p-2 rounded-full aspect-square bg-white dark:bg-slate-900 shadow-[0_6px_18px_rgba(249,115,22,0.14)] border border-[#FFEDD5]/60 text-center group">
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-1" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="#FFEDD5" strokeWidth="6" fill="transparent" opacity="0.6" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  stroke="#F97316"
+                  strokeWidth="7"
+                  strokeDasharray="276"
+                  strokeDashoffset={gaugesAnimated ? Math.round(276 * (1 - streakProgress)) : 276}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.24s' }}
+                />
+              </svg>
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#FB923C] to-[#EA580C] text-white flex items-center justify-center shadow-[0_3px_8px_rgba(249,115,22,0.35)] mb-1">
                   <Flame className="w-3.5 h-3.5 stroke-[2.4]" />
                 </div>
-                <p className="text-base sm:text-lg font-black text-[#0B1B3F] dark:text-white leading-none">
-                  {performanceStats.streakDays || 18}
+                <p className="text-sm sm:text-base font-black text-[#0B1B3F] dark:text-white leading-tight">
+                  {performanceStats.streakDays || 0}
                 </p>
-                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-tight text-center">
-                  Days Streak
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 leading-tight text-center">
+                  Days<br className="sm:hidden" /> Streak
                 </p>
               </div>
             </div>
@@ -892,93 +1103,84 @@ export const Home: React.FC = () => {
         </div>
 
         {/* 6C. Recommended for You */}
-        <div className="flex flex-col space-y-2.5">
+        <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="w-4.5 h-4.5 text-[#F59E0B]" />
-              <h2 className="text-[15px] font-black text-[#0B1B3F] tracking-tight">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-[#FFE4E6] flex items-center justify-center shrink-0">
+                <Target className="w-5 h-5 text-[#EF4444]" />
+              </div>
+              <h2 className="text-lg font-black text-[#0B1B3F] dark:text-white tracking-tight">
                 Recommended for You
               </h2>
             </div>
             <Link
               to="/practice"
-              className="text-xs font-bold text-[#026BFC] hover:underline flex items-center gap-1"
+              className="text-sm font-bold text-[#026BFC] hover:underline flex items-center gap-1"
             >
               <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
-          <div className="flex-1 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-[0_2px_12px_rgba(15,23,42,0.04)] flex flex-col justify-center">
-            <div className="grid grid-cols-4 gap-2">
-              {/* Topic 1: Reasoning */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {recommendedTopics.map((topic, idx) => (
               <div
-                onClick={() => navigate('/practice?subject=reasoning')}
-                className="rounded-xl p-2 bg-[#FDF2F8] dark:bg-pink-950/20 border border-[#FCE7F3] dark:border-pink-900/30 hover:border-pink-300 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
+                key={topic.id || topic.slug || idx}
+                onClick={() => navigate(`/practice?subject=${topic.slug || topic.id}`)}
+                className={cn(
+                  'h-[72px] rounded-2xl px-3.5 py-2.5 flex items-center justify-between cursor-pointer transition-all border shadow-xs group',
+                  topic.config.cardBg,
+                  topic.config.cardBorder
+                )}
               >
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-[#EC4899] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform mb-1">
-                  <Brain className="w-4 h-4 stroke-[2.2]" />
+                {/* Left: Rounded Icon Container */}
+                <div
+                  className={cn(
+                    'w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 transition-transform group-hover:scale-105',
+                    topic.config.iconBoxBg
+                  )}
+                >
+                  {topic.config.type === 'history' && (
+                    <Landmark className={cn('w-5 h-5', topic.config.iconColor)} />
+                  )}
+                  {topic.config.type === 'math' && (
+                    <div className="flex flex-col items-center justify-center text-white font-black leading-none select-none">
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <span>+</span>
+                        <span>−</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] mt-0.5">
+                        <span>×</span>
+                        <span>÷</span>
+                      </div>
+                    </div>
+                  )}
+                  {topic.config.type === 'science' && (
+                    <FlaskConical className={cn('w-5 h-5', topic.config.iconColor)} />
+                  )}
+                  {topic.config.type === 'constitution' && (
+                    <FileText className={cn('w-5 h-5', topic.config.iconColor)} />
+                  )}
                 </div>
-                <h3 className="text-xs font-black text-[#0B1B3F] dark:text-white group-hover:text-[#EC4899] transition-colors truncate w-full">
-                  Reasoning
-                </h3>
-                <p className="text-[9.5px] font-medium text-slate-400 mt-0.5 truncate w-full">
-                  Topic Tests
-                </p>
-                <span className="mt-1 text-[11px] font-extrabold text-[#026BFC]">200+ Qs</span>
-              </div>
 
-              {/* Topic 2: Science */}
-              <div
-                onClick={() => navigate('/practice?subject=science')}
-                className="rounded-xl p-2 bg-[#ECFEFF] dark:bg-cyan-950/20 border border-[#CFFAFE] dark:border-cyan-900/30 hover:border-cyan-300 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
-              >
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-[#06B6D4] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform mb-1">
-                  <FlaskConical className="w-4 h-4 stroke-[2.2]" />
+                {/* Center: Subject Name only (No secondary captions, No Bengali text) */}
+                <div className="flex-1 mx-3 min-w-0">
+                  <h3 className="text-sm sm:text-[14.5px] font-extrabold text-white leading-tight line-clamp-2">
+                    {topic.cleanTitle}
+                  </h3>
                 </div>
-                <h3 className="text-xs font-black text-[#0B1B3F] dark:text-white group-hover:text-[#06B6D4] transition-colors truncate w-full">
-                  Science
-                </h3>
-                <p className="text-[9.5px] font-medium text-slate-400 mt-0.5 truncate w-full">
-                  Topic Tests
-                </p>
-                <span className="mt-1 text-[11px] font-extrabold text-[#026BFC]">150+ Qs</span>
-              </div>
 
-              {/* Topic 3: History */}
-              <div
-                onClick={() => navigate('/practice?subject=history')}
-                className="rounded-xl p-2 bg-[#EFF6FF] dark:bg-blue-950/20 border border-[#DBEAFE] dark:border-blue-900/30 hover:border-blue-300 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
-              >
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-[#026BFC] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform mb-1">
-                  <Landmark className="w-4 h-4 stroke-[2.2]" />
+                {/* Right: Circular Chevron Arrow */}
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-0.5',
+                    topic.config.arrowBg
+                  )}
+                >
+                  <ChevronRight className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xs font-black text-[#0B1B3F] dark:text-white group-hover:text-[#026BFC] transition-colors truncate w-full">
-                  History
-                </h3>
-                <p className="text-[9.5px] font-medium text-slate-400 mt-0.5 truncate w-full">
-                  Topic Tests
-                </p>
-                <span className="mt-1 text-[11px] font-extrabold text-[#026BFC]">180+ Qs</span>
               </div>
-
-              {/* Topic 4: Geography */}
-              <div
-                onClick={() => navigate('/practice?subject=geography')}
-                className="rounded-xl p-2 bg-[#ECFDF5] dark:bg-emerald-950/20 border border-[#D1FAE5] dark:border-emerald-900/30 hover:border-emerald-300 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
-              >
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-[#10B981] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform mb-1">
-                  <Globe className="w-4 h-4 stroke-[2.2]" />
-                </div>
-                <h3 className="text-xs font-black text-[#0B1B3F] dark:text-white group-hover:text-[#10B981] transition-colors truncate w-full">
-                  Geography
-                </h3>
-                <p className="text-[9.5px] font-medium text-slate-400 mt-0.5 truncate w-full">
-                  Topic Tests
-                </p>
-                <span className="mt-1 text-[11px] font-extrabold text-[#026BFC]">120+ Qs</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

@@ -15,6 +15,7 @@ class LiveTestModel {
   final int enrolledCount;
   final String? examTitle;
   final String? examLogo;
+  final String? bgImageUrl;
   final bool isUserEnrolled;
 
   const LiveTestModel({
@@ -34,6 +35,7 @@ class LiveTestModel {
     this.enrolledCount = 0,
     this.examTitle,
     this.examLogo,
+    this.bgImageUrl,
     this.isUserEnrolled = false,
   });
 
@@ -83,6 +85,10 @@ class LiveTestModel {
       enrolledCount: (json['enrolled_count'] as num?)?.toInt() ?? 0,
       examTitle: json['exam_title'] as String?,
       examLogo: json['exam_logo'] as String?,
+      bgImageUrl: (json['bg_image_url'] as String?) ??
+          (json['bgImageUrl'] as String?) ??
+          (json['card_bg_image'] as String?) ??
+          (json['cardBgImage'] as String?),
       isUserEnrolled: (json['is_user_enrolled'] as bool?) ?? false,
     );
   }
@@ -105,6 +111,7 @@ class LiveTestModel {
       'enrolled_count': enrolledCount,
       'exam_title': examTitle,
       'exam_logo': examLogo,
+      'bg_image_url': bgImageUrl,
       'is_user_enrolled': isUserEnrolled,
     };
   }

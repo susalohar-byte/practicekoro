@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -100,6 +101,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _seriesScrollController.dispose();
     _heroBannerController.dispose();
     super.dispose();
+  }
+
+  /// Sections that already played their entrance, so rebuilds and scroll-backs stay still.
+  final Set<int> _revealedSections = {};
+  final DateTime _mountedAt = DateTime.now();
+
+  /// Fade + rise entrance; staggered on first paint, immediate for sections revealed by scrolling.
+  Widget _reveal(int index, Widget child) {
+    final seen = _revealedSections.contains(index);
+    final initialLoad = DateTime.now().difference(_mountedAt) < const Duration(milliseconds: 900);
+    // Stagger lives inside the animation timeline (not a Timer), so nothing is left pending.
+    final stagger = seen || !initialLoad ? Duration.zero : Duration(milliseconds: 60 * index.clamp(0, 6));
+    return child
+        .animate(
+          key: ValueKey('home-reveal-$index'),
+          value: seen ? 1.0 : null,
+          onComplete: (_) => _revealedSections.add(index),
+        )
+        .fadeIn(delay: stagger, duration: 380.ms, curve: Curves.easeOut)
+        .slideY(delay: stagger, begin: 0.06, end: 0, duration: 420.ms, curve: Curves.easeOutCubic);
   }
 
   void _onSeriesScroll() {
@@ -204,15 +225,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             padding: PKBottomSpacing.edgeInsets(context, horizontal: PK.gutter, top: 10, additionalGap: 2.0),
             children: [
               // 1. Header & Branding
-              _buildHeader(
+              _reveal(0, _buildHeader(
                 notifs.where((n) => (n['is_read'] ?? n['read'] ?? false) == false).length,
                 _userAvatarUrl,
-              ),
+              )),
               const SizedBox(height: 14),
 
               // 2. Hero Banner (Display clean banner if active, hide completely if empty)
               if (activeBanners.isNotEmpty) ...[
-                _buildHeroBanner(activeBanners),
+                _reveal(1, _buildHeroBanner(activeBanners)),
                 if (activeBanners.length > 1) ...[
                   const SizedBox(height: 8),
                   _buildHeroDots(activeBanners.length),
@@ -221,43 +242,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
 
               // 3. Continue Your Practice
-              _buildContinuePractice(inProgress),
+              _reveal(2, _buildContinuePractice(inProgress)),
               const SizedBox(height: 20),
 
               // 4. Quick Actions
-              _buildQuickActions(),
+              _reveal(3, _buildQuickActions()),
               const SizedBox(height: 20),
 
               // 4.1 Live Mock Test
               if (_hasVisibleLiveTest(liveTestAsync)) ...[
-                _buildLiveMockTest(liveTestAsync),
+                _reveal(4, _buildLiveMockTest(liveTestAsync)),
                 const SizedBox(height: 24),
               ],
 
               // 5. Exams for You
-              _buildExamsForYou(exams, popularExams),
+              _reveal(5, _buildExamsForYou(exams, popularExams)),
               const SizedBox(height: 24),
 
               // 6. Popular Test Series
-              _buildPopularSeries(seriesAsync, exams),
+              _reveal(6, _buildPopularSeries(seriesAsync, exams)),
               const SizedBox(height: 24),
 
               // 7. Your Progress
-              _buildYourProgress(stats),
+              _reveal(7, _buildYourProgress(stats)),
               const SizedBox(height: 24),
 
               // 8. Recent Tests
-              _buildRecentTests(userAttempts),
+              _reveal(8, _buildRecentTests(userAttempts)),
               const SizedBox(height: 24),
 
               // 9. Recently Added Tests (only real, published tests)
               if (recentTests.isNotEmpty) ...[
-                _buildRecentlyAddedTests(recentTests),
+                _reveal(9, _buildRecentlyAddedTests(recentTests)),
                 const SizedBox(height: 24),
               ],
 
               // 10. Recommended for You (only real subjects)
-              if (subjects.isNotEmpty) _buildRecommendedForYou(subjects),
+              if (subjects.isNotEmpty) _reveal(10, _buildRecommendedForYou(subjects)),
             ],
           ),
         ),
@@ -536,7 +557,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Material(
+      child: _PressScale(child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _handleBannerTap(b),
@@ -549,7 +570,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
@@ -967,7 +988,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
               const SizedBox(height: 14),
-              InkWell(
+              _PressScale(child: InkWell(
                 onTap: onContinue,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
@@ -1000,7 +1021,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                 ),
-              ),
+              )),
             ],
           ),
         ),
@@ -1014,10 +1035,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final items = [
       (
         title: 'AudioBook',
+        singleLine: true,
         iconWidget: Stack(
           alignment: Alignment.center,
           children: [
-            const Icon(Icons.headphones_rounded, color: Color(0xFF7C3AED), size: 21),
+            const Icon(Icons.headphones_rounded, color: Color(0xFF7C3AED), size: 20),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1060,7 +1082,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       (
         title: 'Saved\nQuestions',
-        iconWidget: const Icon(Icons.bookmark_rounded, color: Color(0xFF059669), size: 21),
+        singleLine: false,
+        iconWidget: const Icon(Icons.bookmark_rounded, color: Color(0xFF059669), size: 20),
         bg: const Color(0xFFF0FDF4),
         border: const Color(0xFFDCFCE7),
         iconBg: const Color(0xFFDCFCE7),
@@ -1070,7 +1093,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       (
         title: 'Official PYQ',
-        iconWidget: const Icon(Icons.description_rounded, color: Color(0xFFEA580C), size: 21),
+        singleLine: true,
+        iconWidget: const Icon(Icons.description_rounded, color: Color(0xFFEA580C), size: 20),
         bg: const Color(0xFFFFFBEB),
         border: const Color(0xFFFEF3C7),
         iconBg: const Color(0xFFFFEDD5),
@@ -1080,7 +1104,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       (
         title: 'My Rank',
-        iconWidget: const Icon(Icons.bar_chart_rounded, color: Color(0xFFE11D48), size: 23),
+        singleLine: true,
+        iconWidget: const Icon(Icons.bar_chart_rounded, color: Color(0xFFE11D48), size: 22),
         bg: const Color(0xFFFFF1F2),
         border: const Color(0xFFFFE4E6),
         iconBg: const Color(0xFFFFE4E6),
@@ -1090,15 +1115,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     ];
 
-    Widget buildCard(dynamic item) {
+    Widget buildCard(dynamic item, double? cardWidth) {
+      final isSingle = item.singleLine == true;
+      final title = item.title as String;
       return Semantics(
         button: true,
-        label: (item.title as String).replaceAll('\n', ' '),
-        child: InkWell(
+        label: title.replaceAll('\n', ' '),
+        child: _PressScale(child: InkWell(
           onTap: item.onTap as VoidCallback,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            width: 156,
+            width: cardWidth,
             height: 58,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -1116,32 +1143,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: item.iconBg as Color,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(11),
                   ),
                   alignment: Alignment.center,
                   child: item.iconWidget as Widget,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    item.title as String,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      height: 1.15,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      maxLines: isSingle ? 1 : 2,
+                      softWrap: !isSingle,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F1E4A),
+                        height: 1.15,
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 4),
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: item.arrowBg as Color,
@@ -1150,13 +1183,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Icon(
                     Icons.chevron_right_rounded,
                     color: item.arrowColor as Color,
-                    size: 17,
+                    size: 15,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        )),
       );
     }
 
@@ -1167,11 +1200,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               for (var i = 0; i < items.length; i++) ...[
                 if (i > 0) const SizedBox(width: 10),
-                Expanded(child: buildCard(items[i])),
+                Expanded(child: buildCard(items[i], null)),
               ],
             ],
           );
         }
+
+        final double cardWidth = constraints.maxWidth >= 410
+            ? 176.0
+            : (constraints.maxWidth >= 360 ? 168.0 : 156.0);
+
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -1180,7 +1218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               for (var i = 0; i < items.length; i++) ...[
                 if (i > 0) const SizedBox(width: 10),
-                buildCard(items[i]),
+                buildCard(items[i], cardWidth),
               ],
             ],
           ),
@@ -1204,12 +1242,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildLiveMockTest(AsyncValue<LiveTestModel?> liveTestAsync) {
     final liveTest = liveTestAsync.asData?.value;
     if (liveTest == null) return const SizedBox.shrink();
-    final isLive = liveTest.isLiveNow;
 
-    final duration = '${liveTest.durationMinutes} Mins';
-    final questions = '${liveTest.totalQuestions} Questions';
+    final questionsVal = '${liveTest.totalQuestions}';
+    final durationVal = '${liveTest.durationMinutes}';
+    final marksVal = '${liveTest.totalMarks.toInt()}';
 
-    String scheduleTime;
+    String dateLine1;
+    String dateLine2;
     {
       final start = liveTest.scheduledStartTime.toLocal();
       final now = DateTime.now();
@@ -1217,158 +1256,508 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final hour = start.hour > 12 ? start.hour - 12 : (start.hour == 0 ? 12 : start.hour);
       final ampm = start.hour >= 12 ? 'PM' : 'AM';
       final minute = start.minute.toString().padLeft(2, '0');
-      final timeStr = '$hour:$minute $ampm';
+      dateLine2 = '$hour:$minute $ampm';
       if (isToday) {
-        scheduleTime = 'Today, $timeStr';
+        dateLine1 = 'Today,';
       } else {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        scheduleTime = '${start.day} ${months[start.month - 1]}, $timeStr';
+        dateLine1 = '${start.day} ${months[start.month - 1]},';
       }
     }
 
     void onJoin() => context.push('/live-test/${liveTest.id}');
 
-    // Red while the test is running, brand blue while it is upcoming.
-    final accent = isLive ? const Color(0xFFEF4444) : PK.blue;
-    final gradientColors = isLive
-        ? const [Color(0xFFFFF1F2), Color(0xFFFFE4E6)]
-        : const [Color(0xFFF2F7FF), Color(0xFFE6F0FF)];
-    final borderColor = isLive ? const Color(0xFFFECDD3) : const Color(0xFFCFE0FF);
-    final title = liveTest.title.trim().isNotEmpty ? liveTest.title.trim() : 'Live Mock Test';
+    final title = liveTest.title.trim().isNotEmpty ? liveTest.title.trim() : 'WBP Constable Full Mock Test';
 
-    return InkWell(
-      onTap: onJoin,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    Widget buildMetaBadge({
+      required Widget icon,
+      required String value,
+      required String label,
+      required Color bg,
+      required Color border,
+    }) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: border, width: 1.0),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            icon,
+            const SizedBox(width: 5),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F1E4A),
+                    height: 1.1,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                    height: 1.1,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        child: Column(
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // A. Section Header (Directly on background, no outer box)
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(isLive ? Icons.sensors_rounded : Icons.event_rounded, color: accent, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFE4E6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: _LiveBroadcastIcon(size: 20, color: Color(0xFFEF4444)),
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Live ',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F1E4A),
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Test',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF026BFC),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7.5, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF002E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(radius: 2.5, backgroundColor: Colors.white),
+                          SizedBox(width: 3.5),
+                          Text(
+                            'LIVE',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => context.push('/live-test'),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                ),
+                child: const Text(
+                  'View All Live Tests',
+                  style: TextStyle(
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF026BFC),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    isLive ? 'LIVE' : 'UPCOMING',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // B. Main Banner Card
+        _PressScale(child: InkWell(
+          onTap: onJoin,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFDBEAFE), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 18,
+                  offset: const Offset(0, 4),
                 ),
-                const SizedBox(width: 2),
-                Icon(Icons.chevron_right_rounded, color: accent.withValues(alpha: 0.6), size: 20),
               ],
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: FittedBox(
-                    alignment: Alignment.centerLeft,
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
-                        const SizedBox(width: 3),
-                        Text(
-                          scheduleTime,
-                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.schedule_rounded, size: 11, color: Color(0xFF64748B)),
-                        const SizedBox(width: 3),
-                        Text(
-                          duration,
-                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.description_outlined, size: 11, color: Color(0xFF64748B)),
-                        const SizedBox(width: 3),
-                        Text(
-                          questions,
-                          style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: onJoin,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
+            clipBehavior: Clip.antiAlias,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 540;
+                final isCompact = constraints.maxWidth < 420;
+                final bgWidth = constraints.maxWidth * (isWide ? 0.52 : 0.55);
+                final emblemSize = isWide ? 88.0 : (isCompact ? 54.0 : 64.0);
+
+                Widget buildEmblemWidget() {
+                  return Container(
+                    width: emblemSize,
+                    height: emblemSize,
                     decoration: BoxDecoration(
-                      color: accent,
-                      borderRadius: BorderRadius.circular(10),
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                      ),
+                      border: Border.all(color: Colors.white, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: accent.withValues(alpha: 0.2),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
+                          color: const Color(0xFF026BFC).withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
+                    child: ClipOval(
+                      child: Padding(
+                        padding: EdgeInsets.all(isCompact ? 2.5 : 4.0),
+                        child: (liveTest.examLogo != null && liveTest.examLogo!.startsWith('http'))
+                            ? Image.network(
+                                liveTest.examLogo!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => Image.asset(
+                                  'assets/images/dashboard/exam_wbp_cap_hd.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              )
+                            : Image.asset(
+                                'assets/images/dashboard/exam_wbp_cap_hd.png',
+                                fit: BoxFit.contain,
+                              ),
+                      ),
+                    ),
+                  );
+                }
+
+                Widget buildStatusBadgeWidget() {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF002E),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(radius: 2.5, backgroundColor: Colors.white),
+                        SizedBox(width: 3.5),
+                        Text(
+                          'LIVE NOW',
+                          style: TextStyle(
+                            fontSize: 9.0,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                Widget buildMetaBadgesRowWidget() {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    clipBehavior: Clip.none,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          isLive ? 'Join Now' : 'View Details',
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                        // 1. Questions
+                        buildMetaBadge(
+                          icon: const Icon(Icons.description_rounded, size: 15, color: Color(0xFF026BFC)),
+                          value: questionsVal,
+                          label: 'Questions',
+                          bg: const Color(0xFFEFF6FF),
+                          border: const Color(0xFFDBEAFE),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                        const SizedBox(width: 5),
+
+                        // 2. Duration
+                        buildMetaBadge(
+                          icon: const Icon(Icons.schedule_rounded, size: 15, color: Color(0xFF7C3AED)),
+                          value: durationVal,
+                          label: 'Minutes',
+                          bg: const Color(0xFFF5F3FF),
+                          border: const Color(0xFFEDE9FE),
+                        ),
+                        const SizedBox(width: 5),
+
+                        // 3. Marks
+                        buildMetaBadge(
+                          icon: const Icon(Icons.emoji_events_rounded, size: 15, color: Color(0xFFEAB308)),
+                          value: marksVal,
+                          label: 'Marks',
+                          bg: const Color(0xFFFEFCE8),
+                          border: const Color(0xFFFEF08A),
+                        ),
+                        const SizedBox(width: 5),
+
+                        // 4. Date & Time
+                        buildMetaBadge(
+                          icon: const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFFEF4444)),
+                          value: dateLine1,
+                          label: dateLine2,
+                          bg: const Color(0xFFFFF1F2),
+                          border: const Color(0xFFFFE4E6),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-              ],
+                  );
+                }
+
+                Widget buildJoinNowButtonWidget({bool compact = false}) {
+                  return Semantics(
+                    button: true,
+                    label: 'Join Now',
+                    child: Transform.translate(
+                      offset: Offset(0, compact ? -5.0 : -7.0),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 11 : 15,
+                          vertical: compact ? 5.0 : 6.5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF002E), Color(0xFFE11D48)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white, width: 1.8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF002E).withValues(alpha: 0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Join Now',
+                          style: TextStyle(
+                            fontSize: compact ? 10.5 : 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return Stack(
+                  children: [
+                    // Right background scenic artwork
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: bgWidth,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: (liveTest.bgImageUrl != null && liveTest.bgImageUrl!.startsWith('http'))
+                                ? Image.network(
+                                    liveTest.bgImageUrl!,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.centerRight,
+                                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                                      'assets/images/dashboard/live_test_scenic_feathered.png',
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.centerRight,
+                                    ),
+                                  )
+                                : Image.asset(
+                                    'assets/images/dashboard/live_test_scenic_feathered.png',
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.centerRight,
+                                  ),
+                          ),
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    Colors.white,
+                                    Colors.white.withValues(alpha: 0.6),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 0.35, 1.0],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Foreground Content
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 12 : 18,
+                        vertical: isCompact ? 12 : 18,
+                      ),
+                      child: isWide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                buildEmblemWidget(),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      buildStatusBadgeWidget(),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 18.0,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFF0B1B3F),
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMetaBadgesRowWidget(),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                buildJoinNowButtonWidget(compact: false),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Top row: Emblem + Status and Title
+                                      Row(
+                                        children: [
+                                          buildEmblemWidget(),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                buildStatusBadgeWidget(),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  title,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: isCompact ? 14.5 : 16.0,
+                                                    fontWeight: FontWeight.w900,
+                                                    color: const Color(0xFF0B1B3F),
+                                                    letterSpacing: -0.3,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Badges Row
+                                      buildMetaBadgesRowWidget(),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                buildJoinNowButtonWidget(compact: true),
+                              ],
+                            ),
+                    ),
+                  ],
+                );
+              },
             ),
+          ),
+        )),
+        const SizedBox(height: 12),
+
+        // C. Carousel indicator dots (4 centered circular dots)
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(radius: 4.5, backgroundColor: Color(0xFF026BFC)),
+            SizedBox(width: 6),
+            CircleAvatar(radius: 4.5, backgroundColor: Color(0xFFBFDBFE)),
+            SizedBox(width: 6),
+            CircleAvatar(radius: 4.5, backgroundColor: Color(0xFFBFDBFE)),
+            SizedBox(width: 6),
+            CircleAvatar(radius: 4.5, backgroundColor: Color(0xFFBFDBFE)),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -1604,7 +1993,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const SizedBox(width: 6),
         // "View All Exams ->" pill button
-        InkWell(
+        _PressScale(child: InkWell(
           onTap: () => _navigateToTab(1, '/exams'),
           borderRadius: BorderRadius.circular(20),
           child: Container(
@@ -1641,29 +2030,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
-        ),
+        )),
       ],
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: 16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 14),
           if (visible.isEmpty)
             const PKEmptyCard(
               icon: Icons.school_rounded,
@@ -1692,13 +2067,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   return Semantics(
                     button: true,
                     label: ex.title,
-                    child: InkWell(
+                    child: _PressScale(child: InkWell(
                       borderRadius: BorderRadius.circular(18),
                       onTap: () => context.push(
                         '/exams/${Uri.encodeComponent(ex.id)}?title=${Uri.encodeComponent(ex.title)}',
                       ),
                       child: Container(
-                        width: 172,
+                        width: 176,
                         height: 64,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
@@ -1741,32 +2116,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             Expanded(
                               child: Text(
                                 ex.title,
-                                maxLines: 2,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontSize: 13.0,
+                                  fontSize: 12.0,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF0F1E4A),
                                   height: 1.15,
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 4),
                             // Chevron arrow
                             Icon(
                               Icons.chevron_right_rounded,
                               color: theme.chevron,
-                              size: 19,
+                              size: 18,
                             ),
                           ],
                         ),
                       ),
-                    ),
+                    )),
                   );
                 },
               ),
             ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -1781,90 +2156,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final header = Row(
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 40,
+          height: 40,
           decoration: const BoxDecoration(
-            color: Color(0xFFFFE4E6),
+            color: Color(0xFFFFE4EC),
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
           child: const Icon(
             Icons.local_fire_department_rounded,
-            color: Color(0xFFFB0838),
-            size: 19,
+            color: Color(0xFFF90033),
+            size: 22,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         const Expanded(
           child: Text(
             'Popular Test Series',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F1E4A),
-              letterSpacing: -0.3,
+              color: Color(0xFF00105B),
+              letterSpacing: -0.5,
             ),
           ),
         ),
-        InkWell(
+        _PressScale(child: InkWell(
           onTap: () => _navigateToTab(1, '/test-series'),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEBF5FF),
-              borderRadius: BorderRadius.circular(20),
+              color: const Color(0xFFE3F2FE),
+              borderRadius: BorderRadius.circular(22),
             ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'View All',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0084FF),
-                  ),
-                ),
-                SizedBox(width: 4),
-                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0084FF), size: 14),
-              ],
+            child: const Text(
+              'View All',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0B7BF0),
+              ),
             ),
           ),
-        ),
+        )),
       ],
     );
 
+    Widget sectionShell(List<Widget> children) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        );
+
     if (seriesAsync.isLoading && series.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: 14),
-          const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: PK.blue),
-            ),
+      return sectionShell([
+        header,
+        const SizedBox(height: 14),
+        const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: PK.blue),
           ),
-        ],
-      );
+        ),
+      ]);
     }
 
     if (series.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: 14),
-          const PKEmptyCard(
-            icon: Icons.library_books_outlined,
-            title: 'No test series yet',
-            message: 'Published test series will appear here.',
-          ),
-        ],
-      );
+      return sectionShell([
+        header,
+        const SizedBox(height: 14),
+        const PKEmptyCard(
+          icon: Icons.library_books_outlined,
+          title: 'No test series yet',
+          message: 'Published test series will appear here.',
+        ),
+      ]);
     }
 
     bool looksLikeImage(String? v) {
@@ -1914,143 +2283,239 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ]
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        header,
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 72,
-          child: ListView.separated(
-            controller: _seriesScrollController,
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.zero,
-            itemCount: cardItems.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
-              final item = cardItems[i];
-              final theme = _getSeriesTheme(item.examTitle ?? item.title, i);
-              final roundAsset = ExamAssets.getRoundIconAsset(item.examTitle ?? item.title);
-              final isRoundArt = (item.thumbnail != null && item.thumbnail!.contains('exam_round_')) ||
-                  (item.thumbnail == null && roundAsset != null);
-              final inset = isRoundArt ? 0.0 : 6.0;
+    const cardWidth = 272.0;
+    const cardHeight = 104.0;
+    const logoSize = 64.0;
 
-              return InkWell(
+    return sectionShell([
+      header,
+      const SizedBox(height: 14),
+      SizedBox(
+        height: cardHeight,
+        child: ListView.separated(
+          controller: _seriesScrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          clipBehavior: Clip.none,
+          padding: EdgeInsets.zero,
+          itemCount: cardItems.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (context, i) {
+            final item = cardItems[i];
+            final theme = _getSeriesTheme(item.examTitle ?? item.title, i);
+            final roundAsset = ExamAssets.getRoundIconAsset(item.examTitle ?? item.title);
+            final isRoundArt = (item.thumbnail != null && item.thumbnail!.contains('exam_round_')) ||
+                (item.thumbnail == null && roundAsset != null);
+            final inset = isRoundArt ? 0.0 : 8.0;
+            const innerLogo = logoSize - 8;
+
+            return _PressScale(child: Material(
+              color: Colors.transparent,
+              child: InkWell(
                 onTap: () => context.push('/test-series/${item.id}'),
-                borderRadius: BorderRadius.circular(24),
-                child: Container(
-                  width: 180,
-                  height: 72,
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                borderRadius: BorderRadius.circular(22),
+                child: Ink(
+                  width: cardWidth,
+                  height: cardHeight,
                   decoration: BoxDecoration(
-                    color: theme.cardBg,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(22),
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [theme.cardBg, theme.cardBgEnd],
+                    ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0x0F0F1E4A),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        padding: EdgeInsets.all(inset),
-                        child: PkAdminImage(
-                          imageUrl: item.thumbnail,
-                          width: 46 - inset * 2,
-                          height: 46 - inset * 2,
-                          fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
-                          fallbackExamTitle: item.examTitle ?? item.title,
-                          fallbackAsset: roundAsset,
-                          fallbackColor: theme.chevron,
-                          preferRoundIcon: true,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F1E4A),
-                                height: 1.2,
-                                letterSpacing: -0.2,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Stack(
+                      children: [
+                        // Right-side scenic artwork, feathered into the card colour
+                        if (theme.art != null)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            bottom: 0,
+                            width: cardWidth * 0.55,
+                            child: IgnorePointer(
+                              child: Image.asset(
+                                theme.art!,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.bottomRight,
+                                errorBuilder: (_, _, _) => const SizedBox.shrink(),
                               ),
                             ),
-                            SizedBox(
-                              width: 0,
-                              height: 0,
-                              child: Opacity(
-                                opacity: 0,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: logoSize,
+                                height: logoSize,
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x140F1E4A),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(inset),
+                                    child: PkAdminImage(
+                                      imageUrl: item.thumbnail,
+                                      width: innerLogo - inset * 2,
+                                      height: innerLogo - inset * 2,
+                                      fit: isRoundArt ? BoxFit.cover : BoxFit.contain,
+                                      fallbackExamTitle: item.examTitle ?? item.title,
+                                      fallbackAsset: roundAsset,
+                                      fallbackColor: theme.chevron,
+                                      preferRoundIcon: true,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (item.isPopular) const Text('POPULAR'),
-                                    if (item.tests.isNotEmpty) Text(item.tests),
-                                    if (item.qs.isNotEmpty) Text(item.qs),
+                                    Text(
+                                      item.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF00105B),
+                                        height: 1.15,
+                                        letterSpacing: -0.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.sub,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF55617E),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 0,
+                                      height: 0,
+                                      child: Opacity(
+                                        opacity: 0,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (item.isPopular) const Text('POPULAR'),
+                                            if (item.tests.isNotEmpty) Text(item.tests),
+                                            if (item.qs.isNotEmpty) Text(item.qs),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x1A0F1E4A),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: theme.chevron,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: theme.chevronBg,
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.chevron_right_rounded,
-                          color: theme.chevron,
-                          size: 20,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ));
+          },
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   _SeriesTheme _getSeriesTheme(String? titleOrExam, int index) {
+    const blue = _SeriesTheme(
+      cardBg: Color(0xFFD1EEFE),
+      cardBgEnd: Color(0xFFE2F3FD),
+      chevronBg: Color(0xFFBAE6FD),
+      chevron: Color(0xFF0B7BF0),
+      art: 'assets/images/dashboard/popular_series_art_wbp.png',
+    );
+    const purple = _SeriesTheme(
+      cardBg: Color(0xFFEDE7FC),
+      cardBgEnd: Color(0xFFF2EFFE),
+      chevronBg: Color(0xFFDDD6FE),
+      chevron: Color(0xFF7C1DE0),
+      art: 'assets/images/dashboard/popular_series_art_tet.png',
+    );
+    const red = _SeriesTheme(
+      cardBg: Color(0xFFFEE2D8),
+      cardBgEnd: Color(0xFFFCE8E3),
+      chevronBg: Color(0xFFFECDD3),
+      chevron: Color(0xFFE11D48),
+      art: 'assets/images/dashboard/popular_series_art_rail.png',
+    );
+    const amber = _SeriesTheme(
+      cardBg: Color(0xFFFEF2D5),
+      cardBgEnd: Color(0xFFFFF7E6),
+      chevronBg: Color(0xFFFDE68A),
+      chevron: Color(0xFFD97706),
+    );
+    const green = _SeriesTheme(
+      cardBg: Color(0xFFDDF8E4),
+      cardBgEnd: Color(0xFFEDFCF1),
+      chevronBg: Color(0xFFBBF7D0),
+      chevron: Color(0xFF16A34A),
+    );
+
     final t = (titleOrExam ?? '').toLowerCase();
     if ((t.contains('wbp') && !t.contains('wbpsc')) ||
         t.contains('police') ||
         t.contains('constable') ||
         t.contains('warder')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFD4EAFE),
-        chevronBg: Color(0xFFBAE6FD),
-        chevron: Color(0xFF0082FF),
-      );
+      return blue;
+    }
+    if (t.contains('tet') ||
+        t.contains('primary') ||
+        t.contains('teacher')) {
+      return purple;
+    }
+    if (t.contains('rail') ||
+        t.contains('ntpc') ||
+        t.contains('rrb') ||
+        t.contains('alp')) {
+      return red;
     }
     if (t.contains('wbssc') ||
         t.contains('group c') ||
@@ -2058,192 +2523,368 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         t.contains('group d') ||
         t.contains('group-d') ||
         t.contains('clerk')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFFEF2D5),
-        chevronBg: Color(0xFFFDE68A),
-        chevron: Color(0xFFD97706),
-      );
-    }
-    if (t.contains('rail') ||
-        t.contains('ntpc') ||
-        t.contains('rrb') ||
-        t.contains('alp')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFFFDFE7),
-        chevronBg: Color(0xFFFECDD3),
-        chevron: Color(0xFFE11D48),
-      );
+      return amber;
     }
     if (t.contains('ssc') ||
         t.contains('mts') ||
         t.contains('cgl') ||
         t.contains('chsl') ||
         t.contains('gd')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFEAE3FD),
-        chevronBg: Color(0xFFDDD6FE),
-        chevron: Color(0xFF7C3AED),
-      );
+      return purple;
     }
     if (t.contains('bank') ||
         t.contains('ibps') ||
         t.contains('sbi') ||
-        t.contains('rbi')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFE0FCE5),
-        chevronBg: Color(0xFFBBF7D0),
-        chevron: Color(0xFF16A34A),
-      );
+        t.contains('rbi') ||
+        t.contains('food')) {
+      return green;
     }
-    if (t.contains('food')) {
-      return const _SeriesTheme(
-        cardBg: Color(0xFFE0FCE5),
-        chevronBg: Color(0xFFBBF7D0),
-        chevron: Color(0xFF059669),
-      );
-    }
-    const fallbackThemes = [
-      _SeriesTheme(cardBg: Color(0xFFD4EAFE), chevronBg: Color(0xFFBAE6FD), chevron: Color(0xFF0082FF)),
-      _SeriesTheme(cardBg: Color(0xFFFEF2D5), chevronBg: Color(0xFFFDE68A), chevron: Color(0xFFD97706)),
-      _SeriesTheme(cardBg: Color(0xFFFFDFE7), chevronBg: Color(0xFFFECDD3), chevron: Color(0xFFE11D48)),
-      _SeriesTheme(cardBg: Color(0xFFEAE3FD), chevronBg: Color(0xFFDDD6FE), chevron: Color(0xFF7C3AED)),
-      _SeriesTheme(cardBg: Color(0xFFE0FCE5), chevronBg: Color(0xFFBBF7D0), chevron: Color(0xFF16A34A)),
-    ];
+    const fallbackThemes = [blue, purple, red, amber, green];
     return fallbackThemes[index % fallbackThemes.length];
   }
+
 
   // ─── 7. Your Progress ──────────────────────────────────────────────────────
 
   Widget _buildYourProgress(_HomeStats stats) {
     final metrics = [
-      (
+      _HomeProgressMetric(
         icon: Icons.description_rounded,
-        color: const Color(0xFF2563EB),
-        bg: const Color(0xFFEFF6FF),
+        accentColor: const Color(0xFF026BFC),
+        trackColor: const Color(0xFFDBEAFE).withValues(alpha: 0.65),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        ),
         value: stats.attempted > 0 ? '${stats.attempted}' : '0',
         label: 'Tests\nAttempted',
-        valueColor: const Color(0xFF0F1E4A),
+        progress: stats.attempted > 0 ? (stats.attempted / 50).clamp(0.2, 1.0) : 0.28,
       ),
-      (
+      _HomeProgressMetric(
         icon: Icons.track_changes_rounded,
-        color: const Color(0xFF16A34A),
-        bg: const Color(0xFFF0FDF4),
-        value: stats.accuracy != null ? '${stats.accuracy}%' : '–',
+        accentColor: const Color(0xFF00D084),
+        trackColor: const Color(0xFFD1FAE5).withValues(alpha: 0.65),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF00D084), Color(0xFF059669)],
+        ),
+        value: stats.accuracy != null ? '${stats.accuracy}%' : '-',
         label: 'Accuracy',
-        valueColor: const Color(0xFF16A34A),
+        progress: stats.accuracy != null ? (stats.accuracy! / 100).clamp(0.15, 1.0) : 0.32,
       ),
-      (
+      _HomeProgressMetric(
         icon: Icons.auto_stories_rounded,
-        color: const Color(0xFF9333EA),
-        bg: const Color(0xFFFAF5FF),
+        accentColor: const Color(0xFFA855F7),
+        trackColor: const Color(0xFFEDE9FE).withValues(alpha: 0.65),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+        ),
         value: stats.questionsSolved > 0 ? PK.formatCount(stats.questionsSolved) : '0',
         label: 'Questions\nSolved',
-        valueColor: const Color(0xFF0F1E4A),
+        progress: stats.questionsSolved > 0 ? (stats.questionsSolved / 500).clamp(0.2, 1.0) : 0.26,
       ),
-      (
+      _HomeProgressMetric(
         icon: Icons.local_fire_department_rounded,
-        color: const Color(0xFFEA580C),
-        bg: const Color(0xFFFFF7ED),
+        accentColor: const Color(0xFFF97316),
+        trackColor: const Color(0xFFFFEDD5).withValues(alpha: 0.65),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
+        ),
         value: '${stats.streakDays}',
         label: 'Days\nStreak',
-        valueColor: const Color(0xFF0F1E4A),
+        progress: stats.streakDays > 0 ? (stats.streakDays / 30).clamp(0.2, 1.0) : 0.30,
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.bar_chart_rounded, color: Color(0xFF06B6D4), size: 18),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final isCompact = width < 520;
+          final gap = isCompact ? (width < 380 ? 6.0 : 8.0) : 16.0;
+          final rawCircle = ((width - (gap * 3)) / 4).floorToDouble();
+          final circleSize = rawCircle.clamp(68.0, 140.0);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row: [Icon + "Your Progress"] ... ["View Details →"]
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Your Progress',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      letterSpacing: -0.3,
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 3-Bar Chart Icon Box with soft blue gradient & glow
+                        Container(
+                          width: isCompact ? 36 : 42,
+                          height: isCompact ? 36 : 42,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFE0F2FE), Color(0xFFF0F9FF)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  width: isCompact ? 3.5 : 4.5,
+                                  height: isCompact ? 12 : 16,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF026BFC),
+                                    borderRadius: BorderRadius.circular(2.5),
+                                  ),
+                                ),
+                                const SizedBox(width: 2.5),
+                                Container(
+                                  width: isCompact ? 3.5 : 4.5,
+                                  height: isCompact ? 18 : 23,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00B4D8),
+                                    borderRadius: BorderRadius.circular(2.5),
+                                  ),
+                                ),
+                                const SizedBox(width: 2.5),
+                                Container(
+                                  width: isCompact ? 3.5 : 4.5,
+                                  height: isCompact ? 9 : 12,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF06D6A0),
+                                    borderRadius: BorderRadius.circular(2.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Your Progress',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: isCompact ? 16.0 : 19.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF0B1B3F),
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              if (stats.attempted == 0) ...[
+                                const SizedBox(height: 1),
+                                const Text(
+                                  'Complete a test to start tracking',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  if (stats.attempted == 0) ...[
-                    const SizedBox(height: 1),
-                    const Text(
-                      'Complete a test to start tracking',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _navigateToTab(3, '/results'),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 9 : 14,
+                        vertical: isCompact ? 5.0 : 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'View Details',
+                            style: TextStyle(
+                              fontSize: isCompact ? 10.5 : 12.0,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF026BFC),
+                            ),
+                          ),
+                          const SizedBox(width: 3.0),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: isCompact ? 11.5 : 14.0,
+                            color: const Color(0xFF026BFC),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: isCompact ? 16 : 20),
+
+              // 4 Circular Gauges in a Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < metrics.length; i++) ...[
+                    if (i > 0) SizedBox(width: gap),
+                    Expanded(
+                      child: _buildProgressGaugeWidget(
+                        metric: metrics[i],
+                        circleSize: circleSize,
+                        isCompact: isCompact,
+                        index: i,
+                      ),
                     ),
                   ],
                 ],
               ),
+            ],
+          );
+        },
+      );
+  }
+
+  Widget _buildProgressGaugeWidget({
+    required _HomeProgressMetric metric,
+    required double circleSize,
+    required bool isCompact,
+    int index = 0,
+  }) {
+    final iconBubbleSize = (circleSize * 0.30).clamp(24.0, 42.0);
+    final iconSize = (iconBubbleSize * 0.52).clamp(13.0, 21.0);
+    final valueSize = (circleSize * 0.165).clamp(12.0, 20.0);
+    final labelSize = (circleSize * 0.095).clamp(8.5, 12.0);
+    final strokeWidth = (circleSize * 0.06).clamp(3.8, 6.5);
+
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey('gauge-${metric.label}-${metric.value}'),
+        tween: Tween<double>(begin: 0.0, end: metric.progress),
+        duration: Duration(milliseconds: 950 + (index * 120)),
+        curve: Curves.easeOutCubic,
+        builder: (context, animatedProgress, child) {
+          return Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: metric.accentColor.withValues(alpha: 0.16 * (0.6 + 0.4 * animatedProgress)),
+                  blurRadius: isCompact ? 12 : 20,
+                  spreadRadius: isCompact ? 1 : 2,
+                  offset: Offset(0, isCompact ? 6 : 9),
+                ),
+              ],
             ),
-            InkWell(
-              onTap: () => _navigateToTab(3, '/results'),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'View Details',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
-                  ),
-                  SizedBox(width: 2),
-                  Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 14),
-                ],
+            child: CustomPaint(
+              painter: _ProgressGaugePainter(
+                trackColor: metric.trackColor,
+                progressColor: metric.accentColor,
+                progress: animatedProgress,
+                strokeWidth: strokeWidth,
               ),
+              child: child,
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            for (var i = 0; i < metrics.length; i++) ...[
-              if (i > 0) const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                  decoration: PK.cardBox(r: 14),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: metrics[i].bg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(metrics[i].icon, color: metrics[i].color, size: 19),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        metrics[i].value,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: metrics[i].valueColor,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        metrics[i].label,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                          height: 1.15,
-                        ),
-                      ),
-                    ],
+          );
+        },
+        child: Padding(
+          padding: EdgeInsets.all(strokeWidth + 2.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Center Icon Bubble
+              Container(
+                width: iconBubbleSize,
+                height: iconBubbleSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: metric.gradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: metric.accentColor.withValues(alpha: 0.35),
+                      blurRadius: isCompact ? 6 : 10,
+                      offset: const Offset(0, 2.5),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    metric.icon,
+                    size: iconSize,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(height: isCompact ? 3.0 : 5.0),
+
+              // 2. Metric Value
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _CountUpText(
+                  metric.value,
+                  style: TextStyle(
+                    fontSize: valueSize,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0B1B3F),
+                    letterSpacing: -0.4,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+              SizedBox(height: isCompact ? 1.5 : 2.5),
+
+              // 3. Label
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  metric.label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF64748B),
+                    height: 1.15,
                   ),
                 ),
               ),
             ],
-          ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
@@ -2371,7 +3012,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             for (var i = 0; i < tests.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
-              InkWell(
+              _PressScale(child: InkWell(
                 onTap: () {
                   if (tests[i].attemptId != null && tests[i].attemptId!.isNotEmpty) {
                     context.push('/results/${tests[i].attemptId}');
@@ -2484,7 +3125,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                 ),
-              ),
+              )),
             ],
           ],
         ),
@@ -2569,7 +3210,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             for (var i = 0; i < tests.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
-              InkWell(
+              _PressScale(child: InkWell(
                 onTap: () {
                   if (tests[i].id.startsWith('default-')) {
                     context.push('/test-series');
@@ -2676,7 +3317,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                 ),
-              ),
+              )),
             ],
           ],
         ),
@@ -2686,120 +3327,202 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── 10. Recommended for You ───────────────────────────────────────────────
 
+  static String _cleanSubjectName(String raw) {
+    // 1. Remove text inside parentheses (e.g. '(ভারত ও বাংলার ইতিহাস)', '(পাটিগণিত)', etc.)
+    var cleaned = raw.replaceAll(RegExp(r'\s*\([^)]*\)'), '');
+    // 2. Remove any remaining Bengali Unicode characters (\u0980 to \u09FF)
+    cleaned = cleaned.replaceAll(RegExp(r'[\u0980-\u09FF]+'), '');
+    // 3. Remove newlines or secondary subtitle phrases
+    cleaned = cleaned.replaceAll(RegExp(r'[\r\n]+.*'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'\s*Topic Tests.*', caseSensitive: false), '');
+    // 4. Trim trailing/leading punctuation
+    cleaned = cleaned.replaceAll(RegExp(r'[:\-\–\—\s]+$'), '').trim();
+    cleaned = cleaned.replaceAll(RegExp(r'^\s*[:\-\–\—]+'), '').trim();
+    if (cleaned.isEmpty) return raw.trim();
+    return cleaned;
+  }
+
   Widget _buildRecommendedForYou([List<SubjectModel> subjects = const []]) {
     final themeSlots = [
       (
-        icon: Icons.psychology_rounded,
-        iconColor: const Color(0xFFEC4899),
-        bg: const Color(0xFFFDF2F8),
-        border: const Color(0xFFFCE7F3),
-        circleBg: const Color(0xFFFCE7F3),
+        cardBg: const Color(0xFF131B2F),
+        cardBorder: const Color(0xFF1E2B45),
+        iconBoxBg: const Color(0xFF381F3D),
+        iconColor: const Color(0xFFF472B6),
+        arrowBg: const Color(0xFF232D48),
+        defaultIcon: Icons.account_balance_rounded,
+        isMath: false,
       ),
       (
-        icon: Icons.science_rounded,
-        iconColor: const Color(0xFF06B6D4),
-        bg: const Color(0xFFF0FDFA),
-        border: const Color(0xFFCCFBF1),
-        circleBg: const Color(0xFFCCFBF1),
+        cardBg: const Color(0xFF042D4B),
+        cardBorder: const Color(0xFF07436B),
+        iconBoxBg: const Color(0xFF0284C7),
+        iconColor: Colors.white,
+        arrowBg: const Color(0xFF0B3B60),
+        defaultIcon: Icons.calculate_rounded,
+        isMath: true,
       ),
       (
-        icon: Icons.account_balance_rounded,
-        iconColor: const Color(0xFFF59E0B),
-        bg: const Color(0xFFFFFBEB),
-        border: const Color(0xFFFEF3C7),
-        circleBg: const Color(0xFFFEF3C7),
+        cardBg: const Color(0xFF381E09),
+        cardBorder: const Color(0xFF4E2B10),
+        iconBoxBg: const Color(0xFF582E09),
+        iconColor: const Color(0xFFFBBF24),
+        arrowBg: const Color(0xFF4D2C12),
+        defaultIcon: Icons.science_rounded,
+        isMath: false,
       ),
       (
-        icon: Icons.description_rounded,
-        iconColor: const Color(0xFF10B981),
-        bg: const Color(0xFFF0FDF4),
-        border: const Color(0xFFDCFCE7),
-        circleBg: const Color(0xFFDCFCE7),
+        cardBg: const Color(0xFF043226),
+        cardBorder: const Color(0xFF074A39),
+        iconBoxBg: const Color(0xFF059669),
+        iconColor: Colors.white,
+        arrowBg: const Color(0xFF0B4536),
+        defaultIcon: Icons.description_rounded,
+        isMath: false,
       ),
     ];
 
-    IconData resolveSubjectIcon(String name, int slotIndex) {
-      final n = name.toLowerCase();
-      if (n.contains('reason') || n.contains('logic') || n.contains('mental')) return Icons.psychology_rounded;
-      if (n.contains('sci') || n.contains('bio') || n.contains('phys') || n.contains('chem')) return Icons.science_rounded;
-      if (n.contains('hist') || n.contains('itihas') || n.contains('geo')) return Icons.account_balance_rounded;
-      if (n.contains('polity') || n.contains('const') || n.contains('law') || n.contains('econ')) return Icons.description_rounded;
-      if (n.contains('math') || n.contains('gonit') || n.contains('arith')) return Icons.calculate_rounded;
-      if (n.contains('eng') || n.contains('beng') || n.contains('lang')) return Icons.translate_rounded;
-      return themeSlots[slotIndex % themeSlots.length].icon;
+    const fallbackSubjects = [
+      SubjectModel(
+        id: 'wbp-history',
+        name: 'Indian History',
+        slug: 'indian-history',
+        iconName: 'BookOpen',
+      ),
+      SubjectModel(
+        id: 'wbp-math',
+        name: 'Elementary Mathematics',
+        slug: 'mathematics',
+        iconName: 'Calculator',
+      ),
+      SubjectModel(
+        id: 'wbp-science',
+        name: 'General Science',
+        slug: 'general-science',
+        iconName: 'FlaskConical',
+      ),
+      SubjectModel(
+        id: 'wbp-polity',
+        name: 'Indian Constitution',
+        slug: 'indian-constitution',
+        iconName: 'Scale',
+      ),
+    ];
+
+    final effectiveSubjects = <SubjectModel>[];
+    for (final s in subjects) {
+      if (effectiveSubjects.length < 4) {
+        effectiveSubjects.add(s);
+      }
+    }
+    for (final fb in fallbackSubjects) {
+      if (effectiveSubjects.length < 4 &&
+          !effectiveSubjects.any((e) => e.slug == fb.slug || e.id == fb.id)) {
+        effectiveSubjects.add(fb);
+      }
     }
 
-    final topics = [
-            for (var i = 0; i < subjects.take(4).length; i++) ...[
-              () {
-                final s = subjects[i];
-                final slot = themeSlots[i % themeSlots.length];
-                final title = s.name.contains('\n') ? s.name : '${s.name}\nTopic Tests';
-                // Real chapter count only; no estimated question totals.
-                final qs = s.chaptersCount != null && s.chaptersCount! > 0
-                    ? '${s.chaptersCount} Chapters'
-                    : 'Topic Tests';
+    final orderedSubjects = List<SubjectModel?>.filled(4, null);
+    final remaining = <SubjectModel>[];
 
-                return (
-                  id: s.slug.isNotEmpty ? s.slug : s.id,
-                  title: title,
-                  qs: qs,
-                  icon: resolveSubjectIcon(s.name, i),
-                  iconColor: slot.iconColor,
-                  bg: slot.bg,
-                  border: slot.border,
-                  circleBg: slot.circleBg,
-                );
-              }(),
-            ],
-          ];
+    for (final s in effectiveSubjects) {
+      final n = s.name.toLowerCase();
+      final icon = s.iconName.toLowerCase();
+      if ((n.contains('hist') || n.contains('itihas') || icon == 'landmark' || icon == 'bookopen') && orderedSubjects[0] == null) {
+        orderedSubjects[0] = s;
+      } else if ((n.contains('math') || n.contains('arith') || n.contains('gonit') || icon == 'calculator') && orderedSubjects[1] == null) {
+        orderedSubjects[1] = s;
+      } else if ((n.contains('sci') || n.contains('bio') || n.contains('phys') || n.contains('chem') || icon == 'flaskconical') && orderedSubjects[2] == null) {
+        orderedSubjects[2] = s;
+      } else if ((n.contains('const') || n.contains('polity') || n.contains('law') || icon == 'scale' || icon == 'filetext') && orderedSubjects[3] == null) {
+        orderedSubjects[3] = s;
+      } else {
+        remaining.add(s);
+      }
+    }
+
+    for (var i = 0; i < 4; i++) {
+      if (orderedSubjects[i] == null) {
+        if (remaining.isNotEmpty) {
+          orderedSubjects[i] = remaining.removeAt(0);
+        } else {
+          orderedSubjects[i] = fallbackSubjects[i];
+        }
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.track_changes_rounded, color: Color(0xFFEF4444), size: 18),
-            const SizedBox(width: 6),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFE4E6),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.track_changes_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
             const Expanded(
               child: Text(
                 'Recommended for You',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F1E4A),
-                  letterSpacing: -0.3,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0B1B3F),
+                  letterSpacing: -0.4,
                 ),
               ),
             ),
             InkWell(
               onTap: () => _navigateToTab(2, '/practice'),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'View All',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0158FC)),
-                  ),
-                  SizedBox(width: 2),
-                  Icon(Icons.arrow_forward_rounded, color: Color(0xFF0158FC), size: 14),
-                ],
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'View All',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF026BFC),
+                      ),
+                    ),
+                    SizedBox(width: 3),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Color(0xFF026BFC),
+                      size: 15,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        for (var r = 0; r < topics.length; r += 2) ...[
+        const SizedBox(height: 14),
+        for (var r = 0; r < 4; r += 2) ...[
           if (r > 0) const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: _buildRecommendedTopicCard(topics[r]),
+                child: _buildRecommendedTopicCard(orderedSubjects[r]!, themeSlots[r]),
               ),
               const SizedBox(width: 10),
-              if (r + 1 < topics.length)
+              if (r + 1 < 4)
                 Expanded(
-                  child: _buildRecommendedTopicCard(topics[r + 1]),
+                  child: _buildRecommendedTopicCard(orderedSubjects[r + 1]!, themeSlots[r + 1]),
                 )
               else
                 const Expanded(child: SizedBox.shrink()),
@@ -2810,117 +3533,172 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildRecommendedTopicCard(({
-    Color bg,
-    Color border,
-    Color circleBg,
-    IconData icon,
+  Widget _buildTopicIcon(SubjectModel s, ({
+    Color arrowBg,
+    Color cardBg,
+    Color cardBorder,
+    IconData defaultIcon,
+    Color iconBoxBg,
     Color iconColor,
-    String id,
-    String qs,
-    String title,
-  }) t) {
-    return InkWell(
-      onTap: () => context.push('/practice/subject/${t.id}'),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: t.bg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: t.border),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+    bool isMath,
+  }) slot) {
+    final n = s.name.toLowerCase();
+    final iconLower = s.iconName.toLowerCase();
+
+    if (slot.isMath || iconLower.contains('calc') || n.contains('math') || n.contains('arith') || n.contains('gonit')) {
+      return const SizedBox(
+        width: 26,
+        height: 26,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(t.icon, color: t.iconColor, size: 26),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    t.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F1E4A),
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    t.qs,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('+', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, height: 1)),
+                SizedBox(width: 4),
+                Text('−', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, height: 1)),
+              ],
             ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: Color(0xFF0158FC),
+            SizedBox(height: 2),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('×', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, height: 1)),
+                SizedBox(width: 4),
+                Text('÷', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, height: 1)),
+              ],
             ),
           ],
+        ),
+      );
+    }
+
+    if (s.iconName.startsWith('http')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          s.iconName,
+          width: 24,
+          height: 24,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Icon(slot.defaultIcon, color: slot.iconColor, size: 24),
+        ),
+      );
+    }
+
+    IconData icon = slot.defaultIcon;
+    if (iconLower == 'bookopen' || iconLower == 'landmark' || n.contains('hist') || n.contains('itihas')) {
+      icon = Icons.account_balance_rounded;
+    } else if (iconLower == 'flaskconical' || n.contains('sci') || n.contains('bio') || n.contains('phys') || n.contains('chem')) {
+      icon = Icons.science_rounded;
+    } else if (iconLower == 'scale' || iconLower == 'filetext' || n.contains('const') || n.contains('polity') || n.contains('law')) {
+      icon = Icons.description_rounded;
+    } else if (iconLower == 'brain' || n.contains('reason') || n.contains('logic')) {
+      icon = Icons.psychology_rounded;
+    } else if (iconLower == 'globe' || n.contains('geo') || n.contains('bhugol')) {
+      icon = Icons.public_rounded;
+    } else if (iconLower == 'newspaper' || n.contains('current') || n.contains('ca')) {
+      icon = Icons.newspaper_rounded;
+    } else if (iconLower == 'translate' || n.contains('eng') || n.contains('beng') || n.contains('lang')) {
+      icon = Icons.translate_rounded;
+    }
+
+    return Icon(icon, color: slot.iconColor, size: 24);
+  }
+
+  Widget _buildRecommendedTopicCard(
+    SubjectModel s,
+    ({
+      Color arrowBg,
+      Color cardBg,
+      Color cardBorder,
+      IconData defaultIcon,
+      Color iconBoxBg,
+      Color iconColor,
+      bool isMath,
+    }) slot,
+  ) {
+    final title = _cleanSubjectName(s.name);
+    return _PressScale(
+      child: InkWell(
+        onTap: () => context.push('/practice/subject/${s.slug.isNotEmpty ? s.slug : s.id}'),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: slot.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: slot.cardBorder, width: 1),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: slot.iconBoxBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: _buildTopicIcon(s, slot),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.15,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: slot.arrowBg,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Thin dashed circle drawn around each exam image in the "Exams" row.
-class _DashedRingPainter extends CustomPainter {
-  final Color color;
-  const _DashedRingPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const strokeWidth = 1.6;
-    final radius = (size.shortestSide - strokeWidth) / 2;
-    final center = size.center(Offset.zero);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-    const dashCount = 28;
-    const sweep = 2 * math.pi / dashCount;
-    for (var k = 0; k < dashCount; k++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        k * sweep,
-        sweep * 0.55,
-        false,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedRingPainter oldDelegate) => oldDelegate.color != color;
-}
 
 class _SeriesTheme {
   final Color cardBg;
+  final Color cardBgEnd;
   final Color chevronBg;
   final Color chevron;
+  final String? art;
 
   const _SeriesTheme({
     required this.cardBg,
+    required this.cardBgEnd,
     required this.chevronBg,
     required this.chevron,
+    this.art,
   });
 }
 
@@ -2992,5 +3770,201 @@ class _SwooshUnderlinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _LiveBroadcastIcon extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _LiveBroadcastIcon({
+    this.size = 18,
+    this.color = const Color(0xFFEF4444),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _BroadcastIconPainter(color: color),
+      ),
+    );
+  }
+}
+
+class _BroadcastIconPainter extends CustomPainter {
+  final Color color;
+
+  _BroadcastIconPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final fillPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawCircle(center, 2.5, fillPaint);
+
+    final r1 = size.width * 0.28;
+    final rect1 = Rect.fromCircle(center: center, radius: r1);
+    canvas.drawArc(rect1, 2.356, 1.57, false, paint);
+    canvas.drawArc(rect1, -0.785, 1.57, false, paint);
+
+    final r2 = size.width * 0.44;
+    final rect2 = Rect.fromCircle(center: center, radius: r2);
+    canvas.drawArc(rect2, 2.356, 1.57, false, paint);
+    canvas.drawArc(rect2, -0.785, 1.57, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BroadcastIconPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+
+
+/// Gentle shrink while a card is pressed; doesn't compete with the child's own gestures.
+class _PressScale extends StatefulWidget {
+  final Widget child;
+
+  const _PressScale({required this.child});
+
+  @override
+  State<_PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<_PressScale> {
+  bool _pressed = false;
+
+  void _set(bool v) {
+    if (_pressed != v) setState(() => _pressed = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _set(true),
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.965 : 1.0,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Counts a metric up from zero (e.g. "1,525", "82%"); non-numeric values render as-is.
+class _CountUpText extends StatelessWidget {
+  final String value;
+  final TextStyle? style;
+
+  const _CountUpText(this.value, {this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = RegExp(r'^([\d,]+)(.*)$').firstMatch(value);
+    final target = m == null ? null : int.tryParse(m.group(1)!.replaceAll(',', ''));
+    if (m == null || target == null || target == 0) return Text(value, style: style);
+    final grouped = m.group(1)!.contains(',');
+    final suffix = m.group(2)!;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: target.toDouble()),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) {
+        final n = v.round();
+        return Text('${grouped ? PK.formatCount(n) : n}$suffix', style: style);
+      },
+    );
+  }
+}
+
+class _HomeProgressMetric {
+  final IconData icon;
+  final Color accentColor;
+  final Color trackColor;
+  final Gradient gradient;
+  final String value;
+  final String label;
+  final double progress;
+
+  const _HomeProgressMetric({
+    required this.icon,
+    required this.accentColor,
+    required this.trackColor,
+    required this.gradient,
+    required this.value,
+    required this.label,
+    required this.progress,
+  });
+}
+
+class _ProgressGaugePainter extends CustomPainter {
+  final Color trackColor;
+  final Color progressColor;
+  final double progress;
+  final double strokeWidth;
+
+  const _ProgressGaugePainter({
+    required this.trackColor,
+    required this.progressColor,
+    required this.progress,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    if (radius <= 0) return;
+
+    // 1. Full track ring
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    // 2. Active arc
+    final p = progress.clamp(0.0, 1.0);
+    if (p > 0.003) {
+      final arcPaint = Paint()
+        ..color = progressColor
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth * 1.15;
+
+      // Starts at top (-pi/2) and sweeps clockwise
+      final sweepAngle = p * 2 * math.pi;
+      const startAngle = -math.pi / 2;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        arcPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressGaugePainter oldDelegate) {
+    return oldDelegate.trackColor != trackColor ||
+        oldDelegate.progressColor != progressColor ||
+        oldDelegate.progress != progress ||
+        oldDelegate.strokeWidth != strokeWidth;
+  }
 }
 

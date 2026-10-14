@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Bookmark,
   BookOpen,
@@ -11,7 +10,6 @@ import {
   Trash2,
   Search,
   ChevronDown,
-  ChevronRight,
   MoreVertical,
   Calendar,
   CheckCircle2,
@@ -31,6 +29,8 @@ import { MathText } from '@/components/common/MathText';
 import { StudentLoading, StudentLoadError } from '@/components/student/StudentLoadState';
 import { getErrorMessage } from '@/lib/errors';
 import type { BookmarkItem } from '@/types';
+import { PageHeader } from '@/components/student/StudentUI';
+import { Button } from '@/components/common/Button';
 
 // Subject theme mapper for icon, color, and border
 function getSubjectTheme(subjectName?: string) {
@@ -323,57 +323,56 @@ export const SavedQuestions: React.FC = () => {
     return <StudentLoadError message={loadError} onRetry={() => void loadBookmarks()} />;
 
   return (
-    <div className="space-y-5 sm:space-y-6 text-slate-900 dark:text-slate-100">
-      {actionError && (
-        <p
-          role="alert"
-          className="rounded-xl p-4 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 text-sm"
-        >
-          {actionError}
-        </p>
-      )}
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-xl border border-slate-700 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* 1. Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-        <Link to="/home" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-        <span className="text-slate-800 dark:text-slate-200 font-bold">Saved Questions</span>
-      </nav>
-
-      {/* 2. Page Header with Mascot Art */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="max-w-xl">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">
-            Saved <span className="text-[#026BFC]">Questions</span>
-          </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-            Your bookmarked questions for focused revision.
-            <br className="hidden sm:inline" />
-            Revisit important questions anytime and practice smarter.
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {actionError && (
+          <p
+            role="alert"
+            className="rounded-xl p-4 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200 text-sm"
+          >
+            {actionError}
           </p>
-        </div>
+        )}
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-xl border border-slate-700 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
 
-        {/* Top Right Decorative Illustration */}
-        <div className="relative shrink-0 flex items-center justify-end">
-          <img
-            src="/images/saved_questions_hero_art_exact.png"
-            alt="Revise Reinforce Remember Succeed - Small Reviews Big Results"
-            className="h-28 sm:h-34 lg:h-38 w-auto object-contain select-none pointer-events-none drop-shadow-xs"
-          />
-        </div>
-      </div>
+        <PageHeader
+          eyebrow="Revision & Bookmarks"
+          title="Saved Questions"
+          subtitle="Your bookmarked questions for focused revision. Revisit key concepts and practice drills anytime."
+          icon={Bookmark}
+          actions={
+            <div className="flex items-center gap-2">
+              {filteredItems.length > 0 && (
+                <Button
+                  size="sm"
+                  className="bg-[#026BFC] hover:bg-[#0256ca] text-white font-bold rounded-xl shadow-xs"
+                  leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
+                  onClick={() => handleStartPractice(filteredItems[0])}
+                >
+                  Practice ({filteredItems.length})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs font-bold rounded-xl"
+                leftIcon={<Download className="w-3.5 h-3.5" />}
+                onClick={handleDownloadPdf}
+              >
+                Export PDF
+              </Button>
+            </div>
+          }
+        />
 
-      {/* 3. Subject Filter Pills Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {/* 3. Subject Filter Pills Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         {/* All */}
         <button
           type="button"
@@ -1070,6 +1069,7 @@ export const SavedQuestions: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

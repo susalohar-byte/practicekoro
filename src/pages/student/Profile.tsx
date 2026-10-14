@@ -37,6 +37,8 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
+import { Button } from '@/components/common/Button';
 
 export const Profile: React.FC = () => {
   const { user, isPro, updateProfile, logout } = useAuth();
@@ -315,48 +317,48 @@ export const Profile: React.FC = () => {
     PREPARATION_STATUS_LABELS[user?.preparationStatus || 'BEGINNER'] || 'Beginner';
 
   return (
-    <div className="space-y-5 pb-12 font-sans select-none max-w-4xl mx-auto">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-xl border border-slate-700 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* ── 1. TOP BRAND HEADER BAR ── */}
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-[10px] bg-[#026BFC] flex items-center justify-center text-white text-[22px] font-black leading-none shadow-xs">
-            P
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-xl border border-slate-700 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
           </div>
-          <div>
-            <div className="text-[18px] font-black tracking-[-0.4px] leading-tight">
-              <span className="text-[#051A43] dark:text-white">Practice</span>
-              <span className="text-[#026BFC]">Koro</span>
+        )}
+
+        <PageHeader
+          eyebrow="Student Account"
+          title="My Profile"
+          subtitle="Manage your personal details, target exams, demographic benchmarks, and study preferences"
+          icon={User}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-[#026BFC] hover:bg-[#0256ca] text-white font-bold rounded-xl shadow-xs"
+                leftIcon={<Edit2 className="w-3.5 h-3.5" />}
+                onClick={handleOpenEditProfile}
+              >
+                Edit Profile
+              </Button>
+              <button
+                type="button"
+                onClick={() => setIsNotificationsModalOpen(true)}
+                className="relative w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                aria-label="Notifications"
+              >
+                <Bell className="w-4 h-4 text-slate-700 dark:text-slate-200" />
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800 text-white text-[8px] font-black flex items-center justify-center">
+                  3
+                </span>
+              </button>
             </div>
-            <p className="text-[10.5px] font-medium text-[#64748B] dark:text-slate-400">
-              Practice Today, Progress Tomorrow
-            </p>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Notification Bell */}
-        <button
-          type="button"
-          onClick={() => setIsNotificationsModalOpen(true)}
-          className="relative w-[38px] h-[38px] rounded-full bg-white dark:bg-slate-800 border border-[#E8EEF7] dark:border-slate-700 flex items-center justify-center text-[#051A43] dark:text-slate-300 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5 text-[#051A43] dark:text-slate-200" />
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#EF4444] rounded-full border-2 border-white dark:border-slate-800 text-white text-[9px] font-black flex items-center justify-center">
-            3
-          </span>
-        </button>
-      </div>
-
-      {/* ── 2. HERO CARD WITH DEMOGRAPHIC BADGES ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+        {/* ── 2. HERO CARD WITH DEMOGRAPHIC BADGES ── */}
+        <div className={cn(studentCard, "p-5 sm:p-6")}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 sm:gap-4">
             <div className="relative shrink-0">
@@ -438,7 +440,7 @@ export const Profile: React.FC = () => {
       </div>
 
       {/* ── 3. FOUR METRIC STAT TILES ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl px-2 py-3 border border-slate-200 dark:border-slate-800 shadow-2xs grid grid-cols-4 gap-1 text-center">
+      <div className={cn(studentCard, "px-4 py-4 grid grid-cols-4 gap-2 text-center")}>
         <div className="flex flex-col items-center">
           <BarChart3 className="w-4 h-4 text-[#10B981] mb-1" />
           <span className="text-sm sm:text-base font-black text-[#051A43] dark:text-white tracking-tight leading-tight">
@@ -1622,6 +1624,7 @@ export const Profile: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

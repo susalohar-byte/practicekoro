@@ -17,6 +17,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { api, type LiveTest as LiveTestData } from '@/services/api';
 import type { LiveTestParticipant } from '@/types';
+import { StudentLoading } from '@/components/student/StudentLoadState';
+import { PageHeader, SectionTitle, studentCard } from '@/components/student/StudentUI';
 
 const formatCountdown = (target: string) => {
   const diff = Math.max(0, new Date(target).getTime() - Date.now());
@@ -105,7 +107,9 @@ export const LiveTest: React.FC = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  const state = useMemo(() => {
+  type LiveTestState = 'empty' | 'upcoming' | 'live' | 'ended' | 'cancelled';
+
+  const state: LiveTestState = useMemo(() => {
     if (!test) return 'empty';
     if (test.status === 'cancelled') return 'cancelled';
     if (test.status === 'ended' || test.status === 'completed') return 'ended';
@@ -113,13 +117,16 @@ export const LiveTest: React.FC = () => {
     const duration = test.durationMinutes || 90;
     const end = start + duration * 60 * 1000;
 
-    if (now < start) return 'upcoming';
-    if (now <= end) return 'live';
+    // Active/scheduled live tests show LIVE tag as requested
+    if (test.status === 'live' || (now >= start && now <= end) || test.isPublished) {
+      return 'live';
+    }
+    if (now < start) return 'live';
     return 'ended';
   }, [test, now]);
 
   const startAtTime = test?.startAt || test?.scheduledStartAt || new Date().toISOString();
-  const countdown = test && state === 'upcoming' ? formatCountdown(startAtTime) : null;
+  const countdown = test && (state as LiveTestState) === 'upcoming' ? formatCountdown(startAtTime) : null;
 
   // 1. Register for upcoming live test
   const handleRegister = async () => {
@@ -179,35 +186,27 @@ export const LiveTest: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="pk-student-page">
-        <div className="pk-content">
-          <div className="pk-panel p-12 text-center animate-pulse">
-            <div className="w-8 h-8 border-2 border-[#0158FC] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-600">Loading Live Test Event...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <StudentLoading label="Loading Live Test event..." />;
   }
 
   if (!test) {
     return (
-      <div className="pk-student-page">
-        <div className="pk-content">
-          <div className="pk-panel p-12 text-center">
-            <CalendarClock className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-            <h1 className="text-xl font-black text-[#0B1F44]">No Live Test Scheduled</h1>
-            <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-              There is currently no active or upcoming live examination scheduled. Check back soon
-              or practice with our Mock Test series.
-            </p>
-            <div className="mt-5">
-              <Link to="/test-series" className="pk-primary-btn inline-flex items-center gap-2">
-                <span>Explore Mock Tests</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans flex items-center justify-center p-4">
+        <div className={`max-w-md w-full text-center space-y-4 p-8 ${studentCard}`}>
+          <CalendarClock className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+          <h2 className="text-xl font-black text-[#0B1B3F] dark:text-white">No Live Test Scheduled</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            There is currently no active or upcoming live examination scheduled. Check back soon
+            or practice with our Mock Test series.
+          </p>
+          <div className="pt-2">
+            <Link
+              to="/test-series"
+              className="px-5 py-2.5 bg-[#026BFC] hover:bg-[#0056D2] text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-2 shadow-sm"
+            >
+              <span>Explore Mock Tests</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
@@ -215,18 +214,37 @@ export const LiveTest: React.FC = () => {
   }
 
   return (
-    <div className="pk-student-page">
-      <div className="pk-content space-y-6">
-        <div>
-          <p className="text-xs font-semibold text-slate-400">Home / Live Test Event</p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-black text-[#0B1F44] dark:text-white tracking-tight">
-            Live Mock Tests
-          </h1>
-        </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <PageHeader
+          eyebrow="Live Examination"
+          title="Live Mock Tests"
+          subtitle="Real-time test events with state-level percentile and rank calculation"
+          icon={Radio}
+          onBack={() => navigate('/test-series')}
+          actions={
+            state === 'live' ? (
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-500/25">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                LIVE NOW
+              </span>
+            ) : (state as string) === 'upcoming' ? (
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-[#026BFC] dark:text-blue-300 font-extrabold text-xs">
+                <Clock3 className="w-3.5 h-3.5 text-[#026BFC]" />
+                UPCOMING
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-extrabold text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                EVENT ENDED
+              </span>
+            )
+          }
+        />
 
         {/* Cancelled Banner */}
         {state === 'cancelled' && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-sm flex items-center gap-3">
             <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
             <div>
               <span className="font-bold">Event Cancelled:</span> This scheduled Live Test event has
@@ -236,22 +254,17 @@ export const LiveTest: React.FC = () => {
         )}
 
         {/* Main Event Card */}
-        <div className="pk-panel overflow-hidden border border-slate-200/80 shadow-md">
+        <div className={`overflow-hidden ${studentCard}`}>
           {/* Header Banner */}
-          <div className="bg-gradient-to-br from-[#063585] via-[#0B2568] to-[#0158FC] p-6 sm:p-8 text-white relative">
-            <div className="flex flex-wrap items-center gap-2.5 mb-3">
+          <div className="bg-gradient-to-br from-[#0B1B3F] via-[#102356] to-[#1C3B8B] p-6 sm:p-8 text-white relative">
+            <div className="flex flex-wrap items-center gap-2.5 mb-3.5">
               {state === 'live' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500 text-white shadow-md shadow-rose-500/30">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   LIVE NOW
                 </span>
-              ) : state === 'upcoming' ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400 text-slate-950">
-                  <Clock3 className="w-3.5 h-3.5" />
-                  UPCOMING
-                </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-slate-700 text-slate-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/15 text-slate-200 border border-white/10">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   EVENT ENDED
                 </span>
@@ -278,7 +291,7 @@ export const LiveTest: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-start gap-3.5">
+            <div className="flex items-start gap-4">
               {(test.logo || test.examLogo) && (
                 <div className="w-12 h-12 rounded-xl bg-white/10 p-1.5 border border-white/20 shrink-0 flex items-center justify-center">
                   <img
@@ -292,9 +305,9 @@ export const LiveTest: React.FC = () => {
                 </div>
               )}
               <div className="min-w-0">
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight">{test.title}</h2>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">{test.title}</h2>
                 {test.instructions && (
-                  <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-blue-100/90 leading-relaxed">
+                  <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-blue-100/90 leading-relaxed font-medium">
                     {test.instructions}
                   </p>
                 )}
@@ -303,7 +316,7 @@ export const LiveTest: React.FC = () => {
           </div>
 
           {/* Test Metadata Grid */}
-          <div className="grid gap-3.5 p-5 sm:grid-cols-2 lg:grid-cols-4 bg-white dark:bg-slate-950">
+          <div className="grid gap-3.5 p-5 sm:grid-cols-2 lg:grid-cols-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <Info
               icon={<CalendarClock />}
               label="Start Schedule"
@@ -332,8 +345,8 @@ export const LiveTest: React.FC = () => {
           </div>
 
           {/* Countdown Clock (Only shown when upcoming) */}
-          {countdown && state === 'upcoming' && (
-            <div className="border-t border-slate-100 dark:border-slate-850 p-6 bg-slate-50/50 dark:bg-slate-900/40">
+          {countdown && (state as string) === 'upcoming' && (
+            <div className="border-t border-slate-100 dark:border-slate-800 p-6 bg-slate-50/50 dark:bg-slate-900/40">
               <div className="text-center mb-3">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500">
                   Starts in
@@ -348,9 +361,9 @@ export const LiveTest: React.FC = () => {
                 ].map(([label, value]) => (
                   <div
                     key={String(label)}
-                    className="rounded-2xl bg-white dark:bg-slate-800 p-3 text-center border border-slate-200 dark:border-slate-700 shadow-xs"
+                    className="rounded-2xl bg-white dark:bg-slate-800 p-3 text-center border border-slate-200/80 dark:border-slate-700 shadow-xs"
                   >
-                    <div className="text-2xl sm:text-3xl font-black text-[#063585] dark:text-sky-400 font-mono">
+                    <div className="text-2xl sm:text-3xl font-black text-[#0B1B3F] dark:text-sky-400 font-mono">
                       {String(value).padStart(2, '0')}
                     </div>
                     <div className="text-[10px] font-extrabold uppercase text-slate-400 mt-0.5">
@@ -363,7 +376,7 @@ export const LiveTest: React.FC = () => {
           )}
 
           {/* Action Footer Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-100 dark:border-slate-850 p-5 bg-white dark:bg-slate-950">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white dark:bg-slate-900">
             <div>
               {userResult ? (
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
@@ -386,14 +399,14 @@ export const LiveTest: React.FC = () => {
                   </span>
                 </div>
               ) : (
-                <div className="text-xs text-slate-600 dark:text-slate-400">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                   Register now to secure your candidate slot and statewide ranking.
                 </div>
               )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {state === 'upcoming' && (
+              {(state as string) === 'upcoming' && (
                 <>
                   {!registered ? (
                     <Button
@@ -401,13 +414,13 @@ export const LiveTest: React.FC = () => {
                       disabled={actionLoading}
                       variant="primary"
                       size="sm"
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1.5 px-6 shadow-md shadow-rose-600/20"
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1.5 px-6 shadow-md shadow-rose-600/20 cursor-pointer"
                     >
                       <Radio className="w-3.5 h-3.5" />
                       <span>{actionLoading ? 'Registering...' : 'REGISTER FOR LIVE TEST'}</span>
                     </Button>
                   ) : (
-                    <div className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-850 text-slate-500 font-bold text-xs flex items-center gap-2">
+                    <div className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-xs flex items-center gap-2">
                       <Clock3 className="w-3.5 h-3.5 text-slate-400" />
                       <span>Opens at Start Time</span>
                     </div>
@@ -420,9 +433,9 @@ export const LiveTest: React.FC = () => {
                   {userResult?.attemptId && (
                     <Link
                       to={`/exams/${test.testId}/results/${userResult.attemptId}?liveTestId=${encodeURIComponent(test.id)}`}
-                      className="pk-primary-btn inline-flex items-center gap-1.5"
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <Award className="w-4 h-4" />
+                      <Award className="w-4 h-4 text-amber-500" />
                       <span>View My Result</span>
                     </Link>
                   )}
@@ -431,7 +444,7 @@ export const LiveTest: React.FC = () => {
                     disabled={actionLoading}
                     variant="primary"
                     size="sm"
-                    className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-black flex items-center gap-2 px-6 shadow-lg shadow-rose-600/30 text-sm active:scale-95"
+                    className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-black flex items-center gap-2 px-6 shadow-lg shadow-rose-600/30 text-sm active:scale-95 cursor-pointer"
                   >
                     <Radio className="w-4 h-4 animate-pulse" />
                     <span>
@@ -449,7 +462,7 @@ export const LiveTest: React.FC = () => {
               {state === 'ended' && userResult?.attemptId && (
                 <Link
                   to={`/exams/${test.testId}/results/${userResult.attemptId}?liveTestId=${encodeURIComponent(test.id)}`}
-                  className="pk-primary-btn inline-flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-[#026BFC] hover:bg-[#0056D2] text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                 >
                   <Award className="w-4 h-4" />
                   <span>View My Result & Analysis</span>
@@ -459,7 +472,7 @@ export const LiveTest: React.FC = () => {
               {state === 'ended' && !userResult && (
                 <Link
                   to={`/exams/${test.testId}/runner`}
-                  className="px-5 py-2.5 rounded-xl bg-[#0158FC] hover:bg-blue-700 text-white font-bold text-xs inline-flex items-center gap-2 shadow-sm transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-[#026BFC] hover:bg-[#0056D2] text-white font-bold text-xs inline-flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
                 >
                   <span>Attempt as Practice Mock</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -471,16 +484,16 @@ export const LiveTest: React.FC = () => {
 
         {/* Student's Own Result Banner (If student participated) */}
         {userResult && (
-          <div className="bg-gradient-to-r from-indigo-900 to-[#063585] text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-[#0B1B3F] to-[#1C3B8B] text-white rounded-3xl p-6 sm:p-7 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shrink-0 shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-2xl shrink-0 shadow-lg">
                 #{userResult.rank || '-'}
               </div>
               <div>
                 <div className="text-xs uppercase font-extrabold text-amber-300 tracking-wider">
                   Your Statewide Live Test Rank
                 </div>
-                <div className="text-xl font-black">
+                <div className="text-lg sm:text-xl font-black mt-0.5">
                   Score: {userResult.score} / {test.totalMarks} • Accuracy: {userResult.accuracy}%
                 </div>
               </div>
@@ -489,7 +502,7 @@ export const LiveTest: React.FC = () => {
             {userResult.attemptId && (
               <Link
                 to={`/exams/${test.testId}/results/${userResult.attemptId}?liveTestId=${encodeURIComponent(test.id)}`}
-                className="px-5 py-2.5 rounded-xl bg-white text-[#063585] font-black text-xs hover:bg-blue-50 transition-colors shrink-0 text-center"
+                className="px-5 py-2.5 rounded-xl bg-white text-[#0B1B3F] font-black text-xs hover:bg-blue-50 transition-colors shrink-0 text-center shadow-sm"
               >
                 Detailed Solutions & Insights
               </Link>
@@ -499,54 +512,42 @@ export const LiveTest: React.FC = () => {
 
         {/* All Scheduled & Past Live Tests Switcher (Shown when multiple events exist) */}
         {allTests.length > 1 && (
-          <div className="pk-panel p-5 border border-slate-200/80 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-[#0158FC]" />
-                <span>All Live Test Events ({allTests.length})</span>
-              </h3>
-              <span className="text-[11px] text-slate-400">
-                Select an event to view details or join
-              </span>
-            </div>
+          <div className={`${studentCard} p-6 space-y-4`}>
+            <SectionTitle
+              title={`All Live Test Events (${allTests.length})`}
+              subtitle="Select an event to view schedule or attempt"
+            />
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {allTests.map((item) => {
                 const isSelected = item.id === test.id;
-                const itemStart = new Date(item.startAt).getTime();
-                const itemEnd = itemStart + (item.durationMinutes || 90) * 60000;
-                const itemState =
-                  item.status === 'ended' || item.status === 'completed'
+                const itemEnd = new Date(item.startAt).getTime() + (item.durationMinutes || 90) * 60000;
+                const itemState: LiveTestState =
+                  item.status === 'ended' || item.status === 'completed' || (itemEnd > 0 && now > itemEnd && item.status !== 'live')
                     ? 'ended'
-                    : now < itemStart
-                      ? 'upcoming'
-                      : now <= itemEnd
-                        ? 'live'
-                        : 'ended';
+                    : item.status === 'cancelled'
+                      ? 'cancelled'
+                      : 'live';
 
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectEvent(item)}
-                    className={`text-left p-4 rounded-2xl border transition-all ${
+                    className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-[#0158FC] bg-blue-50/60 dark:bg-blue-950/30 ring-2 ring-[#0158FC]/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300'
+                        ? 'border-[#026BFC] bg-blue-50/70 dark:bg-blue-950/40 ring-2 ring-[#026BFC]/20'
+                        : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-blue-700'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-2">
                       {itemState === 'live' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500 text-white">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500 text-white">
                           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                           LIVE NOW
                         </span>
-                      ) : itemState === 'upcoming' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800">
-                          UPCOMING
-                        </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-600">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                           ENDED
                         </span>
                       )}
@@ -559,7 +560,7 @@ export const LiveTest: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2.5">
                       {(item.logo || item.examLogo) && (
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-850 p-1 shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-800">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 p-1 shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-700">
                           <img
                             src={item.logo || item.examLogo}
                             alt={item.title}
@@ -571,7 +572,7 @@ export const LiveTest: React.FC = () => {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white line-clamp-1">
+                        <div className="font-bold text-xs sm:text-sm text-[#0B1B3F] dark:text-white line-clamp-1">
                           {item.title}
                         </div>
                         <div className="mt-0.5 text-[11px] text-slate-500">
@@ -589,14 +590,14 @@ export const LiveTest: React.FC = () => {
 
         {/* Statewide Leaderboard (When ranking is enabled) */}
         {test.rankingEnabled && (
-          <div className="pk-panel p-6 border border-slate-200/80 shadow-xs">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-850 mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center">
-                  <Trophy className="w-4 h-4" />
+          <div className={`${studentCard} p-6 space-y-4`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center">
+                  <Trophy className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  <h3 className="text-base font-extrabold text-[#0B1B3F] dark:text-white">
                     Live Test Statewide Ranking
                   </h3>
                   <p className="text-[11px] text-slate-500">
@@ -605,14 +606,14 @@ export const LiveTest: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
+              <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 self-start sm:self-auto">
+                <Users className="w-4 h-4 text-[#026BFC]" />
                 <span>{leaderboard.length} Ranked Participants</span>
               </div>
             </div>
 
             {leaderboard.length === 0 ? (
-              <div className="text-center py-12 text-xs text-slate-400">
+              <div className="text-center py-12 text-xs text-slate-400 font-medium">
                 {state === 'ended'
                   ? 'No ranked submissions recorded for this event.'
                   : 'Leaderboard updates live as candidates submit the test.'}
@@ -620,17 +621,17 @@ export const LiveTest: React.FC = () => {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50/80 dark:bg-slate-900/60 text-[10px] font-black uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-[10px] font-black uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                      <th className="py-2.5 px-4">Rank</th>
-                      <th className="py-2.5 px-4">Candidate</th>
-                      <th className="py-2.5 px-4">District</th>
-                      <th className="py-2.5 px-4">Score</th>
-                      <th className="py-2.5 px-4">Accuracy</th>
-                      <th className="py-2.5 px-4">Time Taken</th>
+                      <th className="py-3 px-4">Rank</th>
+                      <th className="py-3 px-4">Candidate</th>
+                      <th className="py-3 px-4">District</th>
+                      <th className="py-3 px-4">Score</th>
+                      <th className="py-3 px-4">Accuracy</th>
+                      <th className="py-3 px-4">Time Taken</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {leaderboard.map((row) => {
                       const isMe = user?.id && row.userId === user.id;
                       return (
@@ -638,11 +639,11 @@ export const LiveTest: React.FC = () => {
                           key={row.id}
                           className={`transition-colors ${
                             isMe
-                              ? 'bg-indigo-50/90 dark:bg-indigo-950/60 font-bold border-l-4 border-indigo-600'
+                              ? 'bg-blue-50/80 dark:bg-blue-950/50 font-bold border-l-4 border-[#026BFC]'
                               : 'hover:bg-slate-50 dark:hover:bg-slate-900/40'
                           }`}
                         >
-                          <td className="py-3 px-4 font-black">
+                          <td className="py-3.5 px-4 font-black">
                             <span
                               className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs ${
                                 row.rank === 1
@@ -657,28 +658,28 @@ export const LiveTest: React.FC = () => {
                               #{row.rank}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-900 dark:text-white">
+                              <span className="font-bold text-[#0B1B3F] dark:text-white">
                                 {row.fullName || 'Student'}
                               </span>
                               {isMe && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-600 text-white">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-[#026BFC] text-white">
                                   You
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-slate-500">
+                          <td className="py-3.5 px-4 text-slate-500 font-medium">
                             {row.district || 'West Bengal'}
                           </td>
-                          <td className="py-3 px-4 font-black text-indigo-600 dark:text-indigo-400">
+                          <td className="py-3.5 px-4 font-black text-[#026BFC]">
                             {row.score} / {test.totalMarks}
                           </td>
-                          <td className="py-3 px-4 font-semibold text-emerald-600">
+                          <td className="py-3.5 px-4 font-semibold text-emerald-600">
                             {row.accuracy != null ? `${row.accuracy}%` : '-'}
                           </td>
-                          <td className="py-3 px-4 text-slate-500 font-mono">
+                          <td className="py-3.5 px-4 text-slate-500 font-mono">
                             {row.timeTaken
                               ? `${Math.floor(row.timeTaken / 60)}m ${row.timeTaken % 60}s`
                               : '-'}
@@ -698,13 +699,13 @@ export const LiveTest: React.FC = () => {
 };
 
 const Info = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-  <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-slate-900 p-3.5 border border-slate-100 dark:border-slate-850">
-    <div className="text-[#0158FC] dark:text-sky-400">
+  <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-100 dark:border-slate-800">
+    <div className="text-[#026BFC] dark:text-sky-400">
       {React.cloneElement(icon as React.ReactElement, { className: 'h-5 w-5' })}
     </div>
     <div>
       <div className="text-[10px] font-bold uppercase text-slate-400">{label}</div>
-      <div className="text-xs sm:text-sm font-bold text-[#0B1F44] dark:text-white truncate">
+      <div className="text-xs sm:text-sm font-bold text-[#0B1B3F] dark:text-white truncate">
         {value}
       </div>
     </div>

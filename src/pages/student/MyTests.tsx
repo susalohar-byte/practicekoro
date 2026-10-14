@@ -26,6 +26,7 @@ import { StudentLoading, StudentLoadError } from '@/components/student/StudentLo
 import { getErrorMessage } from '@/lib/errors';
 import { filterStudentAttempts } from '@/utils/studentResults';
 import { cn } from '@/lib/utils';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
 
 // ==========================================
 // TYPES & DATA
@@ -429,85 +430,85 @@ export const MyTests: React.FC = () => {
     return <StudentLoadError message={loadError} onRetry={() => void loadAttempts()} />;
 
   return (
-    <div className="space-y-4 pb-12 font-sans select-none">
-      {/* ── 1. SCREEN TITLE & SUBTITLE (APP 1:1) ── */}
-      <div>
-        <h1 className="text-[28px] font-black text-[#051A43] dark:text-white tracking-[-0.6px] leading-[1.15]">
-          Results
-        </h1>
-        <p className="text-[12.5px] font-medium text-[#64748B] dark:text-slate-400 mt-1">
-          Track your performance and improve
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <PageHeader
+          eyebrow="Performance History"
+          title="Results & Analytics"
+          subtitle="Track your scores, accuracy, percentile ranks, and topic-wise strengths across exams"
+          icon={BarChart3}
+          actions={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 hidden sm:inline">Period:</span>
+              <select
+                aria-label="Reporting period"
+                value={selectedTimeRange}
+                onChange={(e) => {
+                  setSelectedTimeRange(e.target.value as TimeRange);
+                  setShowAll(false);
+                }}
+                className="min-h-10 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 px-3 py-1.5 shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#026BFC]/20"
+              >
+                {(['Last 3 Months', 'This Month', 'This Year', 'All Time'] as TimeRange[]).map(
+                  (range) => (
+                    <option key={range} value={range}>{range}</option>
+                  )
+                )}
+              </select>
+            </div>
+          }
+        />
 
-      <label className="flex flex-wrap items-center gap-3 text-sm font-medium">
-        Reporting period
-        <select
-          aria-label="Reporting period"
-          value={selectedTimeRange}
-          onChange={(e) => {
-            setSelectedTimeRange(e.target.value as TimeRange);
-            setShowAll(false);
-          }}
-          className="min-h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3"
-        >
-          {(['Last 3 Months', 'This Month', 'This Year', 'All Time'] as TimeRange[]).map(
-            (range) => (
-              <option key={range}>{range}</option>
-            )
-          )}
-        </select>
-      </label>
-      {selectedFilter === 'Live Tests' && (
-        <p role="status" className="text-sm text-slate-600 dark:text-slate-300">
-          Live-event results are not available in this report. Ordinary mock attempts are not shown
-          as live tests.
-        </p>
-      )}
-      {/* ── 2. FILTER PILLS (APP 1:1) ── */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-        {filters.map((filter) => {
-          const isSelected = selectedFilter === filter;
-          return (
-            <button
-              key={filter}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => {
-                setSelectedFilter(filter);
-                setShowAll(false);
-              }}
-              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
-                isSelected
-                  ? 'bg-[#026BFC] text-white shadow-md shadow-[#026BFC]/25 border border-[#026BFC]'
-                  : 'bg-white dark:bg-slate-900 text-[#475569] dark:text-slate-300 border border-[#E2ECF8] dark:border-slate-800 hover:border-blue-200'
-              }`}
-            >
-              {filter}
-            </button>
-          );
-        })}
-      </div>
+        {selectedFilter === 'Live Tests' && (
+          <p role="status" className="text-xs text-slate-500 dark:text-slate-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 rounded-xl p-3">
+            Live-event results are tracked in the statewide live leaderboard. Ordinary mock attempts are not shown as live tests.
+          </p>
+        )}
 
-      {/* ── 3 & 4. PERFORMANCE CARDS (Desktop 2-column grid in Overview) ── */}
-      {(selectedFilter === 'Overview' ||
-        selectedFilter === 'Mock Tests' ||
-        selectedFilter === 'Practice Tests') && (
-        <div
-          className={cn(
-            'grid gap-4 sm:gap-5 items-stretch',
-            selectedFilter === 'Overview' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
-          )}
-        >
-          {/* ── 3. TOTAL PERFORMANCE CARD (APP 1:1) ── */}
-          {(selectedFilter === 'Overview' || selectedFilter === 'Mock Tests') && (
-            <div className="bg-white dark:bg-slate-900 rounded-[20px] p-4 sm:p-5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_3px_10px_rgba(11,31,91,0.03)] space-y-4 h-full flex flex-col justify-between">
-              {/* Header Row: Title & Subtitle + Time Dropdown */}
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
-                    Total Performance
-                  </h2>
+        {/* ── 2. FILTER PILLS ── */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          {filters.map((filter) => {
+            const isSelected = selectedFilter === filter;
+            return (
+              <button
+                key={filter}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setSelectedFilter(filter);
+                  setShowAll(false);
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#026BFC] text-white shadow-md shadow-[#026BFC]/25 border border-[#026BFC]'
+                    : 'bg-white dark:bg-slate-900 text-[#475569] dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200'
+                }`}
+              >
+                {filter}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── 3 & 4. PERFORMANCE CARDS (Desktop 2-column grid in Overview) ── */}
+        {(selectedFilter === 'Overview' ||
+          selectedFilter === 'Mock Tests' ||
+          selectedFilter === 'Practice Tests') && (
+          <div
+            className={cn(
+              'grid gap-4 sm:gap-5 items-stretch',
+              selectedFilter === 'Overview' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+            )}
+          >
+            {/* ── 3. TOTAL PERFORMANCE CARD ── */}
+            {(selectedFilter === 'Overview' || selectedFilter === 'Mock Tests') && (
+              <div className={cn(studentCard, "p-5 sm:p-6 space-y-4 h-full flex flex-col justify-between")}>
+                {/* Header Row: Title & Subtitle */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
+                      Total Performance
+                    </h2>
                   <p className="text-[11px] font-medium text-[#64748B] dark:text-slate-400 mt-0.5">
                     Based on {computedMetrics.totalTests} tests across all exams
                   </p>
@@ -668,9 +669,9 @@ export const MyTests: React.FC = () => {
             </div>
           )}
 
-          {/* ── 4. SUBJECT-WISE PERFORMANCE CARD (APP 1:1) ── */}
+          {/* ── 4. SUBJECT-WISE PERFORMANCE CARD ── */}
           {(selectedFilter === 'Overview' || selectedFilter === 'Practice Tests') && (
-            <div className="bg-white dark:bg-slate-900 rounded-[20px] p-4 sm:p-5 border border-[#E8EEF7] dark:border-slate-800 shadow-[0_3px_10px_rgba(11,31,91,0.03)] space-y-3.5 h-full flex flex-col justify-between">
+            <div className={cn(studentCard, "p-5 sm:p-6 space-y-3.5 h-full flex flex-col justify-between")}>
               {/* Header Row */}
               <div className="flex items-center justify-between">
                 <h2 className="text-[17.5px] font-black text-[#051A43] dark:text-white tracking-[-0.3px]">
@@ -975,6 +976,7 @@ export const MyTests: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

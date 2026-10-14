@@ -6,15 +6,17 @@ import {
   MapPin,
   Calendar,
   ChevronDown,
-  ChevronRight,
   CheckCircle2,
   ArrowRight,
   TrendingUp,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import type { TestAttempt } from '@/types';
 import { WEST_BENGAL_DISTRICTS } from '@/data/districts';
+import { PageHeader, studentCard } from '@/components/student/StudentUI';
+import { cn } from '@/lib/utils';
 
 interface LeaderboardUser {
   rank: number;
@@ -296,39 +298,43 @@ export const Rank: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 text-slate-900 dark:text-slate-100">
-      {/* 1. Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-        <Link to="/home" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          Home
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-        <span className="text-slate-800 dark:text-slate-200 font-bold">Leaderboard</span>
-      </nav>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 pb-24 font-sans transition-colors">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <PageHeader
+          eyebrow="State & District Standings"
+          title="Leaderboard & Rankings"
+          subtitle="Compete with top aspirants across West Bengal, track consistency, and climb the ranks"
+          icon={Trophy}
+          actions={
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  aria-label="Filter by time period"
+                  className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-8 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#026BFC]/20 shadow-2xs cursor-pointer"
+                >
+                  <option value="This Month">This Month</option>
+                  <option value="This Week">This Week</option>
+                  <option value="All Time">All Time</option>
+                </select>
+                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#026BFC]" />
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              </div>
+            </div>
+          }
+        />
 
-      {/* 2. Page Header with Trophy Illustration */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="max-w-xl space-y-1">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">
-            Leaderboard
-          </h1>
-          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 leading-snug">
-            Compete, stay consistent and climb the ranks!
-          </p>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <span>Your hard work today builds a brighter tomorrow.</span>
-            <span className="text-blue-500">💙</span>
-          </p>
-
-          {/* Filter Dropdown Pills directly under Header */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-3">
+        {/* Filter Controls Row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Exam Selector */}
             <div className="relative">
               <select
                 value={selectedExam}
                 onChange={(e) => setSelectedExam(e.target.value)}
                 aria-label="Filter by exam"
-                className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-9 pr-9 py-2 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs cursor-pointer"
+                className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 pl-8 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#026BFC]/20 cursor-pointer"
               >
                 {availableExams.map(({ title }) => (
                   <option key={title} value={title}>
@@ -336,10 +342,10 @@ export const Rank: React.FC = () => {
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 rounded-md bg-blue-100 dark:bg-blue-900/60 text-[#026BFC] dark:text-blue-300 font-bold text-[10px] flex items-center justify-center">
+              <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 rounded-md bg-blue-100 dark:bg-blue-900/60 text-[#026BFC] dark:text-blue-300 font-bold text-[9px] flex items-center justify-center">
                 WB
               </div>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             </div>
 
             {/* Scope Selector */}
@@ -348,14 +354,14 @@ export const Rank: React.FC = () => {
                 value={selectedScope}
                 onChange={(e) => setSelectedScope(e.target.value)}
                 aria-label="Filter by region scope"
-                className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-9 pr-9 py-2 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs cursor-pointer"
+                className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 pl-8 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#026BFC]/20 cursor-pointer"
               >
                 <option value="West Bengal">Statewide (West Bengal)</option>
                 <option value="District">District Wise</option>
                 <option value="All India">All India</option>
               </select>
-              <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#026BFC]" />
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Globe className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#026BFC]" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             </div>
 
             {/* District Selector (visible when District is selected) */}
@@ -365,7 +371,7 @@ export const Rank: React.FC = () => {
                   value={selectedDistrict}
                   onChange={(e) => setSelectedDistrict(e.target.value)}
                   aria-label="Select West Bengal District"
-                  className="appearance-none rounded-xl border-2 border-[#026BFC] bg-blue-50/80 dark:bg-blue-950/60 pl-9 pr-9 py-2 text-xs sm:text-sm font-black text-[#026BFC] dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-xs cursor-pointer"
+                  className="appearance-none rounded-xl border-2 border-[#026BFC] bg-blue-50/80 dark:bg-blue-950/60 pl-8 pr-8 py-1.5 text-xs font-black text-[#026BFC] dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
                 >
                   {WEST_BENGAL_DISTRICTS.map((dist) => (
                     <option key={dist} value={dist}>
@@ -373,38 +379,16 @@ export const Rank: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#026BFC]" />
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#026BFC]" />
+                <MapPin className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#026BFC]" />
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#026BFC]" />
               </div>
             )}
+          </div>
 
-            {/* Period Selector */}
-            <div className="relative">
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                aria-label="Filter by time period"
-                className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-9 pr-9 py-2 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs cursor-pointer"
-              >
-                <option value="This Month">This Month</option>
-                <option value="This Week">This Week</option>
-                <option value="All Time">All Time</option>
-              </select>
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#026BFC]" />
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            </div>
+          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            Updated in real-time based on verified attempts
           </div>
         </div>
-
-        {/* Top Right Exact Hero Trophy Art */}
-        <div className="relative shrink-0 flex items-center justify-end">
-          <img
-            src="/images/leaderboard_hero_art_exact.png"
-            alt="Leaderboard Trophy - Same Dream Bigger Preparation - Top Aspirants Stronger Bengal"
-            className="h-28 sm:h-36 lg:h-40 w-auto object-contain select-none pointer-events-none drop-shadow-xs"
-          />
-        </div>
-      </div>
 
       {/* District Active Filter Bar */}
       {selectedScope === 'District' && (
@@ -692,7 +676,7 @@ export const Rank: React.FC = () => {
       {/* 4. Main Two-Column Grid: Rankings Table (Left) + Side Cards (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
         {/* LEFT COLUMN: Rankings Table (Col-span 8) */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+        <div className={cn("lg:col-span-8 overflow-hidden", studentCard)}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -1010,6 +994,7 @@ export const Rank: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -573,7 +573,7 @@ export const TestRunner: React.FC = () => {
                     onClick={() => handleSelectOption(optKey)}
                     className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-3.5 select-none ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 shadow-xs'
+                        ? 'border-[#026BFC] bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 shadow-xs'
                         : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200'
                     }`}
                   >
@@ -581,7 +581,7 @@ export const TestRunner: React.FC = () => {
                     <div
                       className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
                         isSelected
-                          ? 'bg-blue-600 text-white shadow-xs'
+                          ? 'bg-[#026BFC] text-white shadow-xs'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
                       }`}
                     >
@@ -618,7 +618,7 @@ export const TestRunner: React.FC = () => {
                     setShowSubmitModal(true);
                   }
                 }}
-                className="py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-transform active:scale-[0.98]"
+                className="py-3 rounded-2xl bg-[#026BFC] hover:bg-[#0256ca] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-transform active:scale-[0.98]"
               >
                 {currentIndex < questions.length - 1 ? 'Next >' : 'Finish Test'}
               </button>
