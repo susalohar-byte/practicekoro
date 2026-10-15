@@ -82,7 +82,6 @@ async function bootstrap(): Promise<void> {
       { AuthProvider },
       { ThemeProvider },
       { MaintenanceProvider },
-      { LanguageProvider },
       { ErrorBoundary },
       { App },
       { HelmetProvider },
@@ -95,7 +94,6 @@ async function bootstrap(): Promise<void> {
       import('@/context/AuthContext'),
       import('@/context/ThemeContext'),
       import('@/context/MaintenanceContext'),
-      import('@/context/LanguageContext'),
       import('@/components/common/ErrorBoundary'),
       import('./App'),
       import('react-helmet-async'),
@@ -117,20 +115,18 @@ async function bootstrap(): Promise<void> {
       <React.StrictMode>
         <HelmetProvider>
           <ErrorBoundary area="PracticeKoro">
-            <LanguageProvider>
-              <QueryClientProvider client={queryClient}>
-                <BrowserRouter>
-                  <ThemeProvider>
-                    <AuthProvider>
-                      <MaintenanceProvider>
-                        <PlatformRuntimeSettings />
-                        <App />
-                      </MaintenanceProvider>
-                    </AuthProvider>
-                  </ThemeProvider>
-                </BrowserRouter>
-              </QueryClientProvider>
-            </LanguageProvider>
+            <QueryClientProvider client={queryClient}>
+              <BrowserRouter>
+                <ThemeProvider>
+                  <AuthProvider>
+                    <MaintenanceProvider>
+                      <PlatformRuntimeSettings />
+                      <App />
+                    </MaintenanceProvider>
+                  </AuthProvider>
+                </ThemeProvider>
+              </BrowserRouter>
+            </QueryClientProvider>
           </ErrorBoundary>
         </HelmetProvider>
       </React.StrictMode>

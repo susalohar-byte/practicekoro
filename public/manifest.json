@@ -1,9 +1,9 @@
 {
     "id": "practice-koro-pwa-v2",
-    "name": "Practice Koro",
-    "short_name": "PracticeKoro",
-    "description": "পশ্চিমবঙ্গের #1 Mock Test Platform - WBSSC Group C, Group D, WBP, WBCS, Railway, SSC সরকারি চাকরির পরীক্ষার প্রস্তুতি",
-    "start_url": "/",
+    "name": "PracticeKoro Admin",
+    "short_name": "PK Admin",
+    "description": "PracticeKoro administration console",
+    "start_url": "/admin",
     "display": "standalone",
     "display_override": [
         "window-controls-overlay",
@@ -55,7 +55,7 @@
         {
             "name": "Dashboard",
             "short_name": "Dashboard",
-            "url": "/dashboard",
+            "url": "/admin",
             "icons": [
                 {
                     "src": "/icons/icon-96x96.png",
@@ -64,9 +64,9 @@
             ]
         },
         {
-            "name": "Exams",
-            "short_name": "Exams",
-            "url": "/exams",
+            "name": "Settings",
+            "short_name": "Settings",
+            "url": "/admin/settings",
             "icons": [
                 {
                     "src": "/icons/icon-96x96.png",

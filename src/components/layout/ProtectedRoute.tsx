@@ -27,7 +27,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" state={{ adminRequired: true }} replace />;
   }
 
   // Check sub-role permission if requested
@@ -92,7 +92,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
   return <>{children}</>;
 };
 
-/** Redirects already-authenticated users away from public auth pages. */
+/** Redirect admins to the console while allowing other accounts to switch to an admin login. */
 export const PublicOnlyRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isAdmin, loading } = useAuth();
 
@@ -104,10 +104,7 @@ export const PublicOnlyRoute: React.FC<ProtectedRouteProps> = ({ children }) => 
     );
   }
 
-  // Admins go directly to the admin panel; other authenticated users return to the public site.
-  if (user) {
-    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
-  }
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
 
   return <>{children}</>;
 };

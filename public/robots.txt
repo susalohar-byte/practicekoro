@@ -1,21 +1,2 @@
 User-agent: *
-Allow: /
-Allow: /questions
-Allow: /questions/*
-Allow: /test-series
-Allow: /terms
-Allow: /privacy
-Allow: /refund-policy
-Allow: /contact-us
-
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /dashboard
-Disallow: /profile
-Disallow: /settings
-Disallow: /results
-Disallow: /saved-questions
-Disallow: /login
-Disallow: /register
-
-Sitemap: https://practicekoro.online/sitemap.xml
+Disallow: /

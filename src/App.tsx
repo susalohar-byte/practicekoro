@@ -5,22 +5,6 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { AdminRoute, PublicOnlyRoute } from '@/components/layout/ProtectedRoute';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 
-// Public SEO Pages (no auth required, Google-indexable)
-const QuestionPage = lazyWithRetry(() =>
-  import('@/pages/public/QuestionPage').then((module) => ({ default: module.QuestionPage }))
-);
-const QuestionsListing = lazyWithRetry(() =>
-  import('@/pages/public/QuestionsListing').then((module) => ({
-    default: module.QuestionsListing,
-  }))
-);
-const SitemapPage = lazyWithRetry(() =>
-  import('@/pages/public/SitemapPage').then((module) => ({ default: module.SitemapPage }))
-);
-
-const Landing = lazyWithRetry(() =>
-  import('@/pages/Landing').then((module) => ({ default: module.Landing }))
-);
 const Login = lazyWithRetry(() =>
   import('@/pages/auth/Login').then((module) => ({ default: module.Login }))
 );
@@ -29,26 +13,6 @@ const ForgotPassword = lazyWithRetry(() =>
 );
 const ResetPassword = lazyWithRetry(() =>
   import('@/pages/auth/ResetPassword').then((module) => ({ default: module.ResetPassword }))
-);
-const TermsAndConditions = lazyWithRetry(() =>
-  import('@/pages/legal/TermsAndConditions').then((module) => ({
-    default: module.TermsAndConditions,
-  }))
-);
-const PrivacyPolicy = lazyWithRetry(() =>
-  import('@/pages/legal/PrivacyPolicy').then((module) => ({
-    default: module.PrivacyPolicy,
-  }))
-);
-const RefundPolicy = lazyWithRetry(() =>
-  import('@/pages/legal/RefundPolicy').then((module) => ({
-    default: module.RefundPolicy,
-  }))
-);
-const ContactUs = lazyWithRetry(() =>
-  import('@/pages/legal/ContactUs').then((module) => ({
-    default: module.ContactUs,
-  }))
 );
 const AdminDashboard = lazyWithRetry(() =>
   import('@/pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard }))
@@ -182,29 +146,12 @@ const AdminBlog = lazyWithRetry(() =>
   }))
 );
 
-/**
- * RootRoute:
- * - Keeps the public landing page as the website entry point.
- * - The public landing page remains the entry point; only administration is
- *   available as an authenticated web application at `/admin`.
- */
-const RootRoute: React.FC = () => {
-  return <Landing />;
-};
-
 export const App: React.FC = () => {
   return (
     <React.Suspense fallback={<AppRouteLoadingFallback />}>
       <Routes>
-        {/* Root Route (public Landing Page for guests and signed-in users alike) */}
-        <Route path="/" element={<RootRoute />} />
-        {/* Legacy alias: canonical landing URL is `/` */}
-        <Route path="/landing" element={<Navigate to="/" replace />} />
-        {/* Public SEO Question Pages (Google-indexable, no auth) */}
-        <Route path="/questions" element={<QuestionsListing />} />
-        <Route path="/questions/:questionId/:slug" element={<QuestionPage />} />
-        <Route path="/questions/:questionId" element={<QuestionPage />} />
-        <Route path="/sitemap" element={<SitemapPage />} />
+        {/* The admin console is the only application surface. */}
+        <Route path="/" element={<Navigate to="/admin" replace />} />
 
         {/* Auth Public-Only Routes */}
         <Route
@@ -217,18 +164,6 @@ export const App: React.FC = () => {
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Public Legal & Compliance Routes (Razorpay & Statutory Policies) */}
-        <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/refund-policy" element={<RefundPolicy />} />
-        <Route path="/cancellation-refund" element={<RefundPolicy />} />
-        <Route path="/refund" element={<RefundPolicy />} />
-        <Route path="/refunds" element={<RefundPolicy />} />
-        <Route path="/contact-us" element={<ContactUs />} />
-        <Route path="/contact" element={<ContactUs />} />
 
         {/* Admin Protected Routes */}
         <Route
@@ -523,8 +458,8 @@ export const App: React.FC = () => {
           <Route path="pro-users" element={<Navigate to="/admin/subscriptions" replace />} />
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Keep deep links inside the admin surface. */}
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </React.Suspense>
   );

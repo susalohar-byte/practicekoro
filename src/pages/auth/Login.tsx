@@ -18,8 +18,18 @@ export const Login: React.FC = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname;
+  const routeState = location.state as {
+    from?: { pathname?: string };
+    adminRequired?: boolean;
+  } | null;
+  const from = routeState?.from?.pathname;
   const isFromAdmin = Boolean(from && from.startsWith('/admin'));
+
+  useEffect(() => {
+    if (routeState?.adminRequired) {
+      setError('This account does not have access to the admin panel.');
+    }
+  }, [routeState?.adminRequired]);
 
   // Catch any OAuth redirect error parameters
   useEffect(() => {
@@ -34,8 +44,7 @@ export const Login: React.FC = () => {
     setIsGoogleLoading(true);
     setError(null);
 
-    const redirectPath =
-      from && from !== '/' && from !== '/login' && !isFromAdmin ? from : isFromAdmin ? '/admin' : '/';
+    const redirectPath = isFromAdmin ? from! : '/admin';
     const redirectDest = `${window.location.origin}${redirectPath}`;
 
     const res = await loginWithGoogle(redirectDest);
@@ -71,8 +80,7 @@ export const Login: React.FC = () => {
         const adminDest = from && from !== '/' && from !== '/login' ? from : '/admin';
         navigate(adminDest, { replace: true });
       } else {
-        const dest = from && from !== '/' && !isFromAdmin ? from : '/';
-        navigate(dest, { replace: true });
+        setError('This account does not have access to the admin panel.');
       }
     }
   };
@@ -80,7 +88,7 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="inline-flex items-center justify-center mb-3">
+        <Link to="/admin" className="inline-flex items-center justify-center mb-3">
           <img
             src="/logo-transparent.png"
             alt="PracticeKoro"

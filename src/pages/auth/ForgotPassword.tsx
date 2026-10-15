@@ -37,7 +37,7 @@ export const ForgotPassword: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="inline-flex items-center justify-center mb-3">
+        <Link to="/admin" className="inline-flex items-center justify-center mb-3">
           <img
             src="/logo-transparent.png"
             alt="PracticeKoro"

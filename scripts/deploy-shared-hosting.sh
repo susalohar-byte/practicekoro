@@ -53,9 +53,6 @@ echo "  [ok] .env has Supabase URL + anon key (will be baked into bundle)"
 echo "==> [1/4] Running quality gate (typecheck + lint + tests + build) ..."
 npm run typecheck && npm run lint && npm test && npm run build
 
-echo "==> [1b/4] Generating SEO prerendered question pages & sitemap.xml ..."
-node scripts/prerender.mjs || node scripts/generate-sitemap.mjs
-
 # --- 2. Package -----------------------------------------------------------------
 STAMP=$(date +%Y%m%d-%H%M%S)
 RELEASE_DIR="$ROOT_DIR/release"
@@ -114,7 +111,7 @@ cat <<'EOF'
         SUPABASE_DB_PASSWORD="..." bash scripts/apply-migrations-prod.sh
   [ ] Verify data layer (read-only):
         SUPABASE_DB_PASSWORD="..." bash scripts/verify-data-layer.sh
-  [ ] Smoke test: /  /login  /dashboard  /exams  /practice  /admin
+  [ ] Smoke test: /  /login  /forgot-password  /admin  /admin/settings
   [ ] Hard-refresh (Ctrl/Cmd+Shift+R) — index.html is no-cache, assets immutable
 EOF
 

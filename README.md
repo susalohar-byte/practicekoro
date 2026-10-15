@@ -5,19 +5,17 @@
 [![Live App](https://img.shields.io/badge/Live_App-practicekoro.online-2563eb)](https://practicekoro.online)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-PracticeKoro is a bilingual public information and administration platform for West Bengal
-competitive examinations. The website provides public exam and question resources alongside
-an administration CMS for managing exams, questions, tests, banners, and content.
+PracticeKoro Admin is the administration console for managing exams, question banks, tests,
+banners, students, subscriptions, support, and platform settings.
 
-[Open the live application →](https://practicekoro.online)
+[Open the administration console →](https://practicekoro.online/admin)
 
 ![PracticeKoro homepage preview](docs/homepage-preview.webp)
 
 ## Highlights
 
-- Bengali-first and English learning experience
-- Public exam and question resources
-- Administration CMS for exams, questions, tests, banners and content
+- Administration CMS for exams, questions, tests, banners, students, and content
+- Subscription, payment, support, notification, and audit tools
 - Supabase Row Level Security (RLS) assertions and automated quality checks
 
 ## Stack
@@ -31,18 +29,16 @@ an administration CMS for managing exams, questions, tests, banners, and content
 ## Architecture
 
 ```text
-Public React + TypeScript website ─┐
-                                   ├─ Supabase Auth + PostgreSQL + RLS
-Admin CMS ─────────────────────────┘             │
-                                                 ├─ Edge Functions
-                                                 └─ Razorpay payment verification
+React + TypeScript admin console ── Supabase Auth + PostgreSQL + RLS
+                                   ├─ Edge Functions
+                                   └─ Razorpay payment verification
 ```
 
 ## Repository layout
 
 | Path                   | Purpose                                        |
 | ---------------------- | ---------------------------------------------- |
-| `src/`                 | React web application, services and unit tests |
+| `src/`                 | Admin console, services and unit tests         |
 | `supabase/migrations/` | Ordered database migrations                    |
 | `supabase/functions/`  | Server-side Edge Functions                     |
 | `supabase/tests/`      | Database and RLS security assertions           |

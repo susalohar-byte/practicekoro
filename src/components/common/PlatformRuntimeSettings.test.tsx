@@ -11,7 +11,6 @@ vi.mock('@/context/MaintenanceContext', () => ({
 }));
 vi.mock('@/context/ThemeContext', () => ({ useTheme: () => ({ setPlatformDefault: m.apply }) }));
 import { PlatformRuntimeSettings } from './PlatformRuntimeSettings';
-import { SEOHead } from '@/components/seo/SEOHead';
 beforeEach(() => {
   m.settings = [];
   m.apply.mockReset();
@@ -50,7 +49,7 @@ it('renders saved defaults, verification token, theme and an allowlisted font', 
   expect(document.documentElement.style.getPropertyValue('--font-sans')).toBe('');
   old.remove();
 });
-it('keeps page-specific SEO authoritative and removes cleared verification', async () => {
+it('removes cleared verification settings', async () => {
   m.settings = [
     { id: 'seo_meta_title', value: 'Default Title' },
     { id: 'seo_google_tag', value: 'safe_token_fixture' },
@@ -58,15 +57,13 @@ it('keeps page-specific SEO authoritative and removes cleared verification', asy
   const r = render(
     <HelmetProvider>
       <PlatformRuntimeSettings />
-      <SEOHead title="Question-specific Title" description="Question-specific description" />
     </HelmetProvider>
   );
-  await waitFor(() => expect(document.title).toBe('Question-specific Title'));
+  await waitFor(() => expect(document.title).toBe('Default Title'));
   m.settings = [];
   r.rerender(
     <HelmetProvider>
       <PlatformRuntimeSettings />
-      <SEOHead title="Question-specific Title" description="Question-specific description" />
     </HelmetProvider>
   );
   await waitFor(() =>

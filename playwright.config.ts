@@ -22,7 +22,7 @@ export default defineConfig({
     // Hermetic E2E build: the Supabase vars are blanked so isSupabaseConfigured
     // is false and the app uses its in-memory demo engine. Otherwise Vite would
     // inherit the real credentials from .env, the RPCs would be called without
-    // an authenticated session and every student-flow test would fail.
+    // an authenticated session and every authenticated-route test would fail.
     // The demo flag is set inline as well as via env so it can never be skipped.
     command: `VITE_ENABLE_DEMO_MODE=true VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npm run build && npm run preview -- --host 127.0.0.1 --port ${E2E_PORT} --strictPort`,
     url: E2E_BASE_URL,
