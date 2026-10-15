@@ -10,8 +10,6 @@ banners, students, subscriptions, support, and platform settings.
 
 [Open the administration console →](https://practicekoro.online/admin)
 
-![PracticeKoro homepage preview](docs/homepage-preview.webp)
-
 ## Highlights
 
 - Administration CMS for exams, questions, tests, banners, students, and content
