@@ -34,10 +34,9 @@ export const Login: React.FC = () => {
     setIsGoogleLoading(true);
     setError(null);
 
-    const redirectDest =
-      from && from !== '/' && from !== '/login' && !isFromAdmin
-        ? `${window.location.origin}${from}`
-        : `${window.location.origin}/dashboard`;
+    const redirectPath =
+      from && from !== '/' && from !== '/login' && !isFromAdmin ? from : isFromAdmin ? '/admin' : '/';
+    const redirectDest = `${window.location.origin}${redirectPath}`;
 
     const res = await loginWithGoogle(redirectDest);
     setIsGoogleLoading(false);
@@ -46,7 +45,7 @@ export const Login: React.FC = () => {
       setError(mapAuthError(res.error, 'Google sign-in failed. Please try again.'));
     } else {
       // In demo mode or if session was resolved synchronously without page reload
-      const dest = from && from !== '/' && !isFromAdmin ? from : '/dashboard';
+      const dest = redirectPath;
       navigate(dest, { replace: true });
     }
   };
@@ -72,7 +71,7 @@ export const Login: React.FC = () => {
         const adminDest = from && from !== '/' && from !== '/login' ? from : '/admin';
         navigate(adminDest, { replace: true });
       } else {
-        const dest = from && from !== '/' && !isFromAdmin ? from : '/dashboard';
+        const dest = from && from !== '/' && !isFromAdmin ? from : '/';
         navigate(dest, { replace: true });
       }
     }
@@ -88,9 +87,9 @@ export const Login: React.FC = () => {
             className="h-11 sm:h-12 w-auto object-contain"
           />
         </Link>
-        <h2 className="text-xl font-black text-pk-navy">Sign in to your account</h2>
+        <h2 className="text-xl font-black text-pk-navy">Admin sign in</h2>
         <p className="mt-1 text-xs text-slate-500">
-          West Bengal Competitive Exam Mock & Practice Platform
+          PracticeKoro administration
         </p>
       </div>
 
@@ -171,15 +170,6 @@ export const Login: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-600">
-            Don&apos;t have an account?{' '}
-            <Link
-              to="/register"
-              className="font-bold text-pk-primary hover:text-pk-primary-interactive transition-colors"
-            >
-              Create an account
-            </Link>
-          </div>
         </div>
       </div>
     </div>

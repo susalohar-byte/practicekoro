@@ -171,12 +171,6 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null; role?: UserRole }>;
   loginWithGoogle: (targetRedirect?: string) => Promise<{ error: Error | null }>;
-  register: (
-    fullName: string,
-    email: string,
-    password: string,
-    district?: string
-  ) => Promise<{ error: Error | null; role?: UserRole; needsConfirmation?: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (updates: {
     fullName?: string;
@@ -324,8 +318,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string
   ): Promise<{ error: Error | null; role?: UserRole }> => {
     // NOTE: do NOT toggle the global `loading` flag here. Route guards
-    // (ProtectedRoute/AdminRoute/PublicOnlyRoute) replace their children with
-    // a spinner while loading is true, which would unmount the Login/Register
+    // (AdminRoute/PublicOnlyRoute) replace their children with
+    // a spinner while loading is true, which would unmount the Login form
     // form mid-submit and silently discard the result/error. Those pages show
     // their own local progress state instead. `loading` is only for the
     // initial session bootstrap in the effect above.
@@ -367,7 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      const redirectUri = targetRedirect || `${window.location.origin}/dashboard`;
+      const redirectUri = targetRedirect || `${window.location.origin}/`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -385,57 +379,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       return { error: null };
-    } catch (err: unknown) {
-      return { error: err as Error };
-    }
-  };
-
-  const register = async (
-    fullName: string,
-    email: string,
-    password: string,
-    district?: string
-  ): Promise<{ error: Error | null; role?: UserRole; needsConfirmation?: boolean }> => {
-    // NOTE: same as login() — do not toggle global `loading` (see above).
-    try {
-      if (!isSupabaseConfigured) {
-        return {
-          error: new Error('Authentication service is not configured. Please try again later.'),
-        };
-      }
-
-      const cleanEmail = email.trim();
-      const cleanName = fullName.trim();
-      const cleanDistrict = district?.trim() || null;
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            full_name: cleanName,
-            ...(cleanDistrict ? { district: cleanDistrict } : {}),
-          },
-        },
-      });
-
-      if (error) return { error };
-
-      // Registration never grants staff privileges.
-      const registeredRole: UserRole = 'student';
-
-      // Email confirmation ON (production default): Supabase returns a user
-      // but NO session. Never mark the visitor logged in without a session —
-      // that fake state breaks every authenticated call afterwards.
-      if (data.user && !data.session) {
-        return { error: null, role: registeredRole, needsConfirmation: true };
-      }
-
-      if (data.user && data.session) {
-        const newUser = await resolveUserProfile(data.user);
-        setUser(newUser);
-        localStorage.setItem('practicekoro_user', JSON.stringify(newUser));
-      }
-      return { error: null, role: registeredRole };
     } catch (err: unknown) {
       return { error: err as Error };
     }
@@ -629,7 +572,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login,
         loginWithGoogle,
-        register,
         logout,
         updateProfile,
         refreshProStatus,

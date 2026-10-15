@@ -2125,13 +2125,13 @@ export const AdminSubjects: React.FC = () => {
                   </button>
 
                   <a
-                    href={`/practice?subject_filter=${encodeURIComponent(selectedSubject.name)}`}
+                    href={`/admin/question-bank?subjectId=${encodeURIComponent(selectedSubject.id)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 py-2.5 px-3 rounded-xl border border-[#BFDBFE] bg-white text-[#026BFC] hover:bg-blue-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-[#026BFC]" />
-                    View on Website
+                    View Question Bank
                   </a>
                 </div>
               </div>

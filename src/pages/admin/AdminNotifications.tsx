@@ -1238,7 +1238,7 @@ export const AdminNotifications: React.FC = () => {
             projectId,
             title: formTitle.trim(),
             body: formMessage.trim(),
-            actionUrl: formActionLink.trim() || 'https://practicekoro.online/dashboard',
+            actionUrl: formActionLink.trim() || 'https://practicekoro.online/',
             topic:
               formAudience === 'Pro Members'
                 ? 'pro_students'

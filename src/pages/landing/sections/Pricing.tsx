@@ -1,11 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Reveal } from './Reveal';
 import { Crown, ArrowRight, BarChart3, Target, FileText, Zap, ShieldCheck } from 'lucide-react';
 
 export const Pricing: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <section
       id="pro-pass"
@@ -137,10 +134,10 @@ export const Pricing: React.FC = () => {
               <div className="flex flex-col items-center md:items-end gap-2.5 w-full md:w-auto z-10">
                 <button
                   type="button"
-                  onClick={() => navigate('/subscription')}
+                  onClick={() => document.getElementById('app-install')?.scrollIntoView({ behavior: 'smooth' })}
                   className="w-full sm:w-auto min-w-0 sm:min-w-[240px] inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-white hover:bg-slate-50 text-[#0062FF] font-black text-sm sm:text-base shadow-xl shadow-black/10 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 >
-                  <span>Get Pro Now</span>
+                  <span>Get the App</span>
                   <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />
                 </button>
                 <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-blue-100 font-medium">

@@ -1,9 +1,8 @@
 import { AppRouteLoadingFallback } from '@/components/admin/AdminSkeleton';
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { ProtectedRoute, AdminRoute, PublicOnlyRoute } from '@/components/layout/ProtectedRoute';
+import { AdminRoute, PublicOnlyRoute } from '@/components/layout/ProtectedRoute';
 import { lazyWithRetry } from '@/utils/lazyWithRetry';
 
 // Public SEO Pages (no auth required, Google-indexable)
@@ -22,74 +21,8 @@ const SitemapPage = lazyWithRetry(() =>
 const Landing = lazyWithRetry(() =>
   import('@/pages/Landing').then((module) => ({ default: module.Landing }))
 );
-const Home = lazyWithRetry(() =>
-  import('@/pages/student/Home').then((module) => ({ default: module.Home }))
-);
-const TestSeriesCatalog = lazyWithRetry(() =>
-  import('@/pages/student/TestSeriesCatalog').then((module) => ({
-    default: module.TestSeriesCatalog,
-  }))
-);
-const TestSeriesDetail = lazyWithRetry(() =>
-  import('@/pages/student/TestSeriesDetail').then((module) => ({
-    default: module.TestSeriesDetail,
-  }))
-);
-const ExamDetail = lazyWithRetry(() =>
-  import('@/pages/student/ExamDetail').then((module) => ({ default: module.ExamDetail }))
-);
-const ExamOrTestDispatcher = lazyWithRetry(() =>
-  import('@/pages/student/ExamOrTestDispatcher').then((module) => ({
-    default: module.ExamOrTestDispatcher,
-  }))
-);
-const TestRunner = lazyWithRetry(() =>
-  import('@/pages/student/TestRunner').then((module) => ({ default: module.TestRunner }))
-);
-const TestResult = lazyWithRetry(() =>
-  import('@/pages/student/TestResult').then((module) => ({ default: module.TestResult }))
-);
-const TestSolutions = lazyWithRetry(() =>
-  import('@/pages/student/TestSolutions').then((module) => ({ default: module.TestSolutions }))
-);
-const Practice = lazyWithRetry(() =>
-  import('@/pages/student/Practice').then((module) => ({ default: module.Practice }))
-);
-const MyTests = lazyWithRetry(() =>
-  import('@/pages/student/MyTests').then((module) => ({ default: module.MyTests }))
-);
-const Profile = lazyWithRetry(() =>
-  import('@/pages/student/Profile').then((module) => ({ default: module.Profile }))
-);
-const Settings = lazyWithRetry(() =>
-  import('@/pages/student/Settings').then((module) => ({ default: module.Settings }))
-);
-const Subscription = lazyWithRetry(() =>
-  import('@/pages/student/Subscription').then((module) => ({ default: module.Subscription }))
-);
-const Support = lazyWithRetry(() =>
-  import('@/pages/student/Support').then((module) => ({ default: module.Support }))
-);
-const SavedQuestions = lazyWithRetry(() =>
-  import('@/pages/student/SavedQuestions').then((module) => ({ default: module.SavedQuestions }))
-);
-const AudioBooks = lazyWithRetry(() =>
-  import('@/pages/student/AudioBooks').then((module) => ({ default: module.AudioBooks }))
-);
-const Rank = lazyWithRetry(() =>
-  import('@/pages/student/Rank').then((module) => ({ default: module.Rank }))
-);
-const LiveTest = lazyWithRetry(() =>
-  import('@/pages/student/LiveTest').then((module) => ({ default: module.LiveTest }))
-);
-const Onboarding = lazyWithRetry(() =>
-  import('@/pages/student/Onboarding').then((module) => ({ default: module.Onboarding }))
-);
 const Login = lazyWithRetry(() =>
   import('@/pages/auth/Login').then((module) => ({ default: module.Login }))
-);
-const Register = lazyWithRetry(() =>
-  import('@/pages/auth/Register').then((module) => ({ default: module.Register }))
 );
 const ForgotPassword = lazyWithRetry(() =>
   import('@/pages/auth/ForgotPassword').then((module) => ({ default: module.ForgotPassword }))
@@ -251,11 +184,9 @@ const AdminBlog = lazyWithRetry(() =>
 
 /**
  * RootRoute:
- * - Always renders the public Landing Page at `/` — this is the first page
- *   every visitor sees, on mobile web and desktop web alike.
- * - Authenticated users reach their panel only via an explicit sign-in
- *   (`/login` -> `/dashboard` for students, `/admin` for admins) or via the
- *   Landing page CTA. There is intentionally NO auto-redirect to a dashboard.
+ * - Keeps the public landing page as the website entry point.
+ * - The public landing page remains the entry point; only administration is
+ *   available as an authenticated web application at `/admin`.
  */
 const RootRoute: React.FC = () => {
   return <Landing />;
@@ -269,149 +200,6 @@ export const App: React.FC = () => {
         <Route path="/" element={<RootRoute />} />
         {/* Legacy alias: canonical landing URL is `/` */}
         <Route path="/landing" element={<Navigate to="/" replace />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-
-        {/* Student App Layout Routes (Standard Navbar & Bottom Nav) */}
-        <Route element={<AppLayout />}>
-          <Route
-            path="dashboard"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="home" element={<Navigate to="/dashboard" replace />} />
-          <Route path="app" element={<Navigate to="/dashboard" replace />} />
-
-          {/* Test Series Hub & Catalog */}
-          <Route path="test-series" element={<TestSeriesCatalog />} />
-          <Route path="test-series/:seriesId" element={<TestSeriesDetail />} />
-
-          {/* Exams Hub & Catalog (Redirected to Test Series & backwards-compatible) */}
-          <Route path="exams" element={<Navigate to="/test-series" replace />} />
-          <Route path="exams/:id" element={<ExamOrTestDispatcher />} />
-          <Route path="exams/:examId/full-mock" element={<ExamDetail />} />
-          <Route path="exams/:examId/pyq" element={<ExamDetail />} />
-          <Route path="exams/:examId/topic-tests" element={<ExamDetail />} />
-
-          {/* Legacy redirects */}
-          <Route path="tests" element={<Navigate to="/test-series" replace />} />
-          <Route path="tests/*" element={<Navigate to="/test-series" replace />} />
-          <Route path="my-tests" element={<Navigate to="/results" replace />} />
-          <Route path="my-tests/*" element={<Navigate to="/results" replace />} />
-
-          <Route
-            path="exams/:testId/results/:attemptId"
-            element={
-              <ProtectedRoute>
-                <TestResult />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="exams/:testId/solutions/:attemptId"
-            element={
-              <ProtectedRoute>
-                <TestSolutions />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="practice" element={<Practice />} />
-          <Route path="practice/*" element={<Practice />} />
-          <Route
-            path="live-test"
-            element={
-              <ProtectedRoute>
-                <LiveTest />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="results"
-            element={
-              <ProtectedRoute>
-                <MyTests />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="results/*"
-            element={
-              <ProtectedRoute>
-                <MyTests />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="saved-questions"
-            element={
-              <ProtectedRoute>
-                <SavedQuestions />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="audio-books"
-            element={
-              <ProtectedRoute>
-                <AudioBooks />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="rank"
-            element={
-              <ProtectedRoute>
-                <Rank />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="leaderboard"
-            element={
-              <ProtectedRoute>
-                <Rank />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="subscription" element={<Subscription />} />
-          <Route
-            path="support"
-            element={
-              <ProtectedRoute>
-                <Support />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-
-        {/* Standalone Fullscreen Test Runner (Distraction-free, dedicated exam header) */}
-        <Route
-          path="/exams/:testId/runner"
-          element={
-            <ProtectedRoute>
-              <TestRunner />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Public SEO Question Pages (Google-indexable, no auth) */}
         <Route path="/questions" element={<QuestionsListing />} />
         <Route path="/questions/:questionId/:slug" element={<QuestionPage />} />
@@ -424,14 +212,6 @@ export const App: React.FC = () => {
           element={
             <PublicOnlyRoute>
               <Login />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicOnlyRoute>
-              <Register />
             </PublicOnlyRoute>
           }
         />

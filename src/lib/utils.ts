@@ -4,7 +4,6 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
 export function formatDuration(minutes: number): string {
   if (minutes < 60) {
     return `${minutes} mins`;
@@ -27,59 +26,3 @@ export function formatCurrency(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
-
-export function isStudentNavActive(pathname: string, label: string): boolean {
-  const p = pathname.split('?')[0].replace(/\/$/, '') || '/';
-
-  if (label === 'Home') {
-    return p === '/' || p === '/dashboard' || p === '/home';
-  }
-
-  if (label === 'Results') {
-    return p.startsWith('/results') || p.startsWith('/my-tests') || p.includes('/results/');
-  }
-
-  if (label === 'Test Series') {
-    if (p.includes('/results/')) return false;
-    return p.startsWith('/test-series') || p.startsWith('/tests');
-  }
-
-  if (label === 'My Exams') {
-    return p.startsWith('/exams');
-  }
-
-  if (label === 'Practice') {
-    return p.startsWith('/practice') && !pathname.includes('tab=mistakes');
-  }
-
-  if (label === 'Notes') {
-    return pathname.includes('tab=mistakes') || pathname.includes('tab=notes');
-  }
-
-  if (label === 'Live Tests' || label === 'Live Test') {
-    return p.startsWith('/live-test') || p.startsWith('/live-tests');
-  }
-
-  if (label === 'Saved Questions') {
-    return p.startsWith('/saved-questions');
-  }
-
-  if (label === 'Rank' || label === 'Leaderboard') {
-    return p.startsWith('/rank') || p.startsWith('/leaderboard');
-  }
-
-  if (label === 'Profile') {
-    return p.startsWith('/profile');
-  }
-
-  if (label === 'Settings') {
-    return p.startsWith('/settings');
-  }
-
-  if (label === 'Help & Support' || label === 'Support') {
-    return p.startsWith('/support');
-  }
-
-  return false;
-}
-

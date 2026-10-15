@@ -392,12 +392,12 @@ export const AdminLiveTests: React.FC = () => {
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
             <Link
-              to="/live-test"
+              to="/admin/test-attempts"
               target="_blank"
               className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
             >
               <ExternalLink className="w-4 h-4 text-blue-600" />
-              <span>View Live Test Page</span>
+              <span>View Test Attempts</span>
             </Link>
             <button
               onClick={() => {

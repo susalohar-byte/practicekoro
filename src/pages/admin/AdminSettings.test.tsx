@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminSettings } from './AdminSettings';
 import { MaintenanceScreen } from '@/components/common/MaintenanceScreen';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { adminApi } from '@/services/domains/admin';
 import { localAppSettings } from '@/services/domains/localStore';
 import { MaintenanceProvider } from '@/context/MaintenanceContext';
@@ -26,27 +25,6 @@ vi.mock('@/context/AuthContext', () => ({
 vi.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: false,
   supabaseRuntime: {},
-}));
-
-// Mock ExamContext & Layout components for AppLayout test
-vi.mock('@/context/ExamContext', () => ({
-  useExam: () => ({
-    exams: [],
-    selectedExam: null,
-    setSelectedExam: vi.fn(),
-  }),
-}));
-
-vi.mock('@/components/layout/StudentNavbar', () => ({
-  StudentNavbar: () => <div data-testid="student-navbar">Student Navbar</div>,
-}));
-
-vi.mock('@/components/layout/StudentSidebar', () => ({
-  StudentSidebar: () => <div data-testid="student-sidebar">Student Sidebar</div>,
-}));
-
-vi.mock('@/components/layout/BottomNav', () => ({
-  BottomNav: () => <div data-testid="bottom-nav">Bottom Nav</div>,
 }));
 
 describe('AdminSettings & Maintenance Mode System', () => {
@@ -320,69 +298,4 @@ describe('AdminSettings & Maintenance Mode System', () => {
     });
   });
 
-  describe('AppLayout Route Guarding', () => {
-    it('blocks student candidate and shows MaintenanceScreen when maintenance mode is active', async () => {
-      // Configure non-admin student
-      mockUseAuth.mockReturnValue({
-        user: {
-          id: 'usr-student-1',
-          fullName: 'Candidate Student',
-          email: 'student@test.com',
-          role: 'student',
-        },
-        isAdmin: false,
-        isStudent: true,
-        loading: false,
-      });
-
-      // Set maintenance mode active
-      await adminApi.updateAppSetting('sys_maintenance_mode', true);
-
-      render(
-        <MemoryRouter>
-          <MaintenanceProvider>
-            <AppLayout />
-          </MaintenanceProvider>
-        </MemoryRouter>
-      );
-
-      // Should render MaintenanceScreen, blocking student layout
-      await waitFor(() => {
-        expect(screen.getByText('প্ল্যাটফর্ম সাময়িক রক্ষণাবেক্ষণে রয়েছে')).toBeInTheDocument();
-      });
-      expect(screen.queryByTestId('student-navbar')).not.toBeInTheDocument();
-    });
-
-    it('allows admin to bypass maintenance screen and access layout', async () => {
-      // Configure admin user
-      mockUseAuth.mockReturnValue({
-        user: {
-          id: 'usr-admin-1',
-          fullName: 'Super Admin',
-          email: 'admin@practicekoro.online',
-          role: 'admin',
-        },
-        isAdmin: true,
-        isStudent: false,
-        loading: false,
-      });
-
-      // Set maintenance mode active
-      await adminApi.updateAppSetting('sys_maintenance_mode', true);
-
-      render(
-        <MemoryRouter initialEntries={['/exams']}>
-          <MaintenanceProvider>
-            <AppLayout />
-          </MaintenanceProvider>
-        </MemoryRouter>
-      );
-
-      // Admin should bypass maintenance screen and see student sidebar
-      await waitFor(() => {
-        expect(screen.getByTestId('student-sidebar')).toBeInTheDocument();
-      });
-      expect(screen.queryByText('প্ল্যাটফর্ম সাময়িক রক্ষণাবেক্ষণে রয়েছে')).not.toBeInTheDocument();
-    });
-  });
 });

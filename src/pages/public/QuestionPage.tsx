@@ -148,13 +148,13 @@ export const QuestionPage: React.FC = () => {
   const breadcrumbs = [
     { name: 'PracticeKoro', url: SITE_URL },
     ...(question.subjectName
-      ? [{ name: question.subjectName, url: `${SITE_URL}/test-series` }]
+      ? [{ name: question.subjectName, url: `${SITE_URL}/questions` }]
       : []),
     ...(question.topicName || question.chapterName
       ? [
           {
             name: question.topicName || question.chapterName || 'Topic',
-            url: `${SITE_URL}/test-series`,
+            url: `${SITE_URL}/questions`,
           },
         ]
       : []),
@@ -339,16 +339,16 @@ export const QuestionPage: React.FC = () => {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
-              to="/register"
+              to="/questions"
               className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
             >
-              Free-তে শুরু করুন <ArrowRight className="h-4 w-4" />
+              আরও প্রশ্ন দেখুন <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/test-series"
+              to="/questions"
               className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
             >
-              Test Series দেখুন <ExternalLink className="h-3.5 w-3.5" />
+              প্রশ্নের তালিকা দেখুন <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -360,9 +360,9 @@ export const QuestionPage: React.FC = () => {
               {question.subjectName} থেকে আরও প্রশ্ন
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              আরও প্রশ্ন অনুশীলনের জন্য{' '}
-              <Link to="/register" className="font-medium text-brand-600 hover:underline">
-                PracticeKoro-তে সাইন আপ করুন
+              আরও প্রশ্ন দেখতে{' '}
+              <Link to="/questions" className="font-medium text-brand-600 hover:underline">
+                প্রশ্নের তালিকায় যান
               </Link>
               ।
             </p>

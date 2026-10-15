@@ -35,7 +35,7 @@
   /* ==========================================================================
      CANVAS & SURFACES
      ========================================================================== */
-  --pk-background: #f4f6fb; /* Student panel canvas (matches AppLayout) */
+  --pk-background: #f4f6fb;
   --pk-surface: #ffffff; /* Pure card and modal surface */
   --pk-surface-muted: #f1f5f9; /* Table headers, segmented control backgrounds */
   --pk-border: #e2e8f0; /* Subtle 1px structural border */

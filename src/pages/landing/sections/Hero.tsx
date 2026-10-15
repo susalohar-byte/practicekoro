@@ -12,12 +12,11 @@ import {
   BarChart3,
   Target,
   CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 
 export const Hero: React.FC = () => {
   const { user, isAdmin } = useAuth();
-  const dashboardUrl = isAdmin ? '/admin' : '/dashboard';
+  const primaryDestination = user && isAdmin ? '/admin' : '/questions';
   const navigate = useNavigate();
 
   return (
@@ -117,15 +116,15 @@ export const Hero: React.FC = () => {
               <div className="mt-3.5 sm:mt-5 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto">
                 <button
                   type="button"
-                  onClick={() => navigate(user ? dashboardUrl : '/register')}
+                  onClick={() => navigate(primaryDestination)}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg shadow-blue-600/35 hover:shadow-blue-500/50 transition-all cursor-pointer hover:-translate-y-0.5"
                 >
-                  {user ? (
+                  {user && isAdmin ? (
                     <LayoutGrid className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                   ) : (
-                    <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-200" />
+                    <FileText className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-200" />
                   )}
-                  <span>{user ? 'Go to Dashboard' : 'Get Started'}</span>
+                  <span>{user && isAdmin ? 'Admin Dashboard' : 'Browse Questions'}</span>
                   <ArrowRight className="w-4 h-4 ml-0.5" />
                 </button>
 

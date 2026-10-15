@@ -19,7 +19,6 @@ const NAV_LINKS = [
 
 export const Navbar: React.FC = () => {
   const { user, isAdmin } = useAuth();
-  const dashboardUrl = isAdmin ? '/admin' : '/dashboard';
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -79,8 +78,8 @@ export const Navbar: React.FC = () => {
 
           {user ? (
             <InteractiveHoverButton
-              text="Dashboard"
-              onClick={() => navigate(dashboardUrl)}
+              text={isAdmin ? 'Admin Dashboard' : 'Browse Questions'}
+              onClick={() => navigate(isAdmin ? '/admin' : '/questions')}
               className="w-26 sm:w-36 text-xs sm:text-sm h-8.5 sm:h-10 border-pk-blue-soft text-pk-primary shadow-xs transition-all"
             />
           ) : (
@@ -91,14 +90,14 @@ export const Navbar: React.FC = () => {
                 onClick={() => navigate('/login')}
                 className="text-sm font-semibold text-pk-primary border-slate-200 hover:bg-pk-blue-light hover:border-pk-blue-soft px-5 py-2 rounded-xl transition-all"
               >
-                Login
+                Admin Login
               </Button>
               <Button
                 size="sm"
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/questions')}
                 className="text-sm font-bold bg-gradient-to-r from-pk-primary to-pk-primary-bright hover:from-pk-primary-interactive hover:to-pk-primary text-white px-5 py-2 rounded-xl shadow-md shadow-pk-primary/25 transition-all"
               >
-                Get Started
+                Browse Questions
               </Button>
             </div>
           )}
@@ -141,16 +140,16 @@ export const Navbar: React.FC = () => {
                 }}
                 className="font-semibold text-pk-primary border-slate-200 rounded-xl"
               >
-                Login
+                Admin Login
               </Button>
               <Button
                 onClick={() => {
                   setMenuOpen(false);
-                  navigate('/register');
+                  navigate('/questions');
                 }}
                 className="font-bold bg-pk-primary hover:bg-pk-primary-interactive text-white rounded-xl"
               >
-                Get Started
+                Browse Questions
               </Button>
             </div>
           </div>

@@ -171,7 +171,7 @@ const APP_FEATURES: AppFeatureItem[] = [
 export const InsideTheApp: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const dashboardUrl = isAdmin ? '/admin' : '/dashboard';
+  const primaryDestination = user && isAdmin ? '/admin' : '/questions';
 
   return (
     <section
@@ -283,10 +283,10 @@ export const InsideTheApp: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => navigate(user ? dashboardUrl : '/register')}
+              onClick={() => navigate(primaryDestination)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
             >
-              <span>{user ? 'Go to Dashboard' : 'Start Practicing Free'}</span>
+              <span>{user && isAdmin ? 'Admin Dashboard' : 'Browse Questions'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

@@ -36,7 +36,7 @@ export async function sendFcmPush(options: FcmSendOptions): Promise<FcmSendResul
     serverKey = '',
     title,
     body,
-    actionUrl = 'https://practicekoro.online/dashboard',
+    actionUrl = 'https://practicekoro.online/',
     topic = 'all_students',
     deviceTokens = [],
   } = options;

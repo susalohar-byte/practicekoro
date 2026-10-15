@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Mail,
   MapPin,
@@ -9,8 +8,6 @@ import {
   Headphones,
   Building2,
   HelpCircle,
-  ExternalLink,
-  ShieldCheck,
 } from 'lucide-react';
 import { Navbar } from '@/pages/landing/sections/Navbar';
 import { Footer } from '@/pages/landing/sections/Footer';
@@ -180,24 +177,6 @@ export const ContactUs: React.FC = () => {
               </div>
             </div>
 
-            {/* Student Helpdesk CTA */}
-            <div className="p-5 bg-blue-50/80 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-900/60 space-y-2">
-              <div className="flex items-center gap-2 text-pk-primary dark:text-blue-300 font-bold text-sm">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Enrolled Students</span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Need urgent assistance with an active test or payment? Access our dedicated in-app
-                Student Helpdesk for ticket tracking.
-              </p>
-              <Link
-                to="/support"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-pk-primary hover:underline pt-1"
-              >
-                <span>Go to Student Helpdesk</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-            </div>
           </div>
 
           {/* Right Column: Interactive Inquiry Form (7 cols) */}

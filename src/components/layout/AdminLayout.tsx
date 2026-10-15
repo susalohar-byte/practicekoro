@@ -39,7 +39,6 @@ import {
   ChevronRight,
   ChevronsUpDown,
   AlertTriangle,
-  ExternalLink,
   Radio,
 } from 'lucide-react';
 import { useMaintenance } from '@/context/MaintenanceContext';
@@ -809,20 +808,6 @@ export const AdminLayout: React.FC = () => {
               {/* Menu items */}
               <div className="py-0.5 space-y-0.5">
                 <Link
-                  to="/dashboard"
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => setIsSidebarUserOpen(false)}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/[0.08] transition-colors group"
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Student App Portal</span>
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 transition-colors shrink-0" />
-                </Link>
-
-                <Link
                   to="/admin/settings"
                   onClick={() => setIsSidebarUserOpen(false)}
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/[0.08] transition-colors"
@@ -977,16 +962,6 @@ export const AdminLayout: React.FC = () => {
                   >
                     <History className="w-4 h-4 text-slate-400" />
                     <span>Audit Logs</span>
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4 text-blue-500" />
-                    <span>Student Portal Preview</span>
                   </Link>
                   <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
                   <div className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300">

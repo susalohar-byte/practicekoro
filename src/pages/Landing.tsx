@@ -14,7 +14,7 @@ export { SUPPORTED_EXAM_CATEGORIES } from '@/pages/landing/data';
 /**
  * RootRoute:
  * - Always displays the public Landing Page at https://practicekoro.online/
- * - If user is logged in, Landing Page dynamically displays Dashboard button instead of Login/Get Started
+ * - Signed-in administrators can open the admin panel from the landing page.
  */
 export const Landing: React.FC = () => {
   return (

@@ -14,28 +14,6 @@ interface AdminRouteProps extends ProtectedRouteProps {
   requiredPermission?: keyof AdminPermissions;
 }
 
-/** Requires any authenticated user (student or admin). */
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    // No exceptions: every protected page (including /dashboard) requires a
-    // valid session. Guests are sent to /login and returned after sign-in.
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
-};
-
 /** Requires authenticated user with admin role (verified from database) & optional sub-role permission. */
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermission }) => {
   const { user, isAdmin, adminRole, hasPermission, loading } = useAuth();
@@ -49,7 +27,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
   }
 
   if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check sub-role permission if requested
@@ -126,9 +104,9 @@ export const PublicOnlyRoute: React.FC<ProtectedRouteProps> = ({ children }) => 
     );
   }
 
-  // Any authenticated user is sent to their panel — no fake/demo exceptions.
+  // Admins go directly to the admin panel; other authenticated users return to the public site.
   if (user) {
-    return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
+    return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
   }
 
   return <>{children}</>;

@@ -48,7 +48,7 @@ function renderLogin() {
               </PublicOnlyRoute>
             }
           />
-          <Route path="/dashboard" element={<div>Dashboard page</div>} />
+          <Route path="/" element={<div>Public landing page</div>} />
           <Route path="/admin" element={<div>Admin page</div>} />
         </Routes>
       </AuthProvider>
@@ -71,7 +71,7 @@ describe('Login (auth regression)', () => {
     });
 
     renderLogin();
-    await screen.findByRole('heading', { name: /sign in to your account/i });
+    await screen.findByRole('heading', { name: /admin sign in/i });
 
     fireEvent.change(screen.getByPlaceholderText('aspirant@gmail.com'), {
       target: { value: 'admin@practicekoro.com' },
@@ -87,12 +87,12 @@ describe('Login (auth regression)', () => {
     const err = await screen.findByText(/Incorrect email or password/);
     expect(err).toBeVisible();
     // …and the form must still be mounted.
-    expect(screen.getByRole('heading', { name: /sign in to your account/i })).toBeVisible();
+    expect(screen.getByRole('heading', { name: /admin sign in/i })).toBeVisible();
   });
 
   it('requires both fields before calling login()', async () => {
     const { container } = renderLogin();
-    await screen.findByRole('heading', { name: /sign in to your account/i });
+    await screen.findByRole('heading', { name: /admin sign in/i });
 
     // fireEvent.submit bypasses native `required` validation so the
     // JS-level guard inside handleSubmit is exercised directly.

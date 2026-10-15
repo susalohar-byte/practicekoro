@@ -1,5 +1,4 @@
 @import './styles/design-tokens.css';
-@import './styles/student-redesign.css';
 
 @tailwind base;
 @tailwind components;

@@ -807,8 +807,8 @@ export const catalogApi = {
       });
     }
 
-    // Production recovery is written immediately by useAttemptAutosave. Never
-    // overwrite its newer snapshot when an older network request completes.
+    // Client recovery may be newer than this network response. Never overwrite
+    // that newer snapshot when an older request completes.
     if (!isSupabaseConfigured) {
       try {
         localStorage.setItem(

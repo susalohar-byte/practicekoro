@@ -2011,13 +2011,13 @@ export const AdminTopics: React.FC = () => {
                   </button>
 
                   <a
-                    href={`/practice?topic=${selectedTopic.slug}`}
+                    href={`/admin/tests?topic=${selectedTopic.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 py-2.5 px-3 rounded-xl border border-[#BFDBFE] bg-white text-[#026BFC] hover:bg-blue-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-[#026BFC]" />
-                    View Topic Tests
+                    Manage Topic Tests
                   </a>
                 </div>
               </div>
@@ -2069,7 +2069,7 @@ export const AdminTopics: React.FC = () => {
                     Questions ({selectedTopic.totalQuestions})
                   </span>
                   <a
-                    href={`/admin/question-bank?topic=${selectedTopic.id}`}
+                    href={`/admin/question-bank?topicId=${selectedTopic.id}&source=topic`}
                     className="text-xs font-semibold text-[#026BFC] hover:underline flex items-center gap-1"
                   >
                     <ExternalLink className="w-3 h-3" />

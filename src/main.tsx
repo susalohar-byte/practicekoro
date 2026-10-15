@@ -80,7 +80,6 @@ async function bootstrap(): Promise<void> {
       { BrowserRouter },
       { QueryClient, QueryClientProvider },
       { AuthProvider },
-      { ExamProvider },
       { ThemeProvider },
       { MaintenanceProvider },
       { LanguageProvider },
@@ -94,7 +93,6 @@ async function bootstrap(): Promise<void> {
       import('react-router-dom'),
       import('@tanstack/react-query'),
       import('@/context/AuthContext'),
-      import('@/context/ExamContext'),
       import('@/context/ThemeContext'),
       import('@/context/MaintenanceContext'),
       import('@/context/LanguageContext'),
@@ -124,12 +122,10 @@ async function bootstrap(): Promise<void> {
                 <BrowserRouter>
                   <ThemeProvider>
                     <AuthProvider>
-                      <ExamProvider>
-                        <MaintenanceProvider>
-                          <PlatformRuntimeSettings />
-                          <App />
-                        </MaintenanceProvider>
-                      </ExamProvider>
+                      <MaintenanceProvider>
+                        <PlatformRuntimeSettings />
+                        <App />
+                      </MaintenanceProvider>
                     </AuthProvider>
                   </ThemeProvider>
                 </BrowserRouter>
