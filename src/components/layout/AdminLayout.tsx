@@ -8,7 +8,6 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import {
   LayoutDashboard,
   BookOpen,
-  Layers,
   FileText,
   Shield,
   BookMarked,
@@ -180,13 +179,6 @@ export const AdminLayout: React.FC = () => {
           altPaths: ['/admin/questions'],
           icon: BookOpen,
           permission: 'canManageQuestions',
-        },
-        {
-          key: 'test-series',
-          label: 'Test Series',
-          path: '/admin/test-series',
-          icon: Layers,
-          permission: 'canManageTests',
         },
         {
           key: 'mock-tests',
@@ -417,7 +409,6 @@ export const AdminLayout: React.FC = () => {
     const q = searchQuery.toLowerCase().trim();
     if (q.includes('question')) navigate('/admin/question-bank');
     else if (q.includes('exam')) navigate('/admin/exams');
-    else if (q.includes('series')) navigate('/admin/test-series');
     else if (q.includes('test') || q.includes('mock')) navigate('/admin/mock-tests');
     else if (q.includes('student')) navigate('/admin/students');
     else if (q.includes('plan')) navigate('/admin/subscription-plans');

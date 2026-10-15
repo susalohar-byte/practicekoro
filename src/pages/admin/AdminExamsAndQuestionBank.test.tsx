@@ -64,7 +64,7 @@ vi.mock('@/services/api', () => ({
     getAllAdminChapters: vi.fn(),
     getAllAdminTests: vi.fn(),
     getSubjects: vi.fn().mockResolvedValue([]),
-    getTestSeries: vi.fn().mockResolvedValue([]),
+    getExamMappingCounts: vi.fn().mockResolvedValue({}),
     bulkDeleteQuestions: vi.fn(),
     logAdminActivity: vi.fn(),
   },

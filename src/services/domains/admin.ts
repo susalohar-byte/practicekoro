@@ -6,6 +6,7 @@
  * The exported `adminApi` shape (keys + order) is unchanged.
  */
 import { adminExamsApi } from './admin.exams';
+import { adminExamMappingsApi } from './admin.examMappings';
 import { adminSubjectsApi } from './admin.subjects';
 import { adminChaptersApi } from './admin.chapters';
 import { adminTestSeriesApi } from './admin.testSeries';
@@ -22,6 +23,7 @@ import { adminBlogApi } from './admin.blog';
 
 export const adminApi = {
   ...adminExamsApi,
+  ...adminExamMappingsApi,
   ...adminSubjectsApi,
   ...adminChaptersApi,
   ...adminTestSeriesApi,

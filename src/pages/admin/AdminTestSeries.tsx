@@ -1098,6 +1098,17 @@ export const AdminTestSeries: React.FC = () => {
         </div>
       )}
 
+      {/* Legacy notice: Test Series is retired from the sidebar (exam-centric architecture). */}
+      <div
+        role="note"
+        className="p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-800 dark:text-amber-200"
+      >
+        <span className="font-bold">Legacy module.</span> Tests are now managed in Mock Test
+        Management and organised by Exam. This page stays available only for existing series
+        records, which student leaderboards and the home carousel still reference. Paid access is
+        controlled per test, not by series.
+      </div>
+
       {/* 1. PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

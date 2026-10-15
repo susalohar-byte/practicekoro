@@ -306,7 +306,7 @@ export const AdminLiveTests: React.FC = () => {
   const handleDuplicate = async (lt: LiveTest) => {
     try {
       const newSchedule = await api.scheduleLiveTest({
-        testId: lt.testId || 'test-indus-01',
+        testId: lt.testId,
         title: `${lt.title} (Copy)`,
         startAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
         registrationDeadline: new Date(Date.now() + 23.5 * 3600 * 1000).toISOString(),
@@ -1628,7 +1628,7 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
         });
       } else {
         result = await api.scheduleLiveTest({
-          testId: selectedSourceTestId || 'test-indus-01',
+          testId: selectedSourceTestId,
           title,
           startAt: startIso,
           registrationDeadline: startIso,

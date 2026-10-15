@@ -26,12 +26,14 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { supabaseRuntime, isSupabaseConfigured } from '@/lib/supabase';
-import type { Exam, MockTest, Subject, TestSeries } from '@/types';
+import type { Exam, MockTest } from '@/types';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { LEGACY_EXAM_CATEGORY_NAMES } from '@/services/domains/admin.examCategories';
 import { getPageNumbers } from '@/utils/pagination';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
+import { ExamSubjectTopicMapper } from '@/components/admin/ExamSubjectTopicMapper';
+import { ExamRelatedTests } from '@/components/admin/ExamRelatedTests';
 
 const STORAGE_KEY_CATEGORIES = 'practicekoro_exam_categories';
 // Offline-only grouping buckets kept for the local demo categories.
@@ -74,7 +76,8 @@ interface EnrichedExamRow extends Exam {
   subtitle?: string;
   categoryLabel?: string;
   subjectsCount: number;
-  testSeriesCount: number;
+  /** Full Mock tests whose primary exam is this exam. */
+  fullMockCount: number;
   totalTestsCount: number;
   enrollmentsCount: number;
   enrollmentsFormatted: string;
@@ -119,7 +122,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 10,
-    testSeriesCount: 5,
+    fullMockCount: 5,
     totalTestsCount: 28,
     enrollmentsCount: 12480,
     enrollmentsFormatted: '12,480',
@@ -144,7 +147,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 12,
-    testSeriesCount: 4,
+    fullMockCount: 4,
     totalTestsCount: 26,
     enrollmentsCount: 8920,
     enrollmentsFormatted: '8,920',
@@ -169,7 +172,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 11,
-    testSeriesCount: 4,
+    fullMockCount: 4,
     totalTestsCount: 22,
     enrollmentsCount: 6430,
     enrollmentsFormatted: '6,430',
@@ -194,7 +197,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 14,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 20,
     enrollmentsCount: 5210,
     enrollmentsFormatted: '5,210',
@@ -218,7 +221,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 8,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 18,
     enrollmentsCount: 4860,
     enrollmentsFormatted: '4,860',
@@ -242,7 +245,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 10,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 16,
     enrollmentsCount: 4120,
     enrollmentsFormatted: '4,120',
@@ -266,7 +269,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 9,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 14,
     enrollmentsCount: 3980,
     enrollmentsFormatted: '3,980',
@@ -290,7 +293,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 11,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 18,
     enrollmentsCount: 3640,
     enrollmentsFormatted: '3,640',
@@ -315,7 +318,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 13,
-    testSeriesCount: 4,
+    fullMockCount: 4,
     totalTestsCount: 24,
     enrollmentsCount: 3210,
     enrollmentsFormatted: '3,210',
@@ -339,7 +342,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Other',
     categoryLabel: 'Other',
     subjectsCount: 6,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 10,
     enrollmentsCount: 2980,
     enrollmentsFormatted: '2,980',
@@ -365,7 +368,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 8,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 12,
     enrollmentsCount: 2750,
     enrollmentsFormatted: '2,750',
@@ -390,7 +393,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 15,
-    testSeriesCount: 4,
+    fullMockCount: 4,
     totalTestsCount: 30,
     enrollmentsCount: 2640,
     enrollmentsFormatted: '2,640',
@@ -414,7 +417,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 12,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 20,
     enrollmentsCount: 2420,
     enrollmentsFormatted: '2,420',
@@ -438,7 +441,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 11,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 18,
     enrollmentsCount: 2190,
     enrollmentsFormatted: '2,190',
@@ -462,7 +465,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 8,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 8,
     enrollmentsCount: 1850,
     enrollmentsFormatted: '1,850',
@@ -486,7 +489,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'Central Govt',
     categoryLabel: 'Central Govt',
     subjectsCount: 9,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 15,
     enrollmentsCount: 1620,
     enrollmentsFormatted: '1,620',
@@ -510,7 +513,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 10,
-    testSeriesCount: 3,
+    fullMockCount: 3,
     totalTestsCount: 16,
     enrollmentsCount: 1480,
     enrollmentsFormatted: '1,480',
@@ -534,7 +537,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     category: 'State Govt',
     categoryLabel: 'State Govt',
     subjectsCount: 9,
-    testSeriesCount: 2,
+    fullMockCount: 2,
     totalTestsCount: 14,
     enrollmentsCount: 1290,
     enrollmentsFormatted: '1,290',
@@ -557,8 +560,6 @@ export const AdminExams: React.FC = () => {
     isSupabaseConfigured ? [] : CANONICAL_EXAMS_PRESET
   );
   const [dbTests, setDbTests] = useState<MockTest[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [testSeriesList, setTestSeriesList] = useState<TestSeries[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -566,9 +567,9 @@ export const AdminExams: React.FC = () => {
   // Selected Exam & Side Panel
   const [selectedExam, setSelectedExam] = useState<EnrichedExamRow | null>(null);
   const [showDetailsPanel, setShowDetailsPanel] = useState<boolean>(false);
-  const [detailsTab, setDetailsTab] = useState<
-    'overview' | 'subjects' | 'test_series' | 'settings'
-  >('overview');
+  const [detailsTab, setDetailsTab] = useState<'overview' | 'subjects' | 'tests' | 'settings'>(
+    'overview'
+  );
 
   // Row selection checkboxes
   const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
@@ -606,7 +607,7 @@ export const AdminExams: React.FC = () => {
     }
     return DEFAULT_EXAM_CATEGORIES;
   });
-  const [kpiLoadFailed, setKpiLoadFailed] = useState({ tests: false, series: false });
+  const [kpiLoadFailed, setKpiLoadFailed] = useState({ tests: false });
   // Backend ids by category name (required to persist a reorder).
   const [categoryIds, setCategoryIds] = useState<Record<string, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -656,7 +657,7 @@ export const AdminExams: React.FC = () => {
   const applySavedExam = (saved: Exam) => {
     const merge = (previous?: EnrichedExamRow): EnrichedExamRow => ({
       subjectsCount: 0,
-      testSeriesCount: 0,
+      fullMockCount: 0,
       totalTestsCount: 0,
       enrollmentsCount: 0,
       enrollmentsFormatted: 'Unavailable',
@@ -744,19 +745,17 @@ export const AdminExams: React.FC = () => {
     try {
       setIsLoading(true);
       setLoadError('');
-      const [rawExams, allTests, allSubjects, allSeries, dbCats] = await Promise.all([
+      const [rawExams, allTests, allSubjects, mappingCounts, dbCats] = await Promise.all([
         api.getAllAdminExams(),
         api.getAllAdminTests().catch(() => null),
         api.getSubjects().catch(() => []),
-        api.getTestSeries().catch(() => null),
+        api.getExamMappingCounts().catch(() => null),
         api.getExamCategories().catch(() => []),
       ]);
 
       // A failed count source shows "—" instead of a misleading zero.
-      setKpiLoadFailed({ tests: allTests === null, series: allSeries === null });
+      setKpiLoadFailed({ tests: allTests === null });
       setDbTests(allTests || []);
-      setSubjects(allSubjects || []);
-      setTestSeriesList(allSeries || []);
 
       if (dbCats && dbCats.length > 0) {
         setCategoryIds(Object.fromEntries(dbCats.map((c) => [c.name, c.id])));
@@ -779,8 +778,13 @@ export const AdminExams: React.FC = () => {
           shortName: dbEx.shortName || dbEx.title.split(' ')[0],
           subtitle: dbEx.subtitle || dbEx.description || '',
           categoryLabel: dbEx.category,
-          subjectsCount: allSubjects.filter((x) => x.examId === dbEx.id).length,
-          testSeriesCount: (allSeries || []).filter((x) => x.examId === dbEx.id).length,
+          // Exam -> Subject mappings (exam_subjects / exam_topics); legacy subjects.exam_id fallback.
+          subjectsCount:
+            mappingCounts?.[dbEx.id]?.subjects ??
+            allSubjects.filter((x) => x.examId === dbEx.id).length,
+          fullMockCount: (allTests || []).filter(
+            (x) => x.examId === dbEx.id && x.testType === 'full_mock'
+          ).length,
           totalTestsCount:
             dbEx.testsCount ?? (allTests || []).filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,
@@ -1213,18 +1217,18 @@ export const AdminExams: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Total Test Series */}
+        {/* Card 3: Official PYQs */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-2xl bg-[#FEF8E7] dark:bg-amber-950/50 text-[#F59E0B] flex items-center justify-center shrink-0">
             <Layers className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 leading-tight">
-              Total Test Series
+              Official PYQs
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                {kpiLoadFailed.series ? '—' : testSeriesList.length}
+                {kpiLoadFailed.tests ? '—' : dbTests.filter((t) => t.testType === 'pyq').length}
               </span>
             </div>
           </div>
@@ -1413,7 +1417,7 @@ export const AdminExams: React.FC = () => {
                     <th className="py-3 px-3 min-w-[200px]">Exam Name</th>
                     <th className="py-3 px-2.5 w-28">Category</th>
                     <th className="py-3 px-2 text-center w-20">Subjects</th>
-                    <th className="py-3 px-2 text-center w-24">Test Series</th>
+                    <th className="py-3 px-2 text-center w-24">Full Mocks</th>
                     <th className="py-3 px-2 text-center w-24">Total Tests</th>
                     <th className="py-3 px-3 text-center w-28">Enrollments</th>
                     <th className="py-3 px-2.5 text-center w-24">Status</th>
@@ -1525,9 +1529,9 @@ export const AdminExams: React.FC = () => {
                             {e.subjectsCount}
                           </td>
 
-                          {/* Test Series Count */}
+                          {/* Full Mock Count */}
                           <td className="py-3.5 px-2 text-center text-slate-600 dark:text-slate-300 font-medium">
-                            {e.testSeriesCount}
+                            {e.fullMockCount}
                           </td>
 
                           {/* Total Tests */}
@@ -1867,16 +1871,13 @@ export const AdminExams: React.FC = () => {
               </div>
             </div>
 
-            {/* Horizontal Tabs: Overview, Subjects (10), Test Series (5), Settings */}
+            {/* Horizontal Tabs: Overview, Subjects & Topics, Tests, Settings */}
             <div className="flex items-center gap-4 border-b border-slate-200/80 dark:border-slate-800 text-xs font-medium pt-0.5">
               {(
                 [
                   { key: 'overview', label: 'Overview' },
-                  { key: 'subjects', label: `Subjects (${selectedExam.subjectsCount || 10})` },
-                  {
-                    key: 'test_series',
-                    label: `Test Series (${selectedExam.testSeriesCount || 5})`,
-                  },
+                  { key: 'subjects', label: `Subjects & Topics (${selectedExam.subjectsCount})` },
+                  { key: 'tests', label: 'Tests' },
                   { key: 'settings', label: 'Settings' },
                 ] as const
               ).map((tab) => (
@@ -1917,18 +1918,16 @@ export const AdminExams: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 2. Test Series */}
+                  {/* 2. Full Mocks */}
                   <div className="p-2 rounded-xl bg-[#EBFBF0] dark:bg-emerald-950/30 flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-[#D2F7DE] text-[#10B981] flex items-center justify-center shrink-0">
                       <Layers className="w-3 h-3" />
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-                        {selectedExam.testSeriesCount}
+                        {selectedExam.fullMockCount}
                       </span>
-                      <span className="text-[9.5px] text-slate-400 block truncate">
-                        Test Series
-                      </span>
+                      <span className="text-[9.5px] text-slate-400 block truncate">Full Mocks</span>
                     </div>
                   </div>
 
@@ -2040,9 +2039,9 @@ export const AdminExams: React.FC = () => {
                       {selectedExam.subjectsCount}
                     </span>
 
-                    <span className="text-slate-400">Total Test Series</span>
+                    <span className="text-slate-400">Full Mock Tests</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                      {selectedExam.testSeriesCount}
+                      {selectedExam.fullMockCount}
                     </span>
 
                     <span className="text-slate-400">Total Tests</span>
@@ -2109,121 +2108,28 @@ export const AdminExams: React.FC = () => {
               </div>
             )}
 
-            {/* TAB CONTENT: SUBJECTS */}
+            {/* TAB CONTENT: SUBJECTS & TOPICS (mapping to central records) */}
             {detailsTab === 'subjects' && (
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    Linked Subjects ({selectedExam.subjectsCount})
-                  </span>
-                  <a
-                    href="/admin/subjects"
-                    className="text-xs text-[#026BFC] hover:underline font-semibold"
-                  >
-                    Manage Subjects
-                  </a>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Subjects associated with {selectedExam.title} for topic tests and syllabus
-                  coverage:
-                </p>
-                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                  {(subjects.length > 0
-                    ? subjects.slice(0, selectedExam.subjectsCount)
-                    : [
-                        { id: '1', name: 'General Awareness & GK', orderIndex: 1 },
-                        { id: '2', name: 'Elementary Mathematics', orderIndex: 2 },
-                        { id: '3', name: 'Reasoning & Logical Analysis', orderIndex: 3 },
-                        { id: '4', name: 'English Grammar & Comprehension', orderIndex: 4 },
-                        { id: '5', name: 'General Science & Physics', orderIndex: 5 },
-                        { id: '6', name: 'Indian History & Freedom Struggle', orderIndex: 6 },
-                        { id: '7', name: 'Geography of India & West Bengal', orderIndex: 7 },
-                        { id: '8', name: 'Indian Constitution & Polity', orderIndex: 8 },
-                        { id: '9', name: 'Current Affairs & Sports', orderIndex: 9 },
-                        { id: '10', name: 'Bengali Language & Grammar', orderIndex: 10 },
-                      ]
-                  ).map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {sub.name}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-400">Active</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ExamSubjectTopicMapper
+                key={selectedExam.id}
+                examId={selectedExam.id}
+                examTitle={selectedExam.title}
+                onSaved={({ subjects: subjectCount }) => {
+                  setExams((prev) =>
+                    prev.map((x) =>
+                      x.id === selectedExam.id ? { ...x, subjectsCount: subjectCount } : x
+                    )
+                  );
+                  setSelectedExam((prev) =>
+                    prev ? { ...prev, subjectsCount: subjectCount } : prev
+                  );
+                }}
+              />
             )}
 
-            {/* TAB CONTENT: TEST SERIES */}
-            {detailsTab === 'test_series' && (
-              <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    Test Series ({selectedExam.testSeriesCount})
-                  </span>
-                  <a
-                    href="/admin/test-series"
-                    className="text-xs text-[#026BFC] hover:underline font-semibold"
-                  >
-                    View All Series
-                  </a>
-                </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {[
-                    {
-                      id: 'ts-1',
-                      title: `${selectedExam.title} Mega Full Mock Series`,
-                      tests: 15,
-                      enrolls: '8,400',
-                    },
-                    {
-                      id: 'ts-2',
-                      title: `${selectedExam.title} Official PYQ 2018-2024`,
-                      tests: 8,
-                      enrolls: '3,200',
-                    },
-                    {
-                      id: 'ts-3',
-                      title: `${selectedExam.title} High-Yield Topic Tests`,
-                      tests: 12,
-                      enrolls: '2,900',
-                    },
-                    {
-                      id: 'ts-4',
-                      title: `${selectedExam.title} Speed Booster Math & GI`,
-                      tests: 6,
-                      enrolls: '1,800',
-                    },
-                    {
-                      id: 'ts-5',
-                      title: `${selectedExam.title} Special Bengali Mock Set`,
-                      tests: 4,
-                      enrolls: '1,200',
-                    },
-                  ]
-                    .slice(0, selectedExam.testSeriesCount)
-                    .map((ts) => (
-                      <div
-                        key={ts.id}
-                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 space-y-1"
-                      >
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block truncate">
-                          {ts.title}
-                        </span>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span>{ts.tests} Tests</span>
-                          <span>{ts.enrolls} Students</span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+            {/* TAB CONTENT: RELATED TESTS (links to central test records) */}
+            {detailsTab === 'tests' && (
+              <ExamRelatedTests key={selectedExam.id} examId={selectedExam.id} />
             )}
 
             {/* TAB CONTENT: SETTINGS */}

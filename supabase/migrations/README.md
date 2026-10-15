@@ -60,6 +60,7 @@ This directory contains the canonical historical Supabase migration files for Pr
 | `20261003061700_secure_test_series_leaderboard.sql`         | Add authenticated, district-filtered test-series ranking from completed attempts with masked student names                         |    **APPLIED**    |
 | `20261003061839_published_only_test_series_rankings.sql`    | Exclude results from tests that admins have unpublished from student rankings                                                      |    **APPLIED**    |
 | `20261003062139_popular_exam_image_storage.sql`             | Add public card-image delivery with administrator-only upload/delete policies                                                      |    **APPLIED**    |
+| `20261016090000_exam_centric_test_architecture.sql`         | Additive: exam_subjects mapping + save RPC, per-type test links, Full Mock-only Live Tests                                         |    **PENDING**    |
 
 ---
 

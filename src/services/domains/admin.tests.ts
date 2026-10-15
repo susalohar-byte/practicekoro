@@ -6,6 +6,7 @@ import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabas
 import { notifyExamsUpdated } from '@/lib/dataSync';
 import { catalogApi } from '@/services/domains/catalog';
 import { getTestAssignedQuestions, saveTestQuestions } from './admin.testQuestions';
+import { getAllAdminQuestionIds } from './admin.questions';
 import {
   localChapters,
   localExams,
@@ -227,6 +228,16 @@ export async function createTest(
       .replace(/(^-|-$)/g, '');
   const id = `test-${slug}-${Date.now().toString().slice(-4)}`;
 
+  // Required links per test type (mirrors the tests_type_required_links constraint).
+  if ((testData.testType === 'full_mock' || testData.testType === 'pyq') && !testData.examId)
+    throw new Error(
+      testData.testType === 'pyq'
+        ? 'Official PYQ tests must be linked to an Exam.'
+        : 'Full Mock tests must be linked to an Exam.'
+    );
+  if (testData.testType === 'topic' && (!testData.subjectId || !testData.chapterId))
+    throw new Error('Topic Tests must be linked to a Subject and a Topic.');
+
   if (!isSupabaseConfigured) {
     const newTest: MockTest = {
       id,
@@ -303,10 +314,17 @@ export async function createTest(
     )
   );
   if (allAssocExams.length > 0) {
-    const assocRows = allAssocExams.map((eid) => ({ test_id: id, exam_id: eid }));
-    await supabase.from('test_exams').upsert(assocRows, { onConflict: 'test_id,exam_id' });
+    // Confirmed RPC write: a silent failure would hide the test from its exams.
+    try {
+      await catalogApi.syncTestExamAssociations(id, allAssocExams);
+    } catch (assocError) {
+      throw new Error(
+        `Test "${testData.title}" was created, but its exam links were not saved: ${
+          assocError instanceof Error ? assocError.message : 'unknown error'
+        }. Edit the test to retry.`
+      );
+    }
   }
-
   const row = data as any;
   if (testData.iconUrl && row.icon_url !== testData.iconUrl)
     throw new Error('The backend did not confirm the saved test icon.');
@@ -821,7 +839,99 @@ export async function archiveTest(testId: string): Promise<{ success: boolean; e
   }
 }
 
+/** Business rule for generated Topic Tests: fixed-size tests drawn from the Question Bank. */
+export const TOPIC_TEST_QUESTION_COUNT = 10;
+
+export interface GenerateTopicTestsInput {
+  subjectId: string;
+  chapterId: string;
+  topicName: string;
+  associatedExamIds?: string[];
+  description?: string;
+  iconUrl?: string;
+  durationMinutes: number;
+  passingMarks: number;
+  negativeMarking: number;
+  isPremium: boolean;
+  questionsPerTest?: number;
+}
+
+/**
+ * Splits a topic's Question Bank questions that are not yet used by any Topic Test of that
+ * topic into new draft Topic Tests of `questionsPerTest` questions each (e.g. 50 -> five
+ * tests of 10). Questions are referenced by ID; nothing is copied. Leftovers stay unused.
+ */
+export async function generateTopicTests(
+  input: GenerateTopicTestsInput
+): Promise<{ created: MockTest[]; eligible: number; leftover: number }> {
+  const perTest = input.questionsPerTest ?? TOPIC_TEST_QUESTION_COUNT;
+  if (!input.subjectId || !input.chapterId)
+    throw new Error('Topic Tests must be linked to a Subject and a Topic.');
+
+  const [bankIds, existingTests] = await Promise.all([
+    getAllAdminQuestionIds({ chapterId: input.chapterId }),
+    getAllAdminTests({ chapterId: input.chapterId }),
+  ]);
+  const topicTests = existingTests.filter(
+    (t) => t.testType === 'topic' || t.testType === 'chapter_mock'
+  );
+  const used = new Set<string>();
+  for (const t of topicTests) {
+    for (const a of await getTestAssignedQuestions(t.id)) used.add(a.questionId);
+  }
+  // Oldest questions first so numbering follows the order they were added to the bank.
+  const pool = [...bankIds].reverse().filter((id) => !used.has(id));
+  const batches = Math.floor(pool.length / perTest);
+  if (batches === 0)
+    throw new Error(
+      `Need at least ${perTest} unused questions in this topic to generate a test; found ${pool.length}.`
+    );
+
+  const created: MockTest[] = [];
+  for (let i = 0; i < batches; i++) {
+    const number = String(topicTests.length + i + 1).padStart(2, '0');
+    const title = `${input.topicName} Test ${number}`;
+    const ids = pool.slice(i * perTest, (i + 1) * perTest);
+    const test = await createTest({
+      title,
+      slug: `${title}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, ''),
+      description: input.description,
+      iconUrl: input.iconUrl,
+      testType: 'topic',
+      subjectId: input.subjectId,
+      chapterId: input.chapterId,
+      associatedExamIds: input.associatedExamIds,
+      durationMinutes: input.durationMinutes,
+      totalQuestions: 0,
+      totalMarks: perTest,
+      passingMarks: input.passingMarks,
+      negativeMarking: input.negativeMarking,
+      isPremium: input.isPremium,
+      orderIndex: topicTests.length + i + 1,
+      isActive: false,
+      status: 'draft',
+    });
+    const saved = await saveTestQuestions(
+      test.id,
+      ids.map((questionId, idx) => ({ questionId, orderIndex: idx + 1, marks: 1 }))
+    );
+    if (!saved.success)
+      throw new Error(
+        `Created ${created.length + 1} test(s), but questions for "${title}" were not saved: ${
+          saved.error || 'unknown error'
+        }. It is a draft with no questions; add them from Manage Questions.`
+      );
+    created.push({ ...test, totalQuestions: ids.length, totalMarks: ids.length });
+  }
+  notifyExamsUpdated();
+  return { created, eligible: pool.length, leftover: pool.length - batches * perTest };
+}
+
 export const adminTestsApi = {
+  generateTopicTests,
   uploadTestIcon,
   getAllAdminTests,
   getSeriesTests,

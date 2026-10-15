@@ -70,6 +70,7 @@ describe('Mock Test Icon Upload and Persistence', () => {
     const created = await api.createTest({
       title: 'New Police Mock With Icon',
       testType: 'full_mock',
+      examId: 'exam-1',
       durationMinutes: 60,
       totalQuestions: 50,
       totalMarks: 50,

@@ -959,13 +959,22 @@ export const AdminTests: React.FC = () => {
           )}
         >
           <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xs overflow-hidden">
-            {/* Horizontal Tabs: All Tests (248), Full Mock (85), Topic Test (120), Official PYQ (43) */}
+            {/* Horizontal Tabs: All Tests, Full Mock, Topic Test, Official PYQ (live counts) */}
             <div className="px-5 pt-3.5 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center gap-8 overflow-x-auto">
               {[
-                { key: 'all', label: 'All Tests (248)' },
-                { key: 'full_mock', label: 'Full Mock (85)' },
-                { key: 'topic', label: 'Topic Test (120)' },
-                { key: 'pyq', label: 'Official PYQ (43)' },
+                { key: 'all', label: `All Tests (${tests.length})` },
+                {
+                  key: 'full_mock',
+                  label: `Full Mock (${tests.filter((t) => t.testType === 'full_mock').length})`,
+                },
+                {
+                  key: 'topic',
+                  label: `Topic Test (${tests.filter((t) => t.testType === 'topic').length})`,
+                },
+                {
+                  key: 'pyq',
+                  label: `Official PYQ (${tests.filter((t) => t.testType === 'pyq').length})`,
+                },
               ].map((tab) => (
                 <button
                   key={tab.key}

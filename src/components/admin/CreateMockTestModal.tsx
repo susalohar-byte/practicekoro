@@ -47,6 +47,10 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
   const [chapterId, setChapterId] = useState('');
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [paperName, setPaperName] = useState('Prelims');
+  const [setName, setSetName] = useState('');
+  // Topic Tests are exam-independent; these optional links only make them show under exams.
+  const [associatedExamIds, setAssociatedExamIds] = useState<string[]>([]);
+  const [generateFromBank, setGenerateFromBank] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(90);
   const [totalMarks, setTotalMarks] = useState(100);
   const [passingMarks, setPassingMarks] = useState(40);
@@ -71,6 +75,9 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
     setChapterId('');
     setYear(new Date().getFullYear());
     setPaperName('Prelims');
+    setSetName('');
+    setAssociatedExamIds([]);
+    setGenerateFromBank(false);
     setIsPremium(false);
     setStatus('draft');
     setError(null);
@@ -121,14 +128,16 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
       const selectedSub = subjects.find((s) => s.id === subjectId);
       const selectedTop = chapters.find((c) => c.id === chapterId);
       if (selectedTop) {
-        setTitle(`${selectedTop.name} - Topic Practice Test`);
+        setTitle(`${selectedTop.name} Test 01`);
       } else if (selectedSub) {
         setTitle(`${selectedSub.name} Topic Test`);
       }
     } else if (testType === 'pyq') {
       const selectedExam = exams.find((e) => e.id === examId);
       if (selectedExam) {
-        setTitle(`${selectedExam.title} ${year} ${paperName} Official PYQ`);
+        setTitle(
+          `${selectedExam.title} ${year} ${paperName}${setName ? ` Set ${setName}` : ''} Official PYQ`
+        );
       }
     }
   };
@@ -139,8 +148,10 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
     e.preventDefault();
     setError(null);
 
+    const generating = testType === 'topic' && generateFromBank;
+
     // Validation
-    if (!title.trim()) {
+    if (!generating && !title.trim()) {
       setError('Please provide a test title.');
       return;
     }
@@ -161,6 +172,31 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
     }
 
     setIsSubmitting(true);
+    if (generating) {
+      try {
+        const topicName = chapters.find((c) => c.id === chapterId)?.name || 'Topic';
+        const result = await api.generateTopicTests({
+          subjectId,
+          chapterId,
+          topicName,
+          associatedExamIds,
+          description: description.trim() || undefined,
+          iconUrl: iconUrl.trim() || undefined,
+          durationMinutes: Number(durationMinutes),
+          passingMarks: Number(passingMarks),
+          negativeMarking: Number(negativeMarking),
+          isPremium,
+        });
+        result.created.forEach((t) => onTestCreated(t));
+        onClose();
+      } catch (err) {
+        console.error('Failed to generate topic tests:', err);
+        setError(getErrorMessage(err, 'Failed to generate topic tests.'));
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
     try {
       const created = await api.createTest({
         title: title.trim(),
@@ -170,8 +206,10 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
         examId: testType === 'topic' ? undefined : examId || undefined,
         subjectId: testType === 'topic' ? subjectId : undefined,
         chapterId: testType === 'topic' ? chapterId : undefined,
+        associatedExamIds: testType === 'topic' ? associatedExamIds : undefined,
         year: testType === 'pyq' ? year : undefined,
         paperName: testType === 'pyq' ? paperName : undefined,
+        setName: testType === 'pyq' ? setName.trim() || undefined : undefined,
         durationMinutes: Number(durationMinutes),
         totalMarks: Number(totalMarks),
         passingMarks: Number(passingMarks),
@@ -397,8 +435,67 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
             </div>
           )}
 
+          {testType === 'topic' && (
+            <div className="space-y-3">
+              <div>
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Show under Exams (optional)
+                </label>
+                <p className="text-[11px] text-slate-400 mb-1.5">
+                  A Topic Test needs no exam. Linking it lets the same test appear under several
+                  exams without copies.
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                  {exams.map((ex) => {
+                    const on = associatedExamIds.includes(ex.id);
+                    return (
+                      <button
+                        key={ex.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() =>
+                          setAssociatedExamIds((prev) =>
+                            on ? prev.filter((id) => id !== ex.id) : [...prev, ex.id]
+                          )
+                        }
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors cursor-pointer',
+                          on
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300'
+                            : 'bg-white border-slate-200 text-slate-600 dark:bg-[#070D1E] dark:border-slate-700 dark:text-slate-300'
+                        )}
+                      >
+                        {on && <Check className="w-3 h-3 inline mr-1" />}
+                        {ex.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={generateFromBank}
+                  onChange={(e) => setGenerateFromBank(e.target.checked)}
+                  className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                />
+                <span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                    Generate tests from Question Bank (10 questions each)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Uses this topic&apos;s questions not yet in any of its Topic Tests, e.g. 50
+                    questions → Test 01 to Test 05. Titles are numbered automatically; tests are
+                    created as drafts.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+
           {testType === 'pyq' && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Target Exam *
@@ -445,6 +542,19 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
                 />
               </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Set
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. A"
+                  value={setName}
+                  onChange={(e) => setSetName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
             </div>
           )}
 
@@ -464,8 +574,13 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
             </div>
             <input
               type="text"
-              required
-              placeholder="e.g. WBP Constable Full Mock 01"
+              required={!(testType === 'topic' && generateFromBank)}
+              disabled={testType === 'topic' && generateFromBank}
+              placeholder={
+                testType === 'topic' && generateFromBank
+                  ? 'Auto-numbered: <Topic> Test 01, Test 02…'
+                  : 'e.g. WBP Constable Full Mock 01'
+              }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -681,7 +796,13 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
               disabled={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5"
             >
-              {isSubmitting ? 'Creating...' : '+ Create Mock Test'}
+              {testType === 'topic' && generateFromBank
+                ? isSubmitting
+                  ? 'Generating...'
+                  : 'Generate Topic Tests'
+                : isSubmitting
+                  ? 'Creating...'
+                  : '+ Create Mock Test'}
             </Button>
           </div>
         </form>

@@ -565,7 +565,17 @@ export interface ScheduleLiveTestInput {
 }
 
 /** Schedule an existing test as a Live Test event */
+/** Live Tests reference an existing Full Mock test (also enforced by a DB trigger). */
+function assertFullMockSource(testId: string, sourceTest: MockTest | null) {
+  if (!testId) throw new Error('Select a Full Mock test to schedule as a Live Test.');
+  if (!isSupabaseConfigured) return;
+  if (!sourceTest) throw new Error('The selected source test no longer exists.');
+  if (sourceTest.testType !== 'full_mock')
+    throw new Error('Live Tests can only be scheduled from a Full Mock test.');
+}
+
 export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<LiveTest> {
+  if (!input.testId) throw new Error('Select a Full Mock test to schedule as a Live Test.');
   const currentList = await getLiveTests();
 
   // 1. Prevent duplicate active Live Test events for the same Test
@@ -587,6 +597,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
   // Fetch the real source test from Supabase (or localTests fallback)
   const sourceTestsMap = await fetchSourceTestsMap([input.testId]);
   const sourceTest = sourceTestsMap.get(input.testId) || null;
+  assertFullMockSource(input.testId, sourceTest);
 
   const resolvedLogo = input.logo?.trim() || input.examLogo?.trim() || undefined;
   const dbFields = toDbStatusFields(input.status || 'upcoming');
@@ -669,6 +680,8 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
   const testId = updates.testId || existing.testId;
   const sourceTestsMap = testId ? await fetchSourceTestsMap([testId]) : new Map<string, MockTest>();
   const sourceTest = sourceTestsMap.get(testId) || existing?.test || null;
+  if (updates.testId && updates.testId !== existing?.testId)
+    assertFullMockSource(updates.testId, sourceTestsMap.get(updates.testId) || null);
 
   // Map the requested status onto the stored columns (Draft = unpublished). Without an explicit
   // status, keep a cancellation and otherwise let deriveLiveTestStatus compute from the schedule.

@@ -36,6 +36,7 @@ describe('Authoritative test icon persistence', () => {
         isActive: true,
         negativeMarking: 0,
         testType: 'full_mock',
+        examId: 'exam-1',
         durationMinutes: 1,
         totalQuestions: 1,
         totalMarks: 1,

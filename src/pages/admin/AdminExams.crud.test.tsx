@@ -14,7 +14,7 @@ vi.mock('@/services/api', () => ({
     getAllAdminExams: mocks.load,
     getAllAdminTests: async () => [],
     getSubjects: async () => [],
-    getTestSeries: async () => [],
+    getExamMappingCounts: async () => ({}),
     getExamCategories: async () => [],
     createExam: mocks.create,
     updateExam: mocks.update,
