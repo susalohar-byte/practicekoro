@@ -1,4 +1,4 @@
-/** Clear only this web app's disposable caches; never auth, drafts, exam answers or Flutter stores. */
+/** Clear only this web app's disposable caches; never auth, drafts, exam answers or unrelated caches. */
 export async function clearOfflineCache(): Promise<number> {
   localStorage.removeItem('practicekoro_offline_cache');
   sessionStorage.removeItem('practicekoro_offline_cache');

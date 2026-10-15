@@ -5,9 +5,9 @@
 [![Live App](https://img.shields.io/badge/Live_App-practicekoro.online-2563eb)](https://practicekoro.online)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-PracticeKoro is a bilingual mock-test and practice platform for West Bengal competitive
-examinations. It includes student test-taking workflows, topic-wise practice, results and
-solutions, subscriptions, and an administration CMS.
+PracticeKoro is a bilingual public information and administration platform for West Bengal
+competitive examinations. The website provides public exam and question resources alongside
+an administration CMS for managing exams, questions, tests, banners, and content.
 
 [Open the live application →](https://practicekoro.online)
 
@@ -16,10 +16,8 @@ solutions, subscriptions, and an administration CMS.
 ## Highlights
 
 - Bengali-first and English learning experience
-- Full mock tests, topic practice, PYQs, results and detailed solutions
-- Student subscriptions with server-verified Razorpay payments
+- Public exam and question resources
 - Administration CMS for exams, questions, tests, banners and content
-- Web app plus a Flutter mobile client
 - Supabase Row Level Security (RLS) assertions and automated quality checks
 
 ## Stack
@@ -33,12 +31,11 @@ solutions, subscriptions, and an administration CMS.
 ## Architecture
 
 ```text
-React + TypeScript web app ─┐
-                           ├─ Supabase Auth + PostgreSQL + RLS
-Flutter mobile app ────────┘             │
-                                         ├─ Edge Functions
-Admin CMS ────────────────────────────────┤
-                                         └─ Razorpay payment verification
+Public React + TypeScript website ─┐
+                                   ├─ Supabase Auth + PostgreSQL + RLS
+Admin CMS ─────────────────────────┘             │
+                                                 ├─ Edge Functions
+                                                 └─ Razorpay payment verification
 ```
 
 ## Repository layout
@@ -46,7 +43,6 @@ Admin CMS ───────────────────────�
 | Path                   | Purpose                                        |
 | ---------------------- | ---------------------------------------------- |
 | `src/`                 | React web application, services and unit tests |
-| `practicekoro_mobile/` | Flutter mobile application                     |
 | `supabase/migrations/` | Ordered database migrations                    |
 | `supabase/functions/`  | Server-side Edge Functions                     |
 | `supabase/tests/`      | Database and RLS security assertions           |

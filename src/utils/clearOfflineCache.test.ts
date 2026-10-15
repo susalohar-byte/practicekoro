@@ -6,7 +6,7 @@ afterEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
-it('clears web caches but preserves sign-in, exam recovery, drafts and Flutter caches', async () => {
+it('clears web caches but preserves sign-in, exam recovery, drafts and unrelated caches', async () => {
   localStorage.setItem('practicekoro_offline_cache', 'discard');
   for (const key of ['sb-auth-token', 'exam-recovery', 'draft']) localStorage.setItem(key, 'keep');
   const remove = vi.fn().mockResolvedValue(true);
