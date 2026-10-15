@@ -1,0 +1,176 @@
+/* ============================================================================
+   ADMIN MOTION SYSTEM
+   Subtle, shared micro-animations. Rules here never change resting visuals:
+   - Entrance keyframes only define `from`, so elements always settle on their
+     own styles (including existing Tailwind transforms).
+   - Interaction defaults use :where() (zero specificity) and skip any element
+     that already declares its own transition/duration utilities.
+   - Everything is disabled under prefers-reduced-motion.
+   ========================================================================= */
+
+:root {
+  --pk-motion-fast: 150ms;
+  --pk-motion-base: 200ms;
+  --pk-motion-page: 220ms;
+  --pk-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --pk-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Enter / exit primitives (compatible with the `animate-in fade-in zoom-in-95
+   slide-in-from-*` class vocabulary already used across admin markup).
+   ------------------------------------------------------------------------ */
+@keyframes pk-enter {
+  from {
+    opacity: var(--pk-enter-opacity, 1);
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0))
+      translate3d(var(--pk-enter-tx, 0), var(--pk-enter-ty, 0), 0) scale(var(--pk-enter-scale, 1));
+  }
+}
+
+@keyframes pk-exit {
+  to {
+    opacity: var(--pk-exit-opacity, 0);
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0))
+      translate3d(var(--pk-exit-tx, 0), var(--pk-exit-ty, 0), 0) scale(var(--pk-exit-scale, 1));
+  }
+}
+
+.animate-in {
+  animation: pk-enter var(--pk-motion-base) var(--pk-ease-out);
+}
+
+.pk-animate-out {
+  animation: pk-exit 120ms var(--pk-ease-standard) forwards;
+  pointer-events: none;
+}
+
+.animate-in.duration-100 {
+  animation-duration: 100ms;
+}
+.animate-in.duration-150 {
+  animation-duration: 150ms;
+}
+.animate-in.duration-200 {
+  animation-duration: 200ms;
+}
+.animate-in.duration-300 {
+  animation-duration: 300ms;
+}
+
+.fade-in {
+  --pk-enter-opacity: 0;
+}
+.fade-in-50 {
+  --pk-enter-opacity: 0.5;
+}
+.zoom-in-95 {
+  --pk-enter-scale: 0.95;
+}
+.slide-in-from-top-1 {
+  --pk-enter-ty: -0.25rem;
+}
+.slide-in-from-top-2 {
+  --pk-enter-ty: -0.5rem;
+}
+.slide-in-from-bottom-2 {
+  --pk-enter-ty: 0.5rem;
+}
+.slide-in-from-bottom-3 {
+  --pk-enter-ty: 0.75rem;
+}
+.slide-in-from-bottom-5 {
+  --pk-enter-ty: 1.25rem;
+}
+.slide-in-from-right-4 {
+  --pk-enter-tx: 1rem;
+}
+.slide-in-from-right {
+  --pk-enter-tx: 100%;
+}
+
+/* Legacy single-class fade used by a few panels/modals. */
+.animate-fade-in {
+  --pk-enter-opacity: 0;
+  animation: pk-enter var(--pk-motion-base) var(--pk-ease-out);
+}
+
+/* Exit variants paired with .pk-animate-out */
+.pk-exit-up {
+  --pk-exit-ty: -0.25rem;
+}
+.pk-exit-down {
+  --pk-exit-ty: 0.25rem;
+}
+
+/* Staggered entrance for a row of cards (e.g. dashboard KPIs). */
+.pk-stagger > * {
+  --pk-enter-opacity: 0;
+  --pk-enter-ty: 6px;
+  animation: pk-enter 280ms var(--pk-ease-out) backwards;
+}
+.pk-stagger > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.pk-stagger > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.pk-stagger > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.pk-stagger > :nth-child(5) {
+  animation-delay: 160ms;
+}
+.pk-stagger > :nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+
+/* ---------------------------------------------------------------------------
+   Interaction defaults (admin only). Zero specificity, and only for elements
+   without their own transition utilities, so nothing existing is overridden.
+   ------------------------------------------------------------------------ */
+:where(.admin-scope)
+  :where(a, button, [role='button'], summary):not([class*='transition']):not([class*='duration-']) {
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow;
+  transition-duration: var(--pk-motion-fast);
+  transition-timing-function: var(--pk-ease-standard);
+}
+
+:where(.admin-scope)
+  :where(input, select, textarea):not([class*='transition']):not([class*='duration-']) {
+  transition-property: color, background-color, border-color, box-shadow, outline-color;
+  transition-duration: var(--pk-motion-fast);
+  transition-timing-function: var(--pk-ease-standard);
+}
+
+:where(.admin-scope) :where(tbody > tr):not([class*='transition']):not([class*='duration-']) {
+  transition-property: background-color, color, opacity;
+  transition-duration: var(--pk-motion-fast);
+  transition-timing-function: var(--pk-ease-standard);
+}
+
+/* Clear keyboard focus indicator; elements with their own focus styles win. */
+:where(.admin-scope) :where(a, button, [role='button'], [tabindex], summary):focus-visible {
+  outline: 2px solid var(--pk-primary);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion: no keyframe motion, near-instant transitions.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .animate-fade-in,
+  .pk-animate-out,
+  .pk-stagger > * {
+    animation: none !important;
+  }
+
+  .admin-scope *,
+  .admin-scope *::before,
+  .admin-scope *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

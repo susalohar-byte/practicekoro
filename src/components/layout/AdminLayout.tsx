@@ -43,6 +43,8 @@ import {
 } from 'lucide-react';
 import { useMaintenance } from '@/context/MaintenanceContext';
 import { cn } from '@/lib/utils';
+import { playEnter } from '@/lib/motion';
+import { usePresence } from '@/hooks/usePresence';
 import type { AdminPermissions } from '@/types';
 
 interface NavSubItem {
@@ -94,6 +96,14 @@ export const AdminLayout: React.FC = () => {
   const [headerAvatarFailed, setHeaderAvatarFailed] = useState(false);
   const [sidebarAvatarFailed, setSidebarAvatarFailed] = useState(false);
   const sidebarUserRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const userMenu = usePresence(isUserMenuOpen);
+  const sidebarUserMenu = usePresence(isSidebarUserOpen);
+
+  // Subtle content fade on route change (no remount, so page state is kept)
+  useEffect(() => {
+    playEnter(contentRef.current);
+  }, [location.pathname]);
 
   useEffect(() => {
     setHeaderAvatarFailed(false);
@@ -555,7 +565,7 @@ export const AdminLayout: React.FC = () => {
 
                         {/* Subtle active pip indicator */}
                         {isParentActive && (
-                          <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r-full bg-white shadow-xs" />
+                          <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r-full bg-white shadow-xs animate-in fade-in duration-200" />
                         )}
                       </NavLink>
 
@@ -765,10 +775,13 @@ export const AdminLayout: React.FC = () => {
           </button>
 
           {/* Floating Dropdown Menu (Pop up upwards) */}
-          {isSidebarUserOpen && (
+          {sidebarUserMenu.mounted && (
             <div
               className={cn(
-                'absolute z-50 rounded-xl bg-[#0B132B] border border-[#1E2D5A] shadow-2xl p-1.5 text-xs font-medium animate-in fade-in-50 duration-150',
+                'absolute z-50 rounded-xl bg-[#0B132B] border border-[#1E2D5A] shadow-2xl p-1.5 text-xs font-medium',
+                sidebarUserMenu.closing
+                  ? 'pk-animate-out pk-exit-down'
+                  : 'animate-in fade-in slide-in-from-bottom-2 duration-150',
                 isCollapsed
                   ? 'left-[calc(100%+8px)] bottom-2 w-64'
                   : 'bottom-[calc(100%+8px)] left-2.5 right-2.5'
@@ -923,8 +936,15 @@ export const AdminLayout: React.FC = () => {
                 </div>
               </button>
 
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-52 rounded-xl bg-white dark:bg-[#0E1738] border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 z-50 text-xs font-medium animate-in fade-in-50 slide-in-from-top-2 duration-150">
+              {userMenu.mounted && (
+                <div
+                  className={cn(
+                    'absolute right-0 mt-1.5 w-52 rounded-xl bg-white dark:bg-[#0E1738] border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 z-50 text-xs font-medium',
+                    userMenu.closing
+                      ? 'pk-animate-out pk-exit-up'
+                      : 'animate-in fade-in slide-in-from-top-2 duration-150'
+                  )}
+                >
                   <div className="flex items-center gap-2.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800/80 mb-1">
                     <div className="w-8 h-8 rounded-full overflow-hidden bg-[#026BFC] text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
                       {user?.avatarUrl && !headerAvatarFailed ? (
@@ -1009,7 +1029,7 @@ export const AdminLayout: React.FC = () => {
 
         {/* Content body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-7 bg-slate-50 dark:bg-[#030712]">
-          <div className="max-w-[1560px] mx-auto">
+          <div ref={contentRef} className="max-w-[1560px] mx-auto">
             <React.Suspense fallback={<AdminRouteSkeleton />}>
               <Outlet />
             </React.Suspense>

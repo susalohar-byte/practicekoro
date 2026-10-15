@@ -154,7 +154,7 @@ export function AdminMoneyChart({
                       <div
                         style={{ height: `${revHeightPct}%` }}
                         className={cn(
-                          'w-3.5 sm:w-5 bg-gradient-to-t from-[#026BFC] via-[#2563EB] to-[#38BDF8] rounded-t-md transition-all shadow-2xs group-hover:brightness-110 group-hover:shadow-blue-500/20',
+                          'w-3.5 sm:w-5 bg-gradient-to-t from-[#026BFC] via-[#2563EB] to-[#38BDF8] rounded-t-md transition-all duration-300 ease-out shadow-2xs group-hover:brightness-110 group-hover:shadow-blue-500/20',
                           isHovered && 'ring-2 ring-blue-400/50'
                         )}
                       />
@@ -164,7 +164,7 @@ export function AdminMoneyChart({
                         <div
                           style={{ height: `${refHeightPct}%` }}
                           className={cn(
-                            'w-3.5 sm:w-5 bg-gradient-to-t from-[#E11D48] via-[#F43F5E] to-[#FB7185] rounded-t-md transition-all shadow-2xs group-hover:brightness-110 group-hover:shadow-rose-500/20',
+                            'w-3.5 sm:w-5 bg-gradient-to-t from-[#E11D48] via-[#F43F5E] to-[#FB7185] rounded-t-md transition-all duration-300 ease-out shadow-2xs group-hover:brightness-110 group-hover:shadow-rose-500/20',
                             isHovered && 'ring-2 ring-rose-400/50'
                           )}
                         />
