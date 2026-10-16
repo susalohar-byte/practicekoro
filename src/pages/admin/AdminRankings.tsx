@@ -78,6 +78,14 @@ export const AdminRankings: React.FC = () => {
   const [selectedTestType, setSelectedTestType] = useState('All Types');
   const [timePeriod, setTimePeriod] = useState('All Time');
   const [searchQuery, setSearchQuery] = useState('');
+  // Search typed into the box is applied after a short pause so each keystroke doesn't refetch.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  // Only the latest rankings request may update state; older responses are discarded.
+  const latestRankingsRequest = useRef(0);
 
   // Dynamic dropdown data loaded from database
   const [dbExams, setDbExams] = useState<any[]>([]);
@@ -100,8 +108,14 @@ export const AdminRankings: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     Promise.all([
-      api.getAllAdminExams().catch(() => []),
-      api.getAllAdminSubjects().catch(() => []),
+      api.getAllAdminExams().catch((err) => {
+        console.error('Failed to load exams for ranking filters:', err);
+        return [];
+      }),
+      api.getAllAdminSubjects().catch((err) => {
+        console.error('Failed to load subjects for ranking filters:', err);
+        return [];
+      }),
     ]).then(([exams, subjects]) => {
       if (!isMounted) return;
       if (Array.isArray(exams)) setDbExams(exams);
@@ -122,6 +136,8 @@ export const AdminRankings: React.FC = () => {
       timePeriod?: string;
       search?: string;
     }) => {
+      const requestId = ++latestRankingsRequest.current;
+      const isStale = () => requestId !== latestRankingsRequest.current;
       setIsLoading(true);
       setLoadError(null);
       try {
@@ -130,7 +146,7 @@ export const AdminRankings: React.FC = () => {
         const targetSubject = overrides?.subject ?? selectedSubject;
         const targetTestType = overrides?.testType ?? selectedTestType;
         const targetTimePeriod = overrides?.timePeriod ?? timePeriod;
-        const targetSearch = overrides?.search ?? searchQuery;
+        const targetSearch = overrides?.search ?? debouncedSearch;
 
         const liveRankings = await api.getAdminRankings({
           scope: targetScope,
@@ -141,19 +157,21 @@ export const AdminRankings: React.FC = () => {
           search: targetSearch,
         });
 
+        if (isStale()) return;
         // No matching completed attempts is a real empty result, never seeded sample students.
         const list = liveRankings || [];
         setStudentsList(list);
         setSelectedStudentRank(list.length > 0 ? list[0].rank : 1);
       } catch (err) {
+        if (isStale()) return;
         console.warn('Failed to load admin rankings from database:', err);
         setStudentsList([]);
         setLoadError(err instanceof Error ? err.message : 'Failed to load rankings.');
       } finally {
-        setIsLoading(false);
+        if (!isStale()) setIsLoading(false);
       }
     },
-    [scopeTab, selectedExam, selectedSubject, selectedTestType, timePeriod, searchQuery]
+    [scopeTab, selectedExam, selectedSubject, selectedTestType, timePeriod, debouncedSearch]
   );
 
   useEffect(() => {
@@ -164,9 +182,9 @@ export const AdminRankings: React.FC = () => {
   const handleScopeChange = (
     newScope: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series'
   ) => {
+    // The fetch effect reruns when the scope changes; fetching here too would load twice.
     setScopeTab(newScope);
     setCurrentPage(1);
-    fetchRankings({ scope: newScope });
   };
 
   // Dynamic KPI computations
@@ -323,16 +341,21 @@ export const AdminRankings: React.FC = () => {
     setSelectedTestType('All Types');
     setTimePeriod('All Time');
     setSearchQuery('');
+    setDebouncedSearch('');
     setScopeTab('Overall');
     setCurrentPage(1);
-    fetchRankings({
-      exam: 'All Exams',
-      subject: 'All Subjects',
-      testType: 'All Types',
-      timePeriod: 'All Time',
-      search: '',
-      scope: 'Overall',
-    });
+    // The fetch effect reruns with the reset filters (once, if any filter changed). When
+    // nothing changed, reload explicitly so Reset still refreshes the data.
+    if (
+      selectedExam === 'All Exams' &&
+      selectedSubject === 'All Subjects' &&
+      selectedTestType === 'All Types' &&
+      timePeriod === 'All Time' &&
+      debouncedSearch === '' &&
+      scopeTab === 'Overall'
+    ) {
+      void fetchRankings();
+    }
   };
 
   return withAdminSkeleton(

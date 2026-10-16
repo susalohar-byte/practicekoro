@@ -210,4 +210,35 @@ Explanation
 Two plus two is four.`);
     expect(result.valid[0].explanation).toBe('Two plus two is four.');
   });
+
+  it('keeps option-like and numbered lines inside an explanation as explanation text', () => {
+    const result = parseQuestionsTxt(`1. Who chaired the Drafting Committee?
+(a) Jawaharlal Nehru
+(b) B. R. Ambedkar
+(c) Rajendra Prasad
+(d) Sardar Patel
+Answer: (b)
+Explanation:
+B. R. Ambedkar was the chairman.
+1947: Committee formed.
+A. K. Ayyar was a member.
+
+2. 2 + 2 = ?
+(a) 3
+(b) 4
+(c) 5
+(d) 6
+Answer: (b)`);
+    expect(result.totalDetected).toBe(2);
+    expect(result.errors).toHaveLength(0);
+    const [q1, q2] = result.valid;
+    expect(q1.optionA).toBe('Jawaharlal Nehru');
+    expect(q1.optionB).toBe('B. R. Ambedkar');
+    expect(q1.correctOption).toBe('B');
+    expect(q1.explanation).toContain('B. R. Ambedkar was the chairman.');
+    expect(q1.explanation).toContain('1947: Committee formed.');
+    expect(q1.explanation).toContain('A. K. Ayyar was a member.');
+    expect(q2.questionText).toBe('2 + 2 = ?');
+    expect(q2.correctOption).toBe('B');
+  });
 });

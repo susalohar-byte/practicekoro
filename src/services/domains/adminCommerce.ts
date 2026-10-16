@@ -17,6 +17,7 @@ import {
 import { MOCK_SUBSCRIPTION_PLANS } from '@/services/mockData';
 import { logAdminActivity } from '@/services/domains/auditLog';
 import { loadAllPages } from '@/utils/loadAllPages';
+import { notifySubscriptionUpdated } from '@/lib/dataSync';
 import type {
   AdminSubscriptionRow,
   AdminPaymentRow,
@@ -205,6 +206,8 @@ export const adminCommerceApi = {
             refundAmount: d.refund_amount == null ? undefined : Number(d.refund_amount),
             refundReason: d.refund_reason || undefined,
             refundedAt: d.refunded_at || undefined,
+            requiresRefund: d.requires_refund === true || undefined,
+            purchaseType: d.purchase_type || undefined,
             createdAt: d.created_at,
           }));
           const enrichedWithAvatars = await enrichAdminPaymentAvatars(rawRows);
@@ -236,6 +239,8 @@ export const adminCommerceApi = {
             refund_reason,
             refunded_at,
             created_at,
+            purchase_type,
+            requires_refund:raw_response->>requires_refund,
             profiles:user_id(full_name, email, avatar_url),
             subscription_plans:plan_id(title)
           `
@@ -279,6 +284,8 @@ export const adminCommerceApi = {
               refundAmount: d.refund_amount == null ? undefined : Number(d.refund_amount),
               refundReason: d.refund_reason || undefined,
               refundedAt: d.refunded_at || undefined,
+              requiresRefund: String(d.requires_refund) === 'true' || undefined,
+              purchaseType: d.purchase_type || undefined,
               createdAt: d.created_at,
             }));
           const enrichedWithAvatars = await enrichAdminPaymentAvatars(rawRows);
@@ -3010,3 +3017,34 @@ export const adminCommerceApi = {
     };
   },
 };
+
+// Refunds, grants and plan changes move dashboard revenue and Pro counts, which are
+// cached for the overview TTL. Drop those caches after every such write that did not
+// report failure, so admins never see pre-refund totals.
+const SUBSCRIPTION_MUTATIONS = [
+  'updateSubscriptionPlan',
+  'createSubscriptionPlan',
+  'deleteSubscriptionPlan',
+  'grantStudentSubscription',
+  'revokeStudentSubscription',
+  'cancelSubscription',
+  'extendSubscription',
+  'changeSubscriptionPlan',
+  'createAdminSubscription',
+  'bulkGrantStudentSubscription',
+  'markPaymentRefunded',
+  'processPaymentRefund',
+] as const;
+for (const name of SUBSCRIPTION_MUTATIONS) {
+  const original = adminCommerceApi[name] as (...args: any[]) => Promise<any>;
+  (adminCommerceApi as Record<string, unknown>)[name] = async function (
+    this: unknown,
+    ...args: any[]
+  ) {
+    const result = await original.apply(this, args);
+    if (!(result && typeof result === 'object' && result.success === false)) {
+      notifySubscriptionUpdated();
+    }
+    return result;
+  };
+}

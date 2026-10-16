@@ -116,7 +116,8 @@ const attemptTimestamp = (att: AdminTestAttempt) =>
     ? Date.parse(att.createdAt)
     : Date.parse(`${att.attemptedAtDate} ${att.attemptedAtTime || ''}`.trim());
 
-const STORAGE_KEY = 'practicekoro_test_attempts_v1';
+// Key used by earlier versions to cache attempts; purged on mount.
+const LEGACY_STORAGE_KEY = 'practicekoro_test_attempts_v1';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -126,28 +127,17 @@ export const AdminTestAttempts: React.FC = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const navigate = useNavigate();
 
-  // State: Attempts list loaded from LocalStorage or seeded
-  const [attempts, setAttempts] = useState<AdminTestAttempt[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed to load saved attempts:', e);
-    }
-    return [];
-  });
+  // Attempts are kept in memory only; never persist student data to browser storage.
+  const [attempts, setAttempts] = useState<AdminTestAttempt[]>([]);
 
-  // Save changes
+  // Purge attempt data cached in browser storage by earlier versions.
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
-    } catch (e) {
-      console.warn('Failed to save attempts:', e);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      // Storage may be unavailable (private mode); nothing to purge.
     }
-  }, [attempts]);
+  }, []);
 
   // Load real test attempts from Supabase database
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1229,8 +1219,8 @@ export const AdminTestAttempts: React.FC = () => {
                 <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-white border border-slate-200 shadow-2xs">
                     <img
-                      src="/images/exams/emblem_wbp_shield.png"
-                      alt="Exam Emblem"
+                      src="/images/exams/logo_wbp.png"
+                      alt="Exam Official Logo"
                       className="w-8 h-8 object-contain"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';

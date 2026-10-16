@@ -39,52 +39,20 @@ import { ImportTestsModal } from '@/components/admin/ImportTestsModal';
 
 type TestTypeTab = 'all' | 'full_mock' | 'topic' | 'pyq';
 
-// Police shield badge matching WBP crest from the reference design
+// Police shield badge with real official WBP logo
 const PoliceShieldBadge: React.FC<{ className?: string }> = ({ className = 'w-9 h-10' }) => (
   <div
     className={cn(
-      'relative flex items-center justify-center shrink-0 drop-shadow-xs select-none',
+      'rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs select-none',
       className
     )}
   >
-    <svg
-      viewBox="0 0 40 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
-    >
-      {/* Outer shield frame with golden border */}
-      <path
-        d="M20 2C20 2 35 4.5 37 10C39 18 37 34 20 46C3 34 1 18 3 10C5 4.5 20 2 20 2Z"
-        fill="#7F1D1D"
-        stroke="#F59E0B"
-        strokeWidth="2.5"
-      />
-      {/* Inner shield inset */}
-      <path
-        d="M20 6C20 6 32 8.5 33.5 13C35 19 33.5 32 20 42C6.5 32 5 19 6.5 13C8 8.5 20 6 20 6Z"
-        fill="#5A0B0B"
-        stroke="#FCD34D"
-        strokeWidth="1"
-      />
-      {/* Golden star crest */}
-      <path
-        d="M20 13L21.8 17.5L26.5 18L22.8 21.2L24 25.8L20 23.2L16 25.8L17.2 21.2L13.5 18L18.2 17.5L20 13Z"
-        fill="#FCD34D"
-      />
-      <text
-        x="20"
-        y="36"
-        textAnchor="middle"
-        fill="#FEF3C7"
-        fontSize="6.5"
-        fontWeight="900"
-        fontFamily="sans-serif"
-        letterSpacing="0.8"
-      >
-        WBP
-      </text>
-    </svg>
+    <img
+      src="/images/exams/logo_wbp.png"
+      alt="WBP Logo"
+      className="w-full h-full object-contain rounded-lg"
+      loading="lazy"
+    />
   </div>
 );
 

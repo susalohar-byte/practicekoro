@@ -1,6 +1,7 @@
 import { uploadValidatedImage, validateRasterFile } from '@/lib/rasterUploads';
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { notifyExamsUpdated } from '@/lib/dataSync';
 import {
   localExams,
   localLiveTests,
@@ -711,6 +712,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
     }
   }
 
+  notifyExamsUpdated();
   return newLiveTest;
 }
 
@@ -720,6 +722,16 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
   const existing = currentList.find((lt) => lt.id === id);
 
   if (!existing) throw new Error('Live test not found.');
+  // A running event's paper and timing are fixed: students are already answering it.
+  if (existing.status === 'live') {
+    if (updates.testId && updates.testId !== existing.testId)
+      throw new Error('The source test of a running Live Test cannot be changed.');
+    if (
+      updates.durationMinutes !== undefined &&
+      Number(updates.durationMinutes) !== Number(existing.durationMinutes)
+    )
+      throw new Error('The duration of a running Live Test cannot be changed.');
+  }
   const testId = updates.testId || existing.testId;
   const sourceTestsMap = testId ? await fetchSourceTestsMap([testId]) : new Map<string, MockTest>();
   const sourceTest = sourceTestsMap.get(testId) || existing?.test || null;
@@ -829,6 +841,7 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
     }
   }
 
+  notifyExamsUpdated();
   return updatedItem;
 }
 
@@ -866,10 +879,15 @@ export async function cancelLiveTest(id: string): Promise<boolean> {
 
 /** Delete a live test */
 export async function deleteLiveTest(id: string): Promise<boolean> {
-  if (isSupabaseConfigured) return deleteAdminRecord('live_tests', id);
+  if (isSupabaseConfigured) {
+    const deleted = await deleteAdminRecord('live_tests', id);
+    notifyExamsUpdated();
+    return deleted;
+  }
   const rows = await getLiveTests();
   if (!rows.some((r) => r.id === id)) throw new Error('Live test not found.');
   await syncLiveTestsToRemote(rows.filter((r) => r.id !== id));
+  notifyExamsUpdated();
   return true;
 }
 

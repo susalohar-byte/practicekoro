@@ -76,7 +76,11 @@ export function parseCsvRaw(csvText: string): string[][] {
   let currentField = '';
   let insideQuotes = false;
 
-  const text = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Strip a UTF-8 byte-order mark (Excel "CSV UTF-8") so the first header is read correctly.
+  const text = csvText
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
@@ -430,7 +434,7 @@ export function parseQuestionsText(
       if (answerMatch && !inExplanation) {
         const letterMatch =
           line.match(/\(\s*([a-dA-D])\s*\)/) ||
-          line.match(/[:-–\s]\s*\(?([a-dA-D])\s*\)?\s*$/) ||
+          line.match(/[:\-–\s]\s*\(?([a-dA-D])\s*\)?\s*$/) ||
           line.match(/([a-dA-D])\s*[).]\s*$/);
         if (letterMatch) {
           correctOption = letterMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';

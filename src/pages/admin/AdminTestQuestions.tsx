@@ -653,6 +653,7 @@ export const AdminTestQuestions: React.FC = () => {
       setBulkSuccessMsg('');
 
       let successCount = 0;
+      const failures: string[] = [];
       for (const q of parsedBulkResult.valid) {
         const res = await api.createQuestionForTest(test.id, {
           subjectId: test.subjectId,
@@ -676,6 +677,16 @@ export const AdminTestQuestions: React.FC = () => {
           status: 'active',
         });
         if (res.success) successCount++;
+        else failures.push(`Question #${q.questionNumber}: ${res.error || 'not saved'}`);
+      }
+
+      if (failures.length > 0) {
+        // Keep the modal open and report exactly which rows were not imported.
+        setBulkError(
+          `Imported ${successCount} of ${parsedBulkResult.valid.length} questions. ${failures.length} failed — ${failures.slice(0, 3).join('; ')}${failures.length > 3 ? '; …' : ''}`
+        );
+        await loadData();
+        return;
       }
 
       setBulkSuccessMsg(

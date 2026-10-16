@@ -22,5 +22,14 @@ SELECT jsonb_build_object(
  'audit_function_not_rpc',NOT has_function_privilege('authenticated','public.audit_privileged_mutation()','EXECUTE') AND NOT has_function_privilege('anon','public.audit_privileged_mutation()','EXECUTE'),
  'all_present_tables_audited',NOT EXISTS(SELECT 1 FROM audit_tables a WHERE NOT EXISTS(SELECT 1 FROM pg_trigger t WHERE t.tgrelid=a.oid AND t.tgname='audit_privileged_mutation' AND t.tgenabled='O')),
  'storage_audited',EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='storage.objects'::regclass AND tgname='audit_privileged_mutation' AND tgenabled='O'),
- 'audit_values_redacted',pg_get_functiondef('public.audit_privileged_mutation()'::regprocedure) NOT LIKE '%''old_values''%' AND pg_get_functiondef('public.audit_privileged_mutation()'::regprocedure) LIKE '%changed_fields%'
+ 'audit_values_redacted',pg_get_functiondef('public.audit_privileged_mutation()'::regprocedure) NOT LIKE '%''old_values''%' AND pg_get_functiondef('public.audit_privileged_mutation()'::regprocedure) LIKE '%changed_fields%',
+ -- 20261016130000_admin_scope_hardening
+ 'content_tables_write_scoped',NOT EXISTS(SELECT 1 FROM unnest(ARRAY['exams','subjects','chapters','questions','exam_categories','test_series','tests','live_tests','flashcard_decks','flashcards','hero_banners','notifications','app_settings']) t
+   WHERE to_regclass('public.'||t) IS NOT NULL
+   AND (SELECT count(*) FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=t AND p.policyname LIKE 'staff_scope_%' AND p.permissive='RESTRICTIVE')<>3),
+ 'support_ticket_staff_writes_scoped',(SELECT count(*)=2 FROM pg_policies WHERE schemaname='public' AND tablename='support_tickets' AND policyname IN ('staff_scope_update','staff_scope_delete') AND permissive='RESTRICTIVE'),
+ 'no_jwt_email_policies',NOT EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename IN ('app_settings','hero_banners') AND (coalesce(qual,'')||coalesce(with_check,'')) LIKE '%jwt%'),
+ 'inactive_staff_writes_raise',pg_get_functiondef('public.audit_privileged_mutation()'::regprocedure) LIKE '%Inactive or unverified staff%',
+ 'definer_helpers_pinned',(SELECT bool_and(p.proconfig IS NOT NULL AND array_to_string(p.proconfig,',') LIKE 'search_path=%') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('is_admin','increment_banner_click','is_pk_admin')),
+ 'super_admin_helpers_consistent',pg_get_functiondef('public.is_management_super_admin()'::regprocedure) LIKE '%admin_scope_allowed(''super'')%'
 ) AS security_checks;

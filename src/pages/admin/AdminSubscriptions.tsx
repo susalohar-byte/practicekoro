@@ -59,6 +59,7 @@ export interface SubscriptionRecord {
   paymentId?: string;
   paymentStatus?: PaymentStatus;
   paymentCurrency?: string;
+  recordedRevenue?: number;
   paymentMethod: 'Razorpay' | 'UPI' | 'PhonePe' | 'Credit Card' | '—';
   startDate: string;
   endDate: string;
@@ -114,6 +115,7 @@ export function mapAdminSubscriptionRow(d: AdminSubscriptionRow): SubscriptionRe
     paymentId: d.paymentId,
     paymentStatus: d.paymentStatus,
     paymentCurrency: d.paymentCurrency,
+    recordedRevenue: d.recordedRevenue,
     paymentMethod: method,
     startDate: formatDate(d.startsAt),
     endDate: formatDate(d.expiresAt),

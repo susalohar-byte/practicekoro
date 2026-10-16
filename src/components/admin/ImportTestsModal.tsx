@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { api } from '@/services/api';
+import { parseCsvRaw } from '@/utils/csvParser';
 import type { Exam, Subject, Chapter } from '@/types';
 
 interface ImportTestsModalProps {
@@ -115,18 +116,16 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
     try {
       const text = await csvFile.text();
-      const lines = text
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean);
+      // Quote-aware parse (commas inside quoted titles) that also strips an Excel BOM.
+      const lines = parseCsvRaw(text);
       if (lines.length < 2) {
         throw new Error('CSV file contains no data rows.');
       }
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+      const headers = lines[0].map((h) => h.trim().toLowerCase());
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map((v) => v.trim());
+        const values = lines[i].map((v) => v.trim());
         const row: Record<string, string> = {};
         headers.forEach((h, idx) => {
           row[h] = values[idx] || '';
@@ -152,10 +151,16 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
         }
 
         if (row.topicname) {
+          // Topic names repeat across subjects: match within the row's subject when given.
           const matchChap = chapters.find(
-            (c) => c.name.toLowerCase() === row.topicname.toLowerCase()
+            (c) =>
+              c.name.toLowerCase() === row.topicname.toLowerCase() &&
+              (!foundSubId || c.subjectId === foundSubId)
           );
-          if (matchChap) foundChapId = matchChap.id;
+          if (matchChap) {
+            foundChapId = matchChap.id;
+            foundSubId = foundSubId || matchChap.subjectId;
+          }
         }
 
         try {

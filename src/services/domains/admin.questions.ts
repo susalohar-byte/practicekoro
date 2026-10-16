@@ -185,12 +185,21 @@ function applyQuestionListFilters(
   }
 
   if (filters?.search && filters.search.trim()) {
-    const term = filters.search.trim();
+    const term = searchOrFilterValue(filters.search);
     query = query.or(
-      `question_text.ilike.%${term}%,question_bengali_text.ilike.%${term}%,explanation.ilike.%${term}%,explanation_bengali.ilike.%${term}%`
+      `question_text.ilike.${term},question_bengali_text.ilike.${term},explanation.ilike.${term},explanation_bengali.ilike.${term}`
     );
   }
   return query;
+}
+
+/**
+ * Quotes a search term for a PostgREST `.or()` ilike filter so commas, parentheses, dots and
+ * quotes in the term are matched literally instead of breaking the filter syntax.
+ */
+export function searchOrFilterValue(search: string): string {
+  const escaped = search.trim().replace(/[\\"]/g, '\\$&');
+  return `"%${escaped}%"`;
 }
 
 async function resolveTestQuestionIds(testId: string): Promise<string[]> {
@@ -323,9 +332,9 @@ export async function getAdminQuestionsPaged(
     query = query.or('image_url.is.null,image_url.eq.""');
   }
   if (filters?.search && filters.search.trim()) {
-    const term = filters.search.trim();
+    const term = searchOrFilterValue(filters.search);
     query = query.or(
-      `question_text.ilike.%${term}%,question_bengali_text.ilike.%${term}%,explanation.ilike.%${term}%,explanation_bengali.ilike.%${term}%`
+      `question_text.ilike.${term},question_bengali_text.ilike.${term},explanation.ilike.${term},explanation_bengali.ilike.${term}`
     );
   }
 

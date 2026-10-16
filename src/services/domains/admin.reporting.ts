@@ -56,11 +56,16 @@ async function count(table: string, filter: (q: any) => any = (q) => q): Promise
   if (typeof r.count !== 'number') throw new Error(`${table} count was not confirmed.`);
   return r.count;
 }
+const PAYMENT_REVENUE_COLUMNS =
+  'id, amount, refund_amount, status, created_at, requires_refund:raw_response->>requires_refund';
 const within = (value: string, b: DateRangeBounds) =>
   Date.parse(value) >= Date.parse(b.startIso) && Date.parse(value) <= Date.parse(b.endIso);
 export function netPaymentAmount(p: any): number {
   // Pending and failed payments retain nothing; refunded ones keep any unrefunded remainder.
   if (p.status !== 'completed' && p.status !== 'refunded') return 0;
+  // Captured after the purchase stopped being eligible: access was never granted and
+  // the money is owed back to the student.
+  if (p.requires_refund === true || String(p.requires_refund) === 'true') return 0;
   const refunded = p.refund_amount ?? (p.status === 'refunded' ? p.amount : 0);
   return Math.max(
     0,
@@ -170,7 +175,7 @@ export async function getDashboardPeriodData(b: DateRangeBounds): Promise<Dashbo
     rows('attempt_answers', 'id, selected_option, created_at, test_attempts!inner(user_id)', (q) =>
       filter(q.not('selected_option', 'is', null))
     ),
-    rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
+    rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
       filter(q.in('status', ['completed', 'refunded']))
     ),
   ]);
@@ -205,7 +210,7 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
           rows('subscriptions', 'id, user_id', (q) =>
             q.eq('status', 'active').gt('expires_at', now.toISOString())
           ),
-          rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
+          rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
             q.in('status', ['completed', 'refunded'])
           ),
           getDashboardPeriodData(getDateRangeBounds('Last 30 Days')),
@@ -292,7 +297,7 @@ export async function getAuthoritativeRevenueRange(
   }
   const filter = (q: any) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
   const [payments, profiles] = await Promise.all([
-    rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
+    rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
       filter(q.in('status', ['completed', 'refunded']))
     ),
     rows('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
@@ -308,11 +313,14 @@ export async function getAuthoritativeRevenueRange(
   const paymentDays = new Map<string, { cents: number; transactions: number }>();
   const signupDays = new Map<string, number>();
   for (const payment of payments) {
-    if (payment.status !== 'completed') continue;
+    // Same net-revenue rule as totalRevenue, so the trend always sums to the headline:
+    // partially refunded payments contribute their unrefunded remainder.
+    const cents = Math.round(netPaymentAmount(payment) * 100);
+    if (!cents && payment.status !== 'completed') continue;
     const date = getKolkataDateString(new Date(payment.created_at));
     const bucket = paymentDays.get(date) || { cents: 0, transactions: 0 };
-    bucket.cents += Math.round(netPaymentAmount(payment) * 100);
-    bucket.transactions++;
+    bucket.cents += cents;
+    if (payment.status === 'completed') bucket.transactions++;
     paymentDays.set(date, bucket);
   }
   for (const profile of profiles) {

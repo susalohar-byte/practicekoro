@@ -816,6 +816,8 @@ export interface AdminSubscriptionRow {
   paymentGateway?: string;
   paymentTransactionId?: string;
   paymentCurrency?: string;
+  /** Net money kept for this subscription: linked payment plus upgrade payments, minus refunds. */
+  recordedRevenue?: number;
   daysRemaining: number;
   createdAt: string;
 }
@@ -840,6 +842,10 @@ export interface AdminPaymentRow {
   refundAmount?: number;
   refundReason?: string;
   refundedAt?: string;
+  // Captured after the purchase stopped being eligible: access was not granted and the
+  // money is owed back, so it is not retained revenue.
+  requiresRefund?: boolean;
+  purchaseType?: 'new' | 'upgrade' | 'renewal';
   createdAt: string;
   created_at?: string;
   subscriptionId?: string;

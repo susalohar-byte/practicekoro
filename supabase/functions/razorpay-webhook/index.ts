@@ -161,8 +161,13 @@ Deno.serve(async (req: Request) => {
     }
     const paymentEntity = data.payload?.payment?.entity;
     const paymentId = refundEntity?.payment_id || paymentEntity?.id;
-    const refundId = refundEntity?.id || `rfnd_${Date.now()}`;
-    const refundAmountPaise = refundEntity?.amount || (paymentEntity as any)?.amount_refunded || 0;
+    // With a refund entity, the amount is that single refund and its id makes replays
+    // idempotent. Without one, pass no id: the amount is then the payment's cumulative
+    // amount_refunded, which reconcile_razorpay_refund treats as a running total.
+    const refundId = refundEntity?.id ?? null;
+    const refundAmountPaise = refundEntity
+      ? refundEntity.amount || 0
+      : (paymentEntity as any)?.amount_refunded || 0;
     const refundAmountInr = refundAmountPaise > 0 ? paiseToRupees(refundAmountPaise) : null;
 
     if (!paymentId) {
