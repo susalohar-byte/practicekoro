@@ -1,5 +1,5 @@
 import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   FileText,
@@ -323,6 +323,7 @@ export const AdminTests: React.FC = () => {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   // Sync edit form state whenever selectedTest changes
+  const syncedTestIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (selectedTest) {
       setEditTitle(selectedTest.title || '');
@@ -334,7 +335,9 @@ export const AdminTests: React.FC = () => {
       setEditIsPremium(Boolean(selectedTest.isPremium));
       setEditStatus(selectedTest.status || 'published');
       setEditIconUrl(selectedTest.iconUrl || '');
-      setSaveSuccessMsg(null);
+      // Keep the "saved" confirmation when the same test is refreshed after a save.
+      if (syncedTestIdRef.current !== selectedTest.id) setSaveSuccessMsg(null);
+      syncedTestIdRef.current = selectedTest.id;
     }
   }, [selectedTest]);
 

@@ -655,27 +655,33 @@ export const AdminTestQuestions: React.FC = () => {
       let successCount = 0;
       const failures: string[] = [];
       for (const q of parsedBulkResult.valid) {
-        const res = await api.createQuestionForTest(test.id, {
-          subjectId: test.subjectId,
-          chapterId: test.chapterId || test.topicId,
-          topicId: test.chapterId || test.topicId,
-          questionText: q.questionText,
-          questionBengaliText: q.questionText,
-          optionA: q.optionA,
-          optionB: q.optionB,
-          optionC: q.optionC,
-          optionD: q.optionD,
-          correctOption: q.correctOption,
-          explanation: q.explanation,
-          // Mirror notes into both columns so Short Notes display keeps working.
-          explanationBengali: q.explanation,
-          difficulty: 'medium',
-          defaultMarks: 1.0,
-          // Questions never carry negative marks — scoring uses the test-level scheme.
-          defaultNegativeMarks: 0,
-          isActive: true,
-          status: 'active',
-        });
+        // The mutation wrapper throws on { success: false }; record the row and keep going.
+        const res = await api
+          .createQuestionForTest(test.id, {
+            subjectId: test.subjectId,
+            chapterId: test.chapterId || test.topicId,
+            topicId: test.chapterId || test.topicId,
+            questionText: q.questionText,
+            questionBengaliText: q.questionText,
+            optionA: q.optionA,
+            optionB: q.optionB,
+            optionC: q.optionC,
+            optionD: q.optionD,
+            correctOption: q.correctOption,
+            explanation: q.explanation,
+            // Mirror notes into both columns so Short Notes display keeps working.
+            explanationBengali: q.explanation,
+            difficulty: 'medium',
+            defaultMarks: 1.0,
+            // Questions never carry negative marks — scoring uses the test-level scheme.
+            defaultNegativeMarks: 0,
+            isActive: true,
+            status: 'active',
+          })
+          .catch((err: unknown) => ({
+            success: false as const,
+            error: err instanceof Error ? err.message : String(err),
+          }));
         if (res.success) successCount++;
         else failures.push(`Question #${q.questionNumber}: ${res.error || 'not saved'}`);
       }
