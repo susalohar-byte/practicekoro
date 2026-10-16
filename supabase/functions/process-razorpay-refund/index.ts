@@ -333,14 +333,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // 6c. Revoke only the subscription this payment activated.
+  // 6c. Revoke only what this payment granted: a new pass or renewal cycle is
+  // cancelled; an upgrade is reverted to the previous plan and expiry.
   let revokedSubscription = false;
   if (payload.revokeSubscription !== false) {
-    const { error: revokeError } = await serviceClient
-      .from('subscriptions')
-      .update({ status: 'cancelled', expires_at: nowIso, updated_at: nowIso })
-      .eq('payment_id', payment.id)
-      .eq('status', 'active');
+    const { error: revokeError } = await serviceClient.rpc('revoke_access_for_refunded_payment', {
+      p_payment_row_id: payment.id,
+    });
     if (revokeError) {
       console.error('Subscription revoke after refund failed:', revokeError);
     } else {

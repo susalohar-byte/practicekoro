@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabaseRuntime as supabase } from '@/lib/supabase';
+import { withApiCache } from '@/services/apiCache';
 import type { AdminDashboardV2Stats, DateRangeRevenueStats } from '@/types';
 import {
   getDateRangeBounds,
@@ -186,56 +187,58 @@ export async function getDashboardPeriodData(b: DateRangeBounds): Promise<Dashbo
   );
 }
 export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
-  const now = new Date();
-  const today = getDateRangeBounds('Today');
-  const month = getDateRangeBounds('This Month');
-  const year = parseKolkataStartOfDay(getKolkataDateString(now).slice(0, 4) + '-01-01').getTime();
-  const [totalStudents, totalExams, totalQuestions, tests, subs, payments, period] =
-    await Promise.all([
-      count('profiles', (q) => q.eq('role', 'student')),
-      count('exams'),
-      count('questions'),
-      rows('tests', 'id, test_type'),
-      rows('subscriptions', 'id, user_id', (q) =>
-        q.eq('status', 'active').gt('expires_at', now.toISOString())
-      ),
-      rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
-        q.in('status', ['completed', 'refunded'])
-      ),
-      getDashboardPeriodData(getDateRangeBounds('Last 30 Days')),
-    ]);
-  const revenueSince = (time: number) =>
-    payments
-      .filter((p) => Date.parse(p.created_at) >= time)
-      .reduce((n, p) => n + Math.round(netPaymentAmount(p) * 100), 0) / 100;
-  const proStudents = new Set(subs.map((s) => s.user_id)).size;
-  return {
-    totalStudents,
-    newStudents: period.newStudents,
-    activeStudents: period.activeStudents,
-    totalRevenue: revenueSince(0),
-    todayRevenue: revenueSince(Date.parse(today.startIso)),
-    monthRevenue: revenueSince(Date.parse(month.startIso)),
-    yearRevenue: revenueSince(year),
-    freeStudents: Math.max(0, totalStudents - proStudents),
-    proStudents,
-    activeSubscriptions: subs.length,
-    testsAttempted: await count('test_attempts'),
-    completedTests: await count('test_attempts', (q) => q.eq('status', 'completed')),
-    questionsAnswered: await count('attempt_answers', (q) => q.not('selected_option', 'is', null)),
-    totalExams,
-    totalTests: tests.length,
-    topicTests: tests.filter((t) => ['topic', 'chapter_mock', 'subject_mock'].includes(t.test_type))
-      .length,
-    fullMockTests: tests.filter((t) => t.test_type === 'full_mock').length,
-    pyqTests: tests.filter((t) => t.test_type === 'pyq').length,
-    totalQuestions,
-    topicQuestions: await count('questions', (q) => q.eq('source_type', 'topic')),
-    fullMockQuestions: await count('questions', (q) => q.eq('source_type', 'other')),
-    pyqQuestions: await count('questions', (q) => q.eq('source_type', 'pyq')),
-    revenueTrend: [],
-    recentActivity: [],
-  };
+  return withApiCache('admin_dashboard_overview_v2', async () => {
+    const now = new Date();
+    const today = getDateRangeBounds('Today');
+    const month = getDateRangeBounds('This Month');
+    const year = parseKolkataStartOfDay(getKolkataDateString(now).slice(0, 4) + '-01-01').getTime();
+    const [totalStudents, totalExams, totalQuestions, tests, subs, payments, period] =
+      await Promise.all([
+        count('profiles', (q) => q.eq('role', 'student')),
+        count('exams'),
+        count('questions'),
+        rows('tests', 'id, test_type'),
+        rows('subscriptions', 'id, user_id', (q) =>
+          q.eq('status', 'active').gt('expires_at', now.toISOString())
+        ),
+        rows('payments', 'id, amount, refund_amount, status, created_at', (q) =>
+          q.in('status', ['completed', 'refunded'])
+        ),
+        getDashboardPeriodData(getDateRangeBounds('Last 30 Days')),
+      ]);
+    const revenueSince = (time: number) =>
+      payments
+        .filter((p) => Date.parse(p.created_at) >= time)
+        .reduce((n, p) => n + Math.round(netPaymentAmount(p) * 100), 0) / 100;
+    const proStudents = new Set(subs.map((s) => s.user_id)).size;
+    return {
+      totalStudents,
+      newStudents: period.newStudents,
+      activeStudents: period.activeStudents,
+      totalRevenue: revenueSince(0),
+      todayRevenue: revenueSince(Date.parse(today.startIso)),
+      monthRevenue: revenueSince(Date.parse(month.startIso)),
+      yearRevenue: revenueSince(year),
+      freeStudents: Math.max(0, totalStudents - proStudents),
+      proStudents,
+      activeSubscriptions: subs.length,
+      testsAttempted: await count('test_attempts'),
+      completedTests: await count('test_attempts', (q) => q.eq('status', 'completed')),
+      questionsAnswered: await count('attempt_answers', (q) => q.not('selected_option', 'is', null)),
+      totalExams,
+      totalTests: tests.length,
+      topicTests: tests.filter((t) => ['topic', 'chapter_mock', 'subject_mock'].includes(t.test_type))
+        .length,
+      fullMockTests: tests.filter((t) => t.test_type === 'full_mock').length,
+      pyqTests: tests.filter((t) => t.test_type === 'pyq').length,
+      totalQuestions,
+      topicQuestions: await count('questions', (q) => q.eq('source_type', 'topic')),
+      fullMockQuestions: await count('questions', (q) => q.eq('source_type', 'other')),
+      pyqQuestions: await count('questions', (q) => q.eq('source_type', 'pyq')),
+      revenueTrend: [],
+      recentActivity: [],
+    };
+  }, 30_000);
 }
 /** Accept full ISO bounds without converting them through the browser's timezone. */
 export async function getAuthoritativeRevenueRange(

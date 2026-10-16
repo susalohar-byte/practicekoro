@@ -1553,7 +1553,7 @@ export const AdminAnalytics: React.FC = () => {
 
             {/* Modal: View All Subjects */}
             {viewAllModal === 'subjects' && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/45 backdrop-blur-md">
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
@@ -1652,7 +1652,7 @@ export const AdminAnalytics: React.FC = () => {
 
             {/* Modal: View All Topics */}
             {viewAllModal === 'topics' && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/45 backdrop-blur-md">
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>
@@ -1751,7 +1751,7 @@ export const AdminAnalytics: React.FC = () => {
             {/* Modal: View All Exam Categories */}
             {/* Modal: Subject Weak Students Detail Inspector */}
             {selectedWeakSubject && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 dark:bg-black/45 backdrop-blur-md">
                 <div className="bg-white dark:bg-[#0B132B] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
                     <div>

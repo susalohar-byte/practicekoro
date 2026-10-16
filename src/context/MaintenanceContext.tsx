@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
+import { getAppSettings, updateAppSettings } from '@/services/domains/admin.settings';
 import type { AppSettingItem } from '@/types';
 
 export type ContentLanguageMode = 'bengali_only' | 'bilingual';
@@ -44,7 +44,7 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const checkMaintenanceMode = useCallback(async (): Promise<boolean> => {
     const version = ++requestVersion.current;
     try {
-      const settings = await api.getAppSettings();
+      const settings = await getAppSettings();
       if (!Array.isArray(settings))
         throw new Error('Platform settings response was not confirmed.');
       const read = (id: string, key: string) =>
@@ -89,7 +89,7 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (languageWrite.current) throw new Error('A language update is already in progress.');
     languageWrite.current = true;
     try {
-      const result = await api.updateAppSettings([{ id: 'content_language_mode', value: mode }]);
+      const result = await updateAppSettings([{ id: 'content_language_mode', value: mode }]);
       if (result?.success !== true)
         throw new Error(result?.error || 'Language mode was not saved.');
       requestVersion.current++; // Older reads cannot undo this confirmed mutation.

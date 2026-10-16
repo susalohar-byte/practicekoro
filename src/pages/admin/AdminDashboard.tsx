@@ -2,6 +2,7 @@ import { AdminDataBoundary } from '@/components/admin/AdminSkeleton';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/services/api';
+import { invalidateApiCache } from '@/services/apiCache';
 import {
   Users,
   User,
@@ -245,6 +246,7 @@ export const AdminDashboard: React.FC = () => {
         icon: Users,
         iconBg: 'bg-[#EFF6FF] dark:bg-[#1E293B]',
         iconColor: 'text-[#026BFC]',
+        accentHex: '#026BFC',
       },
       {
         id: 'active_students',
@@ -516,7 +518,10 @@ export const AdminDashboard: React.FC = () => {
         {/* Date Range Selector Pill & Reload */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => loadPlatformData()}
+            onClick={() => {
+              invalidateApiCache();
+              loadPlatformData();
+            }}
             disabled={isLoading}
             title="Refresh Platform Data"
             className="p-2 rounded-xl bg-white dark:bg-[#0B132B] border border-slate-200/90 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
@@ -624,12 +629,13 @@ export const AdminDashboard: React.FC = () => {
         )}
         {/* ─── 6 TOP KPI METRIC CARDS ─── */}
         <div className="pk-stagger grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
-          {metricCards.map((card) => {
+        {metricCards.map((card) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.id}
-                className="bg-white dark:bg-[#0B132B] border border-slate-200/80 dark:border-slate-800/90 rounded-2xl p-4 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between"
+                className="bg-white dark:bg-[#0B132B] border border-slate-200/80 dark:border-slate-800/90 border-t-[3px] rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-pk-primary-accent/30 dark:hover:border-pk-primary-accent/20 transition-all flex flex-col justify-between"
+                style={{ borderTopColor: card.accentHex }}
               >
                 <div className="flex items-center gap-3">
                   <div

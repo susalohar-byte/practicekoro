@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { PublicOnlyRoute } from '@/components/layout/ProtectedRoute';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Login } from './Login';
 
 // Stub the Supabase client boundary: no network, deterministic auth results.
@@ -35,22 +36,24 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-function renderLogin() {
+function renderLogin(initialEntry = '/login') {
   return render(
-    <MemoryRouter initialEntries={['/login']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <AuthProvider>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicOnlyRoute>
-                <Login />
-              </PublicOnlyRoute>
-            }
-          />
-          <Route path="/" element={<div>Public landing page</div>} />
-          <Route path="/admin" element={<div>Admin page</div>} />
-        </Routes>
+        <ErrorBoundary area="PracticeKoro">
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <PublicOnlyRoute>
+                  <Login />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route path="/" element={<div>Public landing page</div>} />
+            <Route path="/admin" element={<div>Admin page</div>} />
+          </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </MemoryRouter>
   );
@@ -64,6 +67,20 @@ beforeEach(() => {
 });
 
 describe('Login (auth regression)', () => {
+  it('exposes the password field with an accessible label', async () => {
+    renderLogin();
+    await screen.findByRole('heading', { name: /admin sign in/i });
+
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+  });
+
+  it('shows OAuth error text containing a percent sign without crashing', async () => {
+    renderLogin('/login?error=%25');
+
+    expect(await screen.findByRole('heading', { name: /admin sign in/i })).toBeVisible();
+    expect(screen.getByText('%')).toBeVisible();
+  });
+
   it('shows the error instead of silently staying put when login() rejects', async () => {
     signInWithPassword.mockResolvedValue({
       data: { user: null, session: null },

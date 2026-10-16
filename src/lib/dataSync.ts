@@ -1,3 +1,5 @@
+import { invalidateApiCache } from '@/services/apiCache';
+
 /**
  * Cross-surface data-sync events (same-tab).
  *
@@ -16,12 +18,17 @@ function dispatch(name: string): void {
   }
 }
 
-/** Call after an exam is created, updated, or deleted. */
+/** Call after an exam, test, subject, or question is created, updated, or deleted. */
 export function notifyExamsUpdated(): void {
+  invalidateApiCache('all_admin_');
+  invalidateApiCache('exam_content_counts');
+  invalidateApiCache('admin_dashboard_overview');
   dispatch(EXAMS_UPDATED_EVENT);
 }
 
 /** Call after a subscription/purchase state change. */
 export function notifySubscriptionUpdated(): void {
+  invalidateApiCache('admin_subscriptions');
+  invalidateApiCache('admin_dashboard_overview');
   dispatch(SUBSCRIPTION_UPDATED_EVENT);
 }

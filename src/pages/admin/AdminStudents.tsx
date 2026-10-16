@@ -555,6 +555,79 @@ export const PRESET_STUDENTS: EnrichedStudent[] = [
   },
 ];
 
+// ============================================================================
+// STUDENT AVATAR WITH BULLETPROOF FALLBACK & GOOGLE REFERRER-POLICY
+// ============================================================================
+interface StudentAvatarProps {
+  avatarUrl?: string;
+  fullName: string;
+  initials?: string;
+  initialsBg?: string;
+  initialsColor?: string;
+  className?: string;
+  textClassName?: string;
+}
+
+const StudentAvatar: React.FC<StudentAvatarProps> = ({
+  avatarUrl,
+  fullName,
+  initials,
+  initialsBg = 'bg-blue-100 dark:bg-blue-950/60',
+  initialsColor = 'text-[#026BFC] dark:text-blue-400',
+  className = 'w-7 h-7',
+  textClassName = 'text-[10px]',
+}) => {
+  const [hasError, setHasError] = useState(false);
+
+  // Clean URL: ignore 'null', 'undefined', or empty strings
+  const cleanUrl =
+    avatarUrl &&
+    typeof avatarUrl === 'string' &&
+    avatarUrl.trim() !== '' &&
+    avatarUrl.trim() !== 'null' &&
+    avatarUrl.trim() !== 'undefined'
+      ? avatarUrl.trim()
+      : null;
+
+  const displayInitials =
+    initials ||
+    fullName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) ||
+    'ST';
+
+  if (!cleanUrl || hasError) {
+    return (
+      <div
+        className={cn(
+          'rounded-full flex items-center justify-center font-bold shrink-0 shadow-2xs border border-blue-200/60 dark:border-blue-900/40 select-none',
+          className,
+          initialsBg,
+          initialsColor,
+          textClassName
+        )}
+        title={fullName}
+      >
+        {displayInitials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={cleanUrl}
+      alt={fullName}
+      referrerPolicy="no-referrer"
+      className={cn('rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs', className)}
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 // Helper to convert DB row to EnrichedStudent
 function mapDbRowToStudent(row: AdminStudentRow, index: number): EnrichedStudent {
   let plan: SubscriptionTier = 'Free';
@@ -570,10 +643,17 @@ function mapDbRowToStudent(row: AdminStudentRow, index: number): EnrichedStudent
 
   const initials = row.fullName
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const rawAvatar = row.avatarUrl?.trim();
+  const validAvatar =
+    rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined'
+      ? rawAvatar
+      : undefined;
 
   return {
     id: row.id,
@@ -582,10 +662,10 @@ function mapDbRowToStudent(row: AdminStudentRow, index: number): EnrichedStudent
     fullName: row.fullName,
     email: row.email,
     phone: row.phone || '',
-    avatarUrl: row.avatarUrl,
+    avatarUrl: validAvatar,
     initials: initials || 'ST',
-    initialsBg: 'bg-blue-100',
-    initialsColor: 'text-[#026BFC]',
+    initialsBg: 'bg-blue-100 dark:bg-blue-950/60',
+    initialsColor: 'text-[#026BFC] dark:text-blue-400',
     subscriptionPlan: plan,
     subscriptionValidTill: row.expiresAt
       ? new Date(row.expiresAt).toLocaleDateString('en-GB', {
@@ -1881,26 +1961,15 @@ export const AdminStudents: React.FC = () => {
                           {/* Student Avatar + Name */}
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2.5">
-                              {student.avatarUrl ? (
-                                <img
-                                  src={student.avatarUrl}
-                                  alt={student.fullName}
-                                  className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  className={cn(
-                                    'w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0',
-                                    student.initialsBg || 'bg-slate-100',
-                                    student.initialsColor || 'text-slate-600'
-                                  )}
-                                >
-                                  {student.initials || 'ST'}
-                                </div>
-                              )}
+                              <StudentAvatar
+                                avatarUrl={student.avatarUrl}
+                                fullName={student.fullName}
+                                initials={student.initials}
+                                initialsBg={student.initialsBg}
+                                initialsColor={student.initialsColor}
+                                className="w-7 h-7"
+                                textClassName="text-[10px]"
+                              />
                               <span className="font-semibold text-slate-900 group-hover:text-[#026BFC] transition-colors leading-snug whitespace-nowrap">
                                 {student.fullName}
                               </span>
@@ -2178,23 +2247,15 @@ export const AdminStudents: React.FC = () => {
                   {/* Profile Card Header */}
                   <div className="flex items-center justify-between p-3 bg-slate-50/70 border border-slate-100 rounded-xl mb-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      {selectedStudent.avatarUrl ? (
-                        <img
-                          src={selectedStudent.avatarUrl}
-                          alt={selectedStudent.fullName}
-                          className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-2xs shrink-0"
-                        />
-                      ) : (
-                        <div
-                          className={cn(
-                            'w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 border-white shadow-2xs',
-                            selectedStudent.initialsBg || 'bg-blue-100',
-                            selectedStudent.initialsColor || 'text-[#026BFC]'
-                          )}
-                        >
-                          {selectedStudent.initials || 'ST'}
-                        </div>
-                      )}
+                      <StudentAvatar
+                        avatarUrl={selectedStudent.avatarUrl}
+                        fullName={selectedStudent.fullName}
+                        initials={selectedStudent.initials}
+                        initialsBg={selectedStudent.initialsBg}
+                        initialsColor={selectedStudent.initialsColor}
+                        className="w-11 h-11 border-2 border-white dark:border-slate-800 shadow-2xs"
+                        textClassName="text-sm"
+                      />
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">

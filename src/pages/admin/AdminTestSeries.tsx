@@ -2578,25 +2578,26 @@ export const AdminTestSeries: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   {[
-                    '/images/exams/logo_wbp.png',
-                    '/images/exams/logo_ssc.png',
-                    '/images/exams/logo_railway.png',
-                    '/images/exams/logo_wbpsc.png',
-                    '/images/exams/logo_wbtet.png',
-                    '/images/exams/icon_kolkata_police.png',
+                    { name: 'WBP Police', url: '/images/exams/logo_wbp.png' },
+                    { name: 'Kolkata Police', url: '/images/exams/logo_kp.png' },
+                    { name: 'SSC', url: '/images/exams/logo_ssc.png' },
+                    { name: 'Railway', url: '/images/exams/logo_railway.png' },
+                    { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png' },
+                    { name: 'WB TET', url: '/images/exams/logo_wbtet.png' },
                   ].map((preset) => (
                     <button
                       type="button"
-                      key={preset}
-                      onClick={() => setFormIconUrl(preset)}
+                      key={preset.url}
+                      title={preset.name}
+                      onClick={() => setFormIconUrl(preset.url)}
                       className={cn(
-                        'w-9 h-9 rounded-xl border p-1 flex items-center justify-center transition-all cursor-pointer',
-                        formIconUrl === preset
-                          ? 'border-[#026BFC] bg-blue-50 ring-2 ring-[#026BFC]/30'
-                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        'w-10 h-10 rounded-xl border p-1.5 flex items-center justify-center transition-all cursor-pointer bg-white dark:bg-slate-800',
+                        formIconUrl === preset.url
+                          ? 'border-[#026BFC] bg-blue-50/80 dark:bg-blue-950/40 ring-2 ring-[#026BFC]/30 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
                       )}
                     >
-                      <img src={preset} alt="preset" className="w-full h-full object-contain" />
+                      <img src={preset.url} alt={preset.name} className="w-full h-full object-contain" />
                     </button>
                   ))}
                   {formIconUrl && !formIconUrl.startsWith('/images/exams/') && (

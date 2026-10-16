@@ -61,12 +61,12 @@ export const PRESET_GRADIENTS = [
 ];
 
 export const PRESET_SERIES_LOGOS = [
-  { name: 'WBP Police', path: '/images/exams/emblem_series_wbp.png' },
-  { name: 'Kolkata Police', path: '/images/exams/emblem_series_kp.png' },
-  { name: 'SSC Crest', path: '/images/exams/emblem_series_ssc.png' },
-  { name: 'Railways Seal', path: '/images/exams/emblem_railway.png' },
-  { name: 'Primary TET', path: '/images/exams/emblem_wbtet_seal.png' },
-  { name: 'WBPSC Emblem', path: '/images/exams/emblem_wbpsc.png' },
+  { name: 'WBP Police', path: '/images/exams/logo_wbp.png' },
+  { name: 'Kolkata Police', path: '/images/exams/logo_kp.png' },
+  { name: 'SSC Commission', path: '/images/exams/logo_ssc.png' },
+  { name: 'Railways Seal', path: '/images/exams/logo_railway.png' },
+  { name: 'Primary TET', path: '/images/exams/logo_wbtet.png' },
+  { name: 'WBPSC Emblem', path: '/images/exams/logo_wbpsc.png' },
 ];
 
 export const PRESET_SERIES_BACKGROUNDS = [

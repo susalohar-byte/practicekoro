@@ -30,7 +30,7 @@ import type { Exam, MockTest } from '@/types';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { LEGACY_EXAM_CATEGORY_NAMES } from '@/services/domains/admin.examCategories';
-import { getPageNumbers } from '@/utils/pagination';
+import { calculatePaginationRange, getPageNumbers } from '@/utils/pagination';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
 import { ExamSubjectTopicMapper } from '@/components/admin/ExamSubjectTopicMapper';
 import { ExamRelatedTests } from '@/components/admin/ExamRelatedTests';
@@ -129,7 +129,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 1,
-    iconName: 'Shield',
+    iconName: '/images/exams/logo_wbp.png',
     createdByName: 'Admin',
     createdAtFormatted: '10 Sep 2026, 04:30 PM',
     updatedAtFormatted: '12 Sep 2026, 10:15 AM',
@@ -154,7 +154,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 2,
-    iconName: 'Award',
+    iconName: '/images/exams/logo_ssc.png',
     createdByName: 'Admin',
     createdAtFormatted: '12 Sep 2026, 11:20 AM',
     updatedAtFormatted: '15 Sep 2026, 02:40 PM',
@@ -179,7 +179,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 3,
-    iconName: 'Compass',
+    iconName: '/images/exams/logo_railway.png',
     createdByName: 'Admin',
     createdAtFormatted: '15 Sep 2026, 09:15 AM',
     updatedAtFormatted: '18 Sep 2026, 04:10 PM',
@@ -204,7 +204,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 4,
-    iconName: 'GraduationCap',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '18 Sep 2026, 03:00 PM',
     updatedAtFormatted: '20 Sep 2026, 01:25 PM',
@@ -228,7 +228,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Draft',
     isActive: false,
     orderIndex: 5,
-    iconName: 'FileCheck',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '20 Sep 2026, 10:45 AM',
     updatedAtFormatted: '22 Sep 2026, 05:30 PM',
@@ -252,7 +252,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 6,
-    iconName: 'Award',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '22 Sep 2026, 01:10 PM',
     updatedAtFormatted: '24 Sep 2026, 06:00 PM',
@@ -276,7 +276,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 7,
-    iconName: 'Shield',
+    iconName: '/images/exams/logo_kp.png',
     createdByName: 'Admin',
     createdAtFormatted: '24 Sep 2026, 02:30 PM',
     updatedAtFormatted: '26 Sep 2026, 11:40 AM',
@@ -300,7 +300,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 8,
-    iconName: 'Award',
+    iconName: '/images/exams/logo_ssc.png',
     createdByName: 'Admin',
     createdAtFormatted: '25 Sep 2026, 04:00 PM',
     updatedAtFormatted: '27 Sep 2026, 09:15 AM',
@@ -325,7 +325,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 9,
-    iconName: 'BookOpen',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '27 Sep 2026, 12:00 PM',
     updatedAtFormatted: '28 Sep 2026, 03:50 PM',
@@ -349,7 +349,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 10,
-    iconName: 'BookOpen',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '28 Sep 2026, 05:20 PM',
     updatedAtFormatted: '29 Sep 2026, 08:30 PM',
@@ -375,7 +375,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 11,
-    iconName: 'BookOpen',
+    iconName: '/images/exams/logo_wbtet.png',
     createdByName: 'Admin',
     createdAtFormatted: '29 Sep 2026, 10:00 AM',
     updatedAtFormatted: '30 Sep 2026, 12:00 PM',
@@ -400,7 +400,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 12,
-    iconName: 'Award',
+    iconName: '/images/exams/logo_wbpsc.png',
     createdByName: 'Admin',
     createdAtFormatted: '30 Sep 2026, 02:00 PM',
     updatedAtFormatted: '01 Oct 2026, 04:30 PM',
@@ -424,7 +424,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 13,
-    iconName: 'Award',
+    iconName: '/images/exams/logo_ssc.png',
     createdByName: 'Admin',
     createdAtFormatted: '01 Oct 2026, 09:30 AM',
     updatedAtFormatted: '02 Oct 2026, 11:15 AM',
@@ -448,7 +448,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 14,
-    iconName: 'Compass',
+    iconName: '/images/exams/logo_railway.png',
     createdByName: 'Admin',
     createdAtFormatted: '02 Oct 2026, 01:20 PM',
     updatedAtFormatted: '03 Oct 2026, 03:40 PM',
@@ -472,7 +472,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 15,
-    iconName: 'BookOpen',
+    iconName: '/images/exams/logo_wbtet.png',
     createdByName: 'Admin',
     createdAtFormatted: '02 Oct 2026, 04:00 PM',
     updatedAtFormatted: '03 Oct 2026, 09:00 AM',
@@ -496,7 +496,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 16,
-    iconName: 'GraduationCap',
+    iconName: '/images/exams/logo_wbtet.png',
     createdByName: 'Admin',
     createdAtFormatted: '03 Oct 2026, 11:30 AM',
     updatedAtFormatted: '04 Oct 2026, 02:15 PM',
@@ -520,7 +520,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 17,
-    iconName: 'Shield',
+    iconName: '/images/exams/logo_wbp.png',
     createdByName: 'Admin',
     createdAtFormatted: '03 Oct 2026, 03:40 PM',
     updatedAtFormatted: '04 Oct 2026, 05:00 PM',
@@ -544,7 +544,7 @@ const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Draft',
     isActive: false,
     orderIndex: 18,
-    iconName: 'Shield',
+    iconName: '/images/exams/logo_kp.png',
     createdByName: 'Admin',
     createdAtFormatted: '04 Oct 2026, 10:15 AM',
     updatedAtFormatted: '04 Oct 2026, 06:45 PM',
@@ -906,10 +906,10 @@ export const AdminExams: React.FC = () => {
 
   // Pagination calculation
   const totalItems = filteredExams.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, totalItems);
-  const pagedExams = filteredExams.slice(startIndex, endIndex);
+  const paginationRange = calculatePaginationRange(currentPage, pageSize, totalItems);
+  const totalPages = paginationRange.totalPages;
+  const pageStart = (paginationRange.currentPage - 1) * paginationRange.pageSize;
+  const pagedExams = filteredExams.slice(pageStart, pageStart + paginationRange.pageSize);
 
   // Keep currentPage within bounds when exams are filtered or deleted
   useEffect(() => {
@@ -1433,7 +1433,7 @@ export const AdminExams: React.FC = () => {
                     </tr>
                   ) : (
                     pagedExams.map((e, index) => {
-                      const rowNumber = startIndex + index + 1;
+                      const rowNumber = pageStart + index + 1;
                       const isSelected = Boolean(showDetailsPanel && selectedExam?.id === e.id);
                       const isChecked = selectedExamIds.has(e.id);
                       const isPublished = e.statusLabel === 'Published';
@@ -1690,7 +1690,8 @@ export const AdminExams: React.FC = () => {
             {/* Pagination Controls matching screenshot */}
             <div className="p-3.5 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
               <span>
-                Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} exams
+                Showing {paginationRange.startIndex}–{paginationRange.endIndex} of {totalItems}{' '}
+                exams
               </span>
 
               <div className="flex items-center gap-3">
@@ -1698,14 +1699,14 @@ export const AdminExams: React.FC = () => {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={!paginationRange.hasPreviousPage}
+                    onClick={() => setCurrentPage(paginationRange.currentPage - 1)}
                     className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
 
-                  {getPageNumbers(currentPage, totalPages).map((item, idx) =>
+                  {getPageNumbers(paginationRange.currentPage, totalPages).map((item, idx) =>
                     item === 'ellipsis' ? (
                       <span key={`ellipsis-${idx}`} className="text-slate-400 px-1">
                         ...
@@ -1717,7 +1718,7 @@ export const AdminExams: React.FC = () => {
                         onClick={() => setCurrentPage(item)}
                         className={cn(
                           'min-w-7 h-7 px-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors cursor-pointer',
-                          item === currentPage
+                          item === paginationRange.currentPage
                             ? 'bg-[#026BFC] text-white shadow-2xs'
                             : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                         )}
@@ -1729,8 +1730,8 @@ export const AdminExams: React.FC = () => {
 
                   <button
                     type="button"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!paginationRange.hasNextPage}
+                    onClick={() => setCurrentPage(paginationRange.currentPage + 1)}
                     className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 cursor-pointer"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -2542,44 +2543,43 @@ export const AdminExams: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Preset Emblem Quick Selector */}
-                <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                      Preset Emblems
+                {/* Preset Exam Logos Selector */}
+                <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                      Preset Exam Logos (Official)
                     </span>
                     <span className="text-[10px] text-slate-400">Click to apply</span>
                   </div>
-                  <div className="flex items-center gap-2 overflow-x-auto py-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-1">
                     {[
-                      { name: 'Police Crest', icon: 'Shield', label: 'WBP' },
-                      { name: 'SSC Crest', icon: 'ssc', label: 'SSC' },
-                      { name: 'Railways Emblem', icon: 'railway', label: 'Rail' },
-                      { name: 'WBPSC Seal', icon: 'wbpsc', label: 'WBPSC' },
-                      { name: 'Kolkata Police Star', icon: 'kolkata', label: 'KP' },
-                      { name: 'ICDS Rosette', icon: 'icds', label: 'ICDS' },
-                      { name: 'Food SI Crest', icon: 'food', label: 'Food SI' },
-                      { name: 'WBSSC Book', icon: 'wbssc', label: 'WBSSC' },
+                      { name: 'WBP Police', url: '/images/exams/logo_wbp.png', label: 'WBP Police' },
+                      { name: 'Kolkata Police', url: '/images/exams/logo_kp.png', label: 'Kolkata Police' },
+                      { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png', label: 'WBPSC' },
+                      { name: 'Indian Railway', url: '/images/exams/logo_railway.png', label: 'Indian Railway' },
+                      { name: 'SSC Commission', url: '/images/exams/logo_ssc.png', label: 'SSC Commission' },
+                      { name: 'Primary TET', url: '/images/exams/logo_wbtet.png', label: 'Primary TET' },
                     ].map((preset) => (
                       <button
                         key={preset.name}
                         type="button"
-                        onClick={() => setFormIconName(preset.icon)}
+                        onClick={() => setFormIconName(preset.url)}
                         className={cn(
-                          'flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-medium transition-all shrink-0',
-                          formIconName === preset.icon
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 ring-1 ring-blue-500'
-                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:border-slate-300'
+                          'flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all text-left cursor-pointer',
+                          formIconName === preset.url
+                            ? 'border-[#026BFC] bg-blue-50/80 dark:bg-blue-950/40 text-[#026BFC] dark:text-blue-400 font-bold ring-2 ring-[#026BFC]/25 shadow-xs'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-750'
                         )}
                         title={preset.name}
                       >
-                        <ExamEmblemBadge
-                          title={preset.icon}
-                          slug={preset.icon}
-                          iconName={preset.icon}
-                          className="w-4 h-4"
-                        />
-                        <span>{preset.label}</span>
+                        <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                          <img
+                            src={preset.url}
+                            alt={preset.name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <span className="truncate text-xs">{preset.label}</span>
                       </button>
                     ))}
                   </div>

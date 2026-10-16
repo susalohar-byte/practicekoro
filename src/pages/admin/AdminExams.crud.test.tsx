@@ -73,6 +73,25 @@ describe('AdminExams backend-first workflow', () => {
     expect(screen.queryByText('WBP Constable')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Actions for/ })).not.toBeInTheDocument();
   });
+  it('keeps exam rows and displayed ranges aligned when changing pages', async () => {
+    mocks.rows = Array.from({ length: 25 }, (_, index) => ({
+      ...row,
+      id: `exam-${index + 1}`,
+      title: `Exam ${index + 1}`,
+      slug: `exam-${index + 1}`,
+    }));
+    mount();
+
+    expect(await screen.findByRole('button', { name: 'Actions for Exam 1' })).toBeInTheDocument();
+    expect(screen.getByText('Showing 1–10 of 25 exams')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actions for Exam 11' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^2$/ }));
+
+    expect(await screen.findByRole('button', { name: 'Actions for Exam 11' })).toBeInTheDocument();
+    expect(screen.getByText('Showing 11–20 of 25 exams')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actions for Exam 1' })).not.toBeInTheDocument();
+  });
   it('fetch failures display an error instead of presets', async () => {
     mocks.load.mockRejectedValue(new Error('Database unreachable'));
     mount();

@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import {
   supabaseRuntime as supabase,
   isSupabaseConfigured,
   isDemoModeEnabled,
 } from '@/lib/supabase';
 import type { Database } from '@/types/database';
+import { invalidateApiCache } from '@/services/apiCache';
 import type {
   UserProfile,
   UserRole,
@@ -196,6 +197,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // below. Never fall back to a fake/demo user — a visitor without a valid
   // Supabase session must see the public site, not a logged-in dashboard.
   const [user, setUser] = useState<UserProfile | null>(null);
+  // Account whose data the API cache currently holds (undefined until the first auth event).
+  const cacheOwnerRef = useRef<string | null | undefined>(undefined);
 
   const [isPro, setIsPro] = useState<boolean>(false);
 
@@ -278,6 +281,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // A different account (even without an explicit sign-out) must not see cached admin reads.
+      const nextUserId = session?.user?.id ?? null;
+      if (nextUserId !== cacheOwnerRef.current) {
+        invalidateApiCache();
+        cacheOwnerRef.current = nextUserId;
+      }
       if (session?.user) {
         try {
           const userObj = await resolveUserProfile(session.user);
@@ -295,6 +304,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
         }
       } else if (event === 'SIGNED_OUT') {
+        // Cached admin reads (e.g. dashboard revenue) must not leak to the next account.
+        invalidateApiCache();
         setUser(null);
         setIsPro(false);
         localStorage.removeItem('practicekoro_user');
@@ -392,6 +403,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Logout error:', err);
       }
     }
+    invalidateApiCache();
     setUser(null);
     setIsPro(false);
     localStorage.removeItem('practicekoro_user');

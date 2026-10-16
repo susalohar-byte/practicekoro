@@ -2843,17 +2843,17 @@ export const AdminQuestionBank: React.FC = () => {
                           className={cn(
                             'flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer',
                             isCorrect
-                              ? 'bg-emerald-50/70 border-emerald-500 text-emerald-900 font-bold'
-                              : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300'
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold dark:bg-emerald-950/40 dark:border-emerald-600 dark:text-emerald-200'
+                              : 'bg-white border-slate-200 text-slate-800 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
                           )}
                         >
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
+                          <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2 !bg-transparent">
                             <span
                               className={cn(
                                 'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
                                 isCorrect
                                   ? 'bg-emerald-600 text-white'
-                                  : 'bg-slate-100 text-slate-600'
+                                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                               )}
                             >
                               {optKey}
@@ -2868,11 +2868,17 @@ export const AdminQuestionBank: React.FC = () => {
                                   [optKey]: e.target.value,
                                 })
                               }
-                              className="w-full bg-transparent border-none text-xs font-medium focus:outline-none focus:underline"
+                              className={cn(
+                                'w-full !bg-transparent !border-none !shadow-none !outline-none text-xs font-medium focus:outline-none focus:underline p-0 m-0',
+                                isCorrect
+                                  ? 'text-emerald-950 dark:text-emerald-100 font-semibold'
+                                  : 'text-slate-800 dark:text-slate-200'
+                              )}
+                              style={{ backgroundColor: 'transparent' }}
                             />
                           </div>
 
-                          {isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                          {isCorrect && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
                         </div>
                       );
                     })}

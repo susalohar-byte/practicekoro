@@ -370,6 +370,8 @@ export interface LiveTest {
   testSeriesTitle?: string;
   logo?: string;
   examLogo?: string;
+  bgImageUrl?: string;
+  cardBgImage?: string;
   userParticipant?: LiveTestParticipant | null;
 }
 
@@ -401,6 +403,7 @@ export type LiveTestParticipation = LiveTestParticipant;
 
 export interface MockTest {
   id: string;
+  createdAt?: string;
   iconUrl?: string;
   examId?: string;
   subjectId?: string;
@@ -699,6 +702,8 @@ export interface SubscriptionPlan {
   features: string[];
   isActive: boolean;
   orderIndex: number;
+  /** Days before expiry when the once-per-cycle renewal opens; null/undefined = not renewable. */
+  renewalWindowDays?: number | null;
 }
 
 export type SubscriptionStatus = 'pending' | 'active' | 'expired' | 'cancelled' | 'failed';
@@ -744,6 +749,8 @@ export interface RazorpayOrderResponse {
   durationDays: number;
   keyId: string;
   isRealRazorpayOrder?: boolean;
+  purchaseType?: SubscriptionPurchaseType;
+  newExpiresAt?: string;
   /** Plan price before any coupon (server-recorded). */
   listPrice?: number;
   discountAmount?: number;
@@ -767,6 +774,28 @@ export interface StudentSubscriptionDetails {
   startsAt?: string;
   expiresAt?: string;
   daysRemaining?: number;
+  durationDays?: number;
+  renewalWindowDays?: number | null;
+  /** The next cycle has already been paid for via the once-per-cycle renewal. */
+  renewed?: boolean;
+  renewedExpiresAt?: string;
+}
+
+export type SubscriptionPurchaseType = 'new' | 'upgrade' | 'renewal';
+
+/** Server-computed eligibility and price for buying one plan (never computed client-side). */
+export interface SubscriptionPurchaseOption {
+  planId: string;
+  planTitle?: string;
+  eligible: boolean;
+  purchaseType?: SubscriptionPurchaseType;
+  amount?: number;
+  reasonCode?: string;
+  message?: string;
+  currentExpiresAt?: string;
+  newStartsAt?: string;
+  newExpiresAt?: string;
+  renewalOpensAt?: string;
 }
 
 export interface AdminSubscriptionRow {

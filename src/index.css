@@ -777,9 +777,9 @@ html:not(.dark) .admin-scope header .text-slate-500:not(.admin-dark-card *):not(
 }
 
 /* Form Inputs, Selects, & Textareas in Both Modes */
-html:not(.dark) .admin-scope input,
-html:not(.dark) .admin-scope select,
-html:not(.dark) .admin-scope textarea {
+html:not(.dark) .admin-scope input:not([class*='bg-transparent']):not([class*='!bg-transparent']),
+html:not(.dark) .admin-scope select:not([class*='bg-transparent']):not([class*='!bg-transparent']),
+html:not(.dark) .admin-scope textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
   color: #0f172a;
   background-color: #ffffff;
   border-color: #e2e8f0;
@@ -787,6 +787,18 @@ html:not(.dark) .admin-scope textarea {
 html:not(.dark) .admin-scope input::placeholder,
 html:not(.dark) .admin-scope textarea::placeholder {
   color: #94a3b8;
+}
+
+/* Explicit rule for transparent admin inputs/selects/textareas */
+.admin-scope input[class*='bg-transparent'],
+.admin-scope input[class*='!bg-transparent'],
+.admin-scope textarea[class*='bg-transparent'],
+.admin-scope textarea[class*='!bg-transparent'],
+.admin-scope select[class*='bg-transparent'],
+.admin-scope select[class*='!bg-transparent'] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 html:not(.dark) .admin-scope select option {
   background-color: #ffffff;
@@ -812,9 +824,9 @@ html:not(.dark) .admin-scope .admin-dark-card textarea::placeholder {
 }
 
 /* Form Inputs in Dark Mode */
-.dark .admin-scope input,
-.dark .admin-scope select,
-.dark .admin-scope textarea {
+.dark .admin-scope input:not([class*='bg-transparent']):not([class*='!bg-transparent']),
+.dark .admin-scope select:not([class*='bg-transparent']):not([class*='!bg-transparent']),
+.dark .admin-scope textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
   color: #f8fafc !important;
   background-color: #0b1329 !important;
   border-color: #1e293b !important;
@@ -880,27 +892,41 @@ html:not(.dark) .admin-scope .admin-btn-primary {
   color: #ffffff !important;
 }
 
-/* Smooth theme transition: applied momentarily by ThemeContext during toggle */
+/* High-performance scoped theme transition (eliminates global wildcard overhead) */
 html.theme-anim,
-html.theme-anim *,
-html.theme-anim *::before,
-html.theme-anim *::after {
+html.theme-anim body,
+html.theme-anim header,
+html.theme-anim aside,
+html.theme-anim main,
+html.theme-anim nav,
+html.theme-anim [class*='bg-'],
+html.theme-anim [class*='border-'],
+html.theme-anim button,
+html.theme-anim a,
+html.theme-anim input,
+html.theme-anim select,
+html.theme-anim textarea {
   transition:
-    background-color 220ms ease,
-    border-color 220ms ease,
-    color 140ms ease,
-    fill 220ms ease,
-    stroke 220ms ease !important;
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 120ms ease !important;
   transition-delay: 0ms !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html.theme-anim,
-  html.theme-anim *,
-  html.theme-anim *::before,
-  html.theme-anim *::after {
+  html.theme-anim * {
     transition: none !important;
   }
+}
+
+/* ============================================================================
+   ADMIN HIGH-PERFORMANCE RENDERING & SMOOTH TRANSITIONS
+   ========================================================================= */
+.admin-scope {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============================================================================

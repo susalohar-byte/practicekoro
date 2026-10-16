@@ -84,8 +84,7 @@ BEGIN
     'user_percentage', (SELECT percentage FROM ranked WHERE user_id = v_user),
     'rankings', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'rank', q.rank,
-      'name', CASE WHEN nullif(btrim(q.full_name), '') IS NULL THEN 'Student'
-        ELSE left(btrim(q.full_name), 1) || '•••' END,
+      'name', COALESCE(NULLIF(BTRIM(q.full_name), ''), 'Student'),
       'avatar_url', NULL, 'district', q.district, 'score', q.score,
       'percentage', q.percentage, 'accuracy', q.accuracy,
       'time_spent_seconds', q.seconds, 'tests_completed', q.tests_completed,

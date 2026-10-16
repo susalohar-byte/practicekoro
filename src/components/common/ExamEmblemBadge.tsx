@@ -84,169 +84,127 @@ export const ExamEmblemBadge: React.FC<{
 
   const norm = (title + ' ' + slug + ' ' + (iconName || '')).toLowerCase();
 
-  // 1. WBP Constable -> Police Golden Shield
-  if (norm.includes('wbp') || norm.includes('west bengal police')) {
-    return <PoliceShieldBadge className={className} />;
-  }
-
-  // 2. SSC MTS / SSC GD -> Red circular SSC logo
-  if (norm.includes('ssc')) {
+  // 1. Kolkata Police -> Real KP emblem
+  if (norm.includes('kolkata') || norm.includes('kp') || iconName === 'kolkata') {
     return (
       <div
         className={cn(
-          'relative rounded-full bg-gradient-to-br from-amber-700 to-rose-900 border border-amber-400 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="14" fill="#8B1818" stroke="#F59E0B" strokeWidth="1.5" />
-          <circle cx="16" cy="16" r="10" fill="#6A0C0C" stroke="#FCD34D" strokeWidth="1" />
-          <path
-            d="M16 8L18 13L23 13.5L19 17L20.5 22L16 19.5L11.5 22L13 17L9 13.5L14 13L16 8Z"
-            fill="#FCD34D"
-          />
-        </svg>
+        <img
+          src="/images/exams/logo_kp.png"
+          alt={title || 'Kolkata Police'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
-  // 3. Railway Group D -> Red circular Indian Railways cogwheel emblem
-  if (norm.includes('railway') || norm.includes('rrb')) {
+  // 2. West Bengal Police -> Real WBP Shield
+  if (norm.includes('wbp') || norm.includes('police') || iconName === 'Shield') {
     return (
       <div
         className={cn(
-          'relative rounded-full bg-gradient-to-br from-red-600 to-rose-950 border border-amber-400 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="14" fill="#991B1B" stroke="#FCD34D" strokeWidth="1.5" />
-          {/* Wheel spokes & train silhouette */}
-          <circle cx="16" cy="16" r="8" fill="#7F1D1D" stroke="#FEF08A" strokeWidth="1" />
-          <rect x="12" y="12" width="8" height="8" rx="1.5" fill="#FEF08A" />
-          <circle cx="14" cy="17" r="1.2" fill="#7F1D1D" />
-          <circle cx="18" cy="17" r="1.2" fill="#7F1D1D" />
-        </svg>
+        <img
+          src="/images/exams/logo_wbp.png"
+          alt={title || 'West Bengal Police'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
-  // 4. WBPSC Clerkship -> Golden medal / seal
-  if (norm.includes('wbpsc') || norm.includes('clerkship')) {
+  // 3. SSC MTS / SSC GD -> Real SSC official logo
+  if (norm.includes('ssc') || iconName === 'ssc') {
     return (
       <div
         className={cn(
-          'relative rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-600 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="14" fill="#D97706" stroke="#FEF3C7" strokeWidth="1.5" />
-          <circle cx="16" cy="16" r="10" fill="#B45309" stroke="#FDE68A" strokeWidth="1" />
-          <path
-            d="M16 9L18 13.5L23 14L19.2 17.5L20.5 22.5L16 20L11.5 22.5L12.8 17.5L9 14L14 13.5L16 9Z"
-            fill="#FEF3C7"
-          />
-        </svg>
+        <img
+          src="/images/exams/logo_ssc.png"
+          alt={title || 'SSC'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
-  // 5. ICDS Supervisor -> Red floral / sunburst emblem
-  if (norm.includes('icds')) {
+  // 4. Railway Group D / RRB -> Real Indian Railways official logo
+  if (norm.includes('railway') || norm.includes('rrb') || iconName === 'railway') {
     return (
       <div
         className={cn(
-          'relative rounded-full bg-rose-600 border border-rose-300 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="13" fill="#BE123C" stroke="#FECDD3" strokeWidth="1.5" />
-          {/* Floral petals */}
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-            <circle
-              key={i}
-              cx={16 + 7 * Math.cos((angle * Math.PI) / 180)}
-              cy={16 + 7 * Math.sin((angle * Math.PI) / 180)}
-              r="2.5"
-              fill="#FFE4E6"
-            />
-          ))}
-          <circle cx="16" cy="16" r="4.5" fill="#FFF1F2" />
-        </svg>
+        <img
+          src="/images/exams/logo_railway.png"
+          alt={title || 'Indian Railways'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
-  // 6. Food SI -> Blue & Red circular seal
-  if (norm.includes('food')) {
+  // 5. Primary TET / TET -> Real WBBPE official logo
+  if (norm.includes('tet') || norm.includes('primary') || iconName === 'tet') {
     return (
       <div
         className={cn(
-          'relative rounded-full bg-gradient-to-br from-blue-900 to-indigo-950 border border-amber-400 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="13.5" fill="#1E3A8A" stroke="#F59E0B" strokeWidth="1.5" />
-          <circle cx="16" cy="16" r="9" fill="#172554" stroke="#FDE68A" strokeWidth="1" />
-          <path
-            d="M16 10V22M13 13L16 10L19 13M12 18L16 14L20 18"
-            stroke="#FCD34D"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <img
+          src="/images/exams/logo_wbtet.png"
+          alt={title || 'Primary TET'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
-  // 7. Kolkata Police -> Blue eight-pointed star crest badge
-  if (norm.includes('kolkata')) {
+  // 6. WBPSC / Clerkship / WBCS / Food SI / ICDS -> Real WBPSC official emblem
+  if (
+    norm.includes('wbpsc') ||
+    norm.includes('clerkship') ||
+    norm.includes('wbcs') ||
+    norm.includes('food') ||
+    norm.includes('icds') ||
+    norm.includes('wbssc') ||
+    iconName === 'wbpsc' ||
+    iconName === 'wbssc' ||
+    iconName === 'food' ||
+    iconName === 'icds'
+  ) {
     return (
       <div
         className={cn(
-          'relative flex items-center justify-center shrink-0 drop-shadow-xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          {/* 8-pointed star */}
-          <path
-            d="M16 2L19.5 8.5L26.5 6L24.5 13L30 16L24.5 19L26.5 26L19.5 23.5L16 30L12.5 23.5L5.5 26L7.5 19L2 16L7.5 13L5.5 6L12.5 8.5L16 2Z"
-            fill="#1E3A8A"
-            stroke="#93C5FD"
-            strokeWidth="1.2"
-          />
-          <circle cx="16" cy="16" r="7" fill="#172554" stroke="#BFDBFE" strokeWidth="1" />
-          <circle cx="16" cy="16" r="3.5" fill="#60A5FA" />
-        </svg>
-      </div>
-    );
-  }
-
-  // 8. Primary TET / TET -> Teaching emblem
-  if (norm.includes('tet') || norm.includes('primary')) {
-    return (
-      <div
-        className={cn(
-          'relative rounded-full bg-gradient-to-br from-pink-600 to-rose-900 border border-pink-300 p-0.5 flex items-center justify-center shrink-0 shadow-2xs',
-          className
-        )}
-      >
-        <svg viewBox="0 0 32 32" fill="none" className="w-full h-full">
-          <circle cx="16" cy="16" r="14" fill="#9D174D" stroke="#F472B6" strokeWidth="1.5" />
-          <circle cx="16" cy="16" r="10" fill="#831843" stroke="#FBCFE8" strokeWidth="1" />
-          <path d="M16 9L23 13L16 17L9 13L16 9Z" fill="#FBCFE8" />
-          <path
-            d="M11 15.5V19.5C11 21.5 13.5 23 16 23C18.5 23 21 21.5 21 19.5V15.5"
-            stroke="#FBCFE8"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
+        <img
+          src="/images/exams/logo_wbpsc.png"
+          alt={title || 'WBPSC'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }

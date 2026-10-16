@@ -754,6 +754,8 @@ export const adminCommerceApi = {
         if (updates.price !== undefined) payload.price = updates.price;
         if (updates.originalPrice !== undefined) payload.original_price = updates.originalPrice;
         if (updates.durationDays !== undefined) payload.duration_days = updates.durationDays;
+        if (updates.renewalWindowDays !== undefined)
+          payload.renewal_window_days = updates.renewalWindowDays;
         if (updates.features !== undefined) payload.features = updates.features;
         if (updates.isActive !== undefined) payload.is_active = updates.isActive;
         if (updates.currency !== undefined) payload.currency = updates.currency;
@@ -798,6 +800,7 @@ export const adminCommerceApi = {
             features: plan.features,
             is_active: plan.isActive,
             order_index: plan.orderIndex || 1,
+            renewal_window_days: plan.renewalWindowDays ?? null,
           })
           .select('id');
         if (error) return { success: false, error: error.message };

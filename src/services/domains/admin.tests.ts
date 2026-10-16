@@ -4,6 +4,7 @@ import { readCompleteQuery } from './admin.reporting';
 import { deleteAdminRecord, requireSavedRow } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { notifyExamsUpdated } from '@/lib/dataSync';
+import { withApiCache } from '@/services/apiCache';
 import { catalogApi } from '@/services/domains/catalog';
 import { getTestAssignedQuestions, saveTestQuestions } from './admin.testQuestions';
 import { getAllAdminQuestionIds } from './admin.questions';
@@ -41,6 +42,21 @@ export async function uploadTestIcon(file: File, _testId: string = 'custom'): Pr
 }
 
 export async function getAllAdminTests(filter?: {
+  examId?: string;
+  subjectId?: string;
+  chapterId?: string;
+  testSeriesId?: string;
+  testType?: string;
+  status?: string;
+}): Promise<MockTest[]> {
+  const hasFilter = filter && Object.values(filter).some(Boolean);
+  if (!hasFilter) {
+    return withApiCache('all_admin_tests', () => fetchAdminTests(filter), 60_000);
+  }
+  return fetchAdminTests(filter);
+}
+
+async function fetchAdminTests(filter?: {
   examId?: string;
   subjectId?: string;
   chapterId?: string;
@@ -325,6 +341,7 @@ export async function createTest(
       );
     }
   }
+
   const row = data as any;
   if (testData.iconUrl && row.icon_url !== testData.iconUrl)
     throw new Error('The backend did not confirm the saved test icon.');
@@ -873,7 +890,7 @@ export async function generateTopicTests(
 
   const [bankIds, existingTests] = await Promise.all([
     getAllAdminQuestionIds({ chapterId: input.chapterId }),
-    getAllAdminTests({ chapterId: input.chapterId }),
+    fetchAdminTests({ chapterId: input.chapterId }),
   ]);
   const topicTests = existingTests.filter(
     (t) => t.testType === 'topic' || t.testType === 'chapter_mock'

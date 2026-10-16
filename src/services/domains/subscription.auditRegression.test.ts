@@ -13,6 +13,81 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 import { subscriptionApi } from './subscription';
+describe('Controlled upgrade & renewal client contract', () => {
+  beforeEach(() => {
+    m.invoke.mockReset();
+    m.rpc.mockReset();
+  });
+  it('maps server-computed purchase options without recomputing them', async () => {
+    m.rpc.mockResolvedValue({
+      data: [
+        { plan_id: 'pro_1_year', eligible: true, purchase_type: 'upgrade', amount: '250' },
+        { plan_id: 'pro_1_month', eligible: false, reason_code: 'shorter_duration', message: 'no' },
+      ],
+      error: null,
+    });
+    const options = await subscriptionApi.getSubscriptionPurchaseOptions();
+    expect(m.rpc).toHaveBeenCalledWith('get_my_subscription_purchase_options');
+    expect(options).toEqual([
+      expect.objectContaining({
+        planId: 'pro_1_year',
+        eligible: true,
+        purchaseType: 'upgrade',
+        amount: 250,
+      }),
+      expect.objectContaining({
+        planId: 'pro_1_month',
+        eligible: false,
+        reasonCode: 'shorter_duration',
+      }),
+    ]);
+  });
+  it('throws instead of guessing when eligibility cannot be loaded', async () => {
+    m.rpc.mockResolvedValue({ data: null, error: { message: 'denied' } });
+    await expect(subscriptionApi.getSubscriptionPurchaseOptions()).rejects.toThrow('denied');
+  });
+  it('surfaces a captured-but-not-applied payment instead of asking to retry', async () => {
+    m.invoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'non-2xx',
+        context: {
+          json: async () => ({
+            error: 'Payment received, but not eligible.',
+            requiresRefund: true,
+          }),
+        },
+      },
+    });
+    await expect(
+      subscriptionApi.verifyRazorpayPayment({
+        orderId: 'o',
+        paymentId: 'p',
+        signature: 's',
+        planId: 'x',
+      })
+    ).rejects.toThrow('Payment received, but not eligible.');
+  });
+  it('passes the server purchase type and quoted amount through from order creation', async () => {
+    m.invoke.mockResolvedValue({
+      data: {
+        verification_version: 2,
+        order_id: 'order_1',
+        amount: 250,
+        key_id: 'key',
+        purchase_type: 'upgrade',
+        new_expires_at: '2027-10-01T00:00:00Z',
+      },
+      error: null,
+    });
+    expect(await subscriptionApi.createRazorpayOrder('pro_1_year')).toMatchObject({
+      amount: 250,
+      purchaseType: 'upgrade',
+      newExpiresAt: '2027-10-01T00:00:00Z',
+    });
+  });
+});
+
 describe('Payment integrity boundaries', () => {
   beforeEach(() => {
     m.response = { data: [], error: null };

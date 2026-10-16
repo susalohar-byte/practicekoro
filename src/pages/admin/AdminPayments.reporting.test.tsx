@@ -63,13 +63,16 @@ describe('Payment period reporting UI', () => {
     const { container } = render(<AdminPayments />);
     await screen.findAllByText('unknown');
     const svg = container.querySelector('svg[viewBox="0 0 100 100"]')!;
-    const circles = [...svg.querySelectorAll('circle')];
-    expect(parseFloat(circles[1].getAttribute('stroke-dasharray')!)).toBeCloseTo(
+    // Segments are identified by gateway colour; the neutral track ring has no stroke colour.
+    const segment = (color: string) => svg.querySelector(`circle[stroke="${color}"]`);
+    expect(parseFloat(segment('#06B6D4')!.getAttribute('stroke-dasharray')!)).toBeCloseTo(
       2 * Math.PI * 38 * 0.75
     );
-    expect(parseFloat(circles[4].getAttribute('stroke-dasharray')!)).toBeCloseTo(
+    expect(parseFloat(segment('#64748B')!.getAttribute('stroke-dasharray')!)).toBeCloseTo(
       2 * Math.PI * 38 * 0.25
     );
+    // Gateways with no revenue draw no segment.
+    expect(segment('#0284C7')).toBeNull();
     expect(await screen.findByText('25%')).toBeInTheDocument();
   });
   it('toggles between Accrual (Payment Date) and Cash Flow (Refund Date) attribution mode', async () => {

@@ -6,8 +6,41 @@ import type {
   RazorpayOrderResponse,
   RazorpayVerificationPayload,
   StudentSubscriptionDetails,
+  SubscriptionPurchaseOption,
+  SubscriptionPurchaseType,
 } from '@/types';
 import type { PlanRow } from '@/services/domains/localStore';
+
+/** Reads the JSON error body an Edge Function returned with a non-2xx status. */
+async function readEdgeErrorBody(edgeError: unknown): Promise<Record<string, unknown> | null> {
+  try {
+    const context = (edgeError as { context?: { json?: () => Promise<unknown> } })?.context;
+    if (context && typeof context.json === 'function') {
+      const body = await context.json();
+      if (body && typeof body === 'object') return body as Record<string, unknown>;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function mapPurchaseOption(row: Record<string, unknown>): SubscriptionPurchaseOption {
+  const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+  return {
+    planId: String(row.plan_id ?? ''),
+    planTitle: str(row.plan_title),
+    eligible: row.eligible === true,
+    purchaseType: str(row.purchase_type) as SubscriptionPurchaseType | undefined,
+    amount: row.amount != null ? Number(row.amount) : undefined,
+    reasonCode: str(row.reason_code),
+    message: str(row.message),
+    currentExpiresAt: str(row.current_expires_at),
+    newStartsAt: str(row.new_starts_at),
+    newExpiresAt: str(row.new_expires_at),
+    renewalOpensAt: str(row.renewal_opens_at),
+  };
+}
 
 /**
  * Student subscription plans, Razorpay checkout & payment history API.
@@ -47,7 +80,42 @@ export const subscriptionApi = {
       features: Array.isArray(d.features) ? (d.features as string[]) : [],
       isActive: d.is_active,
       orderIndex: d.order_index,
+      renewalWindowDays: d.renewal_window_days ?? null,
     }));
+  },
+
+  /**
+   * Which plans this student may buy right now, as what (new / upgrade / renewal) and
+   * at what price. Computed by the server; the order endpoint re-checks the same rules.
+   */
+  async getSubscriptionPurchaseOptions(): Promise<SubscriptionPurchaseOption[]> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.rpc('get_my_subscription_purchase_options');
+      if (error) throw new Error(error.message || 'Could not load plan options');
+      return Array.isArray(data)
+        ? data.filter((row) => row && typeof row === 'object').map(mapPurchaseOption)
+        : [];
+    }
+
+    // Local demo mode has no payment server, so only first purchases are simulated.
+    const isPro = localStorage.getItem('practicekoro_is_pro') === 'true';
+    return MOCK_SUBSCRIPTION_PLANS.filter((p) => p.isActive && p.price > 0).map((p) =>
+      isPro
+        ? {
+            planId: p.id,
+            planTitle: p.title,
+            eligible: false,
+            reasonCode: 'demo_mode',
+            message: 'Upgrades and renewals require the live payment server.',
+          }
+        : {
+            planId: p.id,
+            planTitle: p.title,
+            eligible: true,
+            purchaseType: 'new' as const,
+            amount: p.price,
+          }
+    );
   },
 
   async createRazorpayOrder(planId: string): Promise<RazorpayOrderResponse> {
@@ -63,19 +131,12 @@ export const subscriptionApi = {
       );
 
       if (edgeError) {
-        let detail = edgeError.message || 'Payment gateway error';
-        try {
-          if (
-            (edgeError as any)?.context &&
-            typeof (edgeError as any).context.json === 'function'
-          ) {
-            const body = await (edgeError as any).context.json();
-            if (body?.error) detail = body.error;
-          }
-        } catch {
-          // ignore
-        }
-        throw new Error(detail);
+        const body = await readEdgeErrorBody(edgeError);
+        throw new Error(
+          typeof body?.error === 'string'
+            ? body.error
+            : edgeError.message || 'Payment gateway error'
+        );
       }
 
       // Fail before opening checkout if the security backend has not rolled out.
@@ -100,6 +161,8 @@ export const subscriptionApi = {
         durationDays: Number(edgeData.duration_days),
         keyId: edgeData.key_id,
         isRealRazorpayOrder: true,
+        purchaseType: edgeData.purchase_type,
+        newExpiresAt: edgeData.new_expires_at,
       };
     }
 
@@ -108,24 +171,7 @@ export const subscriptionApi = {
     const plan = MOCK_SUBSCRIPTION_PLANS.find((p) => p.id === planId) || MOCK_SUBSCRIPTION_PLANS[0];
 
     if (isPro) {
-      let currentPrice = 299;
-      let activePlanId = 'pro_1_year';
-      try {
-        const saved = localStorage.getItem('practicekoro_sub_details');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.planId) activePlanId = parsed.planId;
-          const found = MOCK_SUBSCRIPTION_PLANS.find((p) => p.id === parsed.planId);
-          if (found) currentPrice = found.price;
-        }
-      } catch {
-        // ignore
-      }
-      if (plan.id === activePlanId || plan.price <= currentPrice) {
-        throw new Error(
-          'You already have an active pass for this plan. Repurchasing or extending the same package is not permitted until your current validity expires.'
-        );
-      }
+      throw new Error('Upgrades and renewals require the live payment server.');
     }
 
     const mockOrderId = `order_${Math.random().toString(36).substring(2, 10)}`;
@@ -165,6 +211,7 @@ export const subscriptionApi = {
         isRenewal: boolean;
         planTitle?: string;
       } | null = null;
+      let blockedMessage: string | null = null;
 
       // 1. First attempt verification via hardened Edge Function (HMAC SHA-256 with server-side secret)
       try {
@@ -195,9 +242,19 @@ export const subscriptionApi = {
             'Edge function payment verification issue, verification rejected:',
             edgeError
           );
+          // Captured but intentionally not applied (e.g. a second renewal for the same
+          // cycle). Surface the server's explanation instead of asking for a retry.
+          const body = await readEdgeErrorBody(edgeError);
+          if (body?.requiresRefund === true && typeof body.error === 'string') {
+            blockedMessage = body.error;
+          }
         }
       } catch (invokeErr: any) {
         console.warn('Edge function invoke failed, no insecure fallback:', invokeErr);
+      }
+
+      if (blockedMessage) {
+        throw new Error(blockedMessage);
       }
 
       if (!verificationResult) {
@@ -284,6 +341,11 @@ export const subscriptionApi = {
             expiresAt: data.expires_at,
             daysRemaining:
               typeof data.days_remaining === 'number' ? data.days_remaining : undefined,
+            durationDays: typeof data.duration_days === 'number' ? data.duration_days : undefined,
+            renewalWindowDays:
+              typeof data.renewal_window_days === 'number' ? data.renewal_window_days : null,
+            renewed: Boolean(data.renewed),
+            renewedExpiresAt: data.renewed_expires_at || undefined,
           };
         }
       } catch (err) {

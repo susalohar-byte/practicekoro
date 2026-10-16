@@ -292,7 +292,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   const isPublished = test.status === 'published';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/45 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/20 dark:bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-8">

@@ -44,6 +44,7 @@ import { useMaintenance } from '@/context/MaintenanceContext';
 import { cn } from '@/lib/utils';
 import { playEnter } from '@/lib/motion';
 import { usePresence } from '@/hooks/usePresence';
+import { preloadRoute, preloadCoreAdminRoutes } from '@/utils/routePreload';
 import type { AdminPermissions } from '@/types';
 
 interface NavSubItem {
@@ -103,6 +104,11 @@ export const AdminLayout: React.FC = () => {
   useEffect(() => {
     playEnter(contentRef.current);
   }, [location.pathname]);
+
+  // Idle prefetching for core routes to eliminate route chunk load latency
+  useEffect(() => {
+    preloadCoreAdminRoutes();
+  }, []);
 
   useEffect(() => {
     setHeaderAvatarFailed(false);
@@ -434,7 +440,7 @@ export const AdminLayout: React.FC = () => {
       {/* Sidebar - Precision Obsidian Blue UI with Micro-Animations */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-[#0A1024] text-slate-100 border-r border-[#152146] flex flex-col justify-between shadow-2xl transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none dark',
+          'fixed inset-y-0 left-0 z-50 bg-[#0A1024] text-slate-100 border-r border-[#152146] flex flex-col justify-between shadow-2xl transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none dark will-change-[width,transform] transform-gpu',
           'lg:sticky lg:top-0 lg:h-screen lg:overflow-visible lg:translate-x-0 relative',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isCollapsed ? 'lg:w-[72px] w-64' : 'lg:w-[260px] w-64'
@@ -538,12 +544,19 @@ export const AdminLayout: React.FC = () => {
 
                 // Collapsed Rail View with Animated Floating Tooltips
                 if (isCollapsed) {
+                  const targetPath = item.path || (hasChildren ? item.children![0].path : undefined);
                   return (
                     <div key={item.key} className="relative group flex justify-center py-0.5">
                       <NavLink
-                        to={item.path || (hasChildren ? item.children![0].path : '#')}
+                        to={targetPath || '#'}
                         end={item.end}
                         title={item.label}
+                        onPointerEnter={() => {
+                          if (targetPath) preloadRoute(targetPath);
+                        }}
+                        onFocus={() => {
+                          if (targetPath) preloadRoute(targetPath);
+                        }}
                         className={cn(
                           'relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 group-hover:scale-105 active:scale-95',
                           isParentActive
@@ -631,6 +644,8 @@ export const AdminLayout: React.FC = () => {
                                   key={sub.path}
                                   to={sub.path}
                                   onClick={() => setSidebarOpen(false)}
+                                  onPointerEnter={() => preloadRoute(sub.path)}
+                                  onFocus={() => preloadRoute(sub.path)}
                                   className={cn(
                                     'group flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-150',
                                     isSubActive
@@ -675,6 +690,8 @@ export const AdminLayout: React.FC = () => {
                     to={item.path!}
                     end={item.end}
                     onClick={() => setSidebarOpen(false)}
+                    onPointerEnter={() => preloadRoute(item.path!)}
+                    onFocus={() => preloadRoute(item.path!)}
                     className={cn(
                       'group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 select-none',
                       isDirectActive
@@ -961,6 +978,8 @@ export const AdminLayout: React.FC = () => {
                   <Link
                     to="/admin/settings"
                     onClick={() => setIsUserMenuOpen(false)}
+                    onPointerEnter={() => preloadRoute('/admin/settings')}
+                    onFocus={() => preloadRoute('/admin/settings')}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
                   >
                     <Settings className="w-4 h-4 text-slate-400" />
@@ -969,6 +988,8 @@ export const AdminLayout: React.FC = () => {
                   <Link
                     to="/admin/audit-logs"
                     onClick={() => setIsUserMenuOpen(false)}
+                    onPointerEnter={() => preloadRoute('/admin/audit-logs')}
+                    onFocus={() => preloadRoute('/admin/audit-logs')}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors"
                   >
                     <History className="w-4 h-4 text-slate-400" />
@@ -1018,7 +1039,7 @@ export const AdminLayout: React.FC = () => {
           </div>
         )}
 
-        {/* Content body */}
+        {/* Content body with GPU-accelerated page transition */}
         <main className="flex-1 p-4 sm:p-6 lg:p-7 bg-slate-50 dark:bg-[#030712]">
           <div ref={contentRef} className="max-w-[1560px] mx-auto">
             <React.Suspense fallback={<AdminRouteSkeleton />}>

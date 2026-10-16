@@ -171,7 +171,7 @@ describe('Mock Test Icon Upload and Persistence', () => {
     });
 
     // Submit form
-    const submitBtn = screen.getByRole('button', { name: /\+ Create Mock Test/i });
+    const submitBtn = screen.getByRole('button', { name: /^Create Mock Test$/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

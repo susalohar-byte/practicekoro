@@ -381,24 +381,251 @@ export interface AdminDistrictRankingRow {
   topStudentScore: number | null;
 }
 
-/** Real district aggregates from completed student attempts (admin-only RPC). */
+/** Direct table query fallback for district aggregates when RPC get_admin_district_rankings is not yet migrated */
+async function getAdminDistrictRankingsDirectFallback(
+  params: { examId?: string | null; fromIso?: string | null; toIso?: string | null } = {}
+): Promise<AdminDistrictRankingRow[]> {
+  // 1. Fetch completed test attempts
+  let attemptsQuery = supabase
+    .from('test_attempts')
+    .select('user_id, test_id, score, total_marks, created_at')
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false })
+    .limit(5000);
+
+  if (params.fromIso) {
+    attemptsQuery = attemptsQuery.gte('created_at', params.fromIso);
+  }
+  if (params.toIso) {
+    attemptsQuery = attemptsQuery.lte('created_at', params.toIso);
+  }
+
+  const { data: attempts, error: attemptsErr } = await attemptsQuery;
+  if (attemptsErr) throw attemptsErr;
+  if (!attempts || attempts.length === 0) return [];
+
+  // 2. Filter by exam if examId provided
+  let filteredAttempts = attempts;
+  if (params.examId) {
+    const [{ data: testsDirect }, { data: testsAssoc }] = await Promise.all([
+      supabase.from('tests').select('id').eq('exam_id', params.examId),
+      supabase.from('test_exams').select('test_id').eq('exam_id', params.examId),
+    ]);
+    const validTestIds = new Set<string>();
+    (testsDirect || []).forEach((t: any) => validTestIds.add(t.id));
+    (testsAssoc || []).forEach((t: any) => validTestIds.add(t.test_id));
+    filteredAttempts = attempts.filter((a) => validTestIds.has(a.test_id));
+  }
+
+  if (filteredAttempts.length === 0) return [];
+
+  // 3. User IDs and Profile lookup
+  const userIds = Array.from(new Set(filteredAttempts.map((a) => a.user_id))).filter(Boolean);
+  const { data: profiles, error: profErr } = await supabase
+    .from('profiles')
+    .select('id, full_name, district, role')
+    .in('id', userIds);
+
+  if (profErr) throw profErr;
+
+  const profileMap = new Map<string, { fullName: string; district: string }>();
+  (profiles || []).forEach((p: any) => {
+    if (p.role === 'student' || !p.role) {
+      profileMap.set(p.id, {
+        fullName: p.full_name || 'Aspirant',
+        district: (p.district || '').trim(),
+      });
+    }
+  });
+
+  // Missing total marks map
+  const testsNeedingMarks = Array.from(
+    new Set(
+      filteredAttempts
+        .filter((a) => !a.total_marks || Number(a.total_marks) === 0)
+        .map((a) => a.test_id)
+    )
+  );
+  const testMarksMap = new Map<string, number>();
+  if (testsNeedingMarks.length > 0) {
+    const { data: testRows } = await supabase
+      .from('tests')
+      .select('id, total_marks')
+      .in('id', testsNeedingMarks);
+    (testRows || []).forEach((t: any) => {
+      if (t.total_marks) testMarksMap.set(t.id, Number(t.total_marks));
+    });
+  }
+
+  // 4. Aggregations per district
+  interface DistrictBucket {
+    originalSpellings: Map<string, number>;
+    userScores: Map<string, { fullName: string; pcts: number[] }>;
+    allPcts: number[];
+    attemptsCount: number;
+    studentIds: Set<string>;
+  }
+
+  const buckets = new Map<string, DistrictBucket>();
+
+  for (const att of filteredAttempts) {
+    const prof = profileMap.get(att.user_id);
+    if (!prof) continue; // Filter out non-students
+
+    const rawDistrict = prof.district;
+    const districtKey = rawDistrict.toLowerCase().trim();
+
+    let bucket = buckets.get(districtKey);
+    if (!bucket) {
+      bucket = {
+        originalSpellings: new Map(),
+        userScores: new Map(),
+        allPcts: [],
+        attemptsCount: 0,
+        studentIds: new Set(),
+      };
+      buckets.set(districtKey, bucket);
+    }
+
+    if (rawDistrict) {
+      bucket.originalSpellings.set(
+        rawDistrict,
+        (bucket.originalSpellings.get(rawDistrict) || 0) + 1
+      );
+    }
+    bucket.studentIds.add(att.user_id);
+    bucket.attemptsCount += 1;
+
+    const totalMarks = Number(att.total_marks) || testMarksMap.get(att.test_id) || 0;
+    const score = Number(att.score) || 0;
+    if (totalMarks > 0) {
+      const pct = (score * 100) / totalMarks;
+      bucket.allPcts.push(pct);
+
+      let user = bucket.userScores.get(att.user_id);
+      if (!user) {
+        user = { fullName: prof.fullName, pcts: [] };
+        bucket.userScores.set(att.user_id, user);
+      }
+      user.pcts.push(pct);
+    }
+  }
+
+  // 5. Build rows
+  const rows: AdminDistrictRankingRow[] = [];
+  for (const [key, bucket] of buckets.entries()) {
+    let displayDistrict = 'Not specified';
+    if (key !== '') {
+      let maxCount = -1;
+      for (const [spelling, cnt] of bucket.originalSpellings.entries()) {
+        if (cnt > maxCount) {
+          maxCount = cnt;
+          displayDistrict = spelling;
+        }
+      }
+    }
+
+    const studentCount = bucket.studentIds.size;
+    const avgPercentage =
+      bucket.allPcts.length > 0
+        ? Number((bucket.allPcts.reduce((a, b) => a + b, 0) / bucket.allPcts.length).toFixed(2))
+        : null;
+
+    let topStudentName: string | null = null;
+    let topStudentScore: number | null = null;
+    for (const user of bucket.userScores.values()) {
+      if (user.pcts.length > 0) {
+        const userAvg = Number(
+          (user.pcts.reduce((a, b) => a + b, 0) / user.pcts.length).toFixed(2)
+        );
+        if (topStudentScore === null || userAvg > topStudentScore) {
+          topStudentScore = userAvg;
+          topStudentName = user.fullName;
+        }
+      }
+    }
+
+    rows.push({
+      district: displayDistrict,
+      studentCount,
+      attemptsCount: bucket.attemptsCount,
+      avgPercentage,
+      topStudentName,
+      topStudentScore,
+    });
+  }
+
+  // Sort rows: avgPercentage DESC NULLS LAST, attemptsCount DESC, district ASC
+  rows.sort((a, b) => {
+    if (a.avgPercentage === null && b.avgPercentage !== null) return 1;
+    if (a.avgPercentage !== null && b.avgPercentage === null) return -1;
+    if (a.avgPercentage !== null && b.avgPercentage !== null) {
+      const diff = b.avgPercentage - a.avgPercentage;
+      if (Math.abs(diff) > 0.001) return diff;
+    }
+    if (b.attemptsCount !== a.attemptsCount) {
+      return b.attemptsCount - a.attemptsCount;
+    }
+    return a.district.localeCompare(b.district);
+  });
+
+  return rows;
+}
+
+/** Real district aggregates from completed student attempts (admin-only RPC with fallback). */
 export async function getAdminDistrictRankings(
   params: { examId?: string | null; fromIso?: string | null; toIso?: string | null } = {}
 ): Promise<AdminDistrictRankingRow[]> {
-  const { data, error } = await supabase.rpc('get_admin_district_rankings', {
-    p_exam_id: params.examId || null,
-    p_from: params.fromIso || null,
-    p_to: params.toIso || null,
-  });
-  if (error) throw new Error(error.message);
-  if (!Array.isArray(data)) throw new Error('District rankings were not confirmed.');
   const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
-  return data.map((r: any) => ({
-    district: String(r.district || 'Not specified'),
-    studentCount: Number(r.student_count || 0),
-    attemptsCount: Number(r.attempts_count || 0),
-    avgPercentage: num(r.avg_percentage),
-    topStudentName: r.top_student_name || null,
-    topStudentScore: num(r.top_student_score),
-  }));
+
+  // Attempt 1: Fast RPC function
+  try {
+    const { data, error } = await supabase.rpc('get_admin_district_rankings', {
+      p_exam_id: params.examId || null,
+      p_from: params.fromIso || null,
+      p_to: params.toIso || null,
+    });
+
+    if (!error && Array.isArray(data)) {
+      return data.map((r: any) => ({
+        district: String(r.district || 'Not specified'),
+        studentCount: Number(r.student_count || 0),
+        attemptsCount: Number(r.attempts_count || 0),
+        avgPercentage: num(r.avg_percentage),
+        topStudentName: r.top_student_name || null,
+        topStudentScore: num(r.top_student_score),
+      }));
+    }
+
+    if (error) {
+      const isMissingFunction =
+        error.code === 'PGRST202' ||
+        error.message?.includes('get_admin_district_rankings') ||
+        error.message?.includes('schema cache');
+      if (!isMissingFunction) {
+        throw new Error(error.message);
+      }
+      console.warn('RPC get_admin_district_rankings not in schema cache, using direct fallback...');
+    }
+  } catch (err: any) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isMissingFunction =
+      msg.includes('get_admin_district_rankings') ||
+      msg.includes('schema cache') ||
+      msg.includes('PGRST202');
+    if (!isMissingFunction) {
+      throw err;
+    }
+    console.warn('RPC get_admin_district_rankings not available, attempting direct fallback...');
+  }
+
+  // Attempt 2: Fallback query directly on tables
+  try {
+    return await getAdminDistrictRankingsDirectFallback(params);
+  } catch (fallbackErr: any) {
+    console.error('Direct fallback query for district rankings failed:', fallbackErr);
+    throw new Error(
+      `Database function 'public.get_admin_district_rankings' is not installed in Supabase. Please execute migration '20261011090200_admin_district_rankings.sql' in your Supabase SQL Editor.`
+    );
+  }
 }

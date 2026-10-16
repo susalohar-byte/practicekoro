@@ -339,6 +339,7 @@ export interface Database {
           features: Json;
           is_active: boolean;
           order_index: number;
+          renewal_window_days: number | null;
           created_at: string;
         };
         Insert: {
@@ -351,6 +352,7 @@ export interface Database {
           features?: Json;
           is_active?: boolean;
           order_index?: number;
+          renewal_window_days?: number | null;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['subscription_plans']['Insert']>;

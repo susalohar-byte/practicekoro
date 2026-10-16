@@ -51,10 +51,7 @@ BEGIN
   ), ranked AS (
     SELECT
       ROW_NUMBER() OVER (ORDER BY avg_percentage DESC, completed_tests DESC, user_id) AS student_rank,
-      CASE
-        WHEN NULLIF(BTRIM(full_name), '') IS NULL THEN 'Student'
-        ELSE LEFT(BTRIM(full_name), 1) || '•••'
-      END AS student_name,
+      COALESCE(NULLIF(BTRIM(full_name), ''), 'Student') AS student_name,
       ROUND(avg_percentage, 1) AS score_percentage,
       student_district,
       completed_tests

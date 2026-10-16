@@ -4,6 +4,7 @@ import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localExams, localTests } from '@/services/domains/localStore';
 import { notifyExamsUpdated } from '@/lib/dataSync';
+import { withApiCache } from '@/services/apiCache';
 import type { Exam, PopularExamCard } from '@/types';
 import type { ExamRow } from '@/services/domains/localStore';
 
@@ -14,15 +15,16 @@ import type { ExamRow } from '@/services/domains/localStore';
 export async function getExamContentCounts(): Promise<
   Record<string, { fullMock: number; pyq: number; topic: number }>
 > {
-  const counts: Record<string, { fullMock: number; pyq: number; topic: number }> = {};
-  const bump = (examId: string | null | undefined, kind: 'fullMock' | 'pyq' | 'topic') => {
-    if (!examId) return;
-    counts[examId] = counts[examId] || { fullMock: 0, pyq: 0, topic: 0 };
-    counts[examId][kind] += 1;
-  };
-  const classify = (type: string | null | undefined): 'fullMock' | 'pyq' | 'topic' | null => {
-    if (type === 'full_mock') return 'fullMock';
-    if (type === 'pyq') return 'pyq';
+  return withApiCache('exam_content_counts', async () => {
+    const counts: Record<string, { fullMock: number; pyq: number; topic: number }> = {};
+    const bump = (examId: string | null | undefined, kind: 'fullMock' | 'pyq' | 'topic') => {
+      if (!examId) return;
+      counts[examId] = counts[examId] || { fullMock: 0, pyq: 0, topic: 0 };
+      counts[examId][kind] += 1;
+    };
+    const classify = (type: string | null | undefined): 'fullMock' | 'pyq' | 'topic' | null => {
+      if (type === 'full_mock') return 'fullMock';
+      if (type === 'pyq') return 'pyq';
     if (type === 'topic' || type === 'chapter_mock' || type === 'subject_mock') return 'topic';
     return null;
   };
@@ -90,27 +92,72 @@ export async function getExamContentCounts(): Promise<
     }
   }
 
-  // Ensure every exam receives the common topic count
-  for (const ex of allExams) {
-    counts[ex.id] = counts[ex.id] || { fullMock: 0, pyq: 0, topic: 0 };
-    counts[ex.id].topic = commonTopicCount;
-  }
-  return counts;
+    // Ensure every exam receives the common topic count
+    for (const ex of allExams) {
+      counts[ex.id] = counts[ex.id] || { fullMock: 0, pyq: 0, topic: 0 };
+      counts[ex.id].topic = commonTopicCount;
+    }
+    return counts;
+  }, 60_000);
 }
 
 // --------------------------------------------------------------------------
 // EXAMS API
 // --------------------------------------------------------------------------
 export async function getAllAdminExams(): Promise<Exam[]> {
-  if (!isSupabaseConfigured) {
-    const contentCounts = await getExamContentCounts();
+  return withApiCache('all_admin_exams', async () => {
+    if (!isSupabaseConfigured) {
+      const contentCounts = await getExamContentCounts();
+      const empty = { fullMock: 0, pyq: 0, topic: 0 };
+      return localExams.map((e) => {
+        const fullMock = contentCounts[e.id]?.fullMock ?? empty.fullMock;
+        const pyq = contentCounts[e.id]?.pyq ?? empty.pyq;
+        const topic = contentCounts[e.id]?.topic ?? empty.topic;
+        return {
+          ...e,
+          fullMockCount: fullMock,
+          pyqCount: pyq,
+          topicTestCount: topic,
+          fullMocksCount: fullMock,
+          pyqsCount: pyq,
+          topicTestsCount: topic,
+          testsCount: fullMock + pyq + topic,
+        };
+      });
+    }
+
+    const [contentCounts, data] = await Promise.all([
+      getExamContentCounts(),
+      readCompleteQuery(() =>
+        supabase
+          .from('exams')
+          .select('*', { count: 'exact' })
+          .order('order_index', { ascending: true })
+          .order('id', { ascending: true })
+      ),
+    ]);
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
     const empty = { fullMock: 0, pyq: 0, topic: 0 };
-    return localExams.map((e) => {
-      const fullMock = contentCounts[e.id]?.fullMock ?? empty.fullMock;
-      const pyq = contentCounts[e.id]?.pyq ?? empty.pyq;
-      const topic = contentCounts[e.id]?.topic ?? empty.topic;
+    return (data as ExamRow[]).map((item) => {
+      const fullMock = contentCounts[item.id]?.fullMock ?? empty.fullMock;
+      const pyq = contentCounts[item.id]?.pyq ?? empty.pyq;
+      const topic = contentCounts[item.id]?.topic ?? empty.topic;
       return {
-        ...e,
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        description: item.description ?? undefined,
+        category: item.category,
+        iconName: item.icon_name,
+        bannerUrl: item.banner_url ?? undefined,
+        shortName: (item as any).short_name ?? undefined,
+        subtitle: (item as any).subtitle ?? undefined,
+        orderIndex: item.order_index,
+        isActive: item.is_active,
         fullMockCount: fullMock,
         pyqCount: pyq,
         topicTestCount: topic,
@@ -120,49 +167,7 @@ export async function getAllAdminExams(): Promise<Exam[]> {
         testsCount: fullMock + pyq + topic,
       };
     });
-  }
-
-  const [contentCounts, data] = await Promise.all([
-    getExamContentCounts(),
-    readCompleteQuery(() =>
-      supabase
-        .from('exams')
-        .select('*', { count: 'exact' })
-        .order('order_index', { ascending: true })
-        .order('id', { ascending: true })
-    ),
-  ]);
-
-  if (!data || data.length === 0) {
-    return [];
-  }
-
-  const empty = { fullMock: 0, pyq: 0, topic: 0 };
-  return (data as ExamRow[]).map((item) => {
-    const fullMock = contentCounts[item.id]?.fullMock ?? empty.fullMock;
-    const pyq = contentCounts[item.id]?.pyq ?? empty.pyq;
-    const topic = contentCounts[item.id]?.topic ?? empty.topic;
-    return {
-      id: item.id,
-      title: item.title,
-      slug: item.slug,
-      description: item.description ?? undefined,
-      category: item.category,
-      iconName: item.icon_name,
-      bannerUrl: item.banner_url ?? undefined,
-      shortName: (item as any).short_name ?? undefined,
-      subtitle: (item as any).subtitle ?? undefined,
-      orderIndex: item.order_index,
-      isActive: item.is_active,
-      fullMockCount: fullMock,
-      pyqCount: pyq,
-      topicTestCount: topic,
-      fullMocksCount: fullMock,
-      pyqsCount: pyq,
-      topicTestsCount: topic,
-      testsCount: fullMock + pyq + topic,
-    };
-  });
+  }, 60_000);
 }
 
 export async function getExamById(id: string): Promise<Exam | null> {

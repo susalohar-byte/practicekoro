@@ -36,7 +36,8 @@ export const Login: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const errorDesc = params.get('error_description') || params.get('error');
     if (errorDesc) {
-      setError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+      // URLSearchParams already decodes percent escapes and plus signs.
+      setError(errorDesc);
     }
   }, [location.search]);
 
@@ -148,7 +149,10 @@ export const Login: React.FC = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                <label
+                  htmlFor="password"
+                  className="text-xs font-semibold uppercase tracking-wider text-slate-600"
+                >
                   Password
                 </label>
                 <Link
@@ -159,6 +163,7 @@ export const Login: React.FC = () => {
                 </Link>
               </div>
               <Input
+                id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}

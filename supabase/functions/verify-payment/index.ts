@@ -198,6 +198,21 @@ Deno.serve(async (req: Request) => {
     }
   );
 
+  // Captured, but the upgrade/renewal stopped being eligible (e.g. a second renewal
+  // paid in another tab). Access was deliberately not changed; the payment is
+  // flagged for refund so support can return it.
+  if (!rpcError && isRecord(rpcResult) && rpcResult.activation_blocked === true) {
+    return new Response(
+      JSON.stringify({
+        error:
+          'Payment received, but this purchase is no longer eligible, so your pass was not changed. It has been flagged for a refund; please contact support.',
+        reasonCode: rpcResult.reason_code,
+        requiresRefund: true,
+      }),
+      { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   if (
     rpcError ||
     !isRecord(rpcResult) ||
@@ -219,6 +234,8 @@ Deno.serve(async (req: Request) => {
       startsAt: rpcResult.starts_at,
       expiresAt: rpcResult.expires_at,
       isRenewal: rpcResult.is_renewal,
+      purchaseType: rpcResult.purchase_type,
+      planTitle: rpcResult.plan_title,
     }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );

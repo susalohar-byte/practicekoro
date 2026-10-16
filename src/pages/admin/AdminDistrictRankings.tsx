@@ -21,6 +21,7 @@ import {
   type AdminDistrictRankingRow,
 } from '@/services/domains/admin.analytics';
 import { getDateRangeBounds } from '@/services/domains/admin.dashboard';
+import { WEST_BENGAL_DISTRICTS } from '@/data/districts';
 
 // ============================================================================
 // DATA MODEL
@@ -144,11 +145,28 @@ export const AdminDistrictRankings: React.FC = () => {
     [districtsList]
   );
 
+  // List of all districts for the filter dropdown: all 23 official WB districts + any from server data
+  const districtFilterOptions = useMemo(() => {
+    const set = new Set<string>(WEST_BENGAL_DISTRICTS);
+    districtsList.forEach((d) => {
+      if (d.district && d.district !== NOT_SPECIFIED) {
+        set.add(d.district);
+      }
+    });
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b));
+    if (districtsList.some((d) => d.district === NOT_SPECIFIED)) {
+      sorted.push(NOT_SPECIFIED);
+    }
+    return sorted;
+  }, [districtsList]);
+
   // Filtered districts
   const filteredDistricts = useMemo(
     () =>
       districtsList.filter(
-        (d) => selectedDistrictFilter === 'All Districts' || d.district === selectedDistrictFilter
+        (d) =>
+          selectedDistrictFilter === 'All Districts' ||
+          d.district.toLowerCase() === selectedDistrictFilter.toLowerCase()
       ),
     [districtsList, selectedDistrictFilter]
   );
@@ -361,9 +379,9 @@ export const AdminDistrictRankings: React.FC = () => {
               className={selectClass}
             >
               <option value="All Districts">All Districts</option>
-              {districtsList.map((d) => (
-                <option key={d.district} value={d.district}>
-                  {d.district}
+              {districtFilterOptions.map((district) => (
+                <option key={district} value={district}>
+                  {district}
                 </option>
               ))}
             </select>

@@ -45,6 +45,7 @@ const toast = {
 
 const PRESET_LOGOS = [
   { name: 'WBP Police', url: '/images/exams/logo_wbp.png' },
+  { name: 'Kolkata Police', url: '/images/exams/logo_kp.png' },
   { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png' },
   { name: 'Railway', url: '/images/exams/logo_railway.png' },
   { name: 'SSC', url: '/images/exams/logo_ssc.png' },
@@ -1909,27 +1910,32 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
             </div>
 
             {/* Preset Logos */}
-            <div className="pt-2 border-t border-slate-200/60">
-              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
-                Preset Exam Logos
+            <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60">
+              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider block mb-2">
+                Preset Exam Logos (Official)
               </span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {PRESET_LOGOS.map((pl) => (
-                  <button
-                    type="button"
-                    key={pl.name}
-                    onClick={() => setLogo(pl.url)}
-                    className={cn(
-                      'p-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-colors shrink-0',
-                      logo === pl.url
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
-                        : 'border-slate-200 hover:bg-slate-100'
-                    )}
-                  >
-                    <img src={pl.url} alt={pl.name} className="w-4 h-4 object-contain" />
-                    <span className="whitespace-nowrap text-[11px] font-medium">{pl.name}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-1">
+                {PRESET_LOGOS.map((pl) => {
+                  const isSelected = logo === pl.url;
+                  return (
+                    <button
+                      type="button"
+                      key={pl.name}
+                      onClick={() => setLogo(pl.url)}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-xl border flex items-center gap-2 text-xs transition-all text-left cursor-pointer',
+                        isSelected
+                          ? 'border-[#026BFC] bg-blue-50/80 dark:bg-blue-950/40 text-[#026BFC] dark:text-blue-400 font-bold ring-2 ring-[#026BFC]/25 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-750'
+                      )}
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                        <img src={pl.url} alt={pl.name} className="w-full h-full object-contain" />
+                      </div>
+                      <span className="truncate text-xs">{pl.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

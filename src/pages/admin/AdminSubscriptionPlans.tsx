@@ -1,6 +1,6 @@
 import { withAdminSkeleton } from '@/components/admin/AdminSkeleton';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Users,
   CreditCard,
@@ -19,6 +19,9 @@ import {
   Headphones,
   CheckCircle2,
   Pencil,
+  Sparkles,
+  Clock,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -39,6 +42,7 @@ export interface SubscriptionPlanItem {
   price: number;
   originalPrice: number;
   durationDays: number;
+  renewalWindowDays?: number | null;
   badge?: string;
   badgeColor?: string;
   buttonText: string;
@@ -315,7 +319,48 @@ export const AdminSubscriptionPlans: React.FC = () => {
     }
   }, [plans]);
 
-  const loadPlans = async () => {
+  // Billing Cycle Toggle (Monthly vs Yearly)
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+  // Modals state
+  const [isAddPlanModalOpen, setIsAddPlanModalOpen] = useState(false);
+  const [isViewActiveModalOpen, setIsViewActiveModalOpen] = useState(false);
+  const [isViewAllRecentOpen, setIsViewAllRecentOpen] = useState(false);
+  const [selectedPlanForPurchase, setSelectedPlanForPurchase] =
+    useState<SubscriptionPlanItem | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Form states for Add Plan
+  const [formPlanName, setFormPlanName] = useState('');
+  const [formPlanSubtitle, setFormPlanSubtitle] = useState('');
+  const [formPlanPrice, setFormPlanPrice] = useState('149');
+  const [formPlanOriginalPrice, setFormPlanOriginalPrice] = useState('299');
+  const [formPlanDurationDays, setFormPlanDurationDays] = useState('180');
+  const [formPlanRenewalWindow, setFormPlanRenewalWindow] = useState('');
+  const [formPlanBadge, setFormPlanBadge] = useState('');
+  const [formPlanFeatures, setFormPlanFeatures] = useState('');
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+
+  // Form states for Edit Plan
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlanItem | null>(null);
+  const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false);
+  const [editPlanName, setEditPlanName] = useState('');
+  const [editPlanSubtitle, setEditPlanSubtitle] = useState('');
+  const [editPlanPrice, setEditPlanPrice] = useState('99');
+  const [editPlanOriginalPrice, setEditPlanOriginalPrice] = useState('179');
+  const [editPlanDurationDays, setEditPlanDurationDays] = useState('180');
+  const [editPlanRenewalWindow, setEditPlanRenewalWindow] = useState('');
+  const [editPlanBadge, setEditPlanBadge] = useState('');
+  const [editPlanFeatures, setEditPlanFeatures] = useState('');
+  const [editButtonText, setEditButtonText] = useState('');
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  }, []);
+
+  const loadPlans = useCallback(async () => {
     setPageLoading(true);
     try {
       const remote = await api.getSubscriptionPlans(true);
@@ -335,6 +380,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
             price: p.price,
             originalPrice: p.originalPrice ?? p.price,
             durationDays: p.durationDays || 30,
+            renewalWindowDays: p.renewalWindowDays ?? null,
             badge: p.id === 'pro_1_year' ? 'Best Value' : undefined,
             badgeColor: 'bg-[#F43F5E] text-white',
             buttonText: p.price === 0 ? 'Current Plan' : `Get ${p.title}`,
@@ -359,82 +405,50 @@ export const AdminSubscriptionPlans: React.FC = () => {
     } finally {
       setPageLoading(false);
     }
-  };
+  }, [showToast]);
 
   // Load live subscription plans from database on mount
   useEffect(() => {
-    loadPlans();
-  }, []);
-
-  // Billing Cycle Toggle (Monthly vs Yearly)
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
-  // Modals state
-  const [isAddPlanModalOpen, setIsAddPlanModalOpen] = useState(false);
-  const [isViewActiveModalOpen, setIsViewActiveModalOpen] = useState(false);
-  const [isViewAllRecentOpen, setIsViewAllRecentOpen] = useState(false);
-  const [selectedPlanForPurchase, setSelectedPlanForPurchase] =
-    useState<SubscriptionPlanItem | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Form states for Add Plan
-  const [formPlanName, setFormPlanName] = useState('');
-  const [formPlanSubtitle, setFormPlanSubtitle] = useState('');
-  const [formPlanPrice, setFormPlanPrice] = useState('149');
-  const [formPlanOriginalPrice, setFormPlanOriginalPrice] = useState('299');
-  const [formPlanDurationDays, setFormPlanDurationDays] = useState('180');
-  const [formPlanBadge, setFormPlanBadge] = useState('');
-  const [formPlanFeatures, setFormPlanFeatures] = useState('');
-  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
-
-  // Form states for Edit Plan
-  const [editingPlan, setEditingPlan] = useState<SubscriptionPlanItem | null>(null);
-  const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false);
-  const [editPlanName, setEditPlanName] = useState('');
-  const [editPlanSubtitle, setEditPlanSubtitle] = useState('');
-  const [editPlanPrice, setEditPlanPrice] = useState('99');
-  const [editPlanOriginalPrice, setEditPlanOriginalPrice] = useState('179');
-  const [editPlanDurationDays, setEditPlanDurationDays] = useState('180');
-  const [editPlanBadge, setEditPlanBadge] = useState('');
-  const [editPlanFeatures, setEditPlanFeatures] = useState('');
-  const [editButtonText, setEditButtonText] = useState('');
-  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
+    void loadPlans();
+  }, [loadPlans]);
 
   // Helper render for Plan Header Icon
-  const renderPlanIcon = (type: string) => {
+  const renderPlanIcon = (type: string, isHero = false) => {
+    if (isHero) {
+      return (
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#026BFC] to-blue-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/30 ring-2 ring-white/20">
+          <Crown className="w-6 h-6 drop-shadow-xs" />
+        </div>
+      );
+    }
     switch (type) {
       case 'free':
         return (
-          <div className="w-11 h-11 rounded-2xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 ring-1 ring-emerald-500/20">
             <Sprout className="w-6 h-6" />
           </div>
         );
       case 'basic':
         return (
-          <div className="w-11 h-11 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 ring-1 ring-amber-500/20">
             <GraduationCap className="w-6 h-6" />
           </div>
         );
       case 'pro':
         return (
-          <div className="w-11 h-11 rounded-2xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 ring-1 ring-amber-500/20">
             <Crown className="w-6 h-6" />
           </div>
         );
       case 'ultimate':
         return (
-          <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/20">
             <Gem className="w-6 h-6" />
           </div>
         );
       default:
         return (
-          <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-[#026BFC] dark:text-blue-400 flex items-center justify-center shrink-0 ring-1 ring-blue-500/20">
             <Crown className="w-6 h-6" />
           </div>
         );
@@ -464,6 +478,8 @@ export const AdminSubscriptionPlans: React.FC = () => {
       showToast('Please enter a valid duration in days (greater than 0).');
       return;
     }
+    const renewalWindowDays = parseRenewalWindow(formPlanRenewalWindow, durationNum);
+    if (renewalWindowDays === undefined) return;
 
     const origPriceTrimmed = formPlanOriginalPrice.trim();
     let origPriceNum = priceNum;
@@ -497,6 +513,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
         features: featureItems.map((f) => f.text),
         isActive: true,
         orderIndex: 99,
+        renewalWindowDays,
       });
 
       if (!res.success) {
@@ -515,6 +532,18 @@ export const AdminSubscriptionPlans: React.FC = () => {
     }
   };
 
+  // Renewal window: blank = plan cannot be renewed (upgrade or repurchase after expiry).
+  const parseRenewalWindow = (raw: string, durationDays: number): number | null | undefined => {
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+    const days = parseInt(trimmed, 10);
+    if (isNaN(days) || days < 1 || days > 90 || days >= durationDays) {
+      showToast('Renewal window must be 1–90 days and shorter than the plan duration, or blank.');
+      return undefined;
+    }
+    return days;
+  };
+
   const handleOpenEditModal = (plan: SubscriptionPlanItem) => {
     setEditingPlan(plan);
     setEditPlanName(plan.name);
@@ -522,6 +551,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
     setEditPlanPrice(String(plan.price));
     setEditPlanOriginalPrice(String(plan.originalPrice || plan.price));
     setEditPlanDurationDays(String(plan.durationDays || 30));
+    setEditPlanRenewalWindow(plan.renewalWindowDays ? String(plan.renewalWindowDays) : '');
     setEditPlanBadge(plan.badge || '');
     setEditPlanFeatures(plan.features.map((f) => f.text).join('\n'));
     setEditButtonText(plan.buttonText);
@@ -550,6 +580,8 @@ export const AdminSubscriptionPlans: React.FC = () => {
       showToast('Please enter a valid duration in days (greater than 0).');
       return;
     }
+    const renewalWindowDays = parseRenewalWindow(editPlanRenewalWindow, durationNum);
+    if (renewalWindowDays === undefined) return;
 
     const origPriceTrimmed = editPlanOriginalPrice.trim();
     let origPriceNum = priceNum;
@@ -577,6 +609,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
         price: priceNum,
         originalPrice: origPriceNum,
         durationDays: durationNum,
+        renewalWindowDays,
         features: featureItems.map((f) => f.text),
       });
 
@@ -633,6 +666,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
               setFormPlanPrice('149');
               setFormPlanOriginalPrice('299');
               setFormPlanDurationDays('180');
+              setFormPlanRenewalWindow('');
               setFormPlanBadge('');
               setFormPlanFeatures('');
               setIsAddPlanModalOpen(true);
@@ -731,22 +765,34 @@ export const AdminSubscriptionPlans: React.FC = () => {
       {/* ==================================================================== */}
       {/* 3. AVAILABLE PLANS SECTION HEADER & BILLING TOGGLE                   */}
       {/* ==================================================================== */}
-      <div className="flex items-center justify-between pt-2">
-        <h2 className="text-base font-bold text-slate-900">Available Plans</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Available Plans
+            </h2>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-[#026BFC] dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80">
+              {plans.length} Active {plans.length === 1 ? 'Tier' : 'Tiers'}
+            </span>
+          </div>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            Public student subscription tiers, pricing intervals, renewal windows, and feature access.
+          </p>
+        </div>
 
-        {/* Billing Switcher Pill */}
-        <div className="flex items-center gap-3">
-          <div className="bg-slate-100 p-1 rounded-xl flex items-center">
+        {/* Action Controls & Billing Filter */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl flex items-center border border-slate-200/60 dark:border-slate-700/60">
             <button
               onClick={() => {
                 setBillingCycle('monthly');
-                showToast('Switched to monthly pricing view.');
+                showToast('Displaying monthly equivalent breakdown.');
               }}
               className={cn(
                 'px-3.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer',
                 billingCycle === 'monthly'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[#026BFC] text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               Monthly
@@ -754,138 +800,255 @@ export const AdminSubscriptionPlans: React.FC = () => {
             <button
               onClick={() => {
                 setBillingCycle('yearly');
-                showToast('Switched to yearly pricing with up to 50% discount.');
+                showToast('Displaying yearly pricing with up to 70% savings.');
               }}
               className={cn(
                 'px-3.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer',
                 billingCycle === 'yearly'
-                  ? 'bg-[#2563EB] text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[#026BFC] text-white shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               )}
             >
               Yearly
             </button>
           </div>
-          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-            Save up to 50%
+
+          <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 border border-emerald-300/60 dark:border-emerald-800 px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Save up to 70%</span>
           </span>
+
+          <button
+            onClick={() => setIsAddPlanModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-[#026BFC] dark:hover:bg-blue-50 text-xs font-bold transition-all shadow-xs cursor-pointer ml-1"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>New Plan</span>
+          </button>
         </div>
       </div>
 
       {/* ==================================================================== */}
-      {/* 4. THE SUBSCRIPTION PLAN CARDS                                       */}
+      {/* 4. THE SUBSCRIPTION PLAN CARDS (RESPONSIVE ADAPTIVE GRID)             */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+      <div
+        className={cn(
+          'grid gap-5 items-stretch',
+          plans.length === 1
+            ? 'max-w-md mx-auto grid-cols-1'
+            : plans.length === 2
+              ? 'max-w-4xl mx-auto grid-cols-1 md:grid-cols-2'
+              : plans.length === 3
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+        )}
+      >
         {plans.map((plan) => {
+          const isHeroPlan =
+            Boolean(plan.badge?.toLowerCase().includes('best')) ||
+            plan.id === 'pro_1_year' ||
+            (plan.price > 0 && plan.durationDays >= 365);
+          const isFreePlan = plan.price === 0 || plan.id === 'free' || plan.id === 'plan_free';
+          const discountPct =
+            plan.originalPrice > plan.price && plan.originalPrice > 0
+              ? Math.round(((plan.originalPrice - plan.price) / plan.originalPrice) * 100)
+              : 0;
+          const monthlyEquivalent =
+            plan.price > 0 && plan.durationDays > 0
+              ? Math.max(1, Math.round(plan.price / Math.max(1, plan.durationDays / 30)))
+              : 0;
+
           return (
             <div
               key={plan.id}
               className={cn(
-                'rounded-2xl p-5 shadow-2xs flex flex-col justify-between transition-all hover:shadow-xs relative',
-                plan.bgClass,
-                plan.borderClass
+                'relative rounded-2xl flex flex-col justify-between transition-all duration-200 overflow-hidden group',
+                isHeroPlan
+                  ? 'bg-gradient-to-b from-blue-50/50 via-white to-white dark:from-[#0E1B3E] dark:via-[#0A1024] dark:to-[#0A1024] border-2 border-[#026BFC] dark:border-blue-500 shadow-xl shadow-blue-500/10 hover:shadow-2xl hover:shadow-blue-500/20'
+                  : 'bg-white dark:bg-[#0A1024] border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs hover:shadow-md'
               )}
             >
-              <div>
-                {/* Icon & Top Actions Row */}
-                <div className="flex items-start justify-between mb-4">
-                  {renderPlanIcon(plan.iconType)}
-                  <div className="flex items-center gap-1.5">
-                    {plan.badge && (
-                      <span
-                        className={cn(
-                          'text-[10px] font-bold px-2 py-0.5 rounded-full',
-                          plan.badgeColor || 'bg-blue-600 text-white'
-                        )}
-                      >
-                        {plan.badge}
+              {/* Hero Ribbon or Colored Top Accent Bar */}
+              {isHeroPlan ? (
+                <div className="bg-gradient-to-r from-[#026BFC] via-blue-600 to-indigo-600 px-4 py-1.5 flex items-center justify-between text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                    {plan.badge || 'BEST VALUE • 1 YEAR ALL-ACCESS'}
+                  </span>
+                  <span className="text-[9.5px] font-bold bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full">
+                    Flagship
+                  </span>
+                </div>
+              ) : isFreePlan ? (
+                <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-400 w-full" />
+              ) : (
+                <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-400 w-full" />
+              )}
+
+              {/* Card Body */}
+              <div className="p-5 sm:p-6 flex-1 flex flex-col">
+                {/* Header Row: Icon, Status Badge & Quick Edit */}
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  {renderPlanIcon(plan.iconType, isHeroPlan)}
+
+                  <div className="flex items-center gap-2">
+                    {/* Badge Pill */}
+                    {isFreePlan ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
+                        Starter Tier
+                      </span>
+                    ) : isHeroPlan ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#026BFC] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+                        All-Access Pass
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800">
+                        {plan.badge || 'Popular'}
                       </span>
                     )}
+
+                    {/* Quick Edit Icon Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenEditModal(plan);
                       }}
-                      className="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-300 text-slate-600 hover:text-blue-600 transition-colors shadow-2xs flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
-                      title={`Edit ${plan.name}`}
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:text-[#026BFC] dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600 transition-colors shadow-2xs cursor-pointer"
+                      title={`Quick edit ${plan.name}`}
+                      aria-label={`Edit ${plan.name}`}
                     >
-                      <Pencil className="w-3 h-3 text-slate-500 hover:text-blue-600" />
-                      <span>Edit</span>
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Plan Title & Subtitle */}
                 <div className="mb-4">
-                  <h3 className="text-base font-bold text-slate-900">{plan.name}</h3>
-                  <p className="text-xs text-slate-500 font-normal">{plan.subtitle}</p>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
+                    {plan.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 min-h-[36px]">
+                    {plan.subtitle}
+                  </p>
                 </div>
 
-                {/* Price Display */}
-                <div className="flex items-baseline gap-1.5 mb-4 flex-wrap">
-                  <span className="text-2xl font-bold text-slate-900">₹{plan.price}</span>
-                  {plan.originalPrice > plan.price && (
-                    <span className="text-xs text-slate-400 line-through">
-                      ₹{plan.originalPrice}
+                {/* High-Impact Price & Validity Container */}
+                <div className="p-3.5 rounded-xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/80 mb-5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        ₹{plan.price}
+                      </span>
+                      {plan.originalPrice > plan.price && (
+                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 line-through">
+                          ₹{plan.originalPrice}
+                        </span>
+                      )}
+                    </div>
+
+                    {discountPct > 0 && (
+                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/25">
+                        {discountPct}% OFF
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Validity & Monthly Breakdown */}
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200/50 dark:border-slate-800/60 font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{plan.durationDays} Days</span>
                     </span>
+
+                    {monthlyEquivalent > 0 ? (
+                      <span className="font-bold text-[#026BFC] dark:text-blue-400">
+                        ≈ ₹{monthlyEquivalent}/month
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        100% Free
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Early Renewal Grace Window */}
+                  {plan.renewalWindowDays && (
+                    <div className="mt-2 pt-1.5 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center gap-1 text-[10.5px] font-semibold text-blue-600 dark:text-blue-400">
+                      <Zap className="w-3 h-3 text-blue-500 shrink-0" />
+                      <span>Renewal window opens {plan.renewalWindowDays} days before expiry</span>
+                    </div>
                   )}
-                  <span className="text-xs text-slate-500 font-normal">
-                    / {plan.durationDays} days
-                  </span>
                 </div>
 
                 {/* Features List */}
-                <ul className="space-y-2 text-xs mb-6">
-                  {plan.features.map((feat, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-2">
-                      {feat.included ? (
-                        <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5">
-                          <Check className="w-2.5 h-2.5 stroke-[3]" />
-                        </div>
-                      ) : (
-                        <div className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0 mt-0.5">
-                          <X className="w-2.5 h-2.5 stroke-[2.5]" />
-                        </div>
-                      )}
-                      <span
-                        className={cn(
-                          'leading-tight',
-                          feat.included ? 'text-slate-700' : 'text-slate-400'
+                <div className="space-y-2.5 mb-6 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Included Entitlements
+                  </p>
+                  <ul className="space-y-2 text-xs">
+                    {plan.features.map((feat, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-2.5">
+                        {feat.included ? (
+                          <div className="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
+                        ) : (
+                          <div className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 flex items-center justify-center shrink-0 mt-0.5">
+                            <X className="w-2.5 h-2.5 stroke-[2.5]" />
+                          </div>
                         )}
-                      >
-                        {feat.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                        <span
+                          className={cn(
+                            'leading-snug',
+                            feat.included
+                              ? 'text-slate-700 dark:text-slate-200 font-medium'
+                              : 'text-slate-400 dark:text-slate-500 line-through'
+                          )}
+                        >
+                          {feat.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-              {/* Bottom Action Buttons */}
-              <div className="space-y-2 pt-2 border-t border-slate-100/60 mt-auto">
-                <button
-                  onClick={() => {
-                    if (plan.id === 'free') {
-                      showToast('Free plan is active by default for all registered students.');
-                    } else {
-                      setSelectedPlanForPurchase(plan);
-                    }
-                  }}
-                  className={cn(
-                    'w-full py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center',
-                    plan.buttonClass
-                  )}
-                >
-                  {plan.buttonText}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditModal(plan)}
-                  className="w-full py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-[#2563EB] hover:bg-blue-50/70 border border-slate-200/90 bg-white/80 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <Pencil className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Edit Plan</span>
-                </button>
+                {/* Bottom Action Area: Single Clean Primary + Secondary */}
+                <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(plan)}
+                    className={cn(
+                      'w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]',
+                      isHeroPlan
+                        ? 'bg-[#026BFC] hover:bg-blue-700 text-white shadow-md shadow-blue-500/25'
+                        : 'bg-slate-900 hover:bg-[#026BFC] text-white dark:bg-slate-800 dark:hover:bg-blue-600 dark:text-white'
+                    )}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Edit Plan & Pricing</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isFreePlan) {
+                        showToast('Free plan is active by default for all registered students.');
+                      } else {
+                        setSelectedPlanForPurchase(plan);
+                      }
+                    }}
+                    className={cn(
+                      'w-full py-2 rounded-xl text-xs font-semibold border transition-colors flex items-center justify-center gap-1.5 cursor-pointer',
+                      isFreePlan
+                        ? 'border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900/40 cursor-default'
+                        : 'border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700 hover:text-[#026BFC] dark:hover:text-blue-400 bg-white dark:bg-slate-900/40'
+                    )}
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{isFreePlan ? 'Default Active Tier' : 'Assign to Student'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -1223,6 +1386,25 @@ export const AdminSubscriptionPlans: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-medium text-slate-700 mb-1 block">
+                  Renewal Window (days before expiry, blank = no renewal)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={formPlanRenewalWindow}
+                  onChange={(e) => setFormPlanRenewalWindow(e.target.value)}
+                  placeholder="e.g. 15 for yearly plans"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Students can renew once per cycle inside this window. Shorter plans usually leave
+                  this blank and offer upgrades instead.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium text-slate-700 mb-1 block">
                   Badge Tag (optional)
                 </label>
                 <input
@@ -1372,6 +1554,25 @@ export const AdminSubscriptionPlans: React.FC = () => {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 mb-1 block">
+                  Renewal Window (days before expiry, blank = no renewal)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={editPlanRenewalWindow}
+                  onChange={(e) => setEditPlanRenewalWindow(e.target.value)}
+                  placeholder="e.g. 15 for yearly plans"
+                  className="w-full border border-slate-200 bg-white rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Students can renew once per cycle inside this window. Shorter plans usually leave
+                  this blank and offer upgrades instead.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3.5">

@@ -1,7 +1,10 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn() }));
-vi.mock('@/services/api', () => ({ api: { getAppSettings: m.get, updateAppSettings: m.update } }));
+vi.mock('@/services/domains/admin.settings', () => ({
+  getAppSettings: m.get,
+  updateAppSettings: m.update,
+}));
 import { MaintenanceProvider, useMaintenance, isSafeBrandAsset } from './MaintenanceContext';
 import { BrandLogo } from '@/components/common/BrandLogo';
 let context: ReturnType<typeof useMaintenance>;

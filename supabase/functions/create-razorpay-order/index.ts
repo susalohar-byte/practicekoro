@@ -137,44 +137,43 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 5. Check if user already has an active subscription
-  // Disallow repurchasing the same package or downgrading while validity remains
-  const { data: activeSub } = await serviceClient
-    .from('subscriptions')
-    .select('id, plan_id, status, expires_at, subscription_plans(price, title)')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .gt('expires_at', new Date().toISOString())
-    .order('expires_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (activeSub) {
-    const currentPrice = Number((activeSub as any)?.subscription_plans?.price ?? 0);
-    if (activeSub.plan_id === plan.id) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'You already have an active pass for this plan. Repurchasing or extending the same package is not permitted until your current validity expires.',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    if (priceNum <= currentPrice) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'You already have an active subscription. You can only upgrade to a higher-tier plan while your pass is active.',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+  // 5. Server-side eligibility & pricing: new purchase, longer-plan upgrade (pays the
+  // difference), or the once-per-cycle renewal. Same/shorter plans and early or repeat
+  // renewals are rejected here and re-checked again at activation.
+  const { data: quote, error: quoteError } = await serviceClient.rpc(
+    'quote_subscription_purchase',
+    { p_user_id: user.id, p_plan_id: plan.id }
+  );
+  if (quoteError || !isRecord(quote)) {
+    console.error('Purchase eligibility check failed:', quoteError?.code);
+    return new Response(JSON.stringify({ error: 'Could not confirm plan eligibility' }), {
+      status: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  if (quote.eligible !== true) {
+    return new Response(
+      JSON.stringify({
+        error: typeof quote.message === 'string' ? quote.message : 'This plan is not available.',
+        reasonCode: quote.reason_code,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+  const purchaseType = quote.purchase_type as 'new' | 'upgrade' | 'renewal';
+  const payableAmount = Number(quote.amount);
+  if (
+    !Number.isFinite(payableAmount) ||
+    payableAmount <= 0 ||
+    !Number.isSafeInteger(Math.round(payableAmount * 100))
+  ) {
+    return new Response(JSON.stringify({ error: 'Invalid payable amount for this plan' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   // New checkout must honor the saved gateway switch even when credentials exist in env.
@@ -238,7 +237,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // 6. Call Razorpay Orders API to create an authoritative order
-  const amountInPaise = Math.round(priceNum * 100);
+  const amountInPaise = Math.round(payableAmount * 100);
   const authHeaderBasic = 'Basic ' + btoa(`${resolvedKeyId.trim()}:${keySecret.trim()}`);
   const receiptId = `pk_${user.id.slice(0, 8)}_${Date.now()}`.slice(0, 40);
 
@@ -257,6 +256,7 @@ Deno.serve(async (req: Request) => {
         notes: {
           user_id: user.id,
           plan_id: plan.id,
+          purchase_type: purchaseType,
           platform: 'PracticeKoro',
         },
       }),
@@ -299,9 +299,13 @@ Deno.serve(async (req: Request) => {
     .insert({
       user_id: user.id,
       plan_id: plan.id,
-      amount: plan.price,
+      amount: payableAmount,
       currency: plan.currency || 'INR',
       gateway: 'razorpay',
+      purchase_type: purchaseType,
+      target_subscription_id:
+        typeof quote.subscription_id === 'string' ? quote.subscription_id : null,
+      from_plan_id: typeof quote.from_plan_id === 'string' ? quote.from_plan_id : null,
       verification_version: 2,
       order_id: rzpOrder.id,
       razorpay_order_id: rzpOrder.id,
@@ -330,7 +334,9 @@ Deno.serve(async (req: Request) => {
       payment_id: paymentRow?.id || rzpOrder.id,
       plan_id: plan.id,
       plan_title: plan.title,
-      amount: plan.price,
+      amount: payableAmount,
+      purchase_type: purchaseType,
+      new_expires_at: quote.new_expires_at,
       currency: plan.currency || 'INR',
       duration_days: plan.duration_days,
       key_id: resolvedKeyId.trim(),
