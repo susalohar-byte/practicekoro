@@ -158,22 +158,94 @@ pages are unchanged; nothing outside them creates subjects or topics.
   - Live DB checks: no DB access.
   - In-browser click-through: admin routes need an authenticated admin session.
 
-## 7. Remaining risks and next steps
+## 7. Migration risks, pre-checks and next steps
 
-1. **Apply the migration** after checking production with these queries:
+### 7.1 What the migration does to existing data
 
-   ```sql
-   SELECT test_type, count(*) FILTER (WHERE exam_id IS NULL) AS no_exam,
-          count(*) FILTER (WHERE chapter_id IS NULL) AS no_topic
-   FROM tests GROUP BY 1;                                   -- legacy rows violating the new rules
-   SELECT lt.id FROM live_tests lt JOIN tests t ON t.id = lt.test_id
-   WHERE t.test_type <> 'full_mock';                        -- non-Full-Mock live tests
-   SELECT exam_id, count(*) FROM exam_topics GROUP BY 1;    -- 014 seeded all topics onto wbp-constable
-   ```
+`20261016090000_exam_centric_test_architecture.sql` runs in one transaction (`BEGIN … COMMIT`).
+It drops no table, column or row and does not touch attempts, results, answers, questions,
+subscriptions, payments, coupons or access functions. Its only writes are:
 
-   Legacy rows that violate the rules keep working. If an admin edits one, it must be given the missing link.
+- **Inserts into the new `exam_subjects` table** (backfill):
+  - one row per `subjects.exam_id` that points to an existing exam;
+  - one row per parent subject of every existing `exam_topics` row.
+- **`DELETE`s inside `admin_save_exam_subject_topics`.** That function removes mapping rows for one exam, and only when an admin saves mappings.
 
-2. **`wbp-constable` mappings.** Migration 014 mapped every topic to `wbp-constable`, so its mapper will show every topic selected. Review it before saving.
-3. **Test Series is still live for students.** The leaderboard and result-page series rank read `test_series`, and so does the "Popular Test Series" carousel. Before dropping `test_series`, the mobile app and RPCs need an exam-based replacement. This is a student-side phase and needs explicit approval.
-4. **Existing series assignments.** Series membership (`tests.test_series_id`) is preserved but can no longer be edited from the sidebar flow. The legacy page is still reachable by URL.
-5. **Remote write errors are swallowed.** `admin.liveTests.scheduleLiveTest` hides remote sync errors (`syncLiveTestsToRemote` … `catch {}`). The new client-side guard and the DB trigger prevent wrong types, but other remote write failures can still be hidden.
+### 7.2 Exact risks
+
+| #   | Risk                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | When it bites                                                                                            | Severity                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| R1  | `tests_type_required_links` is `NOT VALID`. Existing rows are not checked, but **any later `UPDATE` of a violating row fails**: a Full Mock or PYQ without `exam_id`, or a Topic Test without `chapter_id`. These updates all do that: `updateTest`, publish/archive, `save_test_questions` (sets `total_questions`), `admin_assign_series_tests`, and the `trg_sync_test_question_totals` trigger. That trigger runs on every `test_questions` insert or delete, **including the cascade when a question used by that test is deleted**. | Editing, publishing or re-assigning questions on a legacy violating test, or deleting a question it uses | High if pre-check C1 returns rows; none if it returns 0 |
+| R2  | Deleting a topic (`chapters`) sets `tests.chapter_id` to NULL on its Topic Tests. With the new check, that delete now fails.                                                                                                                                                                                                                                                                                                                                                                                                              | Direct SQL deletes of a topic that has Topic Tests. The admin delete function already blocks this.       | Low (protective)                                        |
+| R3  | New `exam_subjects` foreign keys count as linked records for `admin_delete_record`. A mapped subject or exam can't be permanently deleted from the admin panel until it is unmapped; Archive still works.                                                                                                                                                                                                                                                                                                                                 | Permanent delete of a mapped subject or exam                                                             | Low (intended)                                          |
+| R4  | `enforce_live_test_full_mock` rejects inserting a Live Test, or changing its `test_id`, unless the source is a Full Mock. Existing rows and edits that don't touch `test_id` are unaffected. The admin client shows a generic "Live-test persistence failed" error if the database rejects it, but the client checks the type first.                                                                                                                                                                                                      | Scheduling a Live Test from a non-Full-Mock test                                                         | Low                                                     |
+| R5  | The backfill copies the existing `exam_topics` state. Migration 014 mapped every topic to `wbp-constable`, so that exam will show every subject and topic selected.                                                                                                                                                                                                                                                                                                                                                                       | First save on `wbp-constable`                                                                            | Data review needed                                      |
+| R6  | The migration depends on `has_role`, `admin_scope_allowed`, `can_mutate_admin_record` and `audit_privileged_mutation`. If any is missing in production, the whole transaction rolls back and nothing changes.                                                                                                                                                                                                                                                                                                                             | Applying to a database missing those earlier migrations                                                  | Fails safely                                            |
+| R7  | It needs short `ACCESS EXCLUSIVE` locks on `tests` (adding the constraint) and `live_tests` (creating the trigger).                                                                                                                                                                                                                                                                                                                                                                                                                       | Apply during heavy write traffic                                                                         | Low; apply in a quiet window                            |
+| R8  | `exam_subjects` is readable by `anon`/`authenticated`, the same as `exam_topics`. It holds only exam and subject IDs. Writes need admin plus `admin_scope_allowed('content')`.                                                                                                                                                                                                                                                                                                                                                            | —                                                                                                        | None (no admin-only data exposed)                       |
+
+### 7.3 Read-only pre-checks (run in the Supabase SQL editor before applying)
+
+Every query below is a `SELECT`; none modifies data.
+
+```sql
+-- C0. Is it already applied? (expect no row for 20261016090000)
+SELECT version, name FROM supabase_migrations.schema_migrations
+WHERE version >= '20261012000000' ORDER BY version;
+
+-- C1. BLOCKER for R1: legacy tests that would violate the new rule (expect 0 rows)
+SELECT id, title, test_type, exam_id, subject_id, chapter_id, status
+FROM public.tests
+WHERE (test_type IN ('full_mock', 'pyq') AND exam_id IS NULL)
+   OR (test_type = 'topic' AND chapter_id IS NULL)
+ORDER BY test_type, id;
+
+-- C2. Impact of C1 rows: questions, live tests and attempts attached to them
+SELECT t.id,
+       (SELECT count(*) FROM public.test_questions q WHERE q.test_id = t.id) AS questions,
+       (SELECT count(*) FROM public.live_tests l WHERE l.test_id = t.id)     AS live_tests,
+       (SELECT count(*) FROM public.test_attempts a WHERE a.test_id = t.id)  AS attempts
+FROM public.tests t
+WHERE (t.test_type IN ('full_mock', 'pyq') AND t.exam_id IS NULL)
+   OR (t.test_type = 'topic' AND t.chapter_id IS NULL);
+
+-- C3. R6: required functions exist (expect 4 rows)
+SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND proname IN ('has_role', 'admin_scope_allowed', 'can_mutate_admin_record',
+                  'audit_privileged_mutation');
+
+-- C4. Name collisions (expect all NULL / 0)
+SELECT to_regclass('public.exam_subjects') AS existing_table,
+       (SELECT count(*) FROM pg_constraint WHERE conname = 'tests_type_required_links') AS existing_check,
+       (SELECT count(*) FROM pg_trigger WHERE tgname = 'enforce_live_test_full_mock') AS existing_trigger;
+
+-- C5. R4: existing Live Tests whose source is not a Full Mock (informational; they keep working)
+SELECT l.id, l.test_id, t.test_type, l.status
+FROM public.live_tests l LEFT JOIN public.tests t ON t.id = l.test_id
+WHERE t.test_type IS DISTINCT FROM 'full_mock';
+
+-- C6. R5: backfill preview — exam_subjects rows per exam
+SELECT exam_id, count(DISTINCT subject_id) AS subjects FROM (
+  SELECT s.exam_id, s.id AS subject_id FROM public.subjects s JOIN public.exams e ON e.id = s.exam_id
+  UNION
+  SELECT et.exam_id, c.subject_id FROM public.exam_topics et JOIN public.chapters c ON c.id = et.topic_id
+) x GROUP BY exam_id ORDER BY subjects DESC;
+
+-- C7. R5: current topic mappings per exam (wbp-constable likely has every topic)
+SELECT et.exam_id, count(*) AS topics, (SELECT count(*) FROM public.chapters) AS all_topics
+FROM public.exam_topics et GROUP BY et.exam_id ORDER BY topics DESC;
+```
+
+**Go / no-go:**
+
+- **C1 must return 0 rows.** If it returns rows, give each test its missing exam or topic first, using the admin panel or a reviewed `UPDATE`. Use C2 to see what each test carries. Otherwise those tests can no longer be edited or have questions assigned.
+- **C3 must return 4 rows.**
+- **C4 must be empty or 0.** Otherwise the migration was partly applied or a name collides; stop and review.
+- C5, C6 and C7 are informational.
+
+### 7.4 Other remaining risks
+
+1. **Test Series is still live for students.** The leaderboard and result-page series rank read `test_series`, and so does the "Popular Test Series" carousel. Before dropping `test_series`, the mobile app and RPCs need an exam-based replacement. This is a student-side phase and needs explicit approval.
+2. **Existing series assignments.** Series membership (`tests.test_series_id`) is preserved but can no longer be edited from the sidebar flow. The legacy page is still reachable by URL.
+3. **Live Test mirror errors are ignored.** `scheduleLiveTest` throws if the `live_tests` insert fails, but it ignores errors from the secondary `app_settings` mirror (`syncLiveTestsToRemote` … `catch {}`), so that mirror can go stale without notice.
