@@ -1017,6 +1017,17 @@ export interface CouponQuote {
   message: string;
 }
 
+export interface CouponValidationResult {
+  valid: boolean;
+  couponId?: string;
+  code?: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  discountAmount: number;
+  finalPrice: number;
+  message: string;
+}
+
 /** Real discount totals from completed (non-refunded) coupon payments. */
 export interface CouponDiscountSummary {
   totalDiscount: number;
