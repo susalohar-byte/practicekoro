@@ -482,9 +482,12 @@ export async function deleteTest(id: string): Promise<boolean> {
     const i = localTests.findIndex((e) => e.id === id);
     if (i < 0) throw new Error('Record not found.');
     localTests.splice(i, 1);
+    notifyExamsUpdated();
     return true;
   }
-  return deleteAdminRecord('tests', id);
+  const deleted = await deleteAdminRecord('tests', id);
+  notifyExamsUpdated();
+  return deleted;
 }
 
 export async function duplicateTest(id: string): Promise<MockTest | null> {

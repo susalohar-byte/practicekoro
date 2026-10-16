@@ -1,4 +1,5 @@
 import { getErrorMessage } from '@/lib/errors';
+import { notifyExamsUpdated } from '@/lib/dataSync';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localQuestions, localTestQuestions, localTests } from '@/services/domains/localStore';
 import type { TestQuestionAssignment } from '@/types';
@@ -123,6 +124,7 @@ export async function saveTestQuestions(
       localTests[testIdx].totalQuestions = questions.length;
       localTests[testIdx].totalMarks = totalMarks;
     }
+    notifyExamsUpdated();
     return { success: true };
   }
 
@@ -146,8 +148,10 @@ export async function saveTestQuestions(
       rpcData?.success === true &&
       rpcData.test_id === testId &&
       rpcData.total_questions === questions.length
-    )
+    ) {
+      notifyExamsUpdated();
       return { success: true };
+    }
     if (!rpcError) throw new Error('Question assignment was not confirmed.');
 
     throw new Error(rpcError.message || 'Atomic question assignment failed.');
@@ -182,6 +186,7 @@ export async function addQuestionToTest(
       // Questions never carry negative marks — scoring uses the test-level scheme.
       negativeMarks: negativeMarks ?? 0,
     });
+    notifyExamsUpdated();
     return { success: true };
   }
 
@@ -229,6 +234,7 @@ export async function addQuestionToTest(
       await supabase.from('tests').update({ total_questions: count }).eq('id', testId);
     }
 
+    notifyExamsUpdated();
     return { success: true };
   } catch (err) {
     return { success: false, error: getErrorMessage(err, 'Failed to add question to test') };
@@ -244,6 +250,7 @@ export async function removeQuestionFromTest(
       (tq) => tq.testId === testId && tq.questionId === questionId
     );
     if (idx !== -1) localTestQuestions.splice(idx, 1);
+    notifyExamsUpdated();
     return { success: true };
   }
 
@@ -266,6 +273,7 @@ export async function removeQuestionFromTest(
       await supabase.from('tests').update({ total_questions: count }).eq('id', testId);
     }
 
+    notifyExamsUpdated();
     return { success: true };
   } catch (err) {
     return { success: false, error: getErrorMessage(err, 'Failed to remove question from test') };
@@ -286,6 +294,7 @@ export async function updateTestQuestionMarks(
       tq.marks = marks;
       tq.negativeMarks = negativeMarks;
     }
+    notifyExamsUpdated();
     return { success: true };
   }
 
@@ -297,6 +306,7 @@ export async function updateTestQuestionMarks(
       .eq('question_id', questionId);
 
     if (error) return { success: false, error: error.message };
+    notifyExamsUpdated();
     return { success: true };
   } catch (err) {
     return { success: false, error: getErrorMessage(err, 'Failed to update question marks') };
