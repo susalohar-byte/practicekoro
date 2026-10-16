@@ -2878,7 +2878,9 @@ export const AdminQuestionBank: React.FC = () => {
                             />
                           </div>
 
-                          {isCorrect && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                          {isCorrect && (
+                            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          )}
                         </div>
                       );
                     })}

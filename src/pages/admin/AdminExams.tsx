@@ -2553,12 +2553,32 @@ export const AdminExams: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-1">
                     {[
-                      { name: 'WBP Police', url: '/images/exams/logo_wbp.png', label: 'WBP Police' },
-                      { name: 'Kolkata Police', url: '/images/exams/logo_kp.png', label: 'Kolkata Police' },
+                      {
+                        name: 'WBP Police',
+                        url: '/images/exams/logo_wbp.png',
+                        label: 'WBP Police',
+                      },
+                      {
+                        name: 'Kolkata Police',
+                        url: '/images/exams/logo_kp.png',
+                        label: 'Kolkata Police',
+                      },
                       { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png', label: 'WBPSC' },
-                      { name: 'Indian Railway', url: '/images/exams/logo_railway.png', label: 'Indian Railway' },
-                      { name: 'SSC Commission', url: '/images/exams/logo_ssc.png', label: 'SSC Commission' },
-                      { name: 'Primary TET', url: '/images/exams/logo_wbtet.png', label: 'Primary TET' },
+                      {
+                        name: 'Indian Railway',
+                        url: '/images/exams/logo_railway.png',
+                        label: 'Indian Railway',
+                      },
+                      {
+                        name: 'SSC Commission',
+                        url: '/images/exams/logo_ssc.png',
+                        label: 'SSC Commission',
+                      },
+                      {
+                        name: 'Primary TET',
+                        url: '/images/exams/logo_wbtet.png',
+                        label: 'Primary TET',
+                      },
                     ].map((preset) => (
                       <button
                         key={preset.name}

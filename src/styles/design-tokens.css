@@ -135,7 +135,11 @@
 
   /* Gradients */
   --pk-gradient-primary: linear-gradient(135deg, #026bfc 0%, #0062fd 100%);
-  --pk-gradient-subtle: linear-gradient(135deg, rgba(2, 107, 252, 0.1) 0%, rgba(1, 152, 253, 0.05) 100%);
+  --pk-gradient-subtle: linear-gradient(
+    135deg,
+    rgba(2, 107, 252, 0.1) 0%,
+    rgba(1, 152, 253, 0.05) 100%
+  );
   --pk-gradient-vibrant: linear-gradient(135deg, #0256ca 0%, #026bfc 50%, #0198fd 100%);
 
   /* Accent palette (dark-safe tints) */

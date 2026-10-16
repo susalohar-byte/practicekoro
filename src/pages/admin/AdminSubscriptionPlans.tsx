@@ -776,7 +776,8 @@ export const AdminSubscriptionPlans: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-            Public student subscription tiers, pricing intervals, renewal windows, and feature access.
+            Public student subscription tiers, pricing intervals, renewal windows, and feature
+            access.
           </p>
         </div>
 

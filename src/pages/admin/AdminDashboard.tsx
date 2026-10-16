@@ -629,7 +629,7 @@ export const AdminDashboard: React.FC = () => {
         )}
         {/* ─── 6 TOP KPI METRIC CARDS ─── */}
         <div className="pk-stagger grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
-        {metricCards.map((card) => {
+          {metricCards.map((card) => {
             const Icon = card.icon;
             return (
               <div

@@ -314,7 +314,9 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">Full Mock</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Full Mock
+                      </span>
                       <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
                         Exam Pattern
                       </span>
@@ -360,7 +362,9 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">Topic Test</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Topic Test
+                      </span>
                       <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
                         Chapter
                       </span>
@@ -406,7 +410,9 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">Official PYQ</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Official PYQ
+                      </span>
                       <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
                         Past Papers
                       </span>

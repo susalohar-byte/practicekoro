@@ -1,6 +1,6 @@
 /**
  * PracticeKoro Admin Intelligent Route Preloader
- * 
+ *
  * Preloads route chunks on user intent (hover/focus) and during idle time.
  * This drops route transition latency from ~300ms to 0ms (instant render).
  */

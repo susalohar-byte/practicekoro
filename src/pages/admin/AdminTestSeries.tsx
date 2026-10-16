@@ -2597,7 +2597,11 @@ export const AdminTestSeries: React.FC = () => {
                           : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
                       )}
                     >
-                      <img src={preset.url} alt={preset.name} className="w-full h-full object-contain" />
+                      <img
+                        src={preset.url}
+                        alt={preset.name}
+                        className="w-full h-full object-contain"
+                      />
                     </button>
                   ))}
                   {formIconUrl && !formIconUrl.startsWith('/images/exams/') && (
