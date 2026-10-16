@@ -40,6 +40,49 @@ export async function readCompleteQuery(build: () => any): Promise<any[]> {
   } while (offset < expected);
   return rows;
 }
+/** PostgREST/Postgres codes for a function that is not deployed yet. */
+const MISSING_FUNCTION_CODES = new Set(['PGRST202', '42883']);
+const warnedMissingRpcs = new Set<string>();
+
+/**
+ * Call a server-side reporting aggregate. Returns null when the function is not
+ * deployed yet, so callers fall back to aggregating rows in the browser; any other
+ * failure is surfaced instead of silently replaced.
+ */
+export async function callReportingRpc<T>(
+  name: string,
+  args: Record<string, unknown>
+): Promise<T | null> {
+  const { data, error } = await supabase.rpc(name, args);
+  if (error) {
+    if (MISSING_FUNCTION_CODES.has(String(error.code ?? ''))) {
+      if (!warnedMissingRpcs.has(name)) {
+        warnedMissingRpcs.add(name);
+        console.warn(`${name} is not deployed yet; aggregating this report in the browser.`);
+      }
+      return null;
+    }
+    throw new Error(error.message);
+  }
+  return data as T;
+}
+/** Earliest reporting event in range; null when the function is not deployed. */
+export function getEarliestReportingEvent(
+  b: DateRangeBounds,
+  allPaymentStatuses: boolean
+): Promise<{ earliest: string | null } | null> {
+  return callReportingRpc<{ earliest: string | null }>('admin_reporting_earliest', {
+    p_start: b.startIso,
+    p_end: b.endIso,
+    p_all_payment_statuses: allPaymentStatuses,
+  });
+}
+const paiseToRupees = (paise: unknown) => Math.round(Number(paise || 0)) / 100;
+const toRange = (startMs: number, endMs: number) => ({
+  start: new Date(startMs).toISOString(),
+  end: new Date(endMs).toISOString(),
+});
+
 function rows(table: string, columns: string, filter: (q: any) => any = (q) => q) {
   return readCompleteQuery(() => {
     let query = supabase.from(table).select(columns, { count: 'exact' });
@@ -164,8 +207,77 @@ export function aggregateDashboardPeriod(
     if (a.test_id) attemptCounts[a.test_id] = (attemptCounts[a.test_id] || 0) + 1;
   return { ...current, previous, growthSeries, attemptSeries, revenueSeries, attemptCounts };
 }
+interface DashboardRangeTotals {
+  new_students: number;
+  active_students: number;
+  tests_attempted: number;
+  completed_tests: number;
+  questions_answered: number;
+  net_revenue_paise: number;
+}
+
+/** Same result as aggregateDashboardPeriod, with the totals computed in Postgres. */
+async function getDashboardPeriodFromServer(b: DateRangeBounds): Promise<DashboardPeriod | null> {
+  let chartStart: string | null = b.startIso;
+  if (b.isAllTime) {
+    const first = await getEarliestReportingEvent(b, false);
+    if (first === null) return null;
+    // All-time charts start at the earliest actual event, not a made-up 1970 history.
+    chartStart = first.earliest
+      ? parseKolkataStartOfDay(getKolkataDateString(new Date(first.earliest))).toISOString()
+      : null;
+  }
+  const buckets = chartStart ? generateChartBuckets(chartStart, b.endIso, 7) : [];
+  const hasPrevious = Boolean(b.prevStartIso && b.prevEndIso);
+  const ranges = [
+    { start: b.startIso, end: b.endIso },
+    ...(hasPrevious ? [{ start: b.prevStartIso!, end: b.prevEndIso! }] : []),
+    ...buckets.map((k) => toRange(k.startMs, k.endMs)),
+  ];
+  const result = await callReportingRpc<{
+    ranges: DashboardRangeTotals[];
+    attempt_counts: Record<string, number>;
+  }>('admin_dashboard_range_stats', { p_ranges: ranges });
+  if (result === null) return null;
+  if (!Array.isArray(result?.ranges) || result.ranges.length !== ranges.length)
+    throw new Error('The backend did not confirm a complete reporting result.');
+  const totals = (r: DashboardRangeTotals) => ({
+    newStudents: Number(r.new_students),
+    activeStudents: Number(r.active_students),
+    testsAttempted: Number(r.tests_attempted),
+    completedTests: Number(r.completed_tests),
+    questionsAnswered: Number(r.questions_answered),
+    netRevenue: paiseToRupees(r.net_revenue_paise),
+  });
+  const bucketTotals = result.ranges.slice(hasPrevious ? 2 : 1);
+  return {
+    ...totals(result.ranges[0]),
+    previous: hasPrevious ? totals(result.ranges[1]) : null,
+    growthSeries: buckets.map((k, i) => ({
+      label: k.label,
+      newStudents: Number(bucketTotals[i].new_students),
+      activeStudents: Number(bucketTotals[i].active_students),
+    })),
+    attemptSeries: buckets.map((k, i) => ({
+      label: k.label,
+      totalAttempts: Number(bucketTotals[i].tests_attempted),
+      uniqueStudents: Number(bucketTotals[i].active_students),
+    })),
+    revenueSeries: buckets.map((k, i) => ({
+      label: k.label,
+      amount: paiseToRupees(bucketTotals[i].net_revenue_paise),
+      highlighted: false,
+    })),
+    attemptCounts: Object.fromEntries(
+      Object.entries(result.attempt_counts || {}).map(([id, n]) => [id, Number(n)])
+    ),
+  };
+}
+
 export async function getDashboardPeriodData(b: DateRangeBounds): Promise<DashboardPeriod> {
   if (!isSupabaseConfigured) return aggregateDashboardPeriod(b, [], [], [], []);
+  const fromServer = await getDashboardPeriodFromServer(b);
+  if (fromServer) return fromServer;
   const start = b.prevStartIso || b.startIso;
   const filter = (q: any) => q.gte('created_at', start).lte('created_at', b.endIso);
   const [p, studentRows, a, r, m] = await Promise.all([
@@ -191,6 +303,50 @@ export async function getDashboardPeriodData(b: DateRangeBounds): Promise<Dashbo
     m
   );
 }
+async function getDashboardOverviewFromServer(
+  today: DateRangeBounds,
+  month: DateRangeBounds,
+  yearStartMs: number
+): Promise<AdminDashboardV2Stats | null> {
+  const [stats, period] = await Promise.all([
+    callReportingRpc<Record<string, number>>('admin_dashboard_overview_stats', {
+      p_today_start: today.startIso,
+      p_month_start: month.startIso,
+      p_year_start: new Date(yearStartMs).toISOString(),
+    }),
+    getDashboardPeriodData(getDateRangeBounds('Last 30 Days')),
+  ]);
+  if (stats === null) return null;
+  const n = (key: string) => Number(stats[key] ?? 0);
+  const totalStudents = n('total_students');
+  const proStudents = n('pro_students');
+  return {
+    totalStudents,
+    newStudents: period.newStudents,
+    activeStudents: period.activeStudents,
+    totalRevenue: paiseToRupees(stats.revenue_total_paise),
+    todayRevenue: paiseToRupees(stats.revenue_today_paise),
+    monthRevenue: paiseToRupees(stats.revenue_month_paise),
+    yearRevenue: paiseToRupees(stats.revenue_year_paise),
+    freeStudents: Math.max(0, totalStudents - proStudents),
+    proStudents,
+    activeSubscriptions: n('active_subscriptions'),
+    testsAttempted: n('tests_attempted'),
+    completedTests: n('completed_tests'),
+    questionsAnswered: n('questions_answered'),
+    totalExams: n('total_exams'),
+    totalTests: n('total_tests'),
+    topicTests: n('topic_tests'),
+    fullMockTests: n('full_mock_tests'),
+    pyqTests: n('pyq_tests'),
+    totalQuestions: n('total_questions'),
+    topicQuestions: n('topic_questions'),
+    fullMockQuestions: n('full_mock_questions'),
+    pyqQuestions: n('pyq_questions'),
+    revenueTrend: [],
+    recentActivity: [],
+  };
+}
 export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
   return withApiCache(
     'admin_dashboard_overview_v2',
@@ -201,6 +357,8 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
       const year = parseKolkataStartOfDay(
         getKolkataDateString(now).slice(0, 4) + '-01-01'
       ).getTime();
+      const fromServer = await getDashboardOverviewFromServer(today, month, year);
+      if (fromServer) return fromServer;
       const [totalStudents, totalExams, totalQuestions, tests, subs, payments, period] =
         await Promise.all([
           count('profiles', (q) => q.eq('role', 'student')),
@@ -254,6 +412,96 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
     30_000
   );
 }
+interface RevenueRangeTotals {
+  earliest: string | null;
+  total_net_paise: number;
+  transactions: number;
+  signups: number;
+  payment_days: { date: string; net_paise: number; transactions: number }[];
+  signup_days: { date: string; count: number }[];
+}
+
+/** Daily trend built from Kolkata-day totals computed in Postgres. */
+function buildRevenueRange(
+  b: DateRangeBounds,
+  preset: string,
+  earliestMs: number | null,
+  totalCents: number,
+  transactions: number,
+  signups: number,
+  paymentDays: Map<string, { cents: number; transactions: number }>,
+  signupDays: Map<string, number>
+): DateRangeRevenueStats {
+  const startDay =
+    b.isAllTime && earliestMs !== null
+      ? getKolkataDateString(new Date(earliestMs))
+      : getKolkataDateString(new Date(b.startIso));
+  const endDay = getKolkataDateString(new Date(b.endIso));
+  const dailyTrend = [];
+  let day = parseKolkataStartOfDay(startDay).getTime();
+  if (!b.isAllTime || earliestMs !== null)
+    while (day <= Date.parse(b.endIso)) {
+      const date = getKolkataDateString(new Date(day));
+      const bucket = paymentDays.get(date);
+      dailyTrend.push({
+        date,
+        label: new Date(day).toLocaleDateString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          month: 'short',
+          day: 'numeric',
+        }),
+        amount: (bucket?.cents || 0) / 100,
+        transactions: bucket?.transactions || 0,
+        signups: signupDays.get(date) || 0,
+      });
+      day += 86400000;
+    }
+  const totalRevenue = totalCents / 100;
+  const avgOrderValue = transactions ? totalRevenue / transactions : 0;
+  return {
+    startDate: startDay,
+    endDate: endDay,
+    preset: preset as any,
+    label: b.label,
+    totalRevenue,
+    totalTransactions: transactions,
+    transactionCount: transactions,
+    avgOrderValue,
+    averageOrderValue: avgOrderValue,
+    newStudentSignups: signups,
+    newSignupsCount: signups,
+    dailyTrend,
+  };
+}
+
+async function getRevenueRangeFromServer(
+  b: DateRangeBounds,
+  preset: string
+): Promise<DateRangeRevenueStats | null> {
+  const r = await callReportingRpc<RevenueRangeTotals>('admin_revenue_range_stats', {
+    p_start: b.startIso,
+    p_end: b.endIso,
+  });
+  if (r === null) return null;
+  const paymentDays = new Map(
+    (r.payment_days || []).map((d) => [
+      d.date,
+      { cents: Math.round(Number(d.net_paise || 0)), transactions: Number(d.transactions || 0) },
+    ])
+  );
+  const signupDays = new Map((r.signup_days || []).map((d) => [d.date, Number(d.count || 0)]));
+  return buildRevenueRange(
+    b,
+    preset,
+    r.earliest ? Date.parse(r.earliest) : null,
+    Math.round(Number(r.total_net_paise || 0)),
+    Number(r.transactions || 0),
+    Number(r.signups || 0),
+    paymentDays,
+    signupDays
+  );
+}
+
 /** Accept full ISO bounds without converting them through the browser's timezone. */
 export async function getAuthoritativeRevenueRange(
   start?: string,
@@ -295,6 +543,8 @@ export async function getAuthoritativeRevenueRange(
       isAllTime: false,
     };
   }
+  const fromServer = await getRevenueRangeFromServer(b, preset);
+  if (fromServer) return fromServer;
   const filter = (q: any) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
   const [payments, profiles] = await Promise.all([
     rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
@@ -303,13 +553,6 @@ export async function getAuthoritativeRevenueRange(
     rows('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
   ]);
   const earliest = [...payments, ...profiles].map((r) => Date.parse(r.created_at));
-  const startDay =
-    b.isAllTime && earliest.length
-      ? getKolkataDateString(
-          new Date(earliest.reduce((min, value) => Math.min(min, value), Infinity))
-        )
-      : getKolkataDateString(new Date(b.startIso));
-  const endDay = getKolkataDateString(new Date(b.endIso));
   const paymentDays = new Map<string, { cents: number; transactions: number }>();
   const signupDays = new Map<string, number>();
   for (const payment of payments) {
@@ -327,43 +570,16 @@ export async function getAuthoritativeRevenueRange(
     const date = getKolkataDateString(new Date(profile.created_at));
     signupDays.set(date, (signupDays.get(date) || 0) + 1);
   }
-  const dailyTrend = [];
-  let day = parseKolkataStartOfDay(startDay).getTime();
-  if (!b.isAllTime || earliest.length)
-    while (day <= Date.parse(b.endIso)) {
-      const date = getKolkataDateString(new Date(day));
-      const bucket = paymentDays.get(date);
-      dailyTrend.push({
-        date,
-        label: new Date(day).toLocaleDateString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          month: 'short',
-          day: 'numeric',
-        }),
-        amount: (bucket?.cents || 0) / 100,
-        transactions: bucket?.transactions || 0,
-        signups: signupDays.get(date) || 0,
-      });
-      day += 86400000;
-    }
-  const totalRevenue =
-    payments.reduce((n, p) => n + Math.round(netPaymentAmount(p) * 100), 0) / 100;
-  const transactions = payments.filter((p) => p.status === 'completed').length;
-  const avgOrderValue = transactions ? totalRevenue / transactions : 0;
-  return {
-    startDate: startDay,
-    endDate: endDay,
-    preset: preset as any,
-    label: b.label,
-    totalRevenue,
-    totalTransactions: transactions,
-    transactionCount: transactions,
-    avgOrderValue,
-    averageOrderValue: avgOrderValue,
-    newStudentSignups: profiles.length,
-    newSignupsCount: profiles.length,
-    dailyTrend,
-  };
+  return buildRevenueRange(
+    b,
+    preset,
+    earliest.length ? earliest.reduce((min, value) => Math.min(min, value), Infinity) : null,
+    payments.reduce((n, p) => n + Math.round(netPaymentAmount(p) * 100), 0),
+    payments.filter((p) => p.status === 'completed').length,
+    profiles.length,
+    paymentDays,
+    signupDays
+  );
 }
 
 export async function getDashboardSystemActivity(b: DateRangeBounds) {

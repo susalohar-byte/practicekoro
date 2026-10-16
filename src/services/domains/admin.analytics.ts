@@ -5,7 +5,12 @@ import type {
   StudentRankRow,
   QuestionInsightRow,
 } from '@/types';
-import { readCompleteQuery, netPaymentAmount } from './admin.reporting';
+import {
+  readCompleteQuery,
+  netPaymentAmount,
+  callReportingRpc,
+  getEarliestReportingEvent,
+} from './admin.reporting';
 import {
   getDateRangeBounds,
   getKolkataDateString,
@@ -48,6 +53,8 @@ export async function getAuthoritativeAnalytics(
   end?: string
 ): Promise<PlatformAnalyticsData> {
   const b = analyticsRange(preset, start, end);
+  const fromServer = await getAnalyticsFromServer(b);
+  if (fromServer) return fromServer;
   const read = (table: string, columns: string, filter: (q: any) => any = (q) => q) =>
     readCompleteQuery(() =>
       filter(
@@ -93,6 +100,216 @@ export async function getAuthoritativeAnalytics(
     ),
   ]);
   return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions, monthPayments);
+}
+
+/** Aggregates returned by admin_analytics_overview (see migration 20261016150000). */
+export interface ServerAnalyticsAggregates {
+  total_students: number;
+  new_students: number;
+  tests_attempted: number;
+  questions_answered: number;
+  correct_answers: number;
+  active_students: number;
+  districts: { district: string; count: number }[];
+  genders: { gender: string; count: number }[];
+  students: {
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+    total_tests: number;
+    total_score: number;
+    questions_attempted: number;
+    correct_count: number;
+    last_active: string | null;
+    is_pro: boolean;
+  }[];
+  questions: {
+    question_id: string;
+    question_text: string | null;
+    question_bengali_text: string | null;
+    difficulty: string | null;
+    subject_name: string | null;
+    chapter_name: string | null;
+    total: number;
+    wrong: number;
+    correct: number;
+  }[];
+  subjects: { subject_id: string; subject_name: string | null; total: number; correct: number }[];
+  chapters: {
+    chapter_id: string;
+    chapter_name: string | null;
+    subject_name: string | null;
+    total: number;
+    correct: number;
+  }[];
+  buckets: {
+    attempts: number;
+    completed: number;
+    score_sum: number;
+    answers: number;
+    correct: number;
+    net_paise: number;
+    transactions: number;
+    signups: number;
+    subjects: {
+      subject_id: string;
+      subject_name: string | null;
+      attempts: number;
+      correct: number;
+    }[];
+  }[];
+  total_net_paise: number;
+  month_net_paise: number;
+  paid_students: number;
+  active_subscriptions: number;
+}
+
+async function getAnalyticsFromServer(b: DateRangeBounds): Promise<PlatformAnalyticsData | null> {
+  let chartStart: number | null = Date.parse(b.startIso);
+  if (b.isAllTime) {
+    const first = await getEarliestReportingEvent(b, true);
+    if (first === null) return null;
+    chartStart = first.earliest ? Date.parse(first.earliest) : null;
+  }
+  const buckets =
+    chartStart === null
+      ? []
+      : generateChartBuckets(new Date(chartStart).toISOString(), b.endIso, 8);
+  // Current calendar month is independent of the selected range.
+  const month = getDateRangeBounds('This Month');
+  const agg = await callReportingRpc<ServerAnalyticsAggregates>('admin_analytics_overview', {
+    p_start: b.startIso,
+    p_end: b.endIso,
+    p_month_start: month.startIso,
+    p_month_end: month.endIso,
+    p_buckets: buckets.map((k) => ({
+      start: new Date(k.startMs).toISOString(),
+      end: new Date(k.endMs).toISOString(),
+    })),
+  });
+  if (agg === null) return null;
+  if (!Array.isArray(agg?.buckets) || agg.buckets.length !== buckets.length)
+    throw new Error('The backend did not confirm a complete reporting result.');
+  return assembleServerAnalytics(buckets, agg);
+}
+
+/** Build the same PlatformAnalyticsData as aggregateAnalytics from server totals. */
+export function assembleServerAnalytics(
+  buckets: ReturnType<typeof generateChartBuckets>,
+  agg: ServerAnalyticsAggregates
+): PlatformAnalyticsData {
+  const num = (v: unknown) => Number(v ?? 0);
+  const studentRankings: StudentRankRow[] = agg.students
+    .map((s) => {
+      const row: StudentRankRow = {
+        rank: 0,
+        userId: s.user_id,
+        name: s.full_name || 'Unnamed student',
+        email: s.email || '',
+        totalTests: num(s.total_tests),
+        questionsAttempted: num(s.questions_attempted),
+        correctCount: num(s.correct_count),
+        accuracy: rate(num(s.correct_count), num(s.questions_attempted)),
+        totalScore: num(s.total_score),
+        isPro: Boolean(s.is_pro),
+      };
+      if (s.last_active) row.lastActive = s.last_active;
+      return row;
+    })
+    .sort(
+      (a, c) =>
+        c.totalScore - a.totalScore || c.accuracy - a.accuracy || a.userId.localeCompare(c.userId)
+    )
+    .map((s, i) => ({ ...s, rank: i + 1 }));
+  return {
+    demographics: {
+      districts: agg.districts
+        .map((d) => ({ district: d.district, studentCount: num(d.count) }))
+        .sort((a, b) => b.studentCount - a.studentCount || a.district.localeCompare(b.district)),
+      genders: agg.genders
+        .map((g) => ({ gender: g.gender, studentCount: num(g.count) }))
+        .sort((a, b) => b.studentCount - a.studentCount || a.gender.localeCompare(b.gender)),
+    },
+    historicalSubjectTrends: buckets.map((k, i) => ({
+      date: k.dateStr,
+      label: k.label,
+      subjects: agg.buckets[i].subjects.map((s) => ({
+        subjectId: s.subject_id,
+        subjectName: s.subject_name || 'Subject unavailable',
+        attempts: num(s.attempts),
+        accuracy: rate(num(s.correct), num(s.attempts)),
+      })),
+    })),
+    studentPerformance: {
+      totalStudents: num(agg.total_students),
+      newStudents: num(agg.new_students),
+      activeStudents: num(agg.active_students),
+      testsAttempted: num(agg.tests_attempted),
+      questionsAnswered: num(agg.questions_answered),
+      overallAccuracy: rate(num(agg.correct_answers), num(agg.questions_answered)),
+      topStudent: studentRankings[0],
+      performanceTrend: buckets.map((k, i) => {
+        const t = agg.buckets[i];
+        return {
+          date: k.dateStr,
+          label: k.label,
+          attemptsCount: num(t.attempts),
+          averageAccuracy: rate(num(t.correct), num(t.answers)),
+          averageScore: num(t.completed) ? num(t.score_sum) / num(t.completed) : 0,
+        };
+      }),
+    },
+    studentRankings,
+    questionInsights: {
+      mostWrongQuestions: agg.questions
+        .map((q) => ({
+          questionId: q.question_id,
+          questionText: q.question_text || 'Question text unavailable',
+          questionBengaliText: q.question_bengali_text ?? undefined,
+          subjectName: q.subject_name || 'Subject unavailable',
+          chapterName: q.chapter_name || 'Topic unavailable',
+          difficulty: (q.difficulty ?? undefined) as QuestionInsightRow['difficulty'],
+          totalAttempts: num(q.total),
+          wrongCount: num(q.wrong),
+          failureRate: rate(num(q.wrong), num(q.total)),
+          accuracyRate: rate(num(q.correct), num(q.total)),
+        }))
+        .sort((a, c) => c.failureRate - a.failureRate || c.totalAttempts - a.totalAttempts),
+      weakestTopics: agg.chapters
+        .map((t) => ({
+          chapterId: t.chapter_id,
+          chapterName: t.chapter_name || 'Topic unavailable',
+          subjectName: t.subject_name || 'Subject unavailable',
+          totalQuestionsAttempted: num(t.total),
+          accuracyRate: rate(num(t.correct), num(t.total)),
+        }))
+        .sort((a, c) => a.accuracyRate - c.accuracyRate),
+      weakestSubjects: agg.subjects
+        .map((s) => ({
+          subjectId: s.subject_id,
+          subjectName: s.subject_name || 'Subject unavailable',
+          totalQuestionsAttempted: num(s.total),
+          accuracyRate: rate(num(s.correct), num(s.total)),
+        }))
+        .sort((a, c) => a.accuracyRate - c.accuracyRate),
+    },
+    revenue: {
+      totalRevenue: Math.round(num(agg.total_net_paise)) / 100,
+      monthlyRevenue: Math.round(num(agg.month_net_paise)) / 100,
+      paidStudents: num(agg.paid_students),
+      activeSubscriptions: num(agg.active_subscriptions),
+      revenueTrend: buckets.map((k, i) => {
+        const t = agg.buckets[i];
+        return {
+          date: k.dateStr,
+          label: k.label,
+          amount: Math.round(num(t.net_paise)) / 100,
+          transactions: num(t.transactions),
+          signups: num(t.signups),
+        };
+      }),
+    },
+  };
 }
 
 export function aggregateAnalytics(

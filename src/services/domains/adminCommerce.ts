@@ -3,11 +3,12 @@ import {
   getDashboardOverview,
   getAuthoritativeRevenueRange,
   readCompleteQuery,
+  callReportingRpc,
 } from './admin.reporting';
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { accountManagementApi } from './accountManagement';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { isAdminEmail } from '@/lib/authPolicy';
+import { ADMIN_EMAILS, isAdminEmail } from '@/lib/authPolicy';
 import {
   enrichAdminPaymentAvatars,
   enrichAdminPaymentSubscriptions,
@@ -59,6 +60,342 @@ import {
 /**
  * Admin subscriptions, payments & dashboard statistics API.
  */
+
+const TOPIC_TEST_TYPES = ['topic', 'topic_test', 'chapter_mock', 'subject_mock'];
+const FULL_MOCK_TEST_TYPES = ['full_mock', 'full'];
+const PYQ_TEST_TYPES = ['pyq', 'previous_year'];
+
+interface RankingCriteria {
+  since: Date | null;
+  /** Lower-cased test types allowed by the test-type filter; null = all. */
+  testTypes: string[] | null;
+  /** Lower-cased test types allowed by the scope tab; null = all. */
+  scopeTypes: string[] | null;
+  exam: string | null;
+  subject: string | null;
+}
+
+function rankingCriteria(filters?: AdminRankingFilter): RankingCriteria {
+  let since: Date | null = null;
+  if (filters?.timePeriod && filters.timePeriod !== 'All Time') {
+    const period = filters.timePeriod.toLowerCase();
+    const now = new Date();
+    if (period === 'today') {
+      since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'this week') {
+      since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === 'this month') {
+      since = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+  }
+  let testTypes: string[] | null = null;
+  if (filters?.testType && filters.testType !== 'All Types') {
+    const typeFilter = filters.testType.toLowerCase();
+    if (typeFilter.includes('full mock')) testTypes = FULL_MOCK_TEST_TYPES;
+    else if (typeFilter.includes('topic')) testTypes = TOPIC_TEST_TYPES;
+    else if (typeFilter.includes('pyq')) testTypes = PYQ_TEST_TYPES;
+  }
+  const scopeTypes =
+    filters?.scope === 'By Topic'
+      ? TOPIC_TEST_TYPES
+      : filters?.scope === 'By Test Series'
+        ? FULL_MOCK_TEST_TYPES
+        : null;
+  return {
+    since,
+    testTypes,
+    scopeTypes,
+    exam: filters?.exam && filters.exam !== 'All Exams' ? filters.exam : null,
+    subject: filters?.subject && filters.subject !== 'All Subjects' ? filters.subject : null,
+  };
+}
+
+/** One ranked student's totals: returned by admin_rankings_aggregate or built in the browser. */
+interface RankingAggregate {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  district: string | null;
+  avatar_url: string | null;
+  profile_created_at: string | null;
+  tests_attempted: number;
+  total_score: number;
+  total_max: number;
+  total_correct: number;
+  total_wrong: number;
+  total_skipped: number;
+  latest_at: string | null;
+  max_percentage: number;
+  /** In order of first appearance among the student's attempts (newest first). */
+  subjects: { subject: string; score: number; marks: number }[];
+  /** The three most recent attempts, newest first. */
+  recent: { title: string; score: number; max: number; at: string | null }[];
+}
+
+/** Browser aggregation used until admin_rankings_aggregate is deployed. */
+async function aggregateRankingsInBrowser(criteria: RankingCriteria): Promise<RankingAggregate[]> {
+  // Read every row (PostgREST caps unpaged reads), and fail loudly on errors.
+  const [rawAttempts, profileRows, testRows, examRows, subjectRows] = await Promise.all([
+    readCompleteQuery(() =>
+      supabase
+        .from('test_attempts')
+        .select(
+          'id, user_id, test_id, status, score, total_marks, correct_count, wrong_count, skipped_count, accuracy, time_spent_seconds, created_at, end_time',
+          { count: 'exact' }
+        )
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+    ),
+    readCompleteQuery(() =>
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, phone, avatar_url, district, role, created_at', {
+          count: 'exact',
+        })
+        .order('id', { ascending: true })
+    ),
+    readCompleteQuery(() =>
+      supabase
+        .from('tests')
+        .select('id, title, test_type, exam_id, subject_id, total_questions, total_marks', {
+          count: 'exact',
+        })
+        .order('id', { ascending: true })
+    ),
+    readCompleteQuery(() =>
+      supabase
+        .from('exams')
+        .select('id, title', { count: 'exact' })
+        .order('id', { ascending: true })
+    ),
+    readCompleteQuery(() =>
+      supabase
+        .from('subjects')
+        .select('id, name', { count: 'exact' })
+        .order('id', { ascending: true })
+    ),
+  ]);
+
+  const profilesMap = new Map<string, any>();
+  profileRows.forEach((p: any) => {
+    if (p.id) profilesMap.set(p.id, p);
+  });
+  const testsMap = new Map<string, any>();
+  testRows.forEach((t: any) => {
+    if (t.id) testsMap.set(t.id, t);
+  });
+  const examsMap = new Map<string, string>();
+  examRows.forEach((e: any) => {
+    if (e.id) examsMap.set(e.id, e.title || '');
+  });
+  const subjectsMap = new Map<string, string>();
+  subjectRows.forEach((s: any) => {
+    if (s.id) subjectsMap.set(s.id, s.name || '');
+  });
+  const testType = (a: any) => (testsMap.get(a.test_id)?.test_type || '').toLowerCase();
+  const examTerm = criteria.exam?.toLowerCase().trim();
+  const subjectTerm = criteria.subject?.toLowerCase().trim();
+
+  const completedAttempts = rawAttempts.filter((a: any) => {
+    // Only students are ranked: staff (admin/instructor) and unknown accounts are excluded.
+    const p = profilesMap.get(a.user_id);
+    if (!p) return false;
+    if (p.role && p.role !== 'student') return false;
+    if (p.email && isAdminEmail(p.email)) return false;
+    if (criteria.since && new Date(a.created_at || a.end_time || 0) < criteria.since) return false;
+    if (criteria.testTypes && !criteria.testTypes.includes(testType(a))) return false;
+    if (criteria.scopeTypes && !criteria.scopeTypes.includes(testType(a))) return false;
+    const test = testsMap.get(a.test_id);
+    if (criteria.exam) {
+      const examTitle = (test?.exam_id ? examsMap.get(test.exam_id) || '' : '')
+        .toLowerCase()
+        .trim();
+      if (!(test?.exam_id === criteria.exam || (!!examTitle && examTitle.includes(examTerm!))))
+        return false;
+    }
+    if (criteria.subject) {
+      const subjName = (test?.subject_id ? subjectsMap.get(test.subject_id) || '' : '')
+        .toLowerCase()
+        .trim();
+      if (!(
+        test?.subject_id === criteria.subject ||
+        (!!subjName && subjName.includes(subjectTerm!))
+      ))
+        return false;
+    }
+    return true;
+  });
+
+  const byUser = new Map<string, RankingAggregate>();
+  for (const att of completedAttempts) {
+    if (!att.user_id) continue;
+    let row = byUser.get(att.user_id);
+    if (!row) {
+      const profile = profilesMap.get(att.user_id);
+      row = {
+        user_id: att.user_id,
+        full_name: profile.full_name ?? null,
+        email: profile.email ?? null,
+        district: profile.district ?? null,
+        avatar_url: profile.avatar_url ?? null,
+        profile_created_at: profile.created_at ?? null,
+        tests_attempted: 0,
+        total_score: 0,
+        total_max: 0,
+        total_correct: 0,
+        total_wrong: 0,
+        total_skipped: 0,
+        latest_at: null,
+        max_percentage: 0,
+        subjects: [],
+        recent: [],
+      };
+      byUser.set(att.user_id, row);
+    }
+    const test = testsMap.get(att.test_id);
+    const sc = Number(att.score || 0);
+    const max = Number(att.total_marks || test?.total_marks || 0);
+    row.tests_attempted++;
+    row.total_score += sc;
+    row.total_max += max;
+    row.total_correct += Number(att.correct_count || 0);
+    row.total_wrong += Number(att.wrong_count || 0);
+    row.total_skipped += Number(att.skipped_count || 0);
+    row.max_percentage = Math.max(row.max_percentage, Math.round((sc / Math.max(1, max)) * 100));
+    const at = att.end_time || att.created_at || null;
+    const time = new Date(at || 0).getTime();
+    if (time > (row.latest_at ? Date.parse(row.latest_at) : 0))
+      row.latest_at = new Date(time).toISOString();
+    const subject =
+      (test?.subject_id ? subjectsMap.get(test.subject_id) : '') ||
+      (test?.exam_id ? examsMap.get(test.exam_id) : '') ||
+      'Other';
+    let subjectRow = row.subjects.find((s) => s.subject === subject);
+    if (!subjectRow) {
+      subjectRow = { subject, score: 0, marks: 0 };
+      row.subjects.push(subjectRow);
+    }
+    subjectRow.score += sc;
+    subjectRow.marks += max;
+    if (row.recent.length < 3)
+      row.recent.push({ title: test?.title || 'Deleted test', score: sc, max, at });
+  }
+  return [...byUser.values()];
+}
+
+function formatRankingTimeAgo(dateInput: string | Date | number | null | undefined): string {
+  if (!dateInput) return 'Active recently';
+  const now = Date.now();
+  const time = new Date(dateInput).getTime();
+  if (isNaN(time)) return 'Active recently';
+  const diffSec = Math.max(0, Math.round((now - time) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
+  const diffHour = Math.round(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+  const diffDays = Math.round(diffHour / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return new Date(time).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function rankingInitials(name: string): string {
+  if (!name) return 'ST';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const RECENT_ICON_BG = [
+  'bg-blue-100 text-blue-600',
+  'bg-purple-100 text-purple-600',
+  'bg-amber-100 text-amber-600',
+];
+const SUBJECT_BAR_COLORS = [
+  'bg-blue-600',
+  'bg-cyan-500',
+  'bg-indigo-600',
+  'bg-purple-600',
+  'bg-emerald-500',
+];
+
+/** Rank students (avgScore, tests, accuracy) and apply the search after ranking. */
+function buildRankingStudents(rows: RankingAggregate[], search?: string): RankingStudent[] {
+  const students: RankingStudent[] = rows.map((row) => {
+    const rawName = (row.full_name || '').trim();
+    const name = rawName || (row.email ? row.email.split('@')[0] : 'Unknown student');
+    const districtName = (row.district || '').trim();
+    const totalScore = Number(row.total_score || 0);
+    const totalMaxMarks = Number(row.total_max || 0);
+    const totalCorrect = Number(row.total_correct || 0);
+    const totalWrong = Number(row.total_wrong || 0);
+    const totalSkipped = Number(row.total_skipped || 0);
+    const avgScore = Math.round((totalScore / Math.max(1, totalMaxMarks)) * 100);
+    const accuracy =
+      totalCorrect + totalWrong > 0
+        ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100)
+        : avgScore;
+    const maxPercentage = Math.max(0, Number(row.max_percentage || 0));
+    const latestMs = row.latest_at ? Date.parse(row.latest_at) : 0;
+    return {
+      rank: 0,
+      studentId: `PK${String(row.user_id)
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 6)
+        .toUpperCase()}`,
+      name,
+      district: districtName || 'Not specified',
+      location: districtName ? `${districtName}, West Bengal` : 'Not specified',
+      avatar: row.avatar_url || undefined,
+      initials: rankingInitials(name),
+      initialsBg: 'bg-emerald-100 text-emerald-600 border border-emerald-200',
+      testsAttempted: Number(row.tests_attempted || 0),
+      questionsAnswered: totalCorrect + totalWrong + totalSkipped,
+      accuracy,
+      avgScore,
+      bestScore: maxPercentage || avgScore,
+      lastActive: formatRankingTimeAgo(latestMs || row.profile_created_at),
+      subjectPerformance: (row.subjects || []).map((s, i) => ({
+        subject: s.subject,
+        scorePercent: Math.round((Number(s.score) / Math.max(1, Number(s.marks))) * 100),
+        barColor: SUBJECT_BAR_COLORS[i % SUBJECT_BAR_COLORS.length],
+      })),
+      recentAttempts: (row.recent || []).slice(0, 3).map((a, i) => ({
+        title: a.title,
+        scorePercent: Math.round((Number(a.score) / Math.max(1, Number(a.max))) * 100),
+        timeAgo: formatRankingTimeAgo(a.at),
+        iconBg: RECENT_ICON_BG[i],
+      })),
+    };
+  });
+
+  // Sort students by: avgScore DESC, then testsAttempted DESC, then accuracy DESC
+  students.sort((a, b) => {
+    if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+    if (b.testsAttempted !== a.testsAttempted) return b.testsAttempted - a.testsAttempted;
+    return b.accuracy - a.accuracy;
+  });
+  students.forEach((s, idx) => {
+    s.rank = idx + 1;
+  });
+
+  if (search && search.trim()) {
+    const q = search.toLowerCase().trim();
+    return students.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.studentId.toLowerCase().includes(q) ||
+        s.district.toLowerCase().includes(q)
+    );
+  }
+  return students;
+}
 
 export const adminCommerceApi = {
   async getAdminSubscriptions(
@@ -1322,369 +1659,20 @@ export const adminCommerceApi = {
     }
 
     try {
-      // 1. Fetch completed test attempts, profiles, tests, exams, and subjects in parallel
-      // Read every row (PostgREST caps unpaged reads), and fail loudly on errors.
-      const [rawAttempts, profileRows, testRows, examRows, subjectRows] = await Promise.all([
-        readCompleteQuery(() =>
-          supabase
-            .from('test_attempts')
-            .select(
-              'id, user_id, test_id, status, score, total_marks, correct_count, wrong_count, skipped_count, accuracy, time_spent_seconds, created_at, end_time',
-              { count: 'exact' }
-            )
-            .eq('status', 'completed')
-            .order('created_at', { ascending: false })
-            .order('id', { ascending: true })
-        ),
-        readCompleteQuery(() =>
-          supabase
-            .from('profiles')
-            .select('id, full_name, email, phone, avatar_url, district, role, created_at', {
-              count: 'exact',
-            })
-            .order('id', { ascending: true })
-        ),
-        readCompleteQuery(() =>
-          supabase
-            .from('tests')
-            .select('id, title, test_type, exam_id, subject_id, total_questions, total_marks', {
-              count: 'exact',
-            })
-            .order('id', { ascending: true })
-        ),
-        readCompleteQuery(() =>
-          supabase
-            .from('exams')
-            .select('id, title', { count: 'exact' })
-            .order('id', { ascending: true })
-        ),
-        readCompleteQuery(() =>
-          supabase
-            .from('subjects')
-            .select('id, name', { count: 'exact' })
-            .order('id', { ascending: true })
-        ),
-      ]);
-
-      const profilesMap = new Map<string, any>();
-      profileRows.forEach((p: any) => {
-        if (p.id) profilesMap.set(p.id, p);
-      });
-
-      const testsMap = new Map<string, any>();
-      testRows.forEach((t: any) => {
-        if (t.id) testsMap.set(t.id, t);
-      });
-
-      const examsMap = new Map<string, string>();
-      examRows.forEach((e: any) => {
-        if (e.id) examsMap.set(e.id, e.title || '');
-      });
-
-      const subjectsMap = new Map<string, string>();
-      subjectRows.forEach((s: any) => {
-        if (s.id) subjectsMap.set(s.id, s.name || '');
-      });
-
-      // Only students are ranked: staff (admin/instructor) and unknown accounts are excluded.
-      let completedAttempts = rawAttempts.filter((a: any) => {
-        const p = profilesMap.get(a.user_id);
-        if (!p) return false;
-        if (p.role && p.role !== 'student') return false;
-        if (p.email && isAdminEmail(p.email)) return false;
-        return true;
-      });
-
-      // Filter by Time Period
-      if (filters?.timePeriod && filters.timePeriod !== 'All Time') {
-        const period = filters.timePeriod.toLowerCase();
-        const now = new Date();
-        let cutoffDate: Date | null = null;
-        if (period === 'today') {
-          cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        } else if (period === 'this week') {
-          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        } else if (period === 'this month') {
-          cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        }
-        if (cutoffDate) {
-          completedAttempts = completedAttempts.filter((a: any) => {
-            const d = new Date(a.created_at || a.end_time || 0);
-            return d >= cutoffDate!;
-          });
-        }
-      }
-
-      // Filter by Test Type
-      if (filters?.testType && filters.testType !== 'All Types') {
-        const typeFilter = filters.testType.toLowerCase();
-        completedAttempts = completedAttempts.filter((a: any) => {
-          const test = testsMap.get(a.test_id);
-          const tType = (test?.test_type || '').toLowerCase();
-          if (typeFilter.includes('full mock')) return tType === 'full_mock' || tType === 'full';
-          if (typeFilter.includes('topic'))
-            return (
-              tType === 'topic' ||
-              tType === 'topic_test' ||
-              tType === 'chapter_mock' ||
-              tType === 'subject_mock'
-            );
-          if (typeFilter.includes('pyq')) return tType === 'pyq' || tType === 'previous_year';
-          return true;
-        });
-      }
-
-      // Filter by Exam
-      if (filters?.exam && filters.exam !== 'All Exams') {
-        const examTerm = filters.exam.toLowerCase().trim();
-        completedAttempts = completedAttempts.filter((a: any) => {
-          const test = testsMap.get(a.test_id);
-          const examTitle = (test?.exam_id ? examsMap.get(test.exam_id) || '' : '')
-            .toLowerCase()
-            .trim();
-          return test?.exam_id === filters.exam || (!!examTitle && examTitle.includes(examTerm));
-        });
-      }
-
-      // Filter by Subject
-      if (filters?.subject && filters.subject !== 'All Subjects') {
-        const subjTerm = filters.subject.toLowerCase().trim();
-        completedAttempts = completedAttempts.filter((a: any) => {
-          const test = testsMap.get(a.test_id);
-          const subjName = (test?.subject_id ? subjectsMap.get(test.subject_id) || '' : '')
-            .toLowerCase()
-            .trim();
-          return (
-            test?.subject_id === filters.subject || (!!subjName && subjName.includes(subjTerm))
-          );
-        });
-      }
-
-      // Filter by Scope Tab
-      if (filters?.scope) {
-        if (filters.scope === 'By Topic') {
-          completedAttempts = completedAttempts.filter((a: any) => {
-            const test = testsMap.get(a.test_id);
-            const tType = (test?.test_type || '').toLowerCase();
-            return (
-              tType === 'topic' ||
-              tType === 'topic_test' ||
-              tType === 'chapter_mock' ||
-              tType === 'subject_mock'
-            );
-          });
-        } else if (filters.scope === 'By Test Series') {
-          completedAttempts = completedAttempts.filter((a: any) => {
-            const test = testsMap.get(a.test_id);
-            const tType = (test?.test_type || '').toLowerCase();
-            return tType === 'full_mock' || tType === 'full';
-          });
-        }
-      }
-
-      // Group attempts by user_id
-      const userAttemptsMap = new Map<string, any[]>();
-      completedAttempts.forEach((att: any) => {
-        const uid = att.user_id;
-        if (!uid) return;
-        if (!userAttemptsMap.has(uid)) {
-          userAttemptsMap.set(uid, []);
-        }
-        userAttemptsMap.get(uid)!.push(att);
-      });
-
-      // Format Relative Time Helper
-      const formatTimeAgo = (dateInput: string | Date | null | undefined): string => {
-        if (!dateInput) return 'Active recently';
-        const now = Date.now();
-        const time = new Date(dateInput).getTime();
-        if (isNaN(time)) return 'Active recently';
-        const diffSec = Math.max(0, Math.round((now - time) / 1000));
-        if (diffSec < 60) return 'Just now';
-        const diffMin = Math.round(diffSec / 60);
-        if (diffMin < 60) return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
-        const diffHour = Math.round(diffMin / 60);
-        if (diffHour < 24) return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
-        const diffDays = Math.round(diffHour / 24);
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return new Date(time).toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        });
-      };
-
-      // Helper for Initials
-      const getInitials = (name: string): string => {
-        if (!name) return 'ST';
-        const parts = name.trim().split(/\s+/);
-        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      };
-
-      const students: RankingStudent[] = [];
-
-      userAttemptsMap.forEach((userAttempts, userId) => {
-        const profile = profilesMap.get(userId) || userAttempts[0]?.profiles || {};
-        const rawName = (profile.full_name || '').trim();
-        const name = rawName || (profile.email ? profile.email.split('@')[0] : 'Unknown student');
-        const districtName = (profile.district || '').trim();
-        const district = districtName || 'Not specified';
-        const location = districtName ? `${districtName}, West Bengal` : 'Not specified';
-        const avatar = profile.avatar_url || undefined;
-        const initials = getInitials(name);
-        const initialsBg = 'bg-emerald-100 text-emerald-600 border border-emerald-200';
-
-        const testsAttempted = userAttempts.length;
-
-        let totalScore = 0;
-        let totalMaxMarks = 0;
-        let totalCorrect = 0;
-        let totalWrong = 0;
-        let totalSkipped = 0;
-        let latestDate = 0;
-        let maxPercentage = 0;
-
-        const subjectMap = new Map<
-          string,
-          { totalScore: number; totalMarks: number; count: number }
-        >();
-        const recentAttempts: {
-          title: string;
-          scorePercent: number;
-          timeAgo: string;
-          iconBg: string;
-        }[] = [];
-
-        userAttempts.forEach((att: any, idx: number) => {
-          const test = testsMap.get(att.test_id);
-          const sc = Number(att.score || 0);
-          const max = Number(att.total_marks || test?.total_marks || 0);
-          const cor = Number(att.correct_count || 0);
-          const wr = Number(att.wrong_count || 0);
-          const sk = Number(att.skipped_count || 0);
-
-          totalScore += sc;
-          totalMaxMarks += max;
-          totalCorrect += cor;
-          totalWrong += wr;
-          totalSkipped += sk;
-
-          const perc = Math.round((sc / Math.max(1, max)) * 100);
-          if (perc > maxPercentage) maxPercentage = perc;
-
-          const timeVal = new Date(att.end_time || att.created_at || 0).getTime();
-          if (timeVal > latestDate) latestDate = timeVal;
-
-          const subj =
-            (test?.subject_id ? subjectsMap.get(test.subject_id) : '') ||
-            (test?.exam_id ? examsMap.get(test.exam_id) : '') ||
-            'Other';
-
-          if (!subjectMap.has(subj)) {
-            subjectMap.set(subj, { totalScore: 0, totalMarks: 0, count: 0 });
-          }
-          const sEntry = subjectMap.get(subj)!;
-          sEntry.totalScore += sc;
-          sEntry.totalMarks += max;
-          sEntry.count += 1;
-
-          if (recentAttempts.length < 3) {
-            recentAttempts.push({
-              title: test?.title || 'Deleted test',
-              scorePercent: perc,
-              timeAgo: formatTimeAgo(att.end_time || att.created_at),
-              iconBg:
-                idx === 0
-                  ? 'bg-blue-100 text-blue-600'
-                  : idx === 1
-                    ? 'bg-purple-100 text-purple-600'
-                    : 'bg-amber-100 text-amber-600',
-            });
-          }
-        });
-
-        const questionsAnswered = totalCorrect + totalWrong + totalSkipped;
-        const avgScore = Math.round((totalScore / Math.max(1, totalMaxMarks)) * 100);
-        const accuracy =
-          totalCorrect + totalWrong > 0
-            ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100)
-            : avgScore;
-
-        const colors = [
-          'bg-blue-600',
-          'bg-cyan-500',
-          'bg-indigo-600',
-          'bg-purple-600',
-          'bg-emerald-500',
-        ];
-        let colorIdx = 0;
-        const subjectPerformance: { subject: string; scorePercent: number; barColor: string }[] =
-          [];
-        subjectMap.forEach((val, sName) => {
-          subjectPerformance.push({
-            subject: sName,
-            scorePercent: Math.round((val.totalScore / Math.max(1, val.totalMarks)) * 100),
-            barColor: colors[colorIdx % colors.length],
-          });
-          colorIdx++;
-        });
-
-        const studentId = profile.id
-          ? `PK${profile.id
-              .replace(/[^a-zA-Z0-9]/g, '')
-              .slice(0, 6)
-              .toUpperCase()}`
-          : `PK${String(userId)
-              .replace(/[^a-zA-Z0-9]/g, '')
-              .slice(0, 6)
-              .toUpperCase()}`;
-
-        students.push({
-          rank: 0,
-          studentId,
-          name,
-          district,
-          location,
-          avatar,
-          initials,
-          initialsBg,
-          testsAttempted,
-          questionsAnswered,
-          accuracy,
-          avgScore,
-          bestScore: maxPercentage || avgScore,
-          lastActive: formatTimeAgo(latestDate || profile.created_at),
-          subjectPerformance,
-          recentAttempts,
-        });
-      });
-
-      // Sort students by: avgScore DESC, then testsAttempted DESC, then accuracy DESC
-      students.sort((a, b) => {
-        if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
-        if (b.testsAttempted !== a.testsAttempted) return b.testsAttempted - a.testsAttempted;
-        return b.accuracy - a.accuracy;
-      });
-
-      // Assign ranks: 1, 2, 3, ...
-      students.forEach((s, idx) => {
-        s.rank = idx + 1;
-      });
-
-      // Search filter if provided
-      if (filters?.search && filters.search.trim()) {
-        const q = filters.search.toLowerCase().trim();
-        return students.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.studentId.toLowerCase().includes(q) ||
-            s.district.toLowerCase().includes(q)
-        );
-      }
-
-      return students;
+      const criteria = rankingCriteria(filters);
+      // Totals are computed in Postgres; the browser path only runs until it is deployed.
+      const aggregates =
+        (await callReportingRpc<RankingAggregate[]>('admin_rankings_aggregate', {
+          p_since: criteria.since ? criteria.since.toISOString() : null,
+          p_test_types: criteria.testTypes,
+          p_scope_types: criteria.scopeTypes,
+          p_exam: criteria.exam,
+          p_subject: criteria.subject,
+          p_excluded_emails: ADMIN_EMAILS,
+        })) ?? (await aggregateRankingsInBrowser(criteria));
+      if (!Array.isArray(aggregates))
+        throw new Error('The backend did not confirm a complete rankings result.');
+      return buildRankingStudents(aggregates, filters?.search);
     } catch (err) {
       console.warn('Failed to calculate admin rankings:', err);
       throw err instanceof Error ? err : new Error('Failed to load rankings');
@@ -2528,91 +2516,9 @@ export const adminCommerceApi = {
     let activeSubscriptions = 0;
 
     let studentProfiles: any[] = [];
-    let attempts: any[] = [];
-    let answersData: any[] = [];
+    const attempts: any[] = [];
+    const answersData: any[] = [];
     const activeSubUserIds = new Set<string>();
-
-    if (isSupabaseConfigured) {
-      try {
-        const startOfMonthIso = new Date(
-          new Date().getFullYear(),
-          new Date().getMonth(),
-          1
-        ).toISOString();
-
-        // Concurrently query database for high-efficiency loading
-        const [allPaymentsRes, monthPaymentsRes, subsRes, profilesRes, attemptsRes, answersRes] =
-          await Promise.all([
-            supabase.from('payments').select('amount, user_id, status').eq('status', 'completed'),
-            supabase
-              .from('payments')
-              .select('amount')
-              .eq('status', 'completed')
-              .gte('created_at', startOfMonthIso),
-            supabase
-              .from('subscriptions')
-              .select('user_id, status, expires_at')
-              .eq('status', 'active'),
-            supabase.from('profiles').select('id, full_name, email, role, created_at'),
-            supabase
-              .from('test_attempts')
-              .select(
-                'id, user_id, status, score, total_marks, correct_count, wrong_count, accuracy, created_at'
-              ),
-            supabase.from('attempt_answers').select(`
-            question_id,
-            is_correct,
-            selected_option,
-            questions (
-              id,
-              question_text,
-              question_bengali_text,
-              subject_id,
-              chapter_id,
-              difficulty,
-              subjects:subjects!questions_subject_id_fkey ( id, name ),
-              chapters:chapters!questions_chapter_id_fkey ( id, name )
-            )
-          `),
-          ]);
-
-        if (allPaymentsRes.data && Array.isArray(allPaymentsRes.data)) {
-          totalRevenue = allPaymentsRes.data.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-          const uniquePaying = new Set(allPaymentsRes.data.map((p) => p.user_id).filter(Boolean));
-          paidStudents = uniquePaying.size;
-        }
-
-        if (monthPaymentsRes.data && Array.isArray(monthPaymentsRes.data)) {
-          monthlyRevenue = monthPaymentsRes.data.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-        }
-
-        if (subsRes.data && Array.isArray(subsRes.data)) {
-          const nowIso = new Date().toISOString();
-          const validSubs = subsRes.data.filter((s) => !s.expires_at || s.expires_at > nowIso);
-          activeSubscriptions = validSubs.length;
-          validSubs.forEach((s) => activeSubUserIds.add(s.user_id));
-        }
-
-        if (profilesRes.data && Array.isArray(profilesRes.data)) {
-          studentProfiles = profilesRes.data.filter((p) => {
-            const email = p.email?.toLowerCase() || '';
-            if (isAdminEmail(email)) return false;
-            if (p.role === 'admin' || p.role === 'superadmin' || p.role === 'support') return false;
-            return true;
-          });
-        }
-
-        if (attemptsRes.data && Array.isArray(attemptsRes.data)) {
-          attempts = attemptsRes.data;
-        }
-
-        if (answersRes.data && Array.isArray(answersRes.data)) {
-          answersData = answersRes.data;
-        }
-      } catch (err) {
-        console.warn('Supabase platform analytics query failed:', err);
-      }
-    }
 
     // Fallback ONLY if local mode (Supabase not configured)
     if (!isSupabaseConfigured && studentProfiles.length === 0) {
