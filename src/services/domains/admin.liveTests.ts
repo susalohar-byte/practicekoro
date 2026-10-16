@@ -273,66 +273,66 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
   }
 
   return {
-      id: String(lt.id),
-      testId: String(lt.testId || lt.test_id),
-      startAt,
-      registrationDeadline: lt.registrationDeadline ?? lt.registration_deadline ?? null,
-      status: derivedStatus,
-      rankingEnabled:
-        lt.rankingEnabled !== undefined
-          ? Boolean(lt.rankingEnabled)
-          : lt.ranking_enabled !== undefined
-            ? Boolean(lt.ranking_enabled)
-            : true,
-      subscriptionRequired:
-        lt.subscriptionRequired !== undefined
-          ? Boolean(lt.subscriptionRequired)
-          : lt.subscription_required !== undefined
-            ? Boolean(lt.subscription_required)
-            : false,
-      createdAt: lt.createdAt || lt.created_at || new Date().toISOString(),
-      updatedAt: lt.updatedAt || lt.updated_at || new Date().toISOString(),
+    id: String(lt.id),
+    testId: String(lt.testId || lt.test_id),
+    startAt,
+    registrationDeadline: lt.registrationDeadline ?? lt.registration_deadline ?? null,
+    status: derivedStatus,
+    rankingEnabled:
+      lt.rankingEnabled !== undefined
+        ? Boolean(lt.rankingEnabled)
+        : lt.ranking_enabled !== undefined
+          ? Boolean(lt.ranking_enabled)
+          : true,
+    subscriptionRequired:
+      lt.subscriptionRequired !== undefined
+        ? Boolean(lt.subscriptionRequired)
+        : lt.subscription_required !== undefined
+          ? Boolean(lt.subscription_required)
+          : false,
+    createdAt: lt.createdAt || lt.created_at || new Date().toISOString(),
+    updatedAt: lt.updatedAt || lt.updated_at || new Date().toISOString(),
 
-      // Inherited from source test
-      test: test || null,
-      title: resolvedTitle,
-      examId: exam?.id || test?.examId || lt.examId || lt.exam_id,
-      examTitle: test?.examTitle || exam?.title || lt.examTitle,
-      testTitle: test?.title || lt.testTitle || resolvedTitle,
-      durationMinutes: duration,
-      totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 100),
-      totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 100),
-      negativeMarking: Number(
-        test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0.25
-      ),
-      instructions: rawInstructions,
-      enrolledCount: enrolled,
-      participantsCount: participants,
-      isPublished,
-      scheduledStartTime: startAt,
-      scheduledEndTime: endAt,
-      scheduledStartAt: startAt,
-      scheduledEndAt: endAt,
-      logo:
-        lt.logo ||
-        lt.examLogo ||
-        lt.exam_logo ||
-        exam?.iconName ||
-        (exam as any)?.icon_name ||
-        test?.iconUrl ||
-        undefined,
-      examLogo:
-        lt.logo ||
-        lt.examLogo ||
-        lt.exam_logo ||
-        exam?.iconName ||
-        (exam as any)?.icon_name ||
-        test?.iconUrl ||
-        undefined,
-      bgImageUrl: parsedBgImage,
-      cardBgImage: parsedBgImage,
-    };
-  }
+    // Inherited from source test
+    test: test || null,
+    title: resolvedTitle,
+    examId: exam?.id || test?.examId || lt.examId || lt.exam_id,
+    examTitle: test?.examTitle || exam?.title || lt.examTitle,
+    testTitle: test?.title || lt.testTitle || resolvedTitle,
+    durationMinutes: duration,
+    totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 100),
+    totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 100),
+    negativeMarking: Number(
+      test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0.25
+    ),
+    instructions: rawInstructions,
+    enrolledCount: enrolled,
+    participantsCount: participants,
+    isPublished,
+    scheduledStartTime: startAt,
+    scheduledEndTime: endAt,
+    scheduledStartAt: startAt,
+    scheduledEndAt: endAt,
+    logo:
+      lt.logo ||
+      lt.examLogo ||
+      lt.exam_logo ||
+      exam?.iconName ||
+      (exam as any)?.icon_name ||
+      test?.iconUrl ||
+      undefined,
+    examLogo:
+      lt.logo ||
+      lt.examLogo ||
+      lt.exam_logo ||
+      exam?.iconName ||
+      (exam as any)?.icon_name ||
+      test?.iconUrl ||
+      undefined,
+    bgImageUrl: parsedBgImage,
+    cardBgImage: parsedBgImage,
+  };
+}
 
 /** Sort LiveTests: LIVE first, then UPCOMING (soonest first), then ENDED (newest first), then CANCELLED */
 function sortLiveTests(list: LiveTest[]): LiveTest[] {
@@ -791,7 +791,8 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
       let nextInstructions: string | undefined = updates.instructions;
       const targetBg = updates.bgImageUrl !== undefined ? updates.bgImageUrl : updates.cardBgImage;
       if (targetBg !== undefined) {
-        const rawBase = updates.instructions !== undefined ? updates.instructions : (existing.instructions || '');
+        const rawBase =
+          updates.instructions !== undefined ? updates.instructions : existing.instructions || '';
         nextInstructions = targetBg
           ? JSON.stringify({
               instructions: rawBase,
@@ -844,7 +845,10 @@ export async function uploadLiveTestLogo(file: File, _id: string = 'custom'): Pr
 }
 
 /** Upload Card Background Image for Live Test to Supabase Storage */
-export async function uploadLiveTestBackground(file: File, _id: string = 'custom'): Promise<string> {
+export async function uploadLiveTestBackground(
+  file: File,
+  _id: string = 'custom'
+): Promise<string> {
   validateRasterFile(file, 'banners');
   if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
   return new Promise<string>((resolve, reject) => {

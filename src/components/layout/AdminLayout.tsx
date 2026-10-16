@@ -544,7 +544,8 @@ export const AdminLayout: React.FC = () => {
 
                 // Collapsed Rail View with Animated Floating Tooltips
                 if (isCollapsed) {
-                  const targetPath = item.path || (hasChildren ? item.children![0].path : undefined);
+                  const targetPath =
+                    item.path || (hasChildren ? item.children![0].path : undefined);
                   return (
                     <div key={item.key} className="relative group flex justify-center py-0.5">
                       <NavLink

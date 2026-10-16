@@ -141,15 +141,11 @@ describe('Admin question management persistence contracts', () => {
   });
 
   it('reports bulk status changes only for returned question rows', async () => {
-    await expect(adminQuestionsApi.updateQuestionsStatus(['question-1', 'question-2'], 'archived'))
-      .resolves.toEqual({ success: true, updatedCount: 2 });
+    await expect(
+      adminQuestionsApi.updateQuestionsStatus(['question-1', 'question-2'], 'archived')
+    ).resolves.toEqual({ success: true, updatedCount: 2 });
     expect(m.updated).toEqual({ status: 'archived', is_active: false });
-    expect(m.queryLog).toContainEqual([
-      'in',
-      'questions',
-      'id',
-      ['question-1', 'question-2'],
-    ]);
+    expect(m.queryLog).toContainEqual(['in', 'questions', 'id', ['question-1', 'question-2']]);
   });
 
   it('persists an ordered question paper through the confirmed atomic RPC', async () => {
@@ -175,7 +171,10 @@ describe('Admin question management persistence contracts', () => {
   });
 
   it('does not acknowledge an unconfirmed question-paper assignment', async () => {
-    m.rpc.mockResolvedValue({ data: { success: true, test_id: 'another-test', total_questions: 1 }, error: null });
+    m.rpc.mockResolvedValue({
+      data: { success: true, test_id: 'another-test', total_questions: 1 },
+      error: null,
+    });
 
     await expect(
       adminTestQuestionsApi.saveTestQuestions('test-1', [

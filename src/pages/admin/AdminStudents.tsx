@@ -622,7 +622,10 @@ const StudentAvatar: React.FC<StudentAvatarProps> = ({
       src={cleanUrl}
       alt={fullName}
       referrerPolicy="no-referrer"
-      className={cn('rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs', className)}
+      className={cn(
+        'rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs',
+        className
+      )}
       onError={() => setHasError(true)}
     />
   );
@@ -651,9 +654,7 @@ function mapDbRowToStudent(row: AdminStudentRow, index: number): EnrichedStudent
 
   const rawAvatar = row.avatarUrl?.trim();
   const validAvatar =
-    rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined'
-      ? rawAvatar
-      : undefined;
+    rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined' ? rawAvatar : undefined;
 
   return {
     id: row.id,

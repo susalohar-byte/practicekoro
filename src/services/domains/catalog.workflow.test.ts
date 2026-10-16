@@ -75,7 +75,11 @@ describe('Student mock-test service workflow contracts', () => {
 
   it('starts an attempt only from the confirmed server attempt and duration', async () => {
     m.rpc.mockResolvedValue({
-      data: { attempt_id: 'attempt-1', start_time: '2026-10-15T10:00:00.000Z', duration_minutes: 30 },
+      data: {
+        attempt_id: 'attempt-1',
+        start_time: '2026-10-15T10:00:00.000Z',
+        duration_minutes: 30,
+      },
       error: null,
     });
 
@@ -116,7 +120,9 @@ describe('Student mock-test service workflow contracts', () => {
       error: null,
     });
 
-    await expect(catalogApi.submitTestAttempt('attempt-1', [answer], 23, 'test-1')).resolves.toEqual({
+    await expect(
+      catalogApi.submitTestAttempt('attempt-1', [answer], 23, 'test-1')
+    ).resolves.toEqual({
       attemptId: 'attempt-1',
       testId: 'test-1',
       testTitle: 'Practice test',
@@ -184,7 +190,14 @@ describe('Student mock-test service workflow contracts', () => {
 
   it('returns the server ranking breakdown and surfaces ranking RPC failures', async () => {
     const rankings = {
-      testSeries: { id: 'series-1', name: 'Series', score: 7, totalMarks: 10, rank: 12, participants: 80 },
+      testSeries: {
+        id: 'series-1',
+        name: 'Series',
+        score: 7,
+        totalMarks: 10,
+        rank: 12,
+        participants: 80,
+      },
       district: { name: 'Kolkata', rank: 3, participants: 15 },
       westBengal: { rank: 12, participants: 80 },
     };

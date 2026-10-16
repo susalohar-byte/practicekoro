@@ -779,7 +779,9 @@ html:not(.dark) .admin-scope header .text-slate-500:not(.admin-dark-card *):not(
 /* Form Inputs, Selects, & Textareas in Both Modes */
 html:not(.dark) .admin-scope input:not([class*='bg-transparent']):not([class*='!bg-transparent']),
 html:not(.dark) .admin-scope select:not([class*='bg-transparent']):not([class*='!bg-transparent']),
-html:not(.dark) .admin-scope textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
+html:not(.dark)
+  .admin-scope
+  textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
   color: #0f172a;
   background-color: #ffffff;
   border-color: #e2e8f0;

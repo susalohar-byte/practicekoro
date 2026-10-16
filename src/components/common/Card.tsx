@@ -42,7 +42,10 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
   ...props
 }) => (
-  <div className={cn('px-5 py-4 border-b border-slate-100 dark:border-slate-800', className)} {...props}>
+  <div
+    className={cn('px-5 py-4 border-b border-slate-100 dark:border-slate-800', className)}
+    {...props}
+  >
     {children}
   </div>
 );
@@ -62,7 +65,13 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
   ...props
 }) => (
-  <div className={cn('px-5 py-3.5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800', className)} {...props}>
+  <div
+    className={cn(
+      'px-5 py-3.5 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800',
+      className
+    )}
+    {...props}
+  >
     {children}
   </div>
 );

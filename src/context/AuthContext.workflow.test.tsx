@@ -45,7 +45,9 @@ function AuthProbe() {
   const { user, login, logout } = useAuth();
   return (
     <>
-      <output data-testid="auth-state">{user ? `${user.role}:${user.fullName}` : 'logged-out'}</output>
+      <output data-testid="auth-state">
+        {user ? `${user.role}:${user.fullName}` : 'logged-out'}
+      </output>
       <button onClick={() => void login(' student@example.com ', 'password')}>login</button>
       <button onClick={() => void logout()}>logout</button>
     </>
