@@ -100,11 +100,17 @@ DROP POLICY IF EXISTS staff_scope_delete ON public.app_settings;
 CREATE POLICY staff_scope_delete ON public.app_settings AS RESTRICTIVE FOR DELETE TO authenticated
   USING (public.admin_scope_allowed('super'));
 
-DROP POLICY IF EXISTS "Allow admin full access to hero banners" ON public.hero_banners;
-CREATE POLICY "Allow admin full access to hero banners"
-  ON public.hero_banners FOR ALL TO authenticated
-  USING (public.admin_scope_allowed('content'))
-  WITH CHECK (public.admin_scope_allowed('content'));
+-- hero_banners may not exist (banners can live in app_settings.banners_hero_list).
+DO $$
+BEGIN
+  IF to_regclass('public.hero_banners') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Allow admin full access to hero banners" ON public.hero_banners;
+    CREATE POLICY "Allow admin full access to hero banners"
+      ON public.hero_banners FOR ALL TO authenticated
+      USING (public.admin_scope_allowed('content'))
+      WITH CHECK (public.admin_scope_allowed('content'));
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 3. Audit trigger: inactive / invalid staff cannot write unaudited
