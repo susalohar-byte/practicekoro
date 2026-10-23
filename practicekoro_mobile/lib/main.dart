@@ -9,6 +9,8 @@ import 'core/components/ui.dart';
 import 'core/routing/app_router.dart';
 import 'data/datasources/local_storage.dart';
 import 'data/repositories/auth_repository.dart';
+import 'data/repositories/app_update_repository.dart';
+import 'features/update/update_required_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +56,8 @@ class PracticeKoroApp extends StatelessWidget {
       title: 'PracticeKoro',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
-      builder: (context, child) {
+      builder: (context, routed) {
+        final child = routed == null ? null : _UpdateGate(child: routed);
         if (!kIsWeb || child == null) {
           return child ?? const SizedBox.shrink();
         }
@@ -81,9 +84,7 @@ class PracticeKoroApp extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: MediaQuery(
-                data: mq.copyWith(
-                  size: Size(mobileWidth, mq.size.height),
-                ),
+                data: mq.copyWith(size: Size(mobileWidth, mq.size.height)),
                 child: child,
               ),
             ),
@@ -92,5 +93,22 @@ class PracticeKoroApp extends StatelessWidget {
       },
       theme: UI.theme(textTheme),
     );
+  }
+}
+
+/// Replaces the app with [UpdateRequiredScreen] when this build is below the minimum
+/// set in app_settings (mobile_min_build_number).
+class _UpdateGate extends ConsumerWidget {
+  final Widget child;
+
+  const _UpdateGate({required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(appUpdateProvider).value;
+    if (status != null && status.required) {
+      return UpdateRequiredScreen(updateUrl: status.updateUrl);
+    }
+    return child;
   }
 }

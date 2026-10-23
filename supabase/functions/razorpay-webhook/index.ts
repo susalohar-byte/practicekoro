@@ -239,6 +239,17 @@ Deno.serve(async (req: Request) => {
   const currency = paymentEntity?.currency || orderEntity?.currency || 'INR';
 
   if (!orderId || !paymentId || !amountPaise) {
+    // Old app builds could open checkout without a server order; that money was captured
+    // with nothing to activate, so it must reach a human.
+    if (paymentId && !orderId) {
+      await reportPaymentAlert(
+        supabase,
+        SOURCE,
+        `payment_without_order:${paymentId}`,
+        `Payment ${paymentId} was captured without a PracticeKoro order. Activate the student's pass manually or refund it.`,
+        { payment_id: paymentId, amount_paise: amountPaise ?? null, event }
+      );
+    }
     return new Response(
       JSON.stringify({
         error: 'Missing required order_id, payment_id, or amount in webhook payload',
