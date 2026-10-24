@@ -646,14 +646,10 @@ function LiveTestWorkspaceInner({
               </span>
             </div>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-lg font-black text-slate-900 font-mono">
-                {durationMinutes}
-              </span>
+              <span className="text-lg font-black text-slate-900 font-mono">{durationMinutes}</span>
               <span className="text-xs text-slate-400 font-medium">Minutes</span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1 truncate">
-              Fixed countdown window
-            </p>
+            <p className="text-[10px] text-slate-400 mt-1 truncate">Fixed countdown window</p>
           </div>
         </div>
 
@@ -878,8 +874,8 @@ function LiveTestWorkspaceInner({
                     Bulk Add via TXT
                   </h4>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Paste or upload entire question papers at once. Automatic detection of questions,
-                    4 options (A-D), Bengali text, correct answer keys, and explanations.
+                    Paste or upload entire question papers at once. Automatic detection of
+                    questions, 4 options (A-D), Bengali text, correct answer keys, and explanations.
                   </p>
                 </div>
               </div>
@@ -917,8 +913,8 @@ function LiveTestWorkspaceInner({
                     Create Question Manually
                   </h4>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Step-by-step editor modal with bilingual English/Bengali input, LaTeX mathematics
-                    formulas, custom option keys, and diagram support.
+                    Step-by-step editor modal with bilingual English/Bengali input, LaTeX
+                    mathematics formulas, custom option keys, and diagram support.
                   </p>
                 </div>
               </div>
@@ -971,7 +967,7 @@ function LiveTestWorkspaceInner({
             </div>
 
             <pre className="text-[11px] font-mono text-slate-700 bg-white p-3.5 rounded-xl border border-slate-200/80 overflow-x-auto leading-relaxed shadow-2xs">
-{SAMPLE_TXT_LIVE}
+              {SAMPLE_TXT_LIVE}
             </pre>
           </div>
         </div>
@@ -1021,7 +1017,8 @@ function LiveTestWorkspaceInner({
                               onClick={() => setActiveQuestionId(q.questionId)}
                               className={cn(
                                 'hover:bg-slate-50/90 transition-colors cursor-pointer group',
-                                isActive && 'bg-blue-50/70 border-l-4 border-l-blue-600 font-semibold'
+                                isActive &&
+                                  'bg-blue-50/70 border-l-4 border-l-blue-600 font-semibold'
                               )}
                             >
                               {/* Order & Reorder Column */}
@@ -1176,9 +1173,7 @@ function LiveTestWorkspaceInner({
                   <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/70 border-t border-slate-100 text-xs text-slate-500 gap-2">
                     <div>
                       Showing{' '}
-                      <strong className="text-slate-800">
-                        {(currentPage - 1) * pageSize + 1}
-                      </strong>{' '}
+                      <strong className="text-slate-800">{(currentPage - 1) * pageSize + 1}</strong>{' '}
                       to{' '}
                       <strong className="text-slate-800">
                         {Math.min(currentPage * pageSize, filteredQuestions.length)}
@@ -1533,8 +1528,7 @@ function LiveTestWorkspaceInner({
                         { key: 'C', text: activeQuestion.optionC },
                         { key: 'D', text: activeQuestion.optionD },
                       ].map((opt) => {
-                        const isCorrect =
-                          activeQuestion.correctOption?.toUpperCase() === opt.key;
+                        const isCorrect = activeQuestion.correctOption?.toUpperCase() === opt.key;
                         return (
                           <div
                             key={opt.key}
@@ -1757,9 +1751,7 @@ function LiveTestWorkspaceInner({
 
                   <button
                     type="button"
-                    disabled={
-                      activeQuestionIndex >= assignedQuestions.length - 1 || isTestLocked
-                    }
+                    disabled={activeQuestionIndex >= assignedQuestions.length - 1 || isTestLocked}
                     onClick={handleMoveCurrentDown}
                     className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold text-slate-700 transition-colors cursor-pointer"
                     title="Move Question Down in Paper"

@@ -211,11 +211,7 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
               {isProcessing ? processingLabel : label}
             </p>
-            {hint && (
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {hint}
-              </p>
-            )}
+            {hint && <p className="text-[11px] text-slate-500 dark:text-slate-400">{hint}</p>}
           </div>
 
           {!isProcessing && (

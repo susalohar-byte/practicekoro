@@ -2175,7 +2175,9 @@ export const AdminExams: React.FC = () => {
                       {selectedExam.iconName && (
                         <button
                           type="button"
-                          onClick={() => handleQuickUploadExamLogo(selectedExam.id, '/images/exams/logo_wbp.png')}
+                          onClick={() =>
+                            handleQuickUploadExamLogo(selectedExam.id, '/images/exams/logo_wbp.png')
+                          }
                           className="text-[11px] text-slate-500 hover:text-rose-600 block transition-colors"
                         >
                           Reset to default logo
@@ -2191,12 +2193,32 @@ export const AdminExams: React.FC = () => {
                     </span>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
-                        { name: 'WBP Police', url: '/images/exams/logo_wbp.png', label: 'WBP Police' },
-                        { name: 'Kolkata Police', url: '/images/exams/logo_kp.png', label: 'Kolkata Police' },
+                        {
+                          name: 'WBP Police',
+                          url: '/images/exams/logo_wbp.png',
+                          label: 'WBP Police',
+                        },
+                        {
+                          name: 'Kolkata Police',
+                          url: '/images/exams/logo_kp.png',
+                          label: 'Kolkata Police',
+                        },
                         { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png', label: 'WBPSC' },
-                        { name: 'Indian Railway', url: '/images/exams/logo_railway.png', label: 'Indian Railway' },
-                        { name: 'SSC Commission', url: '/images/exams/logo_ssc.png', label: 'SSC Commission' },
-                        { name: 'Primary TET', url: '/images/exams/logo_wbtet.png', label: 'Primary TET' },
+                        {
+                          name: 'Indian Railway',
+                          url: '/images/exams/logo_railway.png',
+                          label: 'Indian Railway',
+                        },
+                        {
+                          name: 'SSC Commission',
+                          url: '/images/exams/logo_ssc.png',
+                          label: 'SSC Commission',
+                        },
+                        {
+                          name: 'Primary TET',
+                          url: '/images/exams/logo_wbtet.png',
+                          label: 'Primary TET',
+                        },
                       ].map((preset) => (
                         <button
                           key={preset.name}
@@ -2211,7 +2233,11 @@ export const AdminExams: React.FC = () => {
                           title={preset.name}
                         >
                           <div className="w-6 h-6 rounded-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-0.5 flex items-center justify-center shrink-0">
-                            <img src={preset.url} alt={preset.name} className="w-full h-full object-contain" />
+                            <img
+                              src={preset.url}
+                              alt={preset.name}
+                              className="w-full h-full object-contain"
+                            />
                           </div>
                           <span className="truncate">{preset.label}</span>
                         </button>

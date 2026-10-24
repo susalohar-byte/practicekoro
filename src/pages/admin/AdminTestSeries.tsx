@@ -2382,8 +2382,7 @@ export const AdminTestSeries: React.FC = () => {
                           cardGradientEnd: '#0048C6',
                           cardArrowColor: '#026BFC',
                           cardBgImage: '/images/series_wbp_bg.png',
-                          cardLogoUrl:
-                            activeSeries.iconUrl || '/images/exams/logo_wbp.png',
+                          cardLogoUrl: activeSeries.iconUrl || '/images/exams/logo_wbp.png',
                           orderIndex: popularCards.length + 1,
                           route: `/test-series/${activeSeries.slug || activeSeries.id}`,
                           isActive: true,

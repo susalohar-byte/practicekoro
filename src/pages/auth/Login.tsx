@@ -97,9 +97,7 @@ export const Login: React.FC = () => {
           />
         </Link>
         <h2 className="text-xl font-black text-pk-navy">Admin sign in</h2>
-        <p className="mt-1 text-xs text-slate-500">
-          PracticeKoro administration
-        </p>
+        <p className="mt-1 text-xs text-slate-500">PracticeKoro administration</p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
@@ -182,7 +180,6 @@ export const Login: React.FC = () => {
               Sign In
             </Button>
           </form>
-
         </div>
       </div>
     </div>

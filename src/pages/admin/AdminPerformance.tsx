@@ -258,7 +258,8 @@ export const AdminPerformance: React.FC = () => {
     const q = tableSearch.toLowerCase().trim();
     return wrongQuestions.filter((item) => {
       const matchSubject =
-        tableSubjectFilter === 'All' || item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
+        tableSubjectFilter === 'All' ||
+        item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
       const matchSearch =
         !q ||
         item.questionText.toLowerCase().includes(q) ||
@@ -273,11 +274,10 @@ export const AdminPerformance: React.FC = () => {
     const q = tableSearch.toLowerCase().trim();
     return weakestTopics.filter((item) => {
       const matchSubject =
-        tableSubjectFilter === 'All' || item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
+        tableSubjectFilter === 'All' ||
+        item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
       const matchSearch =
-        !q ||
-        item.topic.toLowerCase().includes(q) ||
-        item.subject.toLowerCase().includes(q);
+        !q || item.topic.toLowerCase().includes(q) || item.subject.toLowerCase().includes(q);
       return matchSubject && matchSearch;
     });
   }, [weakestTopics, tableSearch, tableSubjectFilter]);
@@ -286,11 +286,10 @@ export const AdminPerformance: React.FC = () => {
     const q = tableSearch.toLowerCase().trim();
     return topPerformingTopics.filter((item) => {
       const matchSubject =
-        tableSubjectFilter === 'All' || item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
+        tableSubjectFilter === 'All' ||
+        item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
       const matchSearch =
-        !q ||
-        item.topic.toLowerCase().includes(q) ||
-        item.subject.toLowerCase().includes(q);
+        !q || item.topic.toLowerCase().includes(q) || item.subject.toLowerCase().includes(q);
       return matchSubject && matchSearch;
     });
   }, [topPerformingTopics, tableSearch, tableSubjectFilter]);
@@ -299,7 +298,8 @@ export const AdminPerformance: React.FC = () => {
     const q = tableSearch.toLowerCase().trim();
     return subjectMetrics.filter((item) => {
       const matchSubject =
-        tableSubjectFilter === 'All' || item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
+        tableSubjectFilter === 'All' ||
+        item.subject.toLowerCase() === tableSubjectFilter.toLowerCase();
       const matchSearch = !q || item.subject.toLowerCase().includes(q);
       return matchSubject && matchSearch;
     });
@@ -342,7 +342,8 @@ export const AdminPerformance: React.FC = () => {
         `${q.wrongPercentage}%`,
         `${q.accuracyRate ?? 100 - q.wrongPercentage}%`,
       ]);
-      const csv = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
+      const csv =
+        '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
       downloadBlob(csv, `performance_wrong_questions_${Date.now()}.csv`);
     } else if (activeTableTab === 'weak_topics') {
       const headers = ['Rank', 'Topic', 'Subject', 'Questions Attempted', 'Accuracy Rate (%)'];
@@ -353,7 +354,8 @@ export const AdminPerformance: React.FC = () => {
         t.attempts,
         `${t.avgScore}%`,
       ]);
-      const csv = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
+      const csv =
+        '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
       downloadBlob(csv, `performance_weak_topics_${Date.now()}.csv`);
     } else if (activeTableTab === 'top_topics') {
       const headers = ['Rank', 'Topic', 'Subject', 'Questions Attempted', 'Accuracy Rate (%)'];
@@ -364,17 +366,14 @@ export const AdminPerformance: React.FC = () => {
         t.attempts,
         `${t.avgScore}%`,
       ]);
-      const csv = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
+      const csv =
+        '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
       downloadBlob(csv, `performance_top_topics_${Date.now()}.csv`);
     } else {
       const headers = ['Rank', 'Subject', 'Questions Attempted', 'Accuracy Rate (%)'];
-      const rows = filteredSubjects.map((s) => [
-        s.rank,
-        s.subject,
-        s.attempts,
-        `${s.avgScore}%`,
-      ]);
-      const csv = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
+      const rows = filteredSubjects.map((s) => [s.rank, s.subject, s.attempts, `${s.avgScore}%`]);
+      const csv =
+        '\uFEFF' + [headers.join(','), ...rows.map((r) => r.map(csvCell).join(','))].join('\n');
       downloadBlob(csv, `performance_subjects_${Date.now()}.csv`);
     }
   };
@@ -628,7 +627,11 @@ export const AdminPerformance: React.FC = () => {
                         <div
                           className={cn(
                             'h-full rounded-full',
-                            isCritical ? 'bg-rose-500' : isModerate ? 'bg-amber-500' : 'bg-emerald-500'
+                            isCritical
+                              ? 'bg-rose-500'
+                              : isModerate
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
                           )}
                           style={{ width: `${Math.min(100, t.avgScore)}%` }}
                         />
@@ -646,7 +649,11 @@ export const AdminPerformance: React.FC = () => {
                             : 'bg-slate-50 text-slate-700 border border-slate-200'
                       )}
                     >
-                      {isCritical ? 'Critical Attention' : isModerate ? 'Needs Practice' : 'Moderate'}
+                      {isCritical
+                        ? 'Critical Attention'
+                        : isModerate
+                          ? 'Needs Practice'
+                          : 'Moderate'}
                     </span>
                   </td>
                 </tr>
@@ -753,7 +760,11 @@ export const AdminPerformance: React.FC = () => {
                             : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
                       )}
                     >
-                      {isMastered ? 'Mastered' : isProficient ? 'High Proficiency' : 'Good Competency'}
+                      {isMastered
+                        ? 'Mastered'
+                        : isProficient
+                          ? 'High Proficiency'
+                          : 'Good Competency'}
                     </span>
                   </td>
                 </tr>
@@ -808,7 +819,9 @@ export const AdminPerformance: React.FC = () => {
                   </td>
                   <td className="py-3 px-3.5 font-bold text-[#0F172A]">
                     <div className="flex items-center gap-2">
-                      <span className={cn('w-2.5 h-2.5 rounded-full', s.subjectColor.split(' ')[0])} />
+                      <span
+                        className={cn('w-2.5 h-2.5 rounded-full', s.subjectColor.split(' ')[0])}
+                      />
                       <span className="text-xs">{s.subject}</span>
                     </div>
                   </td>
@@ -1342,7 +1355,8 @@ export const AdminPerformance: React.FC = () => {
         {/* Table Render Content */}
         {viewMode === 'tabbed' ? (
           <div>
-            {activeTableTab === 'wrong_questions' && renderWrongQuestionsTable(filteredWrongQuestions)}
+            {activeTableTab === 'wrong_questions' &&
+              renderWrongQuestionsTable(filteredWrongQuestions)}
             {activeTableTab === 'weak_topics' && renderWeakTopicsTable(filteredWeakTopics)}
             {activeTableTab === 'top_topics' && renderTopTopicsTable(filteredTopTopics)}
             {activeTableTab === 'subjects' && renderSubjectTable(filteredSubjects)}
@@ -1375,7 +1389,9 @@ export const AdminPerformance: React.FC = () => {
                   <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
                     <BookOpen className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-sm font-black text-[#0F172A]">Weak Topics (Needs Practice)</h3>
+                  <h3 className="text-sm font-black text-[#0F172A]">
+                    Weak Topics (Needs Practice)
+                  </h3>
                   <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">
                     {filteredWeakTopics.length} Topics
                   </span>
@@ -1411,7 +1427,9 @@ export const AdminPerformance: React.FC = () => {
                   <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
                     <Target className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-sm font-black text-[#0F172A]">Subject-wise Accuracy & Volume</h3>
+                  <h3 className="text-sm font-black text-[#0F172A]">
+                    Subject-wise Accuracy & Volume
+                  </h3>
                   <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full">
                     {filteredSubjects.length} Subjects
                   </span>
@@ -1540,7 +1558,9 @@ export const AdminPerformance: React.FC = () => {
               {/* Performance Stats Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                  <p className="text-[10px] font-semibold text-slate-500 uppercase">Total Attempts</p>
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase">
+                    Total Attempts
+                  </p>
                   <p className="text-base font-black text-slate-900 mt-0.5">
                     {selectedQuestion.totalAttempts.toLocaleString()}
                   </p>
@@ -1561,7 +1581,9 @@ export const AdminPerformance: React.FC = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-                  <p className="text-[10px] font-semibold text-emerald-600 uppercase">Accuracy Rate</p>
+                  <p className="text-[10px] font-semibold text-emerald-600 uppercase">
+                    Accuracy Rate
+                  </p>
                   <p className="text-base font-black text-emerald-700 mt-0.5">
                     {selectedQuestion.accuracyRate ??
                       Math.max(0, 100 - selectedQuestion.wrongPercentage)}

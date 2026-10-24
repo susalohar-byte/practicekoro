@@ -99,9 +99,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
   const [cardGradientEnd, setCardGradientEnd] = useState(card?.cardGradientEnd || '#0048C6');
   const [cardArrowColor, setCardArrowColor] = useState(card?.cardArrowColor || '#026BFC');
   const [cardBgImage, setCardBgImage] = useState(card?.cardBgImage || '/images/series_wbp_bg.png');
-  const [cardLogoUrl, setCardLogoUrl] = useState(
-    card?.cardLogoUrl || '/images/exams/logo_wbp.png'
-  );
+  const [cardLogoUrl, setCardLogoUrl] = useState(card?.cardLogoUrl || '/images/exams/logo_wbp.png');
   const [route, setRoute] = useState(card?.route || '/test-series');
   const [isActive, setIsActive] = useState(card?.isActive !== false);
   const [testSeriesId, setTestSeriesId] = useState(card?.testSeriesId || '');
