@@ -3,7 +3,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { buildPaymentSignaturePayload, verifyHmacSha256 } from '../_shared/razorpay-signature.ts';
 
+import { reportPaymentAlert } from '../_shared/payment-alerts.ts';
 import { isVerificationPayload, isRecord } from '../_shared/payment-validation.ts';
+
+const SOURCE = 'verify-payment';
 
 Deno.serve(async (req: Request) => {
   // 1. CORS headers — restricted to ALLOWED_ORIGINS; when unset, defaults
@@ -81,6 +84,12 @@ Deno.serve(async (req: Request) => {
 
   if (!keySecret) {
     console.error('Server misconfiguration: RAZORPAY_KEY_SECRET is not set in Supabase secrets');
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'key_secret_missing',
+      'RAZORPAY_KEY_SECRET is not set; payments cannot be verified.'
+    );
     return new Response(JSON.stringify({ error: 'Payment gateway secret not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -130,6 +139,13 @@ Deno.serve(async (req: Request) => {
     .eq('user_id', user.id)
     .maybeSingle();
   if (paymentError || !payment || payment.plan_id !== planId) {
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      `order_not_found:${orderId}`,
+      `A signed Razorpay payment (${paymentId}) has no matching order record for this student.`,
+      { order_id: orderId, payment_id: paymentId, plan_id: planId, user_id: user.id }
+    );
     return new Response(
       JSON.stringify({ error: 'Payment order not found for this account and plan' }),
       {
@@ -142,11 +158,18 @@ Deno.serve(async (req: Request) => {
   // A checkout signature alone does not assert that the payment was captured.
   // Fetch provider-authoritative status/amount before service-only activation.
   const keyId = Deno.env.get('RAZORPAY_KEY_ID');
-  if (!keyId)
+  if (!keyId) {
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'key_id_missing',
+      'RAZORPAY_KEY_ID is not set; payments cannot be verified.'
+    );
     return new Response(JSON.stringify({ error: 'Payment key not configured' }), {
       status: 503,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
   try {
     const response = await fetch(
       `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`,
@@ -166,6 +189,13 @@ Deno.serve(async (req: Request) => {
       !Number.isSafeInteger(captured.amount) ||
       captured.amount !== Math.round(Number(payment.amount) * 100)
     ) {
+      await reportPaymentAlert(
+        serviceClient,
+        SOURCE,
+        `capture_unconfirmed:${paymentId}`,
+        `Razorpay did not confirm capture of ${paymentId} for the recorded amount. Check it in Razorpay.`,
+        { order_id: orderId, payment_id: paymentId, user_id: user.id, status: response.status }
+      );
       return new Response(
         JSON.stringify({
           error: 'Captured payment could not be confirmed. Do not pay again; retry verification.',
@@ -177,6 +207,13 @@ Deno.serve(async (req: Request) => {
       );
     }
   } catch {
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'razorpay_unreachable',
+      'Could not reach Razorpay to confirm a payment.',
+      { payment_id: paymentId }
+    );
     return new Response(
       JSON.stringify({ error: 'Payment provider unavailable. Retry verification, not payment.' }),
       {
@@ -220,6 +257,13 @@ Deno.serve(async (req: Request) => {
     !rpcResult.subscription_id
   ) {
     console.error('Payment verification RPC rejected. Error code:', rpcError?.code);
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      `activation_failed:${orderId}`,
+      `Captured payment ${paymentId} could not activate a Pro Pass.`,
+      { order_id: orderId, payment_id: paymentId, user_id: user.id, code: rpcError?.code ?? null }
+    );
     return new Response(JSON.stringify({ error: 'Payment verification failed' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -3,6 +3,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 import { isRecord, isCompletedRefund } from '../_shared/payment-validation.ts';
 import { paiseToRupees, verifyHmacSha256 } from '../_shared/razorpay-signature.ts';
+import { reportPaymentAlert } from '../_shared/payment-alerts.ts';
+
+const SOURCE = 'razorpay-webhook';
 
 interface RazorpayWebhookPayload {
   entity: string;
@@ -95,6 +98,12 @@ Deno.serve(async (req: Request) => {
     console.error(
       'Server misconfiguration: RAZORPAY_WEBHOOK_SECRET is not set in Supabase secrets'
     );
+    await reportPaymentAlert(
+      supabase,
+      SOURCE,
+      'webhook_secret_missing',
+      'RAZORPAY_WEBHOOK_SECRET is not set; Razorpay webhooks are being rejected.'
+    );
     return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -105,6 +114,13 @@ Deno.serve(async (req: Request) => {
   const isValid = await verifyHmacSha256(rawBody, signature, webhookSecret);
   if (!isValid) {
     console.warn('Invalid Razorpay webhook signature attempt rejected');
+    // A wrong secret rejects every real webhook too, so surface it (one deduplicated alert).
+    await reportPaymentAlert(
+      supabase,
+      SOURCE,
+      'invalid_signature',
+      'A webhook failed signature verification. If this keeps happening, the webhook secret in Razorpay and Supabase differ.'
+    );
     return new Response(JSON.stringify({ error: 'Invalid webhook signature' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -161,8 +177,13 @@ Deno.serve(async (req: Request) => {
     }
     const paymentEntity = data.payload?.payment?.entity;
     const paymentId = refundEntity?.payment_id || paymentEntity?.id;
-    const refundId = refundEntity?.id || `rfnd_${Date.now()}`;
-    const refundAmountPaise = refundEntity?.amount || (paymentEntity as any)?.amount_refunded || 0;
+    // With a refund entity, the amount is that single refund and its id makes replays
+    // idempotent. Without one, pass no id: the amount is then the payment's cumulative
+    // amount_refunded, which reconcile_razorpay_refund treats as a running total.
+    const refundId = refundEntity?.id ?? null;
+    const refundAmountPaise = refundEntity
+      ? refundEntity.amount || 0
+      : (paymentEntity as any)?.amount_refunded || 0;
     const refundAmountInr = refundAmountPaise > 0 ? paiseToRupees(refundAmountPaise) : null;
 
     if (!paymentId) {
@@ -186,6 +207,13 @@ Deno.serve(async (req: Request) => {
 
     if (refundError) {
       console.error('Refund reconciliation RPC failed:', refundError);
+      await reportPaymentAlert(
+        supabase,
+        SOURCE,
+        `refund_reconcile_failed:${paymentId}`,
+        `Refund for ${paymentId} could not be applied to the database.`,
+        { payment_id: paymentId, refund_id: refundId, event, message: refundError.message }
+      );
       return new Response(JSON.stringify({ error: refundError.message }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -211,6 +239,17 @@ Deno.serve(async (req: Request) => {
   const currency = paymentEntity?.currency || orderEntity?.currency || 'INR';
 
   if (!orderId || !paymentId || !amountPaise) {
+    // Old app builds could open checkout without a server order; that money was captured
+    // with nothing to activate, so it must reach a human.
+    if (paymentId && !orderId) {
+      await reportPaymentAlert(
+        supabase,
+        SOURCE,
+        `payment_without_order:${paymentId}`,
+        `Payment ${paymentId} was captured without a PracticeKoro order. Activate the student's pass manually or refund it.`,
+        { payment_id: paymentId, amount_paise: amountPaise ?? null, event }
+      );
+    }
     return new Response(
       JSON.stringify({
         error: 'Missing required order_id, payment_id, or amount in webhook payload',
@@ -245,6 +284,13 @@ Deno.serve(async (req: Request) => {
 
   if (rpcError) {
     console.error('Reconciliation RPC rejected transaction. Error code:', rpcError.code);
+    await reportPaymentAlert(
+      supabase,
+      SOURCE,
+      `reconcile_failed:${orderId}`,
+      `Captured payment ${paymentId} from the webhook could not be reconciled.`,
+      { order_id: orderId, payment_id: paymentId, amount: amountInr, event, code: rpcError.code }
+    );
     return new Response(
       JSON.stringify({
         error: 'Reconciliation rejected',

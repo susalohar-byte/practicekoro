@@ -7,6 +7,8 @@ const m = vi.hoisted(() => ({
 vi.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
   supabaseRuntime: {
+    // These suites cover the browser aggregation used until the reporting RPCs are deployed.
+    rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'not deployed' } }),
     from: (table: string) => {
       const filters: ((r: any) => boolean)[] = [];
       let lo = 0,

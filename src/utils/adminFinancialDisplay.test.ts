@@ -102,4 +102,16 @@ describe('admin financial display', () => {
       ])
     ).toBe(249.5);
   });
+
+  it('uses the net recorded revenue (upgrades, partial refunds) when available', () => {
+    expect(
+      getRecordedSubscriptionRevenue([
+        { paymentId: 'p1', amount: 99, paymentStatus: 'completed', recordedRevenue: 149 },
+        { paymentId: 'p1', amount: 99, paymentStatus: 'completed', recordedRevenue: 149 },
+        { paymentId: 'p2', amount: 99, paymentStatus: 'refunded', recordedRevenue: 79 },
+        { paymentId: 'p3', amount: 99, paymentStatus: 'completed', recordedRevenue: 0 },
+        { paymentId: 'p4', amount: 0.1, paymentStatus: 'completed', recordedRevenue: 0.2 },
+      ])
+    ).toBe(228.2);
+  });
 });

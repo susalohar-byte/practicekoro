@@ -28,12 +28,12 @@ export const PRESET_SERIES_ICONS: PresetIcon[] = [
     category: 'WBPSC',
     url: '/images/exams/logo_wbpsc.png',
   },
-  { id: 'wbcs', name: 'WBCS Executive', category: 'WBPSC', url: '/images/exams/wbcs_emblem.png' },
+  { id: 'wbcs', name: 'WBCS Executive', category: 'WBPSC', url: '/images/exams/logo_wbpsc.png' },
   {
     id: 'wbssc',
     name: 'WBSSC Group C & D / SLST',
     category: 'Teaching',
-    url: '/images/exams/wbssc_emblem.png',
+    url: '/images/exams/logo_wbpsc.png',
   },
   {
     id: 'tet',
@@ -248,7 +248,7 @@ export const UploadSeriesIconModal: React.FC<UploadSeriesIconModalProps> = ({
               {series.title}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {selectedIcon ? 'Custom icon selected' : 'Using default exam emblem'}
+              {selectedIcon ? 'Custom icon selected' : 'Using default exam logo'}
             </p>
           </div>
           {currentIconUrl && (
@@ -315,7 +315,7 @@ export const UploadSeriesIconModal: React.FC<UploadSeriesIconModalProps> = ({
           {activeTab === 'presets' && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Choose from official West Bengal & Central exam emblems:
+                Choose from official West Bengal & Central exam logos:
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {PRESET_SERIES_ICONS.map((preset) => {

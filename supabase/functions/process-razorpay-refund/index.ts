@@ -136,12 +136,18 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 4. Retrieve payment record from DB
+  // 4. Retrieve payment record from DB. payments.id is a uuid column, so only compare
+  // it when the identifier is a UUID; otherwise PostgREST rejects the whole filter.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    payload.paymentId
+  );
   const { data: payment, error: fetchError } = await serviceClient
     .from('payments')
     .select('*')
     .or(
-      `id.eq.${payload.paymentId},razorpay_payment_id.eq.${payload.paymentId},transaction_id.eq.${payload.paymentId}`
+      isUuid
+        ? `id.eq.${payload.paymentId}`
+        : `razorpay_payment_id.eq.${payload.paymentId},transaction_id.eq.${payload.paymentId}`
     )
     .order('created_at', { ascending: false })
     .limit(1)
@@ -261,6 +267,52 @@ Deno.serve(async (req: Request) => {
 
     const authHeaderBasic = 'Basic ' + btoa(`${resolvedKeyId.trim()}:${keySecret.trim()}`);
     const refundPaise = rupeesToPaise(requestedRefund);
+    const refundNoteKey = `${payment.id}:${nowIso}`;
+
+    // When the refund call's outcome is unknown (timeout, dropped connection, unreadable
+    // body), ask Razorpay whether this exact refund exists before releasing the claim.
+    // Releasing blindly would let a retry refund the same payment twice.
+    const findIssuedRefund = async (): Promise<'none' | 'unknown' | Record<string, any>> => {
+      try {
+        const res = await fetch(
+          `https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refunds?count=100`,
+          { headers: { Authorization: authHeaderBasic } }
+        );
+        if (!res.ok) return 'unknown';
+        const body = await res.json();
+        const items: any[] = Array.isArray(body?.items) ? body.items : [];
+        const match = items.find((r) => r?.notes?.refund_request === refundNoteKey);
+        return match ?? 'none';
+      } catch {
+        return 'unknown';
+      }
+    };
+    const holdForReconciliation = async (detail: string) => {
+      // Keep the payment claimed so it cannot be refunded again; the refund webhook
+      // (reconcile_razorpay_refund) records the real amount if Razorpay processed it.
+      await serviceClient
+        .from('payments')
+        .update({
+          refund_reason: refundReasonText,
+          raw_response: {
+            ...(payment.raw_response ?? {}),
+            refund_pending_confirmation: true,
+            refund_request: refundNoteKey,
+            refund_requested_amount: requestedRefund,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', payment.id);
+      return new Response(
+        JSON.stringify({
+          error:
+            `Could not confirm the Razorpay refund (${detail}). The payment is held as refunded ` +
+            'to prevent a duplicate refund. Check the Razorpay dashboard; the refund webhook ' +
+            'will record it if it went through.',
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    };
 
     try {
       const rzpRefundRes = await fetch(
@@ -279,14 +331,24 @@ Deno.serve(async (req: Request) => {
               payment_id: payment.id,
               platform: 'PracticeKoro',
               ...(payload.notes || {}),
+              refund_request: refundNoteKey,
             },
           }),
         }
       );
 
-      razorpayResponse = await rzpRefundRes.json();
+      razorpayResponse = await rzpRefundRes.json().catch(() => null);
 
-      if (!rzpRefundRes.ok || !razorpayResponse?.id) {
+      if (rzpRefundRes.status >= 500 || (rzpRefundRes.ok && !razorpayResponse?.id)) {
+        // The gateway may have processed the refund even though we got no usable answer.
+        const issued = await findIssuedRefund();
+        if (issued === 'unknown') {
+          return holdForReconciliation(`gateway responded ${rzpRefundRes.status}`);
+        }
+        if (issued !== 'none') razorpayResponse = issued;
+      }
+
+      if (!razorpayResponse?.id) {
         const errMsg =
           razorpayResponse?.error?.description ||
           razorpayResponse?.error?.message ||
@@ -300,9 +362,17 @@ Deno.serve(async (req: Request) => {
       finalRefundId = razorpayResponse.id;
     } catch (fetchErr: any) {
       console.error('Network error during Razorpay refund:', fetchErr);
-      return failAndRelease(502, {
-        error: `Network error connecting to Razorpay: ${fetchErr?.message || 'Gateway unreachable'}`,
-      });
+      const issued = await findIssuedRefund();
+      if (issued === 'none') {
+        return failAndRelease(502, {
+          error: `Network error connecting to Razorpay: ${fetchErr?.message || 'Gateway unreachable'}. No refund was issued.`,
+        });
+      }
+      if (issued === 'unknown') {
+        return holdForReconciliation(fetchErr?.message || 'gateway unreachable');
+      }
+      razorpayResponse = issued;
+      finalRefundId = issued.id;
     }
   }
 
@@ -337,13 +407,17 @@ Deno.serve(async (req: Request) => {
   // cancelled; an upgrade is reverted to the previous plan and expiry.
   let revokedSubscription = false;
   if (payload.revokeSubscription !== false) {
-    const { error: revokeError } = await serviceClient.rpc('revoke_access_for_refunded_payment', {
-      p_payment_row_id: payment.id,
-    });
+    const { data: revokeResult, error: revokeError } = await serviceClient.rpc(
+      'revoke_access_for_refunded_payment',
+      { p_payment_row_id: payment.id }
+    );
     if (revokeError) {
       console.error('Subscription revoke after refund failed:', revokeError);
     } else {
-      revokedSubscription = true;
+      // Only report a revoke when something was actually cancelled or reverted.
+      revokedSubscription =
+        Number(revokeResult?.cancelled_subscriptions ?? 0) > 0 ||
+        revokeResult?.upgrade_reverted === true;
     }
   }
 

@@ -15,6 +15,8 @@ import type { Exam, Subject, Chapter, MockTest } from '@/types';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
 
 interface CreateMockTestModalProps {
   isOpen: boolean;
@@ -35,6 +37,7 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
   onTestCreated,
   initialType = 'full_mock',
 }) => {
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(isOpen, onClose, 200);
   const [testType, setTestType] = useState<'full_mock' | 'topic' | 'pyq'>(initialType);
 
   // Form State
@@ -42,6 +45,24 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [dragActiveIcon, setDragActiveIcon] = useState(false);
+
+  const handleUploadIconFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file.');
+      return;
+    }
+    try {
+      setIsUploadingIcon(true);
+      setError(null);
+      const url = await api.uploadTestIcon(file);
+      setIconUrl(url);
+    } catch (uploadErr) {
+      setError(getErrorMessage(uploadErr, 'Failed to upload icon.'));
+    } finally {
+      setIsUploadingIcon(false);
+    }
+  };
   const [examId, setExamId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
@@ -62,6 +83,8 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedExam = exams.find((e) => e.id === examId);
 
   // Start every "create" from a clean form for the requested mode.
   useEffect(() => {
@@ -142,7 +165,7 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +211,7 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
           isPremium,
         });
         result.created.forEach((t) => onTestCreated(t));
-        onClose();
+        handleSmoothClose();
       } catch (err) {
         console.error('Failed to generate topic tests:', err);
         setError(getErrorMessage(err, 'Failed to generate topic tests.'));
@@ -226,7 +249,7 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
       });
 
       onTestCreated(created);
-      onClose();
+      handleSmoothClose();
     } catch (err) {
       console.error('Failed to create mock test:', err);
       setError(getErrorMessage(err, 'Failed to create mock test. Please check inputs.'));
@@ -236,10 +259,35 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/25 dark:bg-black/45 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0A1024] border border-slate-200/90 dark:border-slate-800 rounded-2xl w-full max-w-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+    <div
+      onClick={handleSmoothClose}
+      className={cn(
+        'fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-3 sm:p-5 bg-transparent transition-opacity duration-200 ease-out',
+        isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'relative bg-white dark:bg-[#0A1024] border border-slate-300 dark:border-slate-700/90 rounded-2xl w-full max-w-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto shadow-none transition-all duration-200 ease-out transform',
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+        )}
+      >
+        {/* Corner Cross Button */}
+        <button
+          type="button"
+          onClick={handleSmoothClose}
+          className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+          aria-label="Close modal"
+          title="Close"
+        >
+          <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+        </button>
+
         {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#070D1E] shrink-0">
+        <div className="px-6 py-4.5 pr-14 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#070D1E] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#026BFC] flex items-center justify-center shrink-0 ring-1 ring-blue-500/20">
               <Sparkles className="w-5 h-5 text-[#026BFC]" />
@@ -253,14 +301,6 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            aria-label="Close modal"
-          >
-            <X className="w-4.5 h-4.5" />
-          </button>
         </div>
 
         {/* Form Body - Scrollable Container */}
@@ -273,12 +313,12 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
               </div>
             )}
 
-            {/* Mode Selector - 3 Distinctive Colorful Cards */}
+            {/* Mode Selector - 3 Premium Modern Interactive Cards */}
             <div>
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block mb-2.5">
                 Test Mode *
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {/* 1. Full Mock */}
                 <button
                   type="button"
@@ -287,41 +327,41 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                     applyTypeDefaults('full_mock');
                   }}
                   className={cn(
-                    'relative p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
+                    'relative p-4 rounded-2xl text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
                     testType === 'full_mock'
-                      ? 'border-2 border-[#026BFC] bg-gradient-to-b from-blue-50/80 via-blue-50/30 to-white dark:from-blue-950/40 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-blue-500/10 ring-2 ring-[#026BFC]/15'
-                      : 'border-slate-200/90 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 bg-white dark:bg-[#070D1E] hover:shadow-xs'
+                      ? 'border-2 border-[#026BFC] bg-gradient-to-b from-blue-50/70 via-white to-white dark:from-blue-950/30 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-blue-500/10 ring-2 ring-[#026BFC]/20'
+                      : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#070D1E] hover:border-blue-300 dark:hover:border-blue-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-900/40 hover:shadow-sm hover:-translate-y-0.5'
                   )}
                 >
                   <div className="flex items-center justify-between w-full mb-3">
                     <div
                       className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                        'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200',
                         testType === 'full_mock'
-                          ? 'bg-[#026BFC] text-white shadow-sm shadow-blue-500/30'
-                          : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 group-hover:scale-105'
+                          ? 'bg-gradient-to-br from-blue-500 to-[#026BFC] text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-300/40 dark:ring-blue-500/40'
+                          : 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 group-hover:scale-105 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/60'
                       )}
                     >
                       <Shield className="w-5 h-5" />
                     </div>
                     {testType === 'full_mock' ? (
-                      <span className="w-5 h-5 rounded-full bg-[#026BFC] text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-[#026BFC] text-white flex items-center justify-center shadow-xs ring-2 ring-blue-200 dark:ring-blue-900/60">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </span>
                     ) : (
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-blue-400" />
+                      <span className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 group-hover:border-blue-400 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-950/50 transition-colors" />
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      <span className="text-[13px] font-bold text-slate-900 dark:text-white">
                         Full Mock
                       </span>
-                      <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50">
                         Exam Pattern
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 leading-snug">
+                    <span className="text-[11.5px] text-slate-500 dark:text-slate-400 block mt-1.5 leading-snug">
                       Complete real syllabus format
                     </span>
                   </div>
@@ -335,41 +375,41 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                     applyTypeDefaults('topic');
                   }}
                   className={cn(
-                    'relative p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
+                    'relative p-4 rounded-2xl text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
                     testType === 'topic'
-                      ? 'border-2 border-emerald-500 bg-gradient-to-b from-emerald-50/80 via-emerald-50/30 to-white dark:from-emerald-950/40 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-emerald-500/10 ring-2 ring-emerald-500/15'
-                      : 'border-slate-200/90 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 bg-white dark:bg-[#070D1E] hover:shadow-xs'
+                      ? 'border-2 border-emerald-500 bg-gradient-to-b from-emerald-50/70 via-white to-white dark:from-emerald-950/30 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-emerald-500/10 ring-2 ring-emerald-500/20'
+                      : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#070D1E] hover:border-emerald-300 dark:hover:border-emerald-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-900/40 hover:shadow-sm hover:-translate-y-0.5'
                   )}
                 >
                   <div className="flex items-center justify-between w-full mb-3">
                     <div
                       className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                        'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200',
                         testType === 'topic'
-                          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
-                          : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 group-hover:scale-105'
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-300/40 dark:ring-emerald-500/40'
+                          : 'bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 group-hover:scale-105 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/60'
                       )}
                     >
                       <BookOpen className="w-5 h-5" />
                     </div>
                     {testType === 'topic' ? (
-                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs ring-2 ring-emerald-200 dark:ring-emerald-900/60">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </span>
                     ) : (
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-emerald-400" />
+                      <span className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 group-hover:border-emerald-400 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/50 transition-colors" />
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      <span className="text-[13px] font-bold text-slate-900 dark:text-white">
                         Topic Test
                       </span>
-                      <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
                         Chapter
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 leading-snug">
+                    <span className="text-[11.5px] text-slate-500 dark:text-slate-400 block mt-1.5 leading-snug">
                       Subject & chapter specific
                     </span>
                   </div>
@@ -383,41 +423,41 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                     applyTypeDefaults('pyq');
                   }}
                   className={cn(
-                    'relative p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
+                    'relative p-4 rounded-2xl text-left transition-all duration-200 flex flex-col justify-between cursor-pointer group select-none',
                     testType === 'pyq'
-                      ? 'border-2 border-amber-500 bg-gradient-to-b from-amber-50/80 via-amber-50/30 to-white dark:from-amber-950/40 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-amber-500/10 ring-2 ring-amber-500/15'
-                      : 'border-slate-200/90 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 bg-white dark:bg-[#070D1E] hover:shadow-xs'
+                      ? 'border-2 border-amber-500 bg-gradient-to-b from-amber-50/70 via-white to-white dark:from-amber-950/30 dark:via-[#0A1024] dark:to-[#0A1024] shadow-md shadow-amber-500/10 ring-2 ring-amber-500/20'
+                      : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#070D1E] hover:border-amber-300 dark:hover:border-amber-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-900/40 hover:shadow-sm hover:-translate-y-0.5'
                   )}
                 >
                   <div className="flex items-center justify-between w-full mb-3">
                     <div
                       className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                        'w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200',
                         testType === 'pyq'
-                          ? 'bg-amber-600 text-white shadow-sm shadow-amber-500/30'
-                          : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 group-hover:scale-105'
+                          ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-300/40 dark:ring-amber-500/40'
+                          : 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40 group-hover:scale-105 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/60'
                       )}
                     >
                       <Clock className="w-5 h-5" />
                     </div>
                     {testType === 'pyq' ? (
-                      <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center shadow-xs">
+                      <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center shadow-xs ring-2 ring-amber-200 dark:ring-amber-900/60">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </span>
                     ) : (
-                      <span className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-amber-400" />
+                      <span className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 group-hover:border-amber-400 group-hover:bg-amber-50/50 dark:group-hover:bg-amber-950/50 transition-colors" />
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      <span className="text-[13px] font-bold text-slate-900 dark:text-white">
                         Official PYQ
                       </span>
-                      <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50">
                         Past Papers
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 leading-snug">
+                    <span className="text-[11.5px] text-slate-500 dark:text-slate-400 block mt-1.5 leading-snug">
                       Previous year solved exams
                     </span>
                   </div>
@@ -682,7 +722,36 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-3 pt-1">
+              <div
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActiveIcon(true);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActiveIcon(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActiveIcon(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActiveIcon(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleUploadIconFile(file);
+                }}
+                className={cn(
+                  'flex items-center gap-3 p-2 rounded-2xl transition-all border-2',
+                  dragActiveIcon
+                    ? 'border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                    : 'border-transparent'
+                )}
+              >
                 {/* Icon Preview */}
                 <div className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-0.5">
                   {iconUrl ? (
@@ -693,6 +762,13 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
                       }}
+                    />
+                  ) : selectedExam ? (
+                    <ExamEmblemBadge
+                      title={selectedExam.title}
+                      slug={selectedExam.slug}
+                      iconName={selectedExam.iconName}
+                      className="w-11 h-11"
                     />
                   ) : (
                     <div
@@ -718,37 +794,45 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
 
                 {/* Upload Controls */}
                 <div className="flex-1 min-w-0">
-                  <label
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold text-xs cursor-pointer shadow-2xs transition-colors',
-                      isUploadingIcon
-                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                        : 'bg-[#026BFC] hover:bg-blue-700 text-white'
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-semibold text-xs cursor-pointer shadow-2xs transition-colors',
+                        isUploadingIcon
+                          ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                          : 'bg-[#026BFC] hover:bg-blue-700 text-white'
+                      )}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {isUploadingIcon
+                        ? 'Uploading...'
+                        : iconUrl
+                          ? 'Change Custom Icon'
+                          : 'Upload or Drop Icon'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingIcon}
+                        className="hidden"
+                        onChange={(ev) => {
+                          const file = ev.target.files?.[0];
+                          if (file) handleUploadIconFile(file);
+                        }}
+                      />
+                    </label>
+
+                    {selectedExam && !iconUrl && (
+                      <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        Official {selectedExam.title} emblem applied automatically
+                      </span>
                     )}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    {isUploadingIcon ? 'Uploading...' : iconUrl ? 'Change Icon' : 'Upload Icon'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      disabled={isUploadingIcon}
-                      className="hidden"
-                      onChange={async (ev) => {
-                        const file = ev.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          setIsUploadingIcon(true);
-                          setError(null);
-                          const uploadedUrl = await api.uploadTestIcon(file, 'new-test');
-                          setIconUrl(uploadedUrl);
-                        } catch (err: any) {
-                          setError('Failed to upload icon: ' + (err?.message || 'Error'));
-                        } finally {
-                          setIsUploadingIcon(false);
-                        }
-                      }}
-                    />
-                  </label>
+                  </div>
+                  {dragActiveIcon && (
+                    <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                      Drop image to set test icon
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -849,7 +933,7 @@ export const CreateMockTestModal: React.FC<CreateMockTestModalProps> = ({
           <div className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-[#070D1E] flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleSmoothClose}
               disabled={isSubmitting}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 border border-slate-300/80 dark:border-slate-700 transition-colors cursor-pointer"
             >

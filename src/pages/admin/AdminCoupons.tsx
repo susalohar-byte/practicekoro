@@ -24,6 +24,17 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import type { CouponItem } from '@/types';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import {
+  getKolkataDateString,
+  parseKolkataEndOfDay,
+  parseKolkataStartOfDay,
+} from '@/services/domains/admin.dashboard';
+
+/** The Kolkata calendar day (YYYY-MM-DD) of a stored coupon timestamp, for date inputs. */
+function couponFormDate(iso?: string): string {
+  if (!iso || !Number.isFinite(Date.parse(iso))) return '';
+  return getKolkataDateString(new Date(iso));
+}
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -294,6 +305,7 @@ export const AdminCoupons: React.FC = () => {
         const isPct = c.discountType === 'percentage';
         const validFromStr = c.validFrom
           ? new Date(c.validFrom).toLocaleDateString('en-GB', {
+              timeZone: 'Asia/Kolkata',
               day: '2-digit',
               month: 'short',
               year: 'numeric',
@@ -301,6 +313,7 @@ export const AdminCoupons: React.FC = () => {
           : 'Immediate';
         const validUntilStr = c.validUntil
           ? new Date(c.validUntil).toLocaleDateString('en-GB', {
+              timeZone: 'Asia/Kolkata',
               day: '2-digit',
               month: 'short',
               year: 'numeric',
@@ -417,8 +430,8 @@ export const AdminCoupons: React.FC = () => {
     setFormMaxDiscount(c.maxDiscountAmount == null ? '' : String(c.maxDiscountAmount));
     setFormApplicablePlanId(c.applicablePlanId || '');
     setFormUsageLimit(c.maxUses == null ? '' : String(c.maxUses));
-    setFormValidFrom(c.validFrom?.slice(0, 10) || '');
-    setFormValidUntil(c.validUntil?.slice(0, 10) || '');
+    setFormValidFrom(couponFormDate(c.validFrom));
+    setFormValidUntil(couponFormDate(c.validUntil));
     setFormActiveImmediately(c.isActive);
     setFormFirstTimeOnly(c.maxUsesPerUser === 1);
     setActiveMenuId(null);
@@ -548,17 +561,18 @@ export const AdminCoupons: React.FC = () => {
             ? 5
             : (editingCoupon?.maxUsesPerUser ?? 5),
         applicablePlanId: formApplicablePlanId,
+        // Coupon days are Indian calendar days, whatever the admin's browser timezone.
         validFrom:
-          editingCoupon && formValidFrom === editingCoupon.validFrom?.slice(0, 10)
+          editingCoupon && formValidFrom === couponFormDate(editingCoupon.validFrom)
             ? editingCoupon.validFrom
             : formValidFrom
-              ? new Date(`${formValidFrom}T00:00:00`).toISOString()
+              ? parseKolkataStartOfDay(formValidFrom).toISOString()
               : new Date().toISOString(),
         validUntil:
-          editingCoupon && formValidUntil === editingCoupon.validUntil?.slice(0, 10)
+          editingCoupon && formValidUntil === couponFormDate(editingCoupon.validUntil)
             ? editingCoupon.validUntil
             : formValidUntil
-              ? new Date(`${formValidUntil}T23:59:59.999`).toISOString()
+              ? parseKolkataEndOfDay(formValidUntil).toISOString()
               : '',
         isActive: formActiveImmediately,
       };

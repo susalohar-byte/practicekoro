@@ -21,7 +21,7 @@ import {
   type AdminDistrictRankingRow,
 } from '@/services/domains/admin.analytics';
 import { getDateRangeBounds } from '@/services/domains/admin.dashboard';
-import { WEST_BENGAL_DISTRICTS } from '@/data/districts';
+import { WEST_BENGAL_DISTRICTS, getBlocksForDistrict } from '@/data/districts';
 
 // ============================================================================
 // DATA MODEL
@@ -71,7 +71,13 @@ export const AdminDistrictRankings: React.FC = () => {
   const [exams, setExams] = useState<{ id: string; title: string }[]>([]);
   const [selectedExam, setSelectedExam] = useState('');
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All Districts');
+  const [selectedBlockFilter, setSelectedBlockFilter] = useState('All Blocks');
   const [timePeriod, setTimePeriod] = useState<(typeof TIME_PERIODS)[number]>('Last 30 Days');
+
+  const availableBlocks = useMemo(() => {
+    if (selectedDistrictFilter === 'All Districts') return [];
+    return getBlocksForDistrict(selectedDistrictFilter);
+  }, [selectedDistrictFilter]);
 
   const [districtsList, setDistrictsList] = useState<DistrictRankData[]>([]);
 
@@ -226,6 +232,7 @@ export const AdminDistrictRankings: React.FC = () => {
   const handleResetFilters = () => {
     setSelectedExam('');
     setSelectedDistrictFilter('All Districts');
+    setSelectedBlockFilter('All Blocks');
     setTimePeriod('Last 30 Days');
     setCurrentPage(1);
   };
@@ -374,6 +381,7 @@ export const AdminDistrictRankings: React.FC = () => {
               value={selectedDistrictFilter}
               onChange={(e) => {
                 setSelectedDistrictFilter(e.target.value);
+                setSelectedBlockFilter('All Blocks');
                 setCurrentPage(1);
               }}
               className={selectClass}
@@ -382,6 +390,43 @@ export const AdminDistrictRankings: React.FC = () => {
               {districtFilterOptions.map((district) => (
                 <option key={district} value={district}>
                   {district}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+        <div className="w-[160px]">
+          <label
+            htmlFor="select-block-filter"
+            className="block text-[11px] font-semibold text-[#64748B] mb-1"
+          >
+            Select Block
+          </label>
+          <div className="relative">
+            <select
+              id="select-block-filter"
+              value={selectedBlockFilter}
+              disabled={selectedDistrictFilter === 'All Districts'}
+              onChange={(e) => {
+                setSelectedBlockFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className={cn(
+                selectClass,
+                selectedDistrictFilter === 'All Districts' &&
+                  'opacity-60 cursor-not-allowed bg-slate-50 text-slate-400'
+              )}
+            >
+              <option value="All Blocks">
+                {selectedDistrictFilter === 'All Districts'
+                  ? 'Select District First'
+                  : 'All Blocks'}
+              </option>
+              {availableBlocks.map((block) => (
+                <option key={block} value={block}>
+                  {block}
                 </option>
               ))}
             </select>
@@ -495,6 +540,11 @@ export const AdminDistrictRankings: React.FC = () => {
                             <span className="font-bold text-[#0F172A] leading-tight truncate">
                               {district.district}
                             </span>
+                            {selectedBlockFilter !== 'All Blocks' && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                                Block: {selectedBlockFilter}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-3 text-center font-semibold text-[#1E293B]">
