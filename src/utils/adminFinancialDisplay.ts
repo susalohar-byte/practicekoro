@@ -51,10 +51,21 @@ export function formatRecordedAmount(amount?: number, currency = 'INR'): string 
 }
 
 export function getRecordedSubscriptionRevenue(
-  rows: { paymentId?: string; amount?: number; paymentStatus?: PaymentStatus }[]
+  rows: {
+    paymentId?: string;
+    amount?: number;
+    paymentStatus?: PaymentStatus;
+    recordedRevenue?: number;
+  }[]
 ): number {
   const counted = new Set<string>();
   return rows.reduce((total, row) => {
+    // Net figure (upgrades included, refunds excluded) when the payment lookup provided one.
+    if (row.paymentId && row.recordedRevenue != null && Number.isFinite(row.recordedRevenue)) {
+      if (counted.has(row.paymentId)) return total;
+      counted.add(row.paymentId);
+      return Math.round((total + Math.max(0, row.recordedRevenue)) * 100) / 100;
+    }
     if (
       !row.paymentId ||
       counted.has(row.paymentId) ||

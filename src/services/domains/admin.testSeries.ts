@@ -2,6 +2,7 @@ import { uploadValidatedImage, validateRasterFile } from '@/lib/rasterUploads';
 import { requireSavedRow } from './admin.mutations';
 import { deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { notifyExamsUpdated } from '@/lib/dataSync';
 import {
   localExams,
   localTestSeries,
@@ -311,6 +312,7 @@ export async function assignTestsToSeries(ids: string[], seriesId: string | null
   if (!ids.length) return;
   if (!isSupabaseConfigured) {
     for (const t of localTests) if (ids.includes(t.id)) t.testSeriesId = seriesId || undefined;
+    notifyExamsUpdated();
     return;
   }
   const { data, error } = await supabase.rpc('admin_assign_series_tests', {
@@ -325,6 +327,7 @@ export async function assignTestsToSeries(ids: string[], seriesId: string | null
     ids.some((id) => !data.saved_ids.includes(id))
   )
     throw new Error('Not all assignments were confirmed.');
+  notifyExamsUpdated();
 }
 
 export async function deleteTestSeries(id: string): Promise<boolean> {
@@ -349,7 +352,7 @@ export const DEFAULT_POPULAR_TEST_SERIES: PopularTestSeriesCard[] = [
     cardGradientEnd: '#0A2E6E',
     cardArrowColor: '#026BFC',
     cardBgImage: '/images/exams/bg_wbp.png',
-    cardLogoUrl: '/images/exams/emblem_series_wbp.png',
+    cardLogoUrl: '/images/exams/logo_wbp.png',
     orderIndex: 1,
     isActive: true,
     route: '/test-series/wbp-constable',
@@ -403,7 +406,7 @@ export const DEFAULT_POPULAR_TEST_SERIES: PopularTestSeriesCard[] = [
     cardGradientEnd: '#2E1065',
     cardArrowColor: '#8B5CF6',
     cardBgImage: '/images/series_kp_bg.png',
-    cardLogoUrl: '/images/exams/emblem_series_kp.png',
+    cardLogoUrl: '/images/exams/logo_kp.png',
     orderIndex: 4,
     isActive: true,
     route: '/test-series/kp-constable',

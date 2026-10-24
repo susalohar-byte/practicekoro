@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { X, Upload, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { api } from '@/services/api';
+import { parseCsvRaw } from '@/utils/csvParser';
+import { cn } from '@/lib/utils';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
+import { FileDropZone } from '@/components/common/FileDropZone';
 import type { Exam, Subject, Chapter } from '@/types';
 
 interface ImportTestsModalProps {
@@ -21,13 +25,14 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   chapters,
   onImportComplete,
 }) => {
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(isOpen, onClose, 200);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
   const [rowErrors, setRowErrors] = useState<string[]>([]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const handleDownloadSample = () => {
     const headers = [
@@ -91,13 +96,11 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (file: File) => {
     setError(null);
     setSuccessCount(null);
     setRowErrors([]);
-    if (e.target.files && e.target.files[0]) {
-      setCsvFile(e.target.files[0]);
-    }
+    setCsvFile(file);
   };
 
   const handleUpload = async () => {
@@ -115,18 +118,16 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
     try {
       const text = await csvFile.text();
-      const lines = text
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean);
+      // Quote-aware parse (commas inside quoted titles) that also strips an Excel BOM.
+      const lines = parseCsvRaw(text);
       if (lines.length < 2) {
         throw new Error('CSV file contains no data rows.');
       }
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+      const headers = lines[0].map((h) => h.trim().toLowerCase());
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map((v) => v.trim());
+        const values = lines[i].map((v) => v.trim());
         const row: Record<string, string> = {};
         headers.forEach((h, idx) => {
           row[h] = values[idx] || '';
@@ -152,10 +153,16 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
         }
 
         if (row.topicname) {
+          // Topic names repeat across subjects: match within the row's subject when given.
           const matchChap = chapters.find(
-            (c) => c.name.toLowerCase() === row.topicname.toLowerCase()
+            (c) =>
+              c.name.toLowerCase() === row.topicname.toLowerCase() &&
+              (!foundSubId || c.subjectId === foundSubId)
           );
-          if (matchChap) foundChapId = matchChap.id;
+          if (matchChap) {
+            foundChapId = matchChap.id;
+            foundSubId = foundSubId || matchChap.subjectId;
+          }
         }
 
         try {
@@ -210,20 +217,39 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/25 dark:bg-black/45 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0A1024] border border-slate-200/90 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] overflow-hidden my-auto animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-[#070D1E]">
+    <div
+      onClick={handleSmoothClose}
+      className={cn(
+        'fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-3 sm:p-5 bg-transparent transition-opacity duration-200 ease-out',
+        isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'relative bg-white dark:bg-[#0A1024] border border-slate-300 dark:border-slate-700/90 rounded-2xl w-full max-w-lg overflow-hidden my-auto shadow-none transition-all duration-200 ease-out transform',
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+        )}
+      >
+        {/* Corner Cross Button */}
+        <button
+          type="button"
+          onClick={handleSmoothClose}
+          className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+          aria-label="Close modal"
+          title="Close"
+        >
+          <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+        </button>
+
+        {/* Header */}
+        <div className="px-6 py-4.5 pr-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-[#070D1E]">
           <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Upload className="w-4 h-4 text-blue-500" />
             Import Mock Tests (CSV)
           </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         <div className="p-6 space-y-4 text-xs">
@@ -277,16 +303,21 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-2">
               Select CSV File
             </label>
-            <input
-              type="file"
+            <FileDropZone
               accept=".csv"
-              onChange={handleFileChange}
-              className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950/50 dark:file:text-blue-300 hover:file:bg-blue-100"
+              disabled={isProcessing}
+              isProcessing={isProcessing}
+              onFile={handleFileSelect}
+              selectedFile={csvFile}
+              onClear={() => setCsvFile(null)}
+              label="Click to browse or drag & drop CSV file"
+              hint="Supports standard CSV format (Max 5MB)"
+              buttonLabel="Browse CSV"
             />
           </div>
 
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-            <Button variant="outline" size="sm" onClick={onClose} disabled={isProcessing}>
+            <Button variant="outline" size="sm" onClick={handleSmoothClose} disabled={isProcessing}>
               Cancel
             </Button>
             <Button

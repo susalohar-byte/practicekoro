@@ -211,7 +211,10 @@ function sanitizeBanner(item: any, index: number): HeroBanner {
         : [],
     imageUrl: item.imageUrl || item.image_url || '/images/exam_hero_banner.png',
     mobileImageUrl: item.mobileImageUrl || item.mobile_image_url || undefined,
-    bannerType: (item.bannerType || item.banner_type || (item.showTextOverlay || item.show_text_overlay ? 'text_overlay' : 'full_image')) as 'full_image' | 'text_overlay',
+    bannerType: (item.bannerType ||
+      item.banner_type ||
+      (item.showTextOverlay || item.show_text_overlay ? 'text_overlay' : 'full_image')) as
+      'full_image' | 'text_overlay',
     showTextOverlay:
       item.showTextOverlay !== undefined
         ? Boolean(item.showTextOverlay)
@@ -320,7 +323,7 @@ async function syncBannersToRemote(banners: HeroBanner[]): Promise<void> {
           image_url: b.imageUrl,
           mobile_image_url: b.mobileImageUrl,
           banner_type: b.bannerType || (b.showTextOverlay ? 'text_overlay' : 'full_image'),
-          show_text_overlay: Boolean(b.showTextOverlay ?? (b.bannerType === 'text_overlay')),
+          show_text_overlay: Boolean(b.showTextOverlay ?? b.bannerType === 'text_overlay'),
           theme_gradient: b.themeGradient,
           target_audience: b.targetAudience,
           placement: b.placement,
@@ -367,11 +370,36 @@ export const bannerService = {
     const opt = await optimizeBannerImage(file);
     const fileToUpload = opt.file;
 
-    if (isSupabaseConfigured)
-      return { url: await uploadValidatedImage(fileToUpload, 'banners'), optimization: opt };
+    if (isSupabaseConfigured) {
+      try {
+        const url = await uploadValidatedImage(fileToUpload, 'banners');
+        return { url, optimization: opt };
+      } catch (uploadErr) {
+        // Fallback 1: Try direct storage upload if edge function is unavailable
+        try {
+          const ext = file.name.split('.').pop()?.toLowerCase() || 'webp';
+          const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: directErr } = await supabaseRuntime.storage
+            .from('banners')
+            .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: true });
+          if (!directErr) {
+            const { data: pubData } = supabaseRuntime.storage.from('banners').getPublicUrl(path);
+            if (pubData?.publicUrl) {
+              return { url: pubData.publicUrl, optimization: opt };
+            }
+          }
+        } catch {
+          // Direct storage upload fallback not available
+        }
 
-    // Attempt 4: Safe compressed Data URL
-    if (isSupabaseConfigured) throw new Error('Durable image upload failed.');
+        // Fallback 2: Return client-optimized, compressed data URL (< 250 KB)
+        if (opt.dataUrl && opt.dataUrl.length < 500000) {
+          return { url: opt.dataUrl, optimization: opt };
+        }
+        throw uploadErr;
+      }
+    }
+
     return { url: opt.dataUrl, optimization: opt };
   },
 

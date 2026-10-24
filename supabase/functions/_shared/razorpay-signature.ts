@@ -36,3 +36,11 @@ export function paiseToRupees(amount: number): number {
     throw new Error('Payment amount must be a positive integer in paise');
   return amount / 100;
 }
+export function rupeesToPaise(amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0)
+    throw new Error('Payment amount must be a positive number in rupees');
+  const paise = Math.round(amount * 100);
+  if (!Number.isSafeInteger(paise) || paise <= 0)
+    throw new Error('Payment amount must convert to a positive integer in paise');
+  return paise;
+}

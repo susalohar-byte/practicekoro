@@ -20,6 +20,7 @@ import {
 import type { AdminDashboardV2Stats, Exam, MockTest } from '@/types';
 import { cn } from '@/lib/utils';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
+import { PaymentHealthCard } from '@/components/admin/PaymentHealthCard';
 import type { DashboardPeriod } from '@/services/domains/admin.reporting';
 import {
   getDateRangeBounds,
@@ -598,6 +599,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      <PaymentHealthCard />
       <AdminDataBoundary
         loading={isLoading}
         label="Loading authoritative Dashboard data…"

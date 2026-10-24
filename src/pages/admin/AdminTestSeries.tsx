@@ -2339,7 +2339,7 @@ export const AdminTestSeries: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block font-bold text-slate-700 dark:text-slate-300">
-                      Series Emblem
+                      Series Official Logo
                     </label>
                     <label className="text-[11px] font-bold text-[#026BFC] hover:underline flex items-center gap-1 cursor-pointer">
                       <Upload className="w-3 h-3" />
@@ -2382,8 +2382,7 @@ export const AdminTestSeries: React.FC = () => {
                           cardGradientEnd: '#0048C6',
                           cardArrowColor: '#026BFC',
                           cardBgImage: '/images/series_wbp_bg.png',
-                          cardLogoUrl:
-                            activeSeries.iconUrl || '/images/exams/emblem_series_wbp.png',
+                          cardLogoUrl: activeSeries.iconUrl || '/images/exams/logo_wbp.png',
                           orderIndex: popularCards.length + 1,
                           route: `/test-series/${activeSeries.slug || activeSeries.id}`,
                           isActive: true,
@@ -2555,11 +2554,11 @@ export const AdminTestSeries: React.FC = () => {
                 </div>
               </div>
 
-              {/* Icon / Emblem Selector */}
+              {/* Series Official Logo Selector */}
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <label className="block font-bold text-slate-700 dark:text-slate-300">
-                    Icon / Circular Emblem
+                    Series Official Logo
                   </label>
                   <label className="text-[11px] font-bold text-[#026BFC] hover:underline flex items-center gap-1 cursor-pointer">
                     <Upload className="w-3 h-3" />
@@ -2576,6 +2575,9 @@ export const AdminTestSeries: React.FC = () => {
                     />
                   </label>
                 </div>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Preset Exam Logos (Official)
+                </span>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   {[
                     { name: 'WBP Police', url: '/images/exams/logo_wbp.png' },

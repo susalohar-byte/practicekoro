@@ -3,6 +3,7 @@ import {
   buildPaymentSignaturePayload,
   hmacSha256Hex,
   paiseToRupees,
+  rupeesToPaise,
   timingSafeEqualHex,
   verifyHmacSha256,
 } from './razorpay-signature';
@@ -27,4 +28,16 @@ describe('Razorpay signature helpers', () => {
   });
   it('converts paise', () => expect(paiseToRupees(29900)).toBe(299));
   it('rejects invalid amounts', () => expect(() => paiseToRupees(0)).toThrow());
+  it('converts rupees to integer paise', () => {
+    expect(rupeesToPaise(299)).toBe(29900);
+    expect(rupeesToPaise(19.99)).toBe(1999);
+    expect(rupeesToPaise(0.1 + 0.2)).toBe(30);
+  });
+  it('rejects invalid rupee amounts', () => {
+    expect(() => rupeesToPaise(0)).toThrow();
+    expect(() => rupeesToPaise(-5)).toThrow();
+    expect(() => rupeesToPaise(Number.NaN)).toThrow();
+    expect(() => rupeesToPaise(Number.POSITIVE_INFINITY)).toThrow();
+    expect(() => rupeesToPaise(0.001)).toThrow();
+  });
 });
