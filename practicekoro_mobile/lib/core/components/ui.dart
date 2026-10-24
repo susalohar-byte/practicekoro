@@ -1328,11 +1328,15 @@ class UIMessage extends StatelessWidget {
                         const Icon(Icons.refresh_rounded, size: 18),
                         const SizedBox(width: 8),
                       ],
-                      Text(
-                        actionLabel!,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          actionLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],

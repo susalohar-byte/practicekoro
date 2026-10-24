@@ -986,7 +986,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
           child: CircularProgressIndicator(color: UI.primary),
         ),
         error: (err, stack) => Center(
-          child: Text('Error: $err'),
+          child: UIMessage.error(
+            message: err.toString(),
+            onAction: () => ref.invalidate(subscriptionPlansProvider),
+          ),
         ),
       ),
     );

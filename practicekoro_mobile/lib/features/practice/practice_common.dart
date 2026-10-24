@@ -67,10 +67,10 @@ List<TopicModel> topicsForSubject(
   }).toList();
 }
 
-/// Starts a practice session for one topic through the existing test runner.
+/// Opens the real tests published for one topic.
 void startTopicSession(BuildContext context, TopicModel topic) {
   context.push(
-    '/test/topic_${topic.id}/active?title=${Uri.encodeQueryComponent(topic.title)}',
+    '/topic/${topic.id}/tests?title=${Uri.encodeQueryComponent(topic.title)}',
   );
 }
 

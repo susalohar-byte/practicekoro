@@ -52,7 +52,8 @@ void main() {
 
     // Verify Home Screen Header Logo (Practice + Koro) and Rank Card
     expect(find.text('Rank'), findsOneWidget);
-    expect(find.text('3rd'), findsWidgets);
+    // The server rank saved for this student, never a sample value.
+    expect(find.text('1,245th'), findsWidgets);
     expect(find.text('👋'), findsOneWidget);
   });
 

@@ -73,7 +73,7 @@ class HomeScreen extends ConsumerWidget {
             ? storedRank
             : (attempts.isNotEmpty && attempts.first.rank > 0
                 ? attempts.first.rank
-                : 24));
+                : 0));
     final rankText = effectiveRank > 0
         ? RankingSummary.formatOrdinal(effectiveRank)
         : '-';
@@ -445,7 +445,7 @@ class HomeScreen extends ConsumerWidget {
                       _ExamRecommendCard(
                         title: e.title,
                         subtitle:
-                            '${e.totalTests > 0 ? e.totalTests : (i == 0 ? 120 : (i == 1 ? 200 : 150))} Tests Available',
+                            '${e.totalTests} Tests Available',
                         emblemAsset:
                             ExamAssets.getRoundIconAsset(e.title) ??
                             'assets/images/logo-icon.png',

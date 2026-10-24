@@ -5,6 +5,7 @@ import '../../core/components/ui.dart';
 import '../../data/models/attempt_model.dart';
 import '../../data/models/question_model.dart';
 import '../../data/repositories/catalog_repository.dart';
+import 'solutions_screen.dart';
 
 enum QuestionStatusFilter { all, correct, incorrect, skipped }
 
@@ -14,7 +15,8 @@ class QuestionReviewScreen extends ConsumerStatefulWidget {
   const QuestionReviewScreen({super.key, required this.attemptId});
 
   @override
-  ConsumerState<QuestionReviewScreen> createState() => _QuestionReviewScreenState();
+  ConsumerState<QuestionReviewScreen> createState() =>
+      _QuestionReviewScreenState();
 }
 
 class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
@@ -31,7 +33,11 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 28, color: Color(0xFF0F172A)),
+          icon: const Icon(
+            Icons.chevron_left_rounded,
+            size: 28,
+            color: Color(0xFF0F172A),
+          ),
           onPressed: () {
             if (GoRouter.of(context).canPop()) {
               context.pop();
@@ -50,7 +56,10 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border_rounded, color: Color(0xFF0F172A)),
+            icon: const Icon(
+              Icons.bookmark_border_rounded,
+              color: Color(0xFF0F172A),
+            ),
             tooltip: 'Bookmarks',
             onPressed: () => context.push('/bookmarks'),
           ),
@@ -58,21 +67,35 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
       ),
       body: SafeArea(
         child: attemptAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          loading: () =>
+              const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           error: (_, _) => Center(
             child: UIMessage.error(
               message: 'Could not load questions for this test.',
-              onAction: () => ref.invalidate(testAttemptProvider(widget.attemptId)),
+              onAction: () =>
+                  ref.invalidate(testAttemptProvider(widget.attemptId)),
             ),
           ),
           data: (attempt) {
-            final testId = attempt.testId.isNotEmpty ? attempt.testId : 'test_exam_wbp_1';
-            final questionsAsync = ref.watch(testQuestionsProvider(testId));
+            final arg = (attemptId: widget.attemptId, testId: attempt.testId);
+            final solutionsAsync = ref.watch(testSolutionsProvider(arg));
 
-            return questionsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              error: (_, _) => _buildGridWithAttempt(context, attempt, const []),
-              data: (questions) => _buildGridWithAttempt(context, attempt, questions),
+            return solutionsAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              error: (_, _) => Center(
+                child: UIMessage.error(
+                  message: 'Could not load the answer key for this test.',
+                  onAction: () => ref.invalidate(testSolutionsProvider(arg)),
+                ),
+              ),
+              data: (solutions) => _buildGridWithAttempt(
+                context,
+                attempt,
+                solutions.$1,
+                solutions.$2,
+              ),
             );
           },
         ),
@@ -84,41 +107,39 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
     BuildContext context,
     TestAttemptModel attempt,
     List<QuestionModel> questions,
+    Map<String, String> serverAnswers,
   ) {
-    final totalQ = attempt.totalMarks > 0
-        ? (attempt.correctCount + attempt.wrongCount + attempt.skippedCount)
-        : (questions.isNotEmpty ? questions.length : 200);
-    final count = totalQ > 0 ? totalQ : 200;
-
-    final correctCount = attempt.correctCount > 0 ? attempt.correctCount : 144;
-    final wrongCount = attempt.wrongCount > 0 ? attempt.wrongCount : 56;
-    final skippedCount = attempt.skippedCount;
-
-    // Build outcomes for all questions up to count
-    // Real user answers mapped if available, else benchmark distribution matching reference UI
-    final List<_QStatus> questionStatuses = [];
-    for (var i = 1; i <= count; i++) {
-      final qId = 'q_$i';
-      if (attempt.userAnswers.containsKey(qId)) {
-        final chosen = attempt.userAnswers[qId]?.toString();
-        // Check if chosen matches correct option
-        final q = questions.length >= i ? questions[i - 1] : null;
-        if (chosen == null) {
-          questionStatuses.add(_QStatus.skipped);
-        } else if (q != null) {
-          final isCorr = q.options.any((o) => o.id == chosen && o.isCorrect);
-          questionStatuses.add(isCorr ? _QStatus.correct : _QStatus.incorrect);
-        } else {
-          // If option ends with correct letter
-          questionStatuses.add(chosen.endsWith('_a') ? _QStatus.correct : _QStatus.incorrect);
-        }
-      } else {
-        // Benchmark exact visual representation matching reference image:
-        // In reference: 2, 7, 14, 20, 21, 22, 24, 32, 47 are red/incorrect, rest green
-        final isIncorrect = {2, 7, 14, 20, 21, 22, 24, 32, 47, 52, 58, 63, 69, 74, 80, 85, 91}.contains(i);
-        questionStatuses.add(isIncorrect ? _QStatus.incorrect : _QStatus.correct);
-      }
+    if (questions.isEmpty) {
+      return const Center(
+        child: UIMessage(
+          icon: Icons.quiz_outlined,
+          title: 'No questions to review',
+          message: 'The questions for this test are not available.',
+        ),
+      );
     }
+
+    // Each cell reflects the student's real pick against the server's key.
+    final questionStatuses = <_QStatus>[
+      for (final q in questions)
+        switch (serverAnswers[q.id] ?? attempt.userAnswers[q.id]?.toString()) {
+          null => _QStatus.skipped,
+          final picked =>
+            q.options.any((o) => o.id == picked && o.isCorrect)
+                ? _QStatus.correct
+                : _QStatus.incorrect,
+        },
+    ];
+    final count = questionStatuses.length;
+    final correctCount = questionStatuses
+        .where((s) => s == _QStatus.correct)
+        .length;
+    final wrongCount = questionStatuses
+        .where((s) => s == _QStatus.incorrect)
+        .length;
+    final skippedCount = questionStatuses
+        .where((s) => s == _QStatus.skipped)
+        .length;
 
     // Filter questions
     final List<int> visibleIndices = [];
@@ -151,7 +172,8 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
                   inactiveBg: Colors.white,
                   inactiveFg: const Color(0xFF475569),
                   borderColor: const Color(0xFFE2E8F0),
-                  onTap: () => setState(() => _activeFilter = QuestionStatusFilter.all),
+                  onTap: () =>
+                      setState(() => _activeFilter = QuestionStatusFilter.all),
                 ),
                 const SizedBox(width: 8),
                 _StatusFilterPill(
@@ -162,7 +184,9 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
                   inactiveBg: const Color(0xFFF0FDF4),
                   inactiveFg: const Color(0xFF16A34A),
                   borderColor: const Color(0xFFBBF7D0),
-                  onTap: () => setState(() => _activeFilter = QuestionStatusFilter.correct),
+                  onTap: () => setState(
+                    () => _activeFilter = QuestionStatusFilter.correct,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 _StatusFilterPill(
@@ -173,7 +197,9 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
                   inactiveBg: const Color(0xFFFEF2F2),
                   inactiveFg: const Color(0xFFDC2626),
                   borderColor: const Color(0xFFFECACA),
-                  onTap: () => setState(() => _activeFilter = QuestionStatusFilter.incorrect),
+                  onTap: () => setState(
+                    () => _activeFilter = QuestionStatusFilter.incorrect,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 _StatusFilterPill(
@@ -184,7 +210,9 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
                   inactiveBg: const Color(0xFFF1F5F9),
                   inactiveFg: const Color(0xFF64748B),
                   borderColor: const Color(0xFFE2E8F0),
-                  onTap: () => setState(() => _activeFilter = QuestionStatusFilter.skipped),
+                  onTap: () => setState(
+                    () => _activeFilter = QuestionStatusFilter.skipped,
+                  ),
                 ),
               ],
             ),
@@ -199,7 +227,10 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
               ? const Center(
                   child: Text(
                     'No questions in this status',
-                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 )
               : GridView.builder(
@@ -300,20 +331,20 @@ class _QuestionGridCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, border, text) = switch (status) {
       _QStatus.correct => (
-          const Color(0xFFF0FDF4),
-          const Color(0xFFBBF7D0),
-          const Color(0xFF16A34A),
-        ),
+        const Color(0xFFF0FDF4),
+        const Color(0xFFBBF7D0),
+        const Color(0xFF16A34A),
+      ),
       _QStatus.incorrect => (
-          const Color(0xFFFEF2F2),
-          const Color(0xFFFECACA),
-          const Color(0xFFDC2626),
-        ),
+        const Color(0xFFFEF2F2),
+        const Color(0xFFFECACA),
+        const Color(0xFFDC2626),
+      ),
       _QStatus.skipped => (
-          const Color(0xFFF8FAFC),
-          const Color(0xFFE2E8F0),
-          const Color(0xFF64748B),
-        ),
+        const Color(0xFFF8FAFC),
+        const Color(0xFFE2E8F0),
+        const Color(0xFF64748B),
+      ),
     };
 
     return InkWell(

@@ -345,10 +345,10 @@ class _ExamHeader extends StatelessWidget {
     final description = exam?.description?.trim() ?? 'State Competitive Exam';
     final count = totalTestsCount > 0
         ? totalTestsCount
-        : (exam?.totalTests ?? 14);
+        : (exam?.totalTests ?? 0);
     final questions = exam != null && exam.totalQuestions > 0
         ? '${exam.totalQuestions} Questions'
-        : '${count * 100} Questions';
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -402,11 +402,12 @@ class _ExamHeader extends StatelessWidget {
                       color: const Color(0xFF2563EB),
                       backgroundColor: const Color(0xFFEFF6FF),
                     ),
-                    _MiniBadge(
-                      label: questions,
-                      color: const Color(0xFF475569),
-                      backgroundColor: const Color(0xFFF1F5F9),
-                    ),
+                    if (questions != null)
+                      _MiniBadge(
+                        label: questions,
+                        color: const Color(0xFF475569),
+                        backgroundColor: const Color(0xFFF1F5F9),
+                      ),
                   ],
                 ),
               ],

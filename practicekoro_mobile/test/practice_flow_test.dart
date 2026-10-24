@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:practicekoro_mobile/data/models/subject_model.dart';
 import 'package:practicekoro_mobile/data/models/topic_model.dart';
+import 'package:practicekoro_mobile/data/repositories/attempt_repository.dart';
 import 'package:practicekoro_mobile/data/repositories/catalog_repository.dart';
 import 'package:practicekoro_mobile/features/practice/practice_common.dart';
 import 'package:practicekoro_mobile/features/practice/practice_screen.dart';
@@ -11,61 +12,38 @@ void main() {
   group('Practice-to-Test Flow Tests', () {
     final catalog = CatalogRepository();
 
-    test('getSubjects returns canonical subjects with valid topic and test counts', () async {
-      final subjects = await catalog.getSubjects();
-      expect(subjects, isNotEmpty);
-      expect(subjects.length, greaterThanOrEqualTo(9));
-
-      final history = subjects.firstWhere((s) => s.id == 'sub_history');
-      expect(history.nameEnglish, 'History');
-      expect(history.chapterCount, greaterThan(0));
-      expect(history.totalTests, greaterThan(0));
+    // Without a backend the catalog reports an error (screens show retry);
+    // it never invents subjects, chapters, tests or questions.
+    test('getSubjects reports unavailable instead of inventing subjects', () {
+      expect(catalog.getSubjects(), throwsA(isA<CatalogUnavailable>()));
     });
 
-    test('getTopics for History returns Indus Valley Civilization chapter', () async {
-      final topics = await catalog.getTopics('sub_history');
-      expect(topics, isNotEmpty);
-
-      final indus = topics.firstWhere((t) => t.id == 'top_hist_2');
-      expect(indus.title, contains('Indus Valley Civilization'));
-      expect(indus.totalTests, greaterThanOrEqualTo(8));
+    test('getTopics reports unavailable instead of inventing chapters', () {
+      expect(
+        catalog.getTopics('sub_history'),
+        throwsA(isA<CatalogUnavailable>()),
+      );
     });
 
-    test('getTopicTests for Indus Valley returns 8 tests with 50 Qs and 45 mins', () async {
-      final tests = await catalog.getTopicTests('top_hist_2');
-      expect(tests.length, 8);
-
-      final test01 = tests.first;
-      expect(test01.id, 'test_top_hist_2_1');
-      expect(test01.title, 'Test 01');
-      expect(test01.totalQuestions, 50);
-      expect(test01.durationMinutes, 45);
-      expect(test01.totalMarks, 200);
-      expect(test01.negativeMarking, 0.25);
-      expect(test01.isPro, isFalse);
-
-      final test04 = tests[3];
-      expect(test04.title, 'Test 04');
-      expect(test04.isPro, isTrue);
+    test('getTopicTests reports unavailable instead of generating tests', () {
+      expect(
+        catalog.getTopicTests('top_hist_2'),
+        throwsA(isA<CatalogUnavailable>()),
+      );
     });
 
-    test('getTestById finds topic test correctly', () async {
-      final test = await catalog.getTestById('test_top_hist_2_1');
-      expect(test, isNotNull);
-      expect(test!.title, 'Test 01');
-      expect(test.totalQuestions, 50);
+    test('getTestById does not make up a test for an unknown id', () {
+      expect(
+        catalog.getTestById('test_top_hist_2_1'),
+        throwsA(isA<CatalogUnavailable>()),
+      );
     });
 
-    test('getQuestions for topic test returns authentic Bengali questions and options', () async {
-      final questions = await catalog.getQuestions('test_top_hist_2_1');
-      expect(questions, isNotEmpty);
-      expect(questions.length, 50);
-
-      final q3 = questions[2]; // Question 3
-      expect(q3.textBengali, contains('সিন্ধু সভ্যতার'));
-      expect(q3.options.length, 4);
-      expect(q3.options.any((o) => o.isCorrect), isTrue);
-      expect(q3.explanationBengali, isNotNull);
+    test('getQuestions never serves a built-in question set', () {
+      expect(
+        catalog.getQuestions('test_top_hist_2_1'),
+        throwsA(isA<AttemptFailure>()),
+      );
     });
   });
 

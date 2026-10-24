@@ -126,7 +126,9 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to submit ticket: $e'),
+          content: Text(
+            e is SupportTicketFailure ? e.toString() : 'Failed to submit ticket: $e',
+          ),
           backgroundColor: UI.danger,
         ),
       );
