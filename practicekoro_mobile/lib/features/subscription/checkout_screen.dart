@@ -24,7 +24,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
     with WidgetsBindingObserver {
   late Razorpay _razorpay;
   bool _isProcessing = false;
-  String _selectedPaymentMethod = 'upi'; // upi | card | netbanking
+  bool _isConfirming = false;
   Timer? _resumePollTimer;
 
   SubscriptionPlanModel? _currentPlan;
@@ -65,7 +65,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
   void _pollPaymentActivation() {
     _resumePollTimer?.cancel();
     int attempts = 0;
-    const maxAttempts = 6;
+    const maxAttempts = 15; // ~30 seconds
 
     // Check immediately
     _checkServerActivation();
@@ -88,6 +88,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
         timer.cancel();
         if (mounted && _isProcessing) {
           setState(() => _isProcessing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'If money was deducted, your Pro Pass will activate automatically within a '
+                'few minutes. Need help? Contact support from Settings.',
+              ),
+              duration: Duration(seconds: 8),
+            ),
+          );
         }
       }
     });
@@ -132,76 +141,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
     return false;
   }
 
+  /// Razorpay reported success. Pro is unlocked only after the server verifies the
+  /// payment (or the webhook has already activated it), so the app never shows a pass
+  /// the backend does not have.
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     _resumePollTimer?.cancel();
-    debugPrint(
-      'Razorpay Payment Success: paymentId=${response.paymentId}, orderId=${response.orderId}',
-    );
-
     final plan = _currentPlan;
     final order = _currentOrder;
-
     if (plan == null || order == null) {
       if (mounted) setState(() => _isProcessing = false);
       return;
     }
+    if (mounted) setState(() => _isConfirming = true);
 
-    // 1. INSTANT LOCAL ACTIVATION (Instant Pro Access with 0 delay)
-    final now = DateTime.now();
-    final expiresAt = now.add(Duration(days: plan.durationDays));
-    final instantSub = StudentSubscriptionModel(
-      hasSubscription: true,
-      isActive: true,
-      status: 'active',
-      subscriptionId: response.paymentId ?? order.orderId,
-      planId: plan.id,
-      planTitle: plan.title,
-      durationDays: plan.durationDays,
-      startsAt: now,
-      expiresAt: expiresAt,
-      daysRemaining: plan.durationDays,
-    );
-    await LocalStorageService.setIsPro(true);
-    await LocalStorageService.saveSubscriptionDetails(instantSub.toJson());
+    final result = await ref.read(subscriptionRepositoryProvider).verifyAndActivatePayment(
+          orderId: response.orderId ?? order.orderId,
+          paymentId: response.paymentId ?? '',
+          signature: response.signature ?? '',
+          planId: plan.id,
+          plan: plan,
+          ref: ref,
+        );
+    if (!mounted) return;
 
-    // Update studentProfileProvider immediately so all screens unlock instantly
-    final profile = ref.read(studentProfileProvider);
-    if (!profile.isPro) {
-      await ref.read(studentProfileProvider.notifier).save(
-            profile.copyWith(isPro: true),
-          );
-    }
-    ref.invalidate(studentSubscriptionProvider);
-
-    // Stop processing spinner immediately and present Success Dialog
-    if (mounted) {
-      setState(() => _isProcessing = false);
+    if (result.success) {
+      await LocalStorageService.setIsPro(true);
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _isConfirming = false;
+      });
       _showSuccessDialog(
         plan,
         amountPaid: order.amount,
-        expiresAt: expiresAt,
+        expiresAt: DateTime.tryParse(result.expiresAt ?? ''),
         isUpgrade: order.purchaseType == 'upgrade',
       );
+      return;
     }
 
-    // 2. Background Server Sync & Database Verification (non-blocking)
-    try {
-      final repo = ref.read(subscriptionRepositoryProvider);
-      final paymentId = response.paymentId ?? '';
-      final signature = response.signature ?? '';
-      final orderId = response.orderId ?? order.orderId;
-
-      await repo.verifyAndActivatePayment(
-        orderId: orderId,
-        paymentId: paymentId,
-        signature: signature,
-        planId: plan.id,
-        plan: plan,
-        ref: ref,
-      );
-    } catch (e) {
-      debugPrint('Background server verification completed: $e');
-    }
+    // Money was taken but the pass is not confirmed yet: keep checking quietly instead
+    // of calling it a failure.
+    setState(() => _isConfirming = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.errorMessage ?? 'Payment received. Activating your pass...'),
+        backgroundColor: UI.primary,
+        duration: const Duration(seconds: 6),
+      ),
+    );
+    _pollPaymentActivation();
   }
 
   void _handlePaymentError(PaymentFailureResponse response) async {
@@ -377,11 +366,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
       _currentPlan = plan;
       _currentOrder = order;
 
-      final key = (order.keyId != null &&
-              order.keyId!.isNotEmpty &&
-              !order.keyId!.contains('practicekoro_key'))
-          ? order.keyId!
-          : await repo.getActiveRazorpayKey();
+      final key = order.keyId ?? await repo.getActiveRazorpayKey();
 
       final profile = ref.read(studentProfileProvider);
       final phone = profile.phone.isNotEmpty
@@ -405,7 +390,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
           if (phone.isNotEmpty) 'contact': phone,
           if (email.isNotEmpty) 'email': email,
           if (name.isNotEmpty) 'name': name,
-          'method': _selectedPaymentMethod,
         },
         'theme': {
           'color': '#0158FC',
@@ -449,15 +433,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
                 ],
               },
             },
-            'sequence': _selectedPaymentMethod == 'card' || _selectedPaymentMethod == 'netbanking'
-                ? [
-                    'block.cards_and_netbanking',
-                    'block.wallets_and_upi',
-                  ]
-                : [
-                    'block.wallets_and_upi',
-                    'block.cards_and_netbanking',
-                  ],
+            'sequence': ['block.wallets_and_upi', 'block.cards_and_netbanking'],
             'preferences': {
               'show_default_blocks': false,
             },
@@ -467,14 +443,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
             ],
           },
         },
+        // The server always creates a real Razorpay order; the signature is verified against it.
+        'order_id': order.orderId,
       };
-
-      // Only pass order_id if it was created via Razorpay Orders API
-      if (order.orderId.startsWith('order_') &&
-          !order.orderId.startsWith('order_sim_') &&
-          !order.orderId.startsWith('pk_')) {
-        options['order_id'] = order.orderId;
-      }
 
       debugPrint(
         'Opening Razorpay Checkout: key=$key, amount=${options['amount']}, currency=${options['currency']}, order_id=${options['order_id']}',
@@ -823,12 +794,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
 
                     const SizedBox(height: 14),
 
-                    // 3. Payment Method Selection
-                    _PaymentMethodSelector(
-                      selectedMethod: _selectedPaymentMethod,
-                      onChanged: (val) {
-                        setState(() => _selectedPaymentMethod = val);
-                      },
+                    // 3. Accepted methods (chosen inside the Razorpay sheet)
+                    const Row(
+                      children: [
+                        Icon(Icons.bolt_rounded, color: UI.primary, size: 18),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Pay with any UPI app, QR code, card, net banking or wallet.',
+                            style: TextStyle(fontSize: 12, color: UI.textSoft),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 14),
@@ -931,13 +908,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
                               elevation: 2,
                             ),
                             child: _isProcessing
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.2,
-                                      color: Colors.white,
-                                    ),
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      if (_isConfirming) ...[
+                                        const SizedBox(width: 10),
+                                        const Text(
+                                          'Confirming payment...',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   )
                                 : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1309,554 +1301,3 @@ class _PriceRow extends StatelessWidget {
 }
 
 /// Payment method selector (UPI, Card, NetBanking)
-class _PaymentMethodSelector extends StatelessWidget {
-  final String selectedMethod;
-  final ValueChanged<String> onChanged;
-
-  const _PaymentMethodSelector({
-    required this.selectedMethod,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: UI.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Select Payment Method',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: UI.text,
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    size: 14,
-                    color: Color(0xFF16A34A),
-                  ),
-                  SizedBox(width: 2),
-                  Text(
-                    'Instant Activation',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF16A34A),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // 1. Wallets, UPI & QR (First preference - Recommended)
-          _MethodTile(
-            id: 'upi',
-            title: 'Wallets, UPI & QR Code',
-            badge: 'PREFERRED',
-            subtitle: 'PhonePe, Google Pay, Paytm, BHIM or Scan QR Code',
-            tags: const ['PhonePe', 'Google Pay', 'Paytm', 'Scan QR Code'],
-            icon: Icons.qr_code_scanner_rounded,
-            selected: selectedMethod == 'upi',
-            onTap: () => onChanged('upi'),
-          ),
-          const SizedBox(height: 10),
-
-          // 2. Debit & Credit Cards
-          _MethodTile(
-            id: 'card',
-            title: 'Credit / Debit Card',
-            subtitle: 'Visa, RuPay, MasterCard, Maestro',
-            icon: Icons.credit_card_rounded,
-            selected: selectedMethod == 'card',
-            onTap: () => onChanged('card'),
-          ),
-          const SizedBox(height: 10),
-
-          // 3. Net Banking
-          _MethodTile(
-            id: 'netbanking',
-            title: 'Net Banking',
-            subtitle: 'SBI, HDFC, ICICI, Axis & 50+ Banks',
-            icon: Icons.account_balance_rounded,
-            selected: selectedMethod == 'netbanking',
-            onTap: () => onChanged('netbanking'),
-          ),
-          const SizedBox(height: 12),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.bolt_rounded,
-                  size: 15,
-                  color: Color(0xFF0158FC),
-                ),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Wallets, UPI & QR Code are prioritized for faster, instant payment.',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF1E40AF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MethodTile extends StatelessWidget {
-  final String id;
-  final String title;
-  final String? subtitle;
-  final String? badge;
-  final List<String>? tags;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _MethodTile({
-    required this.id,
-    required this.title,
-    this.subtitle,
-    this.badge,
-    this.tags,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEFF6FF) : UI.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? const Color(0xFF0158FC) : UI.line,
-            width: selected ? 1.8 : 1,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF0158FC).withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFF0158FC)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: selected ? Colors.white : const Color(0xFF475569),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight:
-                                    selected ? FontWeight.w800 : FontWeight.w700,
-                                color: selected
-                                    ? const Color(0xFF0158FC)
-                                    : UI.text,
-                              ),
-                            ),
-                          ),
-                          if (badge != null) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDCFCE7),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                badge!,
-                                style: const TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF166534),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: UI.muted,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: selected
-                          ? const Color(0xFF0158FC)
-                          : const Color(0xFFCBD5E1),
-                      width: selected ? 5.5 : 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (tags != null && tags!.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  for (final tag in tags!)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? Colors.white
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: selected
-                              ? const Color(0xFFBFDBFE)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: selected
-                              ? const Color(0xFF1E40AF)
-                              : const Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-/// Interactive payment gateway simulation sheet
-class _PaymentGatewayModal extends StatefulWidget {
-  final SubscriptionPlanModel plan;
-  final SubscriptionOrderModel order;
-  final String initialMethod;
-
-  const _PaymentGatewayModal({
-    required this.plan,
-    required this.order,
-    required this.initialMethod,
-  });
-
-  @override
-  State<_PaymentGatewayModal> createState() => _PaymentGatewayModalState();
-}
-
-class _PaymentGatewayModalState extends State<_PaymentGatewayModal> {
-  bool _isPaying = false;
-
-  void _completePayment(bool success) async {
-    setState(() => _isPaying = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    if (!mounted) return;
-
-    if (success) {
-      final paymentId = 'pay_${DateTime.now().millisecondsSinceEpoch}';
-      final signature = 'sig_${DateTime.now().millisecondsSinceEpoch}';
-      Navigator.pop(context, {
-        'status': 'success',
-        'paymentId': paymentId,
-        'orderId': widget.order.orderId,
-        'signature': signature,
-      });
-    } else {
-      Navigator.pop(context, {
-        'status': 'failed',
-        'error': 'Payment declined by bank or user cancelled.',
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: UI.line,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: UI.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.lock_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PracticeKoro Pay',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: UI.text,
-                        ),
-                      ),
-                      Text(
-                        'Razorpay Secure Gateway',
-                        style: TextStyle(fontSize: 11, color: UI.muted),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: const Icon(Icons.close_rounded, color: UI.muted),
-                onPressed: () => Navigator.pop(context, {'status': 'cancelled'}),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: UI.line),
-          const SizedBox(height: 16),
-
-          // Order details
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: UI.surface,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.plan.title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: UI.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Order ID: ${widget.order.orderId}',
-                      style: const TextStyle(fontSize: 11, color: UI.muted),
-                    ),
-                  ],
-                ),
-                Text(
-                  '₹${widget.plan.price.toInt()}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: UI.text,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          if (_isPaying)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                children: [
-                  CircularProgressIndicator(color: UI.primary),
-                  SizedBox(height: 14),
-                  Text(
-                    'Authorizing secure payment with gateway...',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: UI.textSoft,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            ElevatedButton(
-              onPressed: () => _completePayment(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: UI.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                elevation: 1,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle_outline_rounded, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Authorize & Pay ₹${widget.plan.price.toInt()}',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: () => _completePayment(false),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: UI.dangerSoft),
-                foregroundColor: UI.danger,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Text(
-                'Cancel or Simulate Failure',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 12),
-          const Center(
-            child: Text(
-              'PracticeKoro Payment Infrastructure • 256-bit Encryption',
-              style: TextStyle(fontSize: 10.5, color: UI.muted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

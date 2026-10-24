@@ -235,7 +235,7 @@ void main() {
       expect(find.text('Why Aspirants Choose Pro'), findsOneWidget);
     });
 
-    testWidgets('CheckoutScreen renders plan details, price breakdown, and payment method selector', (tester) async {
+    testWidgets('CheckoutScreen renders plan details, price breakdown, and accepted payment methods', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -252,11 +252,12 @@ void main() {
       expect(find.text('Plan MRP'), findsOneWidget);
       expect(find.text('Special Offer Discount'), findsOneWidget);
       expect(find.text('Total Payable'), findsOneWidget);
-      expect(find.text('Select Payment Method'), findsOneWidget);
-      expect(find.text('Wallets, UPI & QR Code'), findsOneWidget);
-      expect(find.text('PREFERRED'), findsOneWidget);
-      expect(find.text('Credit / Debit Card'), findsOneWidget);
-      expect(find.text('Net Banking'), findsOneWidget);
+      // The method is chosen inside the Razorpay sheet, so there is no separate selector.
+      expect(find.text('Select Payment Method'), findsNothing);
+      expect(
+        find.text('Pay with any UPI app, QR code, card, net banking or wallet.'),
+        findsOneWidget,
+      );
       expect(find.textContaining('Pay ₹299 Now'), findsOneWidget);
     });
 
