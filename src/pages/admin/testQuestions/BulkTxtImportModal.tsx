@@ -71,16 +71,38 @@ export function BulkTxtImportModal({ testQuestionsState, test }: BulkTxtImportMo
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Paste TXT Question Data
+                  Paste TXT Question Data or Upload File
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setBulkRawText(SAMPLE_TXT_CONTENT)}
-                  className="text-[11px] font-bold text-[#0075FF] hover:underline flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Load Sample Format
-                </button>
+                <div className="flex items-center gap-3">
+                  <label className="text-[11px] font-bold text-[#0075FF] hover:underline flex items-center gap-1 cursor-pointer">
+                    <Upload className="w-3 h-3" />
+                    Upload .txt File
+                    <input
+                      type="file"
+                      accept=".txt"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            const text = evt.target?.result as string;
+                            if (text) setBulkRawText(text);
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setBulkRawText(SAMPLE_TXT_CONTENT)}
+                    className="text-[11px] font-bold text-[#0075FF] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Load Sample Format
+                  </button>
+                </div>
               </div>
 
               <textarea

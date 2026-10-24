@@ -2712,11 +2712,20 @@ export type Database = {
       }
       is_management_super_admin: { Args: never; Returns: boolean }
       is_pk_admin: { Args: never; Returns: boolean }
+      is_question_live_hidden: {
+        Args: { p_is_live_only: boolean; p_question_id: string }
+        Returns: boolean
+      }
       is_test_live_locked: {
         Args: { p_running_only?: boolean; p_test_id: string }
         Returns: boolean
       }
       live_lock_applies: { Args: never; Returns: boolean }
+      live_paper_access_error: {
+        Args: { p_test_id: string; p_user_id: string }
+        Returns: string
+      }
+      live_paper_visible: { Args: { p_test_id: string }; Returns: boolean }
       mark_payment_refunded: {
         Args: {
           p_payment_id: string
@@ -2800,6 +2809,10 @@ export type Database = {
         Returns: Json
       }
       sync_admin_profile: { Args: never; Returns: Json }
+      sync_question_live_only: {
+        Args: { p_question_id: string }
+        Returns: undefined
+      }
       take_image_upload_slot: { Args: { p_user_id: string }; Returns: boolean }
       update_admin_staff_role: {
         Args: { p_admin_role: string; p_user_id: string }

@@ -63,7 +63,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             <div className="flex items-center justify-between pb-3 pr-10 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-[#026BFC]" />
-                Import Questions (Bulk CSV)
+                Import Questions (Bulk TXT / CSV)
               </h3>
             </div>
 
@@ -106,14 +106,24 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             {/* Step 2: File Upload */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700">2. Upload CSV File:</label>
-                <button
-                  type="button"
-                  onClick={() => downloadTemplate(importMode)}
-                  className="text-[11px] font-bold text-[#026BFC] hover:underline cursor-pointer"
-                >
-                  Download {importMode === 'exam' ? 'Exam' : 'Subject'} Template
-                </button>
+                <label className="text-xs font-bold text-slate-700">2. Upload Questions File (.txt / .csv):</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadTemplate(importMode, 'txt')}
+                    className="text-[11px] font-bold text-[#026BFC] hover:underline cursor-pointer"
+                  >
+                    Download TXT Format
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => downloadTemplate(importMode, 'csv')}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                  >
+                    CSV Template
+                  </button>
+                </div>
               </div>
 
               <FileDropZone
@@ -123,9 +133,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 onFile={processImportFile}
                 selectedFile={importFile}
                 onClear={handleClearImportFile}
-                label="Choose CSV file or drag & drop here"
-                hint="Supports .csv and .txt bulk question files"
-                buttonLabel="Browse CSV"
+                label="Choose .txt or .csv file or drag & drop here"
+                hint="Supports standard .txt format (Bengali/English) and .csv bulk files"
+                buttonLabel="Browse File"
               />
             </div>
 

@@ -241,4 +241,42 @@ Answer: (b)`);
     expect(q2.questionText).toBe('2 + 2 = ?');
     expect(q2.correctOption).toBe('B');
   });
+
+  it('parses the user provided bulk question format perfectly', () => {
+    const userText = `1. ভারতের প্রথম রাষ্ট্রপতি কে ছিলেন?
+(a) ড. রাজেন্দ্র প্রসাদ
+(b) জওহরলাল নেহরু
+(c) সর্বপল্লী রাধাকৃষ্ণন
+(d) ড. বি. আর. আম্বেদকর
+সঠিক উত্তর: (a) ড. রাজেন্দ্র প্রসাদ
+Explanation:
+• ড. রাজেন্দ্র প্রসাদ ছিলেন স্বাধীন ভারতের প্রথম রাষ্ট্রপতি (১৯৫০-১৯৬২)।
+• তিনি ভারতের একমাত্র রাষ্ট্রপতি যিনি টানা দুইবার এই সম্মানজনক পদে আসীন ছিলেন।
+• ১৯৪৬ সালে তিনি ভারতীয় গণপরিষদের (Constituent Assembly) স্থায়ী সভাপতি নির্বাচিত হন।
+• ১৯৬২ সালে দেশসেবার স্বীকৃতি হিসেবে তাঁকে ভারতের সর্বোচ্চ নাগরিক সম্মান 'ভারতরত্ন' প্রদান করা হয়।
+• তাঁর রচিত বিখ্যাত ঐতিহাসিক গ্রন্থের মধ্যে অন্যতম হলো 'ইন্ডিয়া ডিভাইডেড' (India Divided)।
+
+2. মানবদেহের বৃহত্তম অঙ্গ কোনটি?
+(a) যকৃৎ (Liver)
+(b) ত্বক (Skin)
+(c) ফুসফুস (Lungs)
+(d) বৃক্ক (Kidney)
+সঠিক উত্তর: (b) ত্বক (Skin)
+Explanation:
+• ত্বক (Integumentary system) হলো মানবদেহের বৃহত্তম বাহ্যিক অঙ্গ এবং সুরক্ষামূলক আবরণ।
+• মানবদেহের বৃহত্তম অভ্যন্তরীণ অঙ্গ ও বৃহত্তম গ্রন্থি হলো যকৃৎ (Liver)।
+• ত্বকের প্রধান কাজ হলো শরীরকে বাইরের আঘাত, জীবাণু সংক্রমণ এবং অতিবেগুনি রশ্মি থেকে রক্ষা করা।
+• মানবদেহের তাপমাত্রা নিয়ন্ত্রণ এবং ঘামের মাধ্যমে বর্জ্য নিষ্কাশনে ত্বক মুখ্য ভূমিকা পালন করে।
+• ত্বকের এপিডার্মিসে অবস্থিত মেলানিন রঞ্জক আমাদের ত্বকের বর্ণ নির্ধারণ করে।`;
+
+    const result = parseQuestionsTxt(userText);
+    expect(result.errors).toHaveLength(0);
+    expect(result.valid).toHaveLength(2);
+    expect(result.valid[0].questionText).toBe('ভারতের প্রথম রাষ্ট্রপতি কে ছিলেন?');
+    expect(result.valid[0].optionA).toBe('ড. রাজেন্দ্র প্রসাদ');
+    expect(result.valid[0].correctOption).toBe('A');
+    expect(result.valid[1].questionText).toBe('মানবদেহের বৃহত্তম অঙ্গ কোনটি?');
+    expect(result.valid[1].optionB).toBe('ত্বক (Skin)');
+    expect(result.valid[1].correctOption).toBe('B');
+  });
 });

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Search, X, Filter } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
@@ -22,7 +23,8 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
     subjects,
     selectedTopicFilter,
     setSelectedTopicFilter,
-    topics,
+    filterTopicOptions,
+    questions,
     selectedTypeFilter,
     setSelectedTypeFilter,
     selectedStatusFilter,
@@ -34,6 +36,47 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
     showToast,
     filteredQuestions,
   } = qb;
+
+  // Deduplicated list of available subjects
+  const availableSubjectOptions = useMemo(() => {
+    const list: string[] = [];
+    const seen = new Set<string>();
+
+    subjects.forEach((s) => {
+      const name = s.name?.trim();
+      if (name && !seen.has(name.toLowerCase())) {
+        seen.add(name.toLowerCase());
+        list.push(name);
+      }
+    });
+
+    questions?.forEach((q) => {
+      const name = q.subjectName?.trim();
+      if (name && !seen.has(name.toLowerCase())) {
+        seen.add(name.toLowerCase());
+        list.push(name);
+      }
+    });
+
+    const defaults = [
+      'History',
+      'General Science',
+      'Indian Polity',
+      'Mathematics',
+      'Geography',
+      'Economy',
+      'General Knowledge',
+      'Static GK',
+    ];
+    defaults.forEach((d) => {
+      if (!seen.has(d.toLowerCase())) {
+        seen.add(d.toLowerCase());
+        list.push(d);
+      }
+    });
+
+    return list;
+  }, [subjects, questions]);
   return (
     <>
       {/* 4. SEARCH AND FILTERS TOOLBAR */}
@@ -116,24 +159,17 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
               value={selectedSubjectFilter}
               onChange={(e) => {
                 setSelectedSubjectFilter(e.target.value);
+                setSelectedTopicFilter('all');
                 setCurrentPage(1);
               }}
               className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Subject: All Subjects</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.name}>
-                  {s.name}
+              {availableSubjectOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
-              <option value="History">History</option>
-              <option value="General Science">General Science</option>
-              <option value="Indian Polity">Indian Polity</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Geography">Geography</option>
-              <option value="Economy">Economy</option>
-              <option value="General Knowledge">General Knowledge</option>
-              <option value="Static GK">Static GK</option>
             </select>
           </div>
 
@@ -145,23 +181,21 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedTopicFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              disabled={selectedSubjectFilter !== 'all' && filterTopicOptions.length === 0}
+              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50"
             >
-              <option value="all">Topic: All Topics</option>
-              {topics.map((t) => (
-                <option key={t.id} value={t.name}>
-                  {t.name}
+              <option value="all">
+                {selectedSubjectFilter === 'all'
+                  ? 'Topic: All Topics'
+                  : filterTopicOptions.length === 0
+                    ? `No topics for ${selectedSubjectFilter}`
+                    : `Topic: All (${selectedSubjectFilter})`}
+              </option>
+              {filterTopicOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
                 </option>
               ))}
-              <option value="Modern India">Modern India</option>
-              <option value="Chemical Reactions">Chemical Reactions</option>
-              <option value="Constitution">Constitution</option>
-              <option value="BODMAS">BODMAS</option>
-              <option value="Rivers of India">Rivers of India</option>
-              <option value="Indian Economy">Indian Economy</option>
-              <option value="West Bengal">West Bengal</option>
-              <option value="Human Body">Human Body</option>
-              <option value="National Symbols">National Symbols</option>
             </select>
           </div>
         </div>

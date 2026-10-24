@@ -14,6 +14,71 @@ import { useSearchParams } from 'react-router-dom';
 import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import { csvCell } from '@/utils/csvExport';
 import { parseCsvRaw } from '@/utils/csvParser';
+import { parseQuestionsTxt, downloadSampleTxt } from '@/utils/txtQuestionParser';
+
+// Standard syllabus topics offered in the topic filter when a subject has none yet.
+const FALLBACK_SUBJECT_TOPICS: Record<string, string[]> = {
+  history: ['Modern India', 'Ancient India', 'Medieval India', 'Indian National Movement'],
+  'general science': [
+    'Chemical Reactions',
+    'Human Body',
+    'Heat & Temperature',
+    'Light & Optics',
+    'Periodic Table',
+    'Cell Biology',
+  ],
+  'indian polity': [
+    'Constitution',
+    'Preamble',
+    'Fundamental Rights',
+    'President & Parliament',
+    'Judiciary',
+  ],
+  mathematics: [
+    'BODMAS',
+    'Percentage',
+    'Profit & Loss',
+    'Time & Work',
+    'Ratio & Proportion',
+    'Algebra',
+    'Geometry',
+  ],
+  geography: [
+    'Rivers of India',
+    'Physical Geography',
+    'Indian Climate',
+    'West Bengal Geography',
+    'Soil & Vegetation',
+  ],
+  economy: ['Indian Economy', 'Five Year Plans', 'Banking & RBI', 'Inflation & National Income'],
+  'general knowledge': [
+    'National Symbols',
+    'Important Days',
+    'Awards & Honours',
+    'Books & Authors',
+  ],
+  'static gk': [
+    'National Symbols',
+    'Important Days',
+    'Awards & Honours',
+    'Books & Authors',
+    'West Bengal Culture',
+  ],
+  reasoning: [
+    'Series Completion',
+    'Blood Relations',
+    'Coding-Decoding',
+    'Analogy',
+    'Direction Sense',
+  ],
+  english: [
+    'Idioms & Phrases',
+    'Synonyms & Antonyms',
+    'One Word Substitution',
+    'Grammar & Spotting Errors',
+  ],
+  bengali: ['বাংলা ব্যাকরণ', 'বাগধারা', 'এক কথায় প্রকাশ', 'সমার্থক শব্দ', 'সন্ধি বিচ্ছেদ'],
+};
 
 export function useAdminQuestionBank() {
   // Master Taxonomy & State
@@ -263,6 +328,70 @@ export function useAdminQuestionBank() {
     const subjectId = subjects.find((s) => s.name === drawerSubject)?.id;
     return topics.filter((t) => !subjectId || t.subjectId === subjectId).map((t) => t.name);
   }, [subjects, topics, drawerSubject]);
+
+  // Topic options for the filter bar:
+  // When a subject is selected, ONLY topics of that selected subject are returned.
+  const filterTopicOptions = useMemo(() => {
+    if (selectedSubjectFilter === 'all') {
+      const names = new Set<string>();
+      topics.forEach((t) => {
+        if (t.name?.trim()) names.add(t.name.trim());
+      });
+      questions.forEach((q) => {
+        const top = (q.topicName || q.chapterName)?.trim();
+        if (top) names.add(top);
+      });
+      return Array.from(names).sort((a, b) => a.localeCompare(b));
+    }
+
+    const subject = subjects.find(
+      (s) =>
+        s.name.toLowerCase() === selectedSubjectFilter.toLowerCase() ||
+        s.id === selectedSubjectFilter
+    );
+    const subjectId = subject?.id;
+    const subjectNameLower = selectedSubjectFilter.toLowerCase();
+    const topicNames = new Set<string>();
+
+    // 1. From database topics (Chapter) linked to this subject
+    topics.forEach((t) => {
+      if (subjectId && t.subjectId === subjectId) {
+        if (t.name?.trim()) topicNames.add(t.name.trim());
+      }
+    });
+
+    // 2. From questions belonging to this subject
+    questions.forEach((q) => {
+      const qSubject = (q.subjectName || '').toLowerCase();
+      if (qSubject === subjectNameLower || (subjectId && q.subjectId === subjectId)) {
+        const top = (q.topicName || q.chapterName)?.trim();
+        if (top) topicNames.add(top);
+      }
+    });
+
+    // 3. Fallback standard syllabus topics by subject
+
+    if (topicNames.size === 0) {
+      const fallbacks = FALLBACK_SUBJECT_TOPICS[subjectNameLower];
+      if (fallbacks) {
+        fallbacks.forEach((f) => topicNames.add(f));
+      }
+    }
+
+    return Array.from(topicNames).sort((a, b) => a.localeCompare(b));
+  }, [selectedSubjectFilter, subjects, topics, questions]);
+
+  // If a topic was selected that does not belong to the newly selected subject, reset to 'all'
+  useEffect(() => {
+    if (selectedSubjectFilter !== 'all' && selectedTopicFilter !== 'all') {
+      const match = filterTopicOptions.some(
+        (t) => t.toLowerCase() === selectedTopicFilter.toLowerCase()
+      );
+      if (!match) {
+        setSelectedTopicFilter('all');
+      }
+    }
+  }, [selectedSubjectFilter, selectedTopicFilter, filterTopicOptions]);
 
   // Filtered Questions Dataset
   const filteredQuestions = useMemo(() => {
@@ -738,7 +867,13 @@ export function useAdminQuestionBank() {
   };
 
   // Download Templates (.CSV) with UTF-8 BOM for Bengali support
-  const downloadTemplate = (mode: UploadMode) => {
+  const downloadTemplate = (mode: UploadMode, format: 'csv' | 'txt' = 'csv') => {
+    if (format === 'txt') {
+      downloadSampleTxt(`practicekoro_questions_${mode}_template.txt`);
+      showToast(`Downloaded ${mode === 'exam' ? 'Exam' : 'Subject'} TXT Template.`);
+      return;
+    }
+
     let headers: string[] = [];
     let sampleRow: string[] = [];
 
@@ -833,7 +968,7 @@ export function useAdminQuestionBank() {
     showToast(`Downloaded ${mode === 'exam' ? 'Exam' : 'Subject'} CSV Template.`);
   };
 
-  // Real File Upload Parser & Validator
+  // Real File Upload Parser & Validator (Supports both .txt and .csv)
   const processImportFile = (file: File) => {
     setImportFile(file);
 
@@ -841,6 +976,110 @@ export function useAdminQuestionBank() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) return;
+
+      const findSubject = (name: string) =>
+        name
+          ? subjects.find((sub) => sub.name.trim().toLowerCase() === name.toLowerCase())
+          : undefined;
+      const findTopic = (name: string, subjectId?: string) =>
+        name
+          ? topics.find(
+              (t) =>
+                t.name.trim().toLowerCase() === name.toLowerCase() &&
+                (!subjectId || t.subjectId === subjectId)
+            )
+          : undefined;
+
+      const isTxt =
+        file.name.toLowerCase().endsWith('.txt') ||
+        (!text.trim().toLowerCase().startsWith('exam,') &&
+          !text.trim().toLowerCase().startsWith('subject,') &&
+          /^(?:(?:Q(?:uestion)?\s*)?[0-9০-৯]+[-.:)]\s*)/m.test(text));
+
+      // -----------------------------------------------------------------------
+      // TXT Format Question Parser Handler
+      // -----------------------------------------------------------------------
+      if (isTxt) {
+        const parsedTxt = parseQuestionsTxt(text);
+        if (parsedTxt.totalDetected === 0) {
+          setImportPreviewStats({
+            total: 0,
+            valid: 0,
+            errors: 1,
+            duplicates: 0,
+            errorList: ['The uploaded TXT file contains no identifiable question blocks.'],
+          });
+          setParsedImportQuestions([]);
+          return;
+        }
+
+        const parsed: Question[] = [];
+        const errors: string[] = [];
+
+        parsedTxt.errors.forEach((err) => {
+          errors.push(`Question #${err.questionNumber}: ${err.reason}`);
+        });
+
+        const activeSubject =
+          selectedSubjectFilter !== 'all' ? findSubject(selectedSubjectFilter) : undefined;
+        const activeTopic =
+          selectedTopicFilter !== 'all'
+            ? findTopic(selectedTopicFilter, activeSubject?.id)
+            : undefined;
+
+        parsedTxt.valid.forEach((q) => {
+          const base: Question = {
+            id: crypto.randomUUID(),
+            questionText: q.questionText,
+            questionBengaliText: q.questionText,
+            optionA: q.optionA,
+            optionB: q.optionB,
+            optionC: q.optionC,
+            optionD: q.optionD,
+            correctOption: q.correctOption,
+            uploadMode: importMode,
+            status: 'published',
+            isActive: true,
+            defaultMarks: 1.0,
+            defaultNegativeMarks: 0.25,
+            explanationBengali: q.explanation,
+            shortNotes: q.explanation || '',
+            imageUrl: q.imageUrl,
+            tags: [],
+          };
+
+          if (importMode === 'exam') {
+            parsed.push({
+              ...base,
+              sourceExam: selectedExamFilter !== 'all' ? selectedExamFilter : undefined,
+              sourceType: 'other',
+            });
+          } else {
+            parsed.push({
+              ...base,
+              sourceType: 'topic',
+              subjectName:
+                activeSubject?.name ||
+                (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : undefined),
+              subjectId: activeSubject?.id,
+              topicName:
+                activeTopic?.name ||
+                (selectedTopicFilter !== 'all' ? selectedTopicFilter : undefined),
+              topicId: activeTopic?.id,
+            });
+          }
+        });
+
+        setImportPreviewStats({
+          total: parsedTxt.totalDetected,
+          valid: parsed.length,
+          errors: errors.length,
+          duplicates: 0,
+          errorList: errors.slice(0, 5),
+        });
+        setParsedImportQuestions(parsed);
+        return;
+      }
 
       // RFC 4180 parsing: quoted commas, multi-line fields and "" escapes.
       const csvRows = parseCsvRaw(text.replace(/^\uFEFF/, ''));
@@ -862,18 +1101,6 @@ export function useAdminQuestionBank() {
       const errors: string[] = [];
       // Columns up to and including correct_answer are required in each template.
       const requiredColumns = modeIdx(importMode, 'correct') + 1;
-      const findSubject = (name: string) =>
-        name
-          ? subjects.find((sub) => sub.name.trim().toLowerCase() === name.toLowerCase())
-          : undefined;
-      const findTopic = (name: string, subjectId?: string) =>
-        name
-          ? topics.find(
-              (t) =>
-                t.name.trim().toLowerCase() === name.toLowerCase() &&
-                (!subjectId || t.subjectId === subjectId)
-            )
-          : undefined;
       const toNumber = (value: string | undefined, fallback: number) => {
         if (!value?.trim()) return fallback;
         const n = Number(value);
@@ -1087,10 +1314,12 @@ export function useAdminQuestionBank() {
   };
 
   return {
+    questions,
     setQuestions,
     exams,
     subjects,
     topics,
+    filterTopicOptions,
     isLoading,
     activeUploadMode,
     setActiveUploadMode,
