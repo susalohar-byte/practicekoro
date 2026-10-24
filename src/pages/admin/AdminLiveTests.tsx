@@ -35,7 +35,7 @@ import {
   Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getPageNumbers } from '@/utils/pagination';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -403,20 +403,12 @@ export const AdminLiveTests: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
-            <Link
-              to="/admin/test-attempts"
-              target="_blank"
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <ExternalLink className="w-4 h-4 text-blue-600" />
-              <span>View Test Attempts</span>
-            </Link>
             <button
               onClick={() => {
                 setEditingTest(null);
                 setIsCreateModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Create Live Test</span>
