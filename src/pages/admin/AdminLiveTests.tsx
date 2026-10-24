@@ -178,16 +178,13 @@ export const AdminLiveTests: React.FC = () => {
     };
   }, []);
 
-  // Prevent background body scroll when drawer is open
+  // Ensure body scroll is never locked on this page
   useEffect(() => {
-    if (isDrawerOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
-  }, [isDrawerOpen]);
+    document.body.style.overflow = '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Load Data
   const loadData = useCallback(async () => {
