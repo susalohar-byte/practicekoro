@@ -8,6 +8,12 @@ describe('parseCsvRaw', () => {
       ['Who said "Do or die", and when?', 'A'],
     ]);
   });
+  it('strips a UTF-8 byte-order mark from the first header', () => {
+    expect(parseCsvRaw('\uFEFFtitle,testType\r\nMock 01,full_mock\r\n')).toEqual([
+      ['title', 'testType'],
+      ['Mock 01', 'full_mock'],
+    ]);
+  });
 });
 
 describe('parseQuestionsCsv', () => {
@@ -133,5 +139,22 @@ Explanation:
     const result = parseQuestionsText(badText);
     expect(result.validCount).toBe(0);
     expect(result.parsedRows[0].errors.some((e) => e.includes('"সঠিক উত্তর:"'))).toBe(true);
+  });
+});
+
+describe('parseQuestionsText answer letters', () => {
+  const block = (answer: string) => `Q?\n(a) 1\n(b) 2\n(c) 3\n(d) 4\n${answer}`;
+
+  it('reads a bare answer letter', () => {
+    expect(parseQuestionsText(block('Answer: B')).questions[0].correctOption).toBe('B');
+    expect(parseQuestionsText(block('Answer - c')).questions[0].correctOption).toBe('C');
+  });
+
+  it('does not read the last letter of an answer word as the option', () => {
+    for (const answer of ['Answer: Kerala', 'উত্তর: Kolkata']) {
+      const result = parseQuestionsText(block(answer));
+      expect(result.validCount).toBe(0);
+      expect(result.parsedRows[0].errors.join(' ')).toContain('Could not read the correct answer');
+    }
   });
 });

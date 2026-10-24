@@ -77,7 +77,10 @@ describe('All admin data-loading screens', () => {
       expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
       expect(document.querySelector('[data-slot="admin-page-skeleton"]')).not.toBeNull();
       expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(8);
-    }
+    },
+    // The first case cold-imports a multi-thousand-line page and its dependency graph, which
+    // can exceed the 5s default when the whole suite runs in parallel workers.
+    20000
   );
   it('keeps the workspace selector loading while its tests list is pending without a test ID', async () => {
     const module = (await pages['./AdminTestQuestions.tsx']()) as Record<

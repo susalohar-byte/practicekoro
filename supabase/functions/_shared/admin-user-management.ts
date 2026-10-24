@@ -26,6 +26,16 @@ export async function manageUsers(
   ) {
     return { success: false, error: 'Active Super Admin privileges are required.' };
   }
+  // Match public.admin_scope_allowed('super'): the authoritative user_roles admin row is required too.
+  const { data: adminRow, error: adminRowError } = await client
+    .from('user_roles')
+    .select('user_id')
+    .eq('user_id', actorId)
+    .eq('role', 'admin')
+    .maybeSingle();
+  if (adminRowError || !adminRow) {
+    return { success: false, error: 'Active Super Admin privileges are required.' };
+  }
   const action = input?.action;
   if (
     ![

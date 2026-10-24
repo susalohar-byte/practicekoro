@@ -80,6 +80,24 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+  const [dragActiveIcon, setDragActiveIcon] = useState(false);
+
+  const handleUploadIconFile = async (file: File) => {
+    if (!test?.id) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file.');
+      return;
+    }
+    try {
+      setIsUploadingIcon(true);
+      const uploadedUrl = await api.uploadTestIcon(file, test.id);
+      setSettingsForm((prev) => ({ ...prev, iconUrl: uploadedUrl }));
+    } catch (err: any) {
+      alert('Failed to upload icon: ' + (err?.message || 'Error'));
+    } finally {
+      setIsUploadingIcon(false);
+    }
+  };
 
   const testId = test?.id;
 
@@ -292,7 +310,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   const isPublished = test.status === 'published';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/20 dark:bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] overflow-hidden bg-slate-950/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-8">
@@ -712,7 +730,36 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 pt-0.5">
+                  <div
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActiveIcon(true);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActiveIcon(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActiveIcon(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActiveIcon(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleUploadIconFile(file);
+                    }}
+                    className={cn(
+                      'flex items-center gap-3 p-2 rounded-2xl transition-all border-2',
+                      dragActiveIcon
+                        ? 'border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                        : 'border-transparent'
+                    )}
+                  >
                     <div className="w-11 h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] flex items-center justify-center shrink-0 shadow-2xs overflow-hidden p-0.5">
                       {settingsForm.iconUrl ? (
                         <img
@@ -744,27 +791,23 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                           ? 'Uploading...'
                           : settingsForm.iconUrl
                             ? 'Change Icon'
-                            : 'Upload Icon'}
+                            : 'Upload or Drop Icon'}
                         <input
                           type="file"
                           accept="image/*"
                           disabled={isUploadingIcon}
                           className="hidden"
-                          onChange={async (ev) => {
+                          onChange={(ev) => {
                             const file = ev.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              setIsUploadingIcon(true);
-                              const uploadedUrl = await api.uploadTestIcon(file, test.id);
-                              setSettingsForm((prev) => ({ ...prev, iconUrl: uploadedUrl }));
-                            } catch (err: any) {
-                              alert('Failed to upload icon: ' + (err?.message || 'Error'));
-                            } finally {
-                              setIsUploadingIcon(false);
-                            }
+                            if (file) handleUploadIconFile(file);
                           }}
                         />
                       </label>
+                      {dragActiveIcon && (
+                        <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                          Drop image to set icon
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

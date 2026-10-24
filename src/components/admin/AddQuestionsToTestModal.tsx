@@ -6,6 +6,7 @@ import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
 
 interface AddQuestionsToTestModalProps {
   test: MockTest | null;
@@ -24,6 +25,11 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   chapters,
   onQuestionsAssigned,
 }) => {
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(
+    isOpen && Boolean(test),
+    onClose,
+    200
+  );
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
   // Marks of questions already assigned to this test, so re-saving never wipes custom marks.
@@ -107,7 +113,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
     }
   };
 
-  if (!isOpen || !test) return null;
+  if (!shouldRender || !test) return null;
 
   const availableChapters = chapters.filter(
     (c) => !selectedSubjectId || c.subjectId === selectedSubjectId
@@ -156,7 +162,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
       if (!result.success) throw new Error(result.error || 'Save failed');
       alert(`Successfully saved ${payload.length} questions to "${test.title}"!`);
       onQuestionsAssigned();
-      onClose();
+      handleSmoothClose();
     } catch (err) {
       console.error('Failed to save test questions:', err);
       alert('Failed to save questions: ' + getErrorMessage(err, 'Save failed'));
@@ -166,10 +172,35 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/25 dark:bg-black/45 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0A1024] border border-slate-200/90 dark:border-slate-800 rounded-2xl w-full max-w-4xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+    <div
+      onClick={handleSmoothClose}
+      className={cn(
+        'fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-3 sm:p-5 bg-transparent transition-opacity duration-200 ease-out',
+        isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'relative bg-white dark:bg-[#0A1024] border border-slate-300 dark:border-slate-700/90 rounded-2xl w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden my-auto shadow-none transition-all duration-200 ease-out transform',
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+        )}
+      >
+        {/* Corner Cross Button */}
+        <button
+          type="button"
+          onClick={handleSmoothClose}
+          className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+          aria-label="Close modal"
+          title="Close"
+        >
+          <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+        </button>
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-[#070D1E] shrink-0">
+        <div className="px-6 py-4.5 pr-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-[#070D1E] shrink-0">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-blue-500" />
@@ -181,13 +212,6 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
               Questions are referenced without duplication.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Filter Bar */}
@@ -360,7 +384,7 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
+            <Button variant="outline" size="sm" onClick={handleSmoothClose} disabled={isSaving}>
               Cancel
             </Button>
             <Button

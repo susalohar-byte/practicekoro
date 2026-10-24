@@ -2,7 +2,10 @@
 // PracticeKoro 2.0 - Server-Side Razorpay Order Creation via Orders API
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 
+import { reportPaymentAlert } from '../_shared/payment-alerts.ts';
 import { isOrderPayload, isRecord } from '../_shared/payment-validation.ts';
+
+const SOURCE = 'create-razorpay-order';
 
 Deno.serve(async (req: Request) => {
   // 1. CORS headers — restricted to ALLOWED_ORIGINS; when unset, defaults
@@ -146,6 +149,13 @@ Deno.serve(async (req: Request) => {
   );
   if (quoteError || !isRecord(quote)) {
     console.error('Purchase eligibility check failed:', quoteError?.code);
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'quote_failed',
+      'Plan eligibility check failed, so students cannot start checkout.',
+      { code: quoteError?.code ?? null, plan_id: plan.id }
+    );
     return new Response(JSON.stringify({ error: 'Could not confirm plan eligibility' }), {
       status: 503,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -188,6 +198,13 @@ Deno.serve(async (req: Request) => {
       .eq('gateway', 'razorpay')
       .maybeSingle();
     if (error || !gateway || gateway.is_active !== true || typeof gateway.key_id !== 'string') {
+      await reportPaymentAlert(
+        serviceClient,
+        SOURCE,
+        'checkout_disabled',
+        'Checkout is disabled or the Razorpay gateway settings are missing.',
+        { code: error?.code ?? null }
+      );
       return new Response(
         JSON.stringify({ error: 'Payment checkout is unavailable or disabled.' }),
         {
@@ -199,6 +216,12 @@ Deno.serve(async (req: Request) => {
     resolvedKeyId = gateway.key_id.trim();
     // Rotating a public key in Settings cannot rotate its paired server secret.
     if (keyId && keyId !== resolvedKeyId) {
+      await reportPaymentAlert(
+        serviceClient,
+        SOURCE,
+        'gateway_key_mismatch',
+        'The Razorpay key in Settings does not match the server secret; checkout is blocked.'
+      );
       return new Response(
         JSON.stringify({ error: 'Payment credentials need coordinated server configuration.' }),
         {
@@ -208,6 +231,12 @@ Deno.serve(async (req: Request) => {
       );
     }
   } catch {
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'gateway_config_unreadable',
+      'Razorpay gateway settings could not be read; checkout is blocked.'
+    );
     return new Response(
       JSON.stringify({ error: 'Payment configuration could not be confirmed.' }),
       {
@@ -224,6 +253,12 @@ Deno.serve(async (req: Request) => {
     !keySecret.trim()
   ) {
     console.error('Razorpay gateway credentials not properly configured');
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'gateway_credentials_missing',
+      'Razorpay key ID or secret is not configured on the server; checkout is blocked.'
+    );
     return new Response(
       JSON.stringify({
         error:
@@ -267,6 +302,13 @@ Deno.serve(async (req: Request) => {
     if (!rzpRes.ok) {
       console.error('Razorpay API error response:', rzpData);
       const desc = rzpData?.error?.description || 'Could not initiate order with payment gateway';
+      await reportPaymentAlert(
+        serviceClient,
+        SOURCE,
+        'razorpay_order_rejected',
+        `Razorpay rejected order creation: ${desc}`,
+        { status: rzpRes.status }
+      );
       return new Response(JSON.stringify({ error: `Razorpay: ${desc}` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -284,6 +326,13 @@ Deno.serve(async (req: Request) => {
     rzpOrder = { id: rzpData.id, amount: amountInPaise, currency: rzpData.currency as string };
   } catch (apiErr) {
     console.error('Failed to communicate with Razorpay API:', apiErr);
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'razorpay_unreachable',
+      'Could not reach Razorpay to create an order.',
+      { error: String(apiErr) }
+    );
     return new Response(
       JSON.stringify({ error: 'Network error communicating with payment gateway' }),
       {
@@ -316,6 +365,13 @@ Deno.serve(async (req: Request) => {
 
   if (paymentInsertError || !paymentRow?.id) {
     console.error('Failed to record pending payment in database:', paymentInsertError);
+    await reportPaymentAlert(
+      serviceClient,
+      SOURCE,
+      'order_insert_failed',
+      'Pending payment could not be saved, so checkout is failing for every student.',
+      { code: paymentInsertError?.code ?? null, message: paymentInsertError?.message ?? null }
+    );
     return new Response(
       JSON.stringify({
         error: 'Could not record payment order. Checkout was not opened; please retry.',

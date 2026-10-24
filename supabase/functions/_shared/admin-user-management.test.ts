@@ -13,6 +13,7 @@ function makeClient(reads: any[] = [actor, student]) {
     saved: { data: { id: 'u1' }, error: null as any },
     profile: { error: null as any },
     updates: [] as any[],
+    adminRow: { user_id: 'admin' } as any,
   };
   const auth = {
     admin: {
@@ -25,9 +26,15 @@ function makeClient(reads: any[] = [actor, student]) {
   };
   const client = {
     auth,
-    from: vi.fn(() => {
+    from: vi.fn((table?: string) => {
       let updated = false;
       const q: any = {};
+      if (table === 'user_roles') {
+        q.select = vi.fn(() => q);
+        q.eq = vi.fn(() => q);
+        q.maybeSingle = vi.fn(async () => ({ data: state.adminRow, error: null }));
+        return q;
+      }
       q.select = vi.fn(() => q);
       q.eq = vi.fn(() => q);
       q.update = vi.fn((payload) => {
@@ -53,6 +60,13 @@ describe('server-only management authorization and persistence', () => {
         q.select = () => q;
         q.eq = () => q;
         q.maybeSingle = async () => ({ data: actor, error: null });
+        return q;
+      })
+      .mockImplementationOnce(() => {
+        const q: any = {};
+        q.select = () => q;
+        q.eq = () => q;
+        q.maybeSingle = async () => ({ data: { user_id: 'admin' }, error: null });
         return q;
       })
       .mockImplementationOnce(() => {
@@ -94,6 +108,20 @@ describe('server-only management authorization and persistence', () => {
     ).toBe(false);
     expect(client.auth.admin.inviteUserByEmail).not.toHaveBeenCalled();
   });
+  it('rejects an active super admin profile without the authoritative user_roles admin row', async () => {
+    const { client, state } = makeClient([actor]);
+    state.adminRow = null;
+    expect(
+      (
+        await manageUsers(client, 'admin', {
+          action: 'create_student',
+          fullName: 'Name',
+          email: 'n@example.com',
+        })
+      ).success
+    ).toBe(false);
+    expect(client.auth.admin.inviteUserByEmail).not.toHaveBeenCalled();
+  });
   it('creates a real Auth invitation and profile, returning the Auth ID', async () => {
     const { client } = makeClient([actor, null]);
     expect(
@@ -106,7 +134,7 @@ describe('server-only management authorization and persistence', () => {
     expect(client.auth.admin.inviteUserByEmail).toHaveBeenCalledWith('learner@example.com', {
       data: { full_name: 'Learner' },
     });
-    expect(client.from.mock.results[2].value.upsert).toHaveBeenCalledWith(
+    expect(client.from.mock.results[3].value.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'new-user-id', role: 'student', admin_role: null }),
       { onConflict: 'id' }
     );

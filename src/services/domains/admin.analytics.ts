@@ -5,7 +5,12 @@ import type {
   StudentRankRow,
   QuestionInsightRow,
 } from '@/types';
-import { readCompleteQuery, netPaymentAmount } from './admin.reporting';
+import {
+  readCompleteQuery,
+  netPaymentAmount,
+  callReportingRpc,
+  getEarliestReportingEvent,
+} from './admin.reporting';
 import {
   getDateRangeBounds,
   getKolkataDateString,
@@ -48,6 +53,8 @@ export async function getAuthoritativeAnalytics(
   end?: string
 ): Promise<PlatformAnalyticsData> {
   const b = analyticsRange(preset, start, end);
+  const fromServer = await getAnalyticsFromServer(b);
+  if (fromServer) return fromServer;
   const read = (table: string, columns: string, filter: (q: any) => any = (q) => q) =>
     readCompleteQuery(() =>
       filter(
@@ -93,6 +100,216 @@ export async function getAuthoritativeAnalytics(
     ),
   ]);
   return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions, monthPayments);
+}
+
+/** Aggregates returned by admin_analytics_overview (see migration 20261023073325). */
+export interface ServerAnalyticsAggregates {
+  total_students: number;
+  new_students: number;
+  tests_attempted: number;
+  questions_answered: number;
+  correct_answers: number;
+  active_students: number;
+  districts: { district: string; count: number }[];
+  genders: { gender: string; count: number }[];
+  students: {
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+    total_tests: number;
+    total_score: number;
+    questions_attempted: number;
+    correct_count: number;
+    last_active: string | null;
+    is_pro: boolean;
+  }[];
+  questions: {
+    question_id: string;
+    question_text: string | null;
+    question_bengali_text: string | null;
+    difficulty: string | null;
+    subject_name: string | null;
+    chapter_name: string | null;
+    total: number;
+    wrong: number;
+    correct: number;
+  }[];
+  subjects: { subject_id: string; subject_name: string | null; total: number; correct: number }[];
+  chapters: {
+    chapter_id: string;
+    chapter_name: string | null;
+    subject_name: string | null;
+    total: number;
+    correct: number;
+  }[];
+  buckets: {
+    attempts: number;
+    completed: number;
+    score_sum: number;
+    answers: number;
+    correct: number;
+    net_paise: number;
+    transactions: number;
+    signups: number;
+    subjects: {
+      subject_id: string;
+      subject_name: string | null;
+      attempts: number;
+      correct: number;
+    }[];
+  }[];
+  total_net_paise: number;
+  month_net_paise: number;
+  paid_students: number;
+  active_subscriptions: number;
+}
+
+async function getAnalyticsFromServer(b: DateRangeBounds): Promise<PlatformAnalyticsData | null> {
+  let chartStart: number | null = Date.parse(b.startIso);
+  if (b.isAllTime) {
+    const first = await getEarliestReportingEvent(b, true);
+    if (first === null) return null;
+    chartStart = first.earliest ? Date.parse(first.earliest) : null;
+  }
+  const buckets =
+    chartStart === null
+      ? []
+      : generateChartBuckets(new Date(chartStart).toISOString(), b.endIso, 8);
+  // Current calendar month is independent of the selected range.
+  const month = getDateRangeBounds('This Month');
+  const agg = await callReportingRpc<ServerAnalyticsAggregates>('admin_analytics_overview', {
+    p_start: b.startIso,
+    p_end: b.endIso,
+    p_month_start: month.startIso,
+    p_month_end: month.endIso,
+    p_buckets: buckets.map((k) => ({
+      start: new Date(k.startMs).toISOString(),
+      end: new Date(k.endMs).toISOString(),
+    })),
+  });
+  if (agg === null) return null;
+  if (!Array.isArray(agg?.buckets) || agg.buckets.length !== buckets.length)
+    throw new Error('The backend did not confirm a complete reporting result.');
+  return assembleServerAnalytics(buckets, agg);
+}
+
+/** Build the same PlatformAnalyticsData as aggregateAnalytics from server totals. */
+export function assembleServerAnalytics(
+  buckets: ReturnType<typeof generateChartBuckets>,
+  agg: ServerAnalyticsAggregates
+): PlatformAnalyticsData {
+  const num = (v: unknown) => Number(v ?? 0);
+  const studentRankings: StudentRankRow[] = agg.students
+    .map((s) => {
+      const row: StudentRankRow = {
+        rank: 0,
+        userId: s.user_id,
+        name: s.full_name || 'Unnamed student',
+        email: s.email || '',
+        totalTests: num(s.total_tests),
+        questionsAttempted: num(s.questions_attempted),
+        correctCount: num(s.correct_count),
+        accuracy: rate(num(s.correct_count), num(s.questions_attempted)),
+        totalScore: num(s.total_score),
+        isPro: Boolean(s.is_pro),
+      };
+      if (s.last_active) row.lastActive = s.last_active;
+      return row;
+    })
+    .sort(
+      (a, c) =>
+        c.totalScore - a.totalScore || c.accuracy - a.accuracy || a.userId.localeCompare(c.userId)
+    )
+    .map((s, i) => ({ ...s, rank: i + 1 }));
+  return {
+    demographics: {
+      districts: agg.districts
+        .map((d) => ({ district: d.district, studentCount: num(d.count) }))
+        .sort((a, b) => b.studentCount - a.studentCount || a.district.localeCompare(b.district)),
+      genders: agg.genders
+        .map((g) => ({ gender: g.gender, studentCount: num(g.count) }))
+        .sort((a, b) => b.studentCount - a.studentCount || a.gender.localeCompare(b.gender)),
+    },
+    historicalSubjectTrends: buckets.map((k, i) => ({
+      date: k.dateStr,
+      label: k.label,
+      subjects: agg.buckets[i].subjects.map((s) => ({
+        subjectId: s.subject_id,
+        subjectName: s.subject_name || 'Subject unavailable',
+        attempts: num(s.attempts),
+        accuracy: rate(num(s.correct), num(s.attempts)),
+      })),
+    })),
+    studentPerformance: {
+      totalStudents: num(agg.total_students),
+      newStudents: num(agg.new_students),
+      activeStudents: num(agg.active_students),
+      testsAttempted: num(agg.tests_attempted),
+      questionsAnswered: num(agg.questions_answered),
+      overallAccuracy: rate(num(agg.correct_answers), num(agg.questions_answered)),
+      topStudent: studentRankings[0],
+      performanceTrend: buckets.map((k, i) => {
+        const t = agg.buckets[i];
+        return {
+          date: k.dateStr,
+          label: k.label,
+          attemptsCount: num(t.attempts),
+          averageAccuracy: rate(num(t.correct), num(t.answers)),
+          averageScore: num(t.completed) ? num(t.score_sum) / num(t.completed) : 0,
+        };
+      }),
+    },
+    studentRankings,
+    questionInsights: {
+      mostWrongQuestions: agg.questions
+        .map((q) => ({
+          questionId: q.question_id,
+          questionText: q.question_text || 'Question text unavailable',
+          questionBengaliText: q.question_bengali_text ?? undefined,
+          subjectName: q.subject_name || 'Subject unavailable',
+          chapterName: q.chapter_name || 'Topic unavailable',
+          difficulty: (q.difficulty ?? undefined) as QuestionInsightRow['difficulty'],
+          totalAttempts: num(q.total),
+          wrongCount: num(q.wrong),
+          failureRate: rate(num(q.wrong), num(q.total)),
+          accuracyRate: rate(num(q.correct), num(q.total)),
+        }))
+        .sort((a, c) => c.failureRate - a.failureRate || c.totalAttempts - a.totalAttempts),
+      weakestTopics: agg.chapters
+        .map((t) => ({
+          chapterId: t.chapter_id,
+          chapterName: t.chapter_name || 'Topic unavailable',
+          subjectName: t.subject_name || 'Subject unavailable',
+          totalQuestionsAttempted: num(t.total),
+          accuracyRate: rate(num(t.correct), num(t.total)),
+        }))
+        .sort((a, c) => a.accuracyRate - c.accuracyRate),
+      weakestSubjects: agg.subjects
+        .map((s) => ({
+          subjectId: s.subject_id,
+          subjectName: s.subject_name || 'Subject unavailable',
+          totalQuestionsAttempted: num(s.total),
+          accuracyRate: rate(num(s.correct), num(s.total)),
+        }))
+        .sort((a, c) => a.accuracyRate - c.accuracyRate),
+    },
+    revenue: {
+      totalRevenue: Math.round(num(agg.total_net_paise)) / 100,
+      monthlyRevenue: Math.round(num(agg.month_net_paise)) / 100,
+      paidStudents: num(agg.paid_students),
+      activeSubscriptions: num(agg.active_subscriptions),
+      revenueTrend: buckets.map((k, i) => {
+        const t = agg.buckets[i];
+        return {
+          date: k.dateStr,
+          label: k.label,
+          amount: Math.round(num(t.net_paise)) / 100,
+          transactions: num(t.transactions),
+          signups: num(t.signups),
+        };
+      }),
+    },
+  };
 }
 
 export function aggregateAnalytics(
@@ -381,55 +598,72 @@ export interface AdminDistrictRankingRow {
   topStudentScore: number | null;
 }
 
+/** Look up rows by id in fixed-size batches so `.in()` never builds an oversized URL. */
+async function selectInChunks(table: string, columns: string, ids: string[]): Promise<any[]> {
+  const CHUNK = 200;
+  const out: any[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .in('id', ids.slice(i, i + CHUNK));
+    if (error) throw new Error(error.message);
+    out.push(...(data || []));
+  }
+  return out;
+}
+
 /** Direct table query fallback for district aggregates when RPC get_admin_district_rankings is not yet migrated */
 async function getAdminDistrictRankingsDirectFallback(
   params: { examId?: string | null; fromIso?: string | null; toIso?: string | null } = {}
 ): Promise<AdminDistrictRankingRow[]> {
-  // 1. Fetch completed test attempts
-  let attemptsQuery = supabase
-    .from('test_attempts')
-    .select('user_id, test_id, score, total_marks, created_at')
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(5000);
-
-  if (params.fromIso) {
-    attemptsQuery = attemptsQuery.gte('created_at', params.fromIso);
-  }
-  if (params.toIso) {
-    attemptsQuery = attemptsQuery.lte('created_at', params.toIso);
-  }
-
-  const { data: attempts, error: attemptsErr } = await attemptsQuery;
-  if (attemptsErr) throw attemptsErr;
-  if (!attempts || attempts.length === 0) return [];
+  // 1. Fetch every completed attempt in range. Page through all rows: a single .limit() is
+  // silently capped by the server's max_rows and would undercount districts.
+  const attempts = await readCompleteQuery(() => {
+    let attemptsQuery = supabase
+      .from('test_attempts')
+      .select('id, user_id, test_id, score, total_marks, created_at', { count: 'exact' })
+      .eq('status', 'completed')
+      .order('id', { ascending: true });
+    if (params.fromIso) attemptsQuery = attemptsQuery.gte('created_at', params.fromIso);
+    if (params.toIso) attemptsQuery = attemptsQuery.lte('created_at', params.toIso);
+    return attemptsQuery;
+  });
+  if (attempts.length === 0) return [];
 
   // 2. Filter by exam if examId provided
   let filteredAttempts = attempts;
   if (params.examId) {
-    const [{ data: testsDirect }, { data: testsAssoc }] = await Promise.all([
-      supabase.from('tests').select('id').eq('exam_id', params.examId),
-      supabase.from('test_exams').select('test_id').eq('exam_id', params.examId),
+    const [testsDirect, testsAssoc] = await Promise.all([
+      readCompleteQuery(() =>
+        supabase
+          .from('tests')
+          .select('id', { count: 'exact' })
+          .eq('exam_id', params.examId)
+          .order('id', { ascending: true })
+      ),
+      readCompleteQuery(() =>
+        supabase
+          .from('test_exams')
+          .select('test_id', { count: 'exact' })
+          .eq('exam_id', params.examId)
+          .order('test_id', { ascending: true })
+      ),
     ]);
     const validTestIds = new Set<string>();
-    (testsDirect || []).forEach((t: any) => validTestIds.add(t.id));
-    (testsAssoc || []).forEach((t: any) => validTestIds.add(t.test_id));
+    testsDirect.forEach((t: any) => validTestIds.add(t.id));
+    testsAssoc.forEach((t: any) => validTestIds.add(t.test_id));
     filteredAttempts = attempts.filter((a) => validTestIds.has(a.test_id));
   }
 
   if (filteredAttempts.length === 0) return [];
 
-  // 3. User IDs and Profile lookup
+  // 3. User IDs and Profile lookup (chunked so the request URL stays within limits)
   const userIds = Array.from(new Set(filteredAttempts.map((a) => a.user_id))).filter(Boolean);
-  const { data: profiles, error: profErr } = await supabase
-    .from('profiles')
-    .select('id, full_name, district, role')
-    .in('id', userIds);
-
-  if (profErr) throw profErr;
+  const profiles = await selectInChunks('profiles', 'id, full_name, district, role', userIds);
 
   const profileMap = new Map<string, { fullName: string; district: string }>();
-  (profiles || []).forEach((p: any) => {
+  profiles.forEach((p: any) => {
     if (p.role === 'student' || !p.role) {
       profileMap.set(p.id, {
         fullName: p.full_name || 'Aspirant',
@@ -448,11 +682,8 @@ async function getAdminDistrictRankingsDirectFallback(
   );
   const testMarksMap = new Map<string, number>();
   if (testsNeedingMarks.length > 0) {
-    const { data: testRows } = await supabase
-      .from('tests')
-      .select('id, total_marks')
-      .in('id', testsNeedingMarks);
-    (testRows || []).forEach((t: any) => {
+    const testRows = await selectInChunks('tests', 'id, total_marks', testsNeedingMarks);
+    testRows.forEach((t: any) => {
       if (t.total_marks) testMarksMap.set(t.id, Number(t.total_marks));
     });
   }
@@ -578,54 +809,36 @@ export async function getAdminDistrictRankings(
 ): Promise<AdminDistrictRankingRow[]> {
   const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
-  // Attempt 1: Fast RPC function
-  try {
-    const { data, error } = await supabase.rpc('get_admin_district_rankings', {
-      p_exam_id: params.examId || null,
-      p_from: params.fromIso || null,
-      p_to: params.toIso || null,
-    });
+  // Attempt 1: Fast RPC function. Only a genuinely missing function falls back to the
+  // direct table read; any other RPC error (permissions, bad input, timeout) is surfaced.
+  const { data, error } = await supabase.rpc('get_admin_district_rankings', {
+    p_exam_id: params.examId || null,
+    p_from: params.fromIso || null,
+    p_to: params.toIso || null,
+  });
 
-    if (!error && Array.isArray(data)) {
-      return data.map((r: any) => ({
-        district: String(r.district || 'Not specified'),
-        studentCount: Number(r.student_count || 0),
-        attemptsCount: Number(r.attempts_count || 0),
-        avgPercentage: num(r.avg_percentage),
-        topStudentName: r.top_student_name || null,
-        topStudentScore: num(r.top_student_score),
-      }));
-    }
-
-    if (error) {
-      const isMissingFunction =
-        error.code === 'PGRST202' ||
-        error.message?.includes('get_admin_district_rankings') ||
-        error.message?.includes('schema cache');
-      if (!isMissingFunction) {
-        throw new Error(error.message);
-      }
-      console.warn('RPC get_admin_district_rankings not in schema cache, using direct fallback...');
-    }
-  } catch (err: any) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const isMissingFunction =
-      msg.includes('get_admin_district_rankings') ||
-      msg.includes('schema cache') ||
-      msg.includes('PGRST202');
-    if (!isMissingFunction) {
-      throw err;
-    }
-    console.warn('RPC get_admin_district_rankings not available, attempting direct fallback...');
+  if (!error) {
+    if (!Array.isArray(data)) throw new Error('District rankings returned an invalid response.');
+    return data.map((r: any) => ({
+      district: String(r.district || 'Not specified'),
+      studentCount: Number(r.student_count || 0),
+      attemptsCount: Number(r.attempts_count || 0),
+      avgPercentage: num(r.avg_percentage),
+      topStudentName: r.top_student_name || null,
+      topStudentScore: num(r.top_student_score),
+    }));
   }
 
-  // Attempt 2: Fallback query directly on tables
+  const isMissingFunction = error.code === 'PGRST202' || error.code === '42883';
+  if (!isMissingFunction) throw new Error(error.message);
+  console.warn('RPC get_admin_district_rankings is not installed, using direct fallback...');
+
+  // Attempt 2: Fallback query directly on tables. Report its real failure rather than a
+  // generic "not installed" message that hides permission or network errors.
   try {
     return await getAdminDistrictRankingsDirectFallback(params);
-  } catch (fallbackErr: any) {
+  } catch (fallbackErr: unknown) {
     console.error('Direct fallback query for district rankings failed:', fallbackErr);
-    throw new Error(
-      `Database function 'public.get_admin_district_rankings' is not installed in Supabase. Please execute migration '20261011090200_admin_district_rankings.sql' in your Supabase SQL Editor.`
-    );
+    throw fallbackErr instanceof Error ? fallbackErr : new Error(String(fallbackErr));
   }
 }

@@ -66,7 +66,7 @@ export const PRESET_SERIES_LOGOS = [
   { name: 'SSC Commission', path: '/images/exams/logo_ssc.png' },
   { name: 'Railways Seal', path: '/images/exams/logo_railway.png' },
   { name: 'Primary TET', path: '/images/exams/logo_wbtet.png' },
-  { name: 'WBPSC Emblem', path: '/images/exams/logo_wbpsc.png' },
+  { name: 'WBPSC Official', path: '/images/exams/logo_wbpsc.png' },
 ];
 
 export const PRESET_SERIES_BACKGROUNDS = [
@@ -99,9 +99,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
   const [cardGradientEnd, setCardGradientEnd] = useState(card?.cardGradientEnd || '#0048C6');
   const [cardArrowColor, setCardArrowColor] = useState(card?.cardArrowColor || '#026BFC');
   const [cardBgImage, setCardBgImage] = useState(card?.cardBgImage || '/images/series_wbp_bg.png');
-  const [cardLogoUrl, setCardLogoUrl] = useState(
-    card?.cardLogoUrl || '/images/exams/emblem_series_wbp.png'
-  );
+  const [cardLogoUrl, setCardLogoUrl] = useState(card?.cardLogoUrl || '/images/exams/logo_wbp.png');
   const [route, setRoute] = useState(card?.route || '/test-series');
   const [isActive, setIsActive] = useState(card?.isActive !== false);
   const [testSeriesId, setTestSeriesId] = useState(card?.testSeriesId || '');
@@ -125,7 +123,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       setCardGradientEnd(card.cardGradientEnd || '#0048C6');
       setCardArrowColor(card.cardArrowColor || '#026BFC');
       setCardBgImage(card.cardBgImage || '/images/series_wbp_bg.png');
-      setCardLogoUrl(card.cardLogoUrl || '/images/exams/emblem_series_wbp.png');
+      setCardLogoUrl(card.cardLogoUrl || '/images/exams/logo_wbp.png');
       setRoute(card.route || '/test-series');
       setIsActive(card.isActive !== false);
       setTestSeriesId(card.testSeriesId || '');
@@ -133,7 +131,7 @@ export const PopularTestSeriesEditModal: React.FC<PopularTestSeriesEditModalProp
       setTopicTestCount(card.topicTestCount ?? 0);
       setPyqTestCount(card.pyqTestCount ?? 0);
       setBgBeforeUpload(card.cardBgImage || '/images/series_wbp_bg.png');
-      setLogoBeforeUpload(card.cardLogoUrl || '/images/exams/emblem_series_wbp.png');
+      setLogoBeforeUpload(card.cardLogoUrl || '/images/exams/logo_wbp.png');
       setBackgroundFile(null);
       setLogoFile(null);
       setError('');

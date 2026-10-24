@@ -41,6 +41,7 @@ describe('Payment reporting integrity', () => {
     expect(retainedPaymentAmount(row({ status: 'refunded' }))).toBe(0);
     expect(retainedPaymentAmount(row({ refundAmount: 20 }))).toBe(80);
     expect(retainedPaymentAmount(row({ refundAmount: 200 }))).toBe(0);
+    expect(retainedPaymentAmount(row({ requiresRefund: true }))).toBe(0);
     expect(recordedRefundAmount(row({ status: 'refunded' }))).toBe(100);
   });
   it('keeps the unrefunded remainder of a partially refunded payment', () => {

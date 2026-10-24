@@ -1,6 +1,65 @@
 import { supabaseRuntime as supabase } from '@/lib/supabase';
 import type { AdminPaymentRow, AdminSubscriptionRow } from '@/types';
 
+const PAYMENT_COLUMNS =
+  'id, user_id, amount, status, refund_id, refund_amount, gateway, transaction_id, currency, raw_response';
+
+interface PaymentRecord {
+  user_id: string;
+  amount: number | string | null;
+  status: string;
+  refund_amount?: number | string | null;
+  raw_response?: { requires_refund?: unknown } | null;
+}
+
+/** Money actually kept from a payment, in paise: refunds and payments owed back excluded. */
+function retainedPaise(p: PaymentRecord): number {
+  if (p.raw_response?.requires_refund === true || p.raw_response?.requires_refund === 'true') {
+    return 0;
+  }
+  if (p.status !== 'completed' && p.status !== 'refunded') return 0;
+  const amount = Math.round(Number(p.amount) * 100);
+  if (!Number.isFinite(amount) || amount < 0) return 0;
+  const refunded =
+    p.refund_amount != null
+      ? Math.round(Number(p.refund_amount) * 100)
+      : p.status === 'refunded'
+        ? amount
+        : 0;
+  return Math.max(0, amount - (Number.isFinite(refunded) ? refunded : amount));
+}
+
+/** Upgrade payments keep pointing subscriptions.payment_id at the original purchase. */
+async function loadUpgradePayments(
+  subscriptionIds: string[]
+): Promise<Map<string, PaymentRecord[]> | null> {
+  if (!subscriptionIds.length) return new Map();
+  const { data: changes, error } = await supabase
+    .from('subscription_changes')
+    .select('subscription_id, payment_id')
+    .eq('change_type', 'upgrade')
+    .is('reverted_at', null)
+    .in('subscription_id', subscriptionIds);
+  if (error || !changes) return null;
+  const result = new Map<string, PaymentRecord[]>();
+  if (!changes.length) return result;
+  const { data: payments, error: paymentsError } = await supabase
+    .from('payments')
+    .select(PAYMENT_COLUMNS)
+    .in(
+      'id',
+      changes.map((change) => change.payment_id)
+    );
+  if (paymentsError || !payments) return null;
+  const byId = new Map(payments.map((payment) => [payment.id, payment]));
+  for (const change of changes) {
+    const payment = byId.get(change.payment_id);
+    if (!payment) continue;
+    result.set(change.subscription_id, [...(result.get(change.subscription_id) ?? []), payment]);
+  }
+  return result;
+}
+
 /** Join on the actual payment link, never a plan's current price or user alone. */
 export async function enrichAdminSubscriptionPayments(
   rows: AdminSubscriptionRow[]
@@ -8,16 +67,15 @@ export async function enrichAdminSubscriptionPayments(
   const ids = [...new Set(rows.flatMap((row) => (row.paymentId ? [row.paymentId] : [])))];
   if (!ids.length) return rows;
   try {
-    const { data, error } = await supabase
-      .from('payments')
-      .select('id, user_id, amount, status, refund_id, gateway, transaction_id, currency')
-      .in('id', ids);
+    const { data, error } = await supabase.from('payments').select(PAYMENT_COLUMNS).in('id', ids);
     if (error || !data) return rows;
     const payments = new Map(data.map((payment) => [payment.id, payment]));
+    const upgradePayments = await loadUpgradePayments(rows.map((row) => row.id)).catch(() => null);
     return rows.map((row) => {
       const payment = row.paymentId ? payments.get(row.paymentId) : undefined;
       if (!payment || payment.user_id !== row.userId) return row;
       const amount = payment.amount == null ? NaN : Number(payment.amount);
+      const upgrades = upgradePayments?.get(row.id) ?? [];
       return {
         ...row,
         paymentAmount: Number.isFinite(amount) && amount >= 0 ? amount : undefined,
@@ -25,6 +83,13 @@ export async function enrichAdminSubscriptionPayments(
         paymentGateway: payment.gateway || undefined,
         paymentTransactionId: payment.transaction_id || undefined,
         paymentCurrency: payment.currency || undefined,
+        // Unknown when the upgrade lookup failed, so the KPI falls back rather than undercounting silently.
+        recordedRevenue: upgradePayments
+          ? [payment, ...upgrades.filter((p) => p.user_id === row.userId)].reduce(
+              (paise, p) => paise + retainedPaise(p),
+              0
+            ) / 100
+          : undefined,
       };
     });
   } catch {

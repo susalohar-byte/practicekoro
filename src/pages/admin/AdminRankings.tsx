@@ -25,9 +25,11 @@ import {
   Search,
   RotateCcw,
   Loader2,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
+import type { LiveTest, LiveTestParticipant } from '@/types';
 
 // ============================================================================
 // DATA MODELS & TYPES
@@ -60,6 +62,192 @@ export interface RankingStudent {
   }[];
 }
 
+function rankingInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'ST';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatRankingTimeAgo(val?: string | number | Date | null): string {
+  if (!val) return 'Recently';
+  const ms = typeof val === 'number' ? val : Date.parse(String(val));
+  if (!ms || isNaN(ms)) return 'Recently';
+  const diffMinutes = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return `${Math.round(diffDays / 30)}mo ago`;
+}
+
+const LIVE_SUBJECT_COLORS = ['#E11D48', '#2563EB', '#059669', '#D97706', '#7C3AED'];
+const LIVE_ICON_BG = [
+  'bg-rose-50 text-rose-600',
+  'bg-blue-50 text-blue-600',
+  'bg-amber-50 text-amber-600',
+];
+
+function mapLiveParticipantToRankingStudent(
+  participant: LiveTestParticipant,
+  liveTest?: LiveTest,
+  rankOverride?: number
+): RankingStudent {
+  const name = (participant.fullName || 'Student').trim();
+  const districtName = (participant.district || '').trim();
+  const rawScore = Number(participant.score || 0);
+  const rawAcc = Number(participant.accuracy || 0);
+  const testTitle = liveTest?.title || 'Live Test';
+  const examName =
+    (liveTest as any)?.examName || liveTest?.examTitle || liveTest?.test?.examTitle || 'Live Exam';
+  const totalQ = liveTest?.totalQuestions || (rawScore > 0 ? 100 : 0);
+
+  return {
+    rank: rankOverride ?? (participant.rank || 1),
+    studentId: `PK${String(participant.userId || participant.id)
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 6)
+      .toUpperCase()}`,
+    name,
+    district: districtName || 'West Bengal',
+    location: districtName ? `${districtName}, West Bengal` : 'West Bengal',
+    avatar: participant.avatarUrl || undefined,
+    initials: rankingInitials(name),
+    initialsBg: 'bg-rose-100 text-rose-600 border border-rose-200',
+    testsAttempted: 1,
+    questionsAnswered: totalQ,
+    accuracy: Math.round(rawAcc),
+    avgScore: Math.round(rawScore),
+    lastActive: formatRankingTimeAgo(participant.completedAt || participant.registeredAt),
+    subjectPerformance: [
+      {
+        subject: examName,
+        scorePercent: Math.round(rawAcc || rawScore),
+        barColor: '#E11D48',
+      },
+    ],
+    recentAttempts: [
+      {
+        title: testTitle,
+        scorePercent: Math.round(rawScore),
+        timeAgo: formatRankingTimeAgo(participant.completedAt || participant.registeredAt),
+        iconBg: 'bg-rose-50 text-rose-600',
+      },
+    ],
+  };
+}
+
+function aggregateLiveParticipants(
+  items: { participant: LiveTestParticipant; liveTest?: LiveTest }[]
+): RankingStudent[] {
+  const byUser = new Map<
+    string,
+    {
+      userId: string;
+      fullName: string;
+      district: string;
+      avatarUrl?: string;
+      tests: { liveTest?: LiveTest; score: number; accuracy: number; completedAt?: string }[];
+    }
+  >();
+
+  for (const item of items) {
+    const p = item.participant;
+    const uid = String(p.userId || p.id);
+    const existing = byUser.get(uid);
+    const testEntry = {
+      liveTest: item.liveTest,
+      score: Number(p.score || 0),
+      accuracy: Number(p.accuracy || 0),
+      completedAt: p.completedAt || p.registeredAt,
+    };
+    if (!existing) {
+      byUser.set(uid, {
+        userId: uid,
+        fullName: p.fullName || 'Student',
+        district: p.district || 'West Bengal',
+        avatarUrl: p.avatarUrl,
+        tests: [testEntry],
+      });
+    } else {
+      if (!existing.avatarUrl && p.avatarUrl) existing.avatarUrl = p.avatarUrl;
+      if (p.fullName && existing.fullName === 'Student') existing.fullName = p.fullName;
+      if (p.district && existing.district === 'West Bengal') existing.district = p.district;
+      existing.tests.push(testEntry);
+    }
+  }
+
+  const students: RankingStudent[] = Array.from(byUser.values()).map((user) => {
+    const testsCount = user.tests.length;
+    const totalScore = user.tests.reduce((acc, t) => acc + t.score, 0);
+    const totalAcc = user.tests.reduce((acc, t) => acc + t.accuracy, 0);
+    const avgScore = Math.round(totalScore / Math.max(1, testsCount));
+    const avgAcc = Math.round(totalAcc / Math.max(1, testsCount));
+    const totalQuestions = user.tests.reduce(
+      (acc, t) => acc + (t.liveTest?.totalQuestions || 100),
+      0
+    );
+
+    const sortedTests = [...user.tests].sort((a, b) => {
+      const at = a.completedAt ? Date.parse(a.completedAt) : 0;
+      const bt = b.completedAt ? Date.parse(b.completedAt) : 0;
+      return bt - at;
+    });
+
+    const latestCompleted = sortedTests[0]?.completedAt;
+
+    return {
+      rank: 1,
+      studentId: `PK${user.userId
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 6)
+        .toUpperCase()}`,
+      name: user.fullName,
+      district: user.district,
+      location: `${user.district}, West Bengal`,
+      avatar: user.avatarUrl,
+      initials: rankingInitials(user.fullName),
+      initialsBg: 'bg-rose-100 text-rose-600 border border-rose-200',
+      testsAttempted: testsCount,
+      questionsAnswered: totalQuestions,
+      accuracy: avgAcc,
+      avgScore,
+      lastActive: formatRankingTimeAgo(latestCompleted),
+      subjectPerformance: sortedTests.slice(0, 3).map((t, idx) => ({
+        subject:
+          (t.liveTest as any)?.examName ||
+          t.liveTest?.examTitle ||
+          t.liveTest?.title ||
+          'Live Test',
+        scorePercent: Math.round(t.score),
+        barColor: LIVE_SUBJECT_COLORS[idx % LIVE_SUBJECT_COLORS.length],
+      })),
+      recentAttempts: sortedTests.slice(0, 3).map((t, idx) => ({
+        title: t.liveTest?.title || 'Live Test',
+        scorePercent: Math.round(t.score),
+        timeAgo: formatRankingTimeAgo(t.completedAt),
+        iconBg: LIVE_ICON_BG[idx % LIVE_ICON_BG.length],
+      })),
+    };
+  });
+
+  // Sort: avgScore DESC, accuracy DESC, testsAttempted DESC
+  students.sort((a, b) => {
+    if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+    if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+    return b.testsAttempted - a.testsAttempted;
+  });
+
+  students.forEach((s, idx) => {
+    s.rank = idx + 1;
+  });
+
+  return students;
+}
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -67,21 +255,32 @@ export interface RankingStudent {
 export const AdminRankings: React.FC = () => {
   const navigate = useNavigate();
 
-  // Scope Tab: Overall | By Exam | By Subject | By Topic | By Test Series
+  // Scope Tab: Overall | By Exam | By Subject | By Topic | By Test Series | Live Tests
   const [scopeTab, setScopeTab] = useState<
-    'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series'
+    'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series' | 'Live Tests'
   >('Overall');
 
   // Filter Toolbar State
   const [selectedExam, setSelectedExam] = useState('All Exams');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
   const [selectedTestType, setSelectedTestType] = useState('All Types');
+  const [selectedLiveTestId, setSelectedLiveTestId] = useState('All Live Tests');
   const [timePeriod, setTimePeriod] = useState('All Time');
   const [searchQuery, setSearchQuery] = useState('');
+  // Search typed into the box is applied after a short pause so each keystroke doesn't refetch.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  // Only the latest rankings request may update state; older responses are discarded.
+  const latestRankingsRequest = useRef(0);
 
   // Dynamic dropdown data loaded from database
   const [dbExams, setDbExams] = useState<any[]>([]);
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
+  const [dbLiveTests, setDbLiveTests] = useState<LiveTest[]>([]);
+  const dbLiveTestsRef = useRef<LiveTest[]>([]);
 
   // Live rankings list loaded from Supabase
   const [studentsList, setStudentsList] = useState<RankingStudent[]>([]);
@@ -96,16 +295,30 @@ export const AdminRankings: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
-  // Load database exams and subjects for filter dropdowns
+  // Load database exams, subjects, and live tests for filter dropdowns
   useEffect(() => {
     let isMounted = true;
     Promise.all([
-      api.getAllAdminExams().catch(() => []),
-      api.getAllAdminSubjects().catch(() => []),
-    ]).then(([exams, subjects]) => {
+      api.getAllAdminExams().catch((err) => {
+        console.error('Failed to load exams for ranking filters:', err);
+        return [];
+      }),
+      api.getAllAdminSubjects().catch((err) => {
+        console.error('Failed to load subjects for ranking filters:', err);
+        return [];
+      }),
+      (api.getLiveTests?.() ?? Promise.resolve([])).catch((err: any) => {
+        console.error('Failed to load live tests for ranking filters:', err);
+        return [];
+      }),
+    ]).then(([exams, subjects, liveTests]) => {
       if (!isMounted) return;
       if (Array.isArray(exams)) setDbExams(exams);
       if (Array.isArray(subjects)) setDbSubjects(subjects);
+      if (Array.isArray(liveTests)) {
+        setDbLiveTests(liveTests);
+        dbLiveTestsRef.current = liveTests;
+      }
     });
     return () => {
       isMounted = false;
@@ -115,13 +328,16 @@ export const AdminRankings: React.FC = () => {
   // Fetch live rankings from Supabase
   const fetchRankings = useCallback(
     async (overrides?: {
-      scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series';
+      scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series' | 'Live Tests';
       exam?: string;
       subject?: string;
       testType?: string;
+      liveTestId?: string;
       timePeriod?: string;
       search?: string;
     }) => {
+      const requestId = ++latestRankingsRequest.current;
+      const isStale = () => requestId !== latestRankingsRequest.current;
       setIsLoading(true);
       setLoadError(null);
       try {
@@ -129,31 +345,111 @@ export const AdminRankings: React.FC = () => {
         const targetExam = overrides?.exam ?? selectedExam;
         const targetSubject = overrides?.subject ?? selectedSubject;
         const targetTestType = overrides?.testType ?? selectedTestType;
+        const targetLiveTestId = overrides?.liveTestId ?? selectedLiveTestId;
         const targetTimePeriod = overrides?.timePeriod ?? timePeriod;
-        const targetSearch = overrides?.search ?? searchQuery;
+        const targetSearch = overrides?.search ?? debouncedSearch;
 
-        const liveRankings = await api.getAdminRankings({
-          scope: targetScope,
-          exam: targetExam,
-          subject: targetSubject,
-          testType: targetTestType,
-          timePeriod: targetTimePeriod,
-          search: targetSearch,
-        });
+        const isLiveTestMode =
+          targetScope === 'Live Tests' ||
+          targetTestType === 'Live Test' ||
+          (targetLiveTestId && targetLiveTestId !== 'All Live Tests');
 
-        // No matching completed attempts is a real empty result, never seeded sample students.
-        const list = liveRankings || [];
-        setStudentsList(list);
-        setSelectedStudentRank(list.length > 0 ? list[0].rank : 1);
+        if (isLiveTestMode) {
+          // 1. Single Live Test Leaderboard
+          if (targetLiveTestId && targetLiveTestId !== 'All Live Tests') {
+            const participants = await (api.getLiveTestLeaderboard?.(targetLiveTestId) ??
+              Promise.resolve([]));
+            if (isStale()) return;
+            const liveTest = dbLiveTestsRef.current.find((t) => t.id === targetLiveTestId);
+            let list = (participants || []).map((p, idx) =>
+              mapLiveParticipantToRankingStudent(p, liveTest, p.rank || idx + 1)
+            );
+            if (targetSearch.trim()) {
+              const q = targetSearch.toLowerCase().trim();
+              list = list.filter(
+                (s) =>
+                  s.name.toLowerCase().includes(q) ||
+                  s.studentId.toLowerCase().includes(q) ||
+                  s.district.toLowerCase().includes(q) ||
+                  s.location.toLowerCase().includes(q)
+              );
+            }
+            setStudentsList(list);
+            setSelectedStudentRank(list.length > 0 ? list[0].rank : 1);
+          } else {
+            // 2. All Live Tests Aggregated Leaderboard
+            let liveTestsToFetch = dbLiveTestsRef.current;
+            if (liveTestsToFetch.length === 0) {
+              liveTestsToFetch = await (api.getLiveTests?.() ?? Promise.resolve([]));
+              if (Array.isArray(liveTestsToFetch)) {
+                setDbLiveTests(liveTestsToFetch);
+                dbLiveTestsRef.current = liveTestsToFetch;
+              }
+            }
+            if (targetExam !== 'All Exams') {
+              liveTestsToFetch = (liveTestsToFetch || []).filter((lt) => {
+                const ex = ((lt as any)?.examName || lt.examTitle || '').toLowerCase();
+                const title = (lt.title || '').toLowerCase();
+                const q = targetExam.toLowerCase();
+                return ex === q || title.includes(q);
+              });
+            }
+
+            const leaderboardPromises = (liveTestsToFetch || []).map(async (lt) => {
+              const parts = await (api.getLiveTestLeaderboard?.(lt.id) ?? Promise.resolve([]));
+              return (parts || []).map((p) => ({ participant: p, liveTest: lt }));
+            });
+            const results = await Promise.all(leaderboardPromises);
+            if (isStale()) return;
+            const flattened = results.flat();
+            let aggregated = aggregateLiveParticipants(flattened);
+            if (targetSearch.trim()) {
+              const q = targetSearch.toLowerCase().trim();
+              aggregated = aggregated.filter(
+                (s) =>
+                  s.name.toLowerCase().includes(q) ||
+                  s.studentId.toLowerCase().includes(q) ||
+                  s.district.toLowerCase().includes(q) ||
+                  s.location.toLowerCase().includes(q)
+              );
+            }
+            setStudentsList(aggregated);
+            setSelectedStudentRank(aggregated.length > 0 ? aggregated[0].rank : 1);
+          }
+        } else {
+          // Standard mock tests ranking via Reporting RPC / browser aggregation
+          const liveRankings = await api.getAdminRankings({
+            scope: targetScope,
+            exam: targetExam,
+            subject: targetSubject,
+            testType: targetTestType,
+            timePeriod: targetTimePeriod,
+            search: targetSearch,
+          });
+
+          if (isStale()) return;
+          const list = liveRankings || [];
+          setStudentsList(list);
+          setSelectedStudentRank(list.length > 0 ? list[0].rank : 1);
+        }
       } catch (err) {
+        if (isStale()) return;
         console.warn('Failed to load admin rankings from database:', err);
         setStudentsList([]);
         setLoadError(err instanceof Error ? err.message : 'Failed to load rankings.');
       } finally {
-        setIsLoading(false);
+        if (!isStale()) setIsLoading(false);
       }
     },
-    [scopeTab, selectedExam, selectedSubject, selectedTestType, timePeriod, searchQuery]
+    [
+      scopeTab,
+      selectedExam,
+      selectedSubject,
+      selectedTestType,
+      selectedLiveTestId,
+      timePeriod,
+      debouncedSearch,
+    ]
   );
 
   useEffect(() => {
@@ -162,11 +458,11 @@ export const AdminRankings: React.FC = () => {
 
   // Handle Scope Tab Changes
   const handleScopeChange = (
-    newScope: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series'
+    newScope: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series' | 'Live Tests'
   ) => {
+    // The fetch effect reruns when the scope changes; fetching here too would load twice.
     setScopeTab(newScope);
     setCurrentPage(1);
-    fetchRankings({ scope: newScope });
   };
 
   // Dynamic KPI computations
@@ -272,6 +568,17 @@ export const AdminRankings: React.FC = () => {
     return pages;
   };
 
+  // Filtered live tests based on selected exam
+  const filteredDbLiveTests = useMemo(() => {
+    if (selectedExam === 'All Exams') return dbLiveTests;
+    return dbLiveTests.filter((lt) => {
+      const ex = ((lt as any)?.examName || lt.examTitle || '').toLowerCase();
+      const title = (lt.title || '').toLowerCase();
+      const q = selectedExam.toLowerCase();
+      return ex === q || title.includes(q);
+    });
+  }, [dbLiveTests, selectedExam]);
+
   // CSV Export feature
   const handleExportCSV = () => {
     const headers = [
@@ -307,10 +614,11 @@ export const AdminRankings: React.FC = () => {
       encodeURIComponent(csvContent.replace(/^data:text\/csv;charset=utf-8,/, ''));
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `practicekoro_rankings_${selectedExam.replace(/\s+/g, '_')}_2026.csv`
-    );
+    const scopePrefix =
+      scopeTab === 'Live Tests' || selectedTestType === 'Live Test'
+        ? `live_tests_${selectedLiveTestId !== 'All Live Tests' ? selectedLiveTestId : 'all'}`
+        : selectedExam.replace(/\s+/g, '_');
+    link.setAttribute('download', `practicekoro_rankings_${scopePrefix}_2026.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -321,18 +629,25 @@ export const AdminRankings: React.FC = () => {
     setSelectedExam('All Exams');
     setSelectedSubject('All Subjects');
     setSelectedTestType('All Types');
+    setSelectedLiveTestId('All Live Tests');
     setTimePeriod('All Time');
     setSearchQuery('');
+    setDebouncedSearch('');
     setScopeTab('Overall');
     setCurrentPage(1);
-    fetchRankings({
-      exam: 'All Exams',
-      subject: 'All Subjects',
-      testType: 'All Types',
-      timePeriod: 'All Time',
-      search: '',
-      scope: 'Overall',
-    });
+    // The fetch effect reruns with the reset filters (once, if any filter changed). When
+    // nothing changed, reload explicitly so Reset still refreshes the data.
+    if (
+      selectedExam === 'All Exams' &&
+      selectedSubject === 'All Subjects' &&
+      selectedTestType === 'All Types' &&
+      selectedLiveTestId === 'All Live Tests' &&
+      timePeriod === 'All Time' &&
+      debouncedSearch === '' &&
+      scopeTab === 'Overall'
+    ) {
+      void fetchRankings();
+    }
   };
 
   return withAdminSkeleton(
@@ -392,9 +707,6 @@ export const AdminRankings: React.FC = () => {
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {totalStudentsCount.toLocaleString('en-IN')}
               </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 26%
-              </span>
             </div>
             <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Total enrolled aspirants</p>
           </div>
@@ -410,9 +722,6 @@ export const AdminRankings: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {activeTestTakersCount.toLocaleString('en-IN')}
-              </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 18%
               </span>
             </div>
             <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Tested aspirants</p>
@@ -446,11 +755,8 @@ export const AdminRankings: React.FC = () => {
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {studentsList.length.toLocaleString('en-IN')}
               </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 32%
-              </span>
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">this month</p>
+            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">in the current view</p>
           </div>
         </div>
       </div>
@@ -525,6 +831,24 @@ export const AdminRankings: React.FC = () => {
         >
           By Test Series
         </button>
+
+        <button
+          onClick={() => handleScopeChange('Live Tests')}
+          className={cn(
+            'px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer',
+            scopeTab === 'Live Tests'
+              ? 'bg-rose-600 text-white font-bold shadow-xs'
+              : 'text-[#64748B] hover:text-[#0F172A]'
+          )}
+        >
+          <Radio
+            className={cn(
+              'w-3.5 h-3.5',
+              scopeTab === 'Live Tests' ? 'text-white animate-pulse' : 'text-rose-500'
+            )}
+          />
+          <span>Live Tests</span>
+        </button>
       </div>
 
       {/* ==================================================================== */}
@@ -589,7 +913,8 @@ export const AdminRankings: React.FC = () => {
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7 truncate"
+              disabled={scopeTab === 'Live Tests'}
+              className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7 truncate disabled:opacity-50 disabled:bg-slate-50"
             >
               <option value="All Subjects">All Subjects</option>
               {dbSubjects.map((sub) => (
@@ -628,10 +953,39 @@ export const AdminRankings: React.FC = () => {
               <option value="Full Mock">Full Mock</option>
               <option value="Topic Test">Topic Test</option>
               <option value="Official PYQ">Official PYQ</option>
+              <option value="Live Test">Live Test</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
+
+        {/* Select Live Test (shown when scopeTab is Live Tests or test type is Live Test) */}
+        {(scopeTab === 'Live Tests' || selectedTestType === 'Live Test') && (
+          <div className="w-[180px] animate-in fade-in duration-200">
+            <label className="block text-[11px] font-semibold text-rose-600 mb-1 flex items-center gap-1">
+              <Radio className="w-2.5 h-2.5 animate-pulse text-rose-500" />
+              <span>Select Live Test</span>
+            </label>
+            <div className="relative">
+              <select
+                value={selectedLiveTestId}
+                onChange={(e) => {
+                  setSelectedLiveTestId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full appearance-none bg-rose-50/40 border border-rose-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-rose-500 cursor-pointer pr-7 truncate"
+              >
+                <option value="All Live Tests">All Live Tests</option>
+                {filteredDbLiveTests.map((lt) => (
+                  <option key={lt.id} value={lt.id}>
+                    {lt.title || 'Live Mock'} ({lt.status || 'live'})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-rose-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+        )}
 
         {/* Time Period */}
         <div className="w-[130px]">
@@ -713,10 +1067,12 @@ export const AdminRankings: React.FC = () => {
               <tbody className="divide-y divide-[#E2E8F0]">
                 {filteredStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400 text-xs">
+                    <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
                       {loadError
                         ? 'Rankings could not be loaded.'
-                        : 'No completed attempts match these filters.'}
+                        : scopeTab === 'Live Tests' || selectedTestType === 'Live Test'
+                          ? 'No student attempts have been submitted for Live Tests yet.'
+                          : 'No completed attempts match these filters.'}
                     </td>
                   </tr>
                 ) : (
@@ -757,7 +1113,7 @@ export const AdminRankings: React.FC = () => {
                           )}
                         </td>
 
-                        {/* Student Details (Avatar + Name + Location) */}
+                        {/* Student Details (Avatar + Name + Location + Optional Live Badge) */}
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
                             {student.avatar ? (
@@ -777,9 +1133,18 @@ export const AdminRankings: React.FC = () => {
                               </div>
                             )}
                             <div className="min-w-0">
-                              <p className="font-bold text-[#0F172A] leading-tight truncate">
-                                {student.name}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-bold text-[#0F172A] leading-tight truncate">
+                                  {student.name}
+                                </p>
+                                {(scopeTab === 'Live Tests' ||
+                                  selectedTestType === 'Live Test') && (
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
+                                    <Radio className="w-2.5 h-2.5 animate-pulse text-rose-500" />
+                                    Live
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-[#64748B] leading-tight mt-0.5 truncate">
                                 {student.location}
                               </p>

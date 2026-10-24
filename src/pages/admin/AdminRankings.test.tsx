@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminRankings } from './AdminRankings';
 import { api } from '@/services/api';
@@ -8,6 +8,8 @@ vi.mock('@/services/api', () => ({
   api: {
     getAllAdminExams: vi.fn().mockResolvedValue([]),
     getAllAdminSubjects: vi.fn().mockResolvedValue([]),
+    getLiveTests: vi.fn().mockResolvedValue([]),
+    getLiveTestLeaderboard: vi.fn().mockResolvedValue([]),
     getAdminRankings: vi.fn(),
   },
 }));
@@ -39,5 +41,66 @@ describe('AdminRankings real data states', () => {
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  it('switches to Live Tests scope and displays live tests empty state when no attempts exist', async () => {
+    vi.mocked(api.getAdminRankings).mockResolvedValue([]);
+    vi.mocked(api.getLiveTests).mockResolvedValue([]);
+    renderPage();
+
+    const liveTestsTab = await screen.findByRole('button', { name: /Live Tests/i });
+    expect(liveTestsTab).toBeInTheDocument();
+
+    fireEvent.click(liveTestsTab);
+
+    expect(
+      await screen.findByText('No student attempts have been submitted for Live Tests yet.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders student rankings for Live Tests when live test leaderboard returns participants', async () => {
+    vi.mocked(api.getAdminRankings).mockResolvedValue([]);
+    vi.mocked(api.getLiveTests).mockResolvedValue([
+      {
+        id: 'lt-1',
+        testId: 'test-1',
+        title: 'WBP Constable 2026 Live Mock',
+        examName: 'WBP Constable',
+        startAt: new Date().toISOString(),
+        status: 'published',
+        rankingEnabled: true,
+        subscriptionRequired: false,
+        totalQuestions: 100,
+      } as any,
+    ]);
+    vi.mocked(api.getLiveTestLeaderboard).mockResolvedValue([
+      {
+        id: 'p-1',
+        liveTestId: 'lt-1',
+        userId: 'user-101',
+        rank: 1,
+        fullName: 'Sourav Ganguly',
+        district: 'Kolkata',
+        score: 88,
+        accuracy: 92,
+        timeTaken: 3600,
+        status: 'completed',
+        registeredAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      },
+    ]);
+
+    renderPage();
+
+    const liveTestsTab = await screen.findByRole('button', { name: /Live Tests/i });
+    fireEvent.click(liveTestsTab);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Sourav Ganguly').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getAllByText('Kolkata, West Bengal').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('88%').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('92%').length).toBeGreaterThan(0);
   });
 });
