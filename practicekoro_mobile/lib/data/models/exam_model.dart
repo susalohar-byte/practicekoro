@@ -105,26 +105,8 @@ class ExamModel {
   }
 
   /// The test count displayed in the bottom row of the exam card (e.g. "120 Tests").
-  /// Shows live test count if tests exist in database, or the standard benchmark
-  /// test catalog count for that exam.
-  int get effectiveTotalTests {
-    if (totalTests > 0) return totalTests;
-    final s = slug.toLowerCase();
-    final i = id.toLowerCase();
-    final t = title.toLowerCase();
-    if (s.contains('wbp') || i.contains('wbp') || t.contains('wbp')) return 120;
-    if (s.contains('wbpsc') || i.contains('wbpsc') || t.contains('wbpsc')) return 200;
-    if (s.contains('group-c') || t.contains('group c')) return 150;
-    if (s.contains('group-d') || t.contains('group d')) return 120;
-    if (s.contains('food') || t.contains('food')) return 50;
-    if (s.contains('icds') || t.contains('icds')) return 40;
-    if (s.contains('kp') || t.contains('kp')) return 80;
-    if (s.contains('tet') || t.contains('tet')) return 60;
-    if (s.contains('rail') || t.contains('rail')) return 300;
-    if (s.contains('ssc') || t.contains('ssc')) return 250;
-    if (s.contains('bank') || t.contains('bank')) return 180;
-    return 30;
-  }
+  /// The real number of tests in the database; 0 when none are published yet.
+  int get effectiveTotalTests => totalTests;
 
   Map<String, dynamic> toJson() => {
     'id': id,

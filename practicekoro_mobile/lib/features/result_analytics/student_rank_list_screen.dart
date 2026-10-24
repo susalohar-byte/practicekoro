@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import '../../core/components/ui.dart';
 import '../../core/components/user_avatar.dart';
-import '../../data/datasources/local_storage.dart';
+import '../../data/models/attempt_model.dart';
 import '../../data/models/ranking_model.dart';
+import '../../data/repositories/catalog_repository.dart';
 import '../../data/models/student_profile_model.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/ranking_repository.dart';
@@ -21,46 +24,23 @@ class StudentRankListScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<StudentRankListScreen> createState() => _StudentRankListScreenState();
+  ConsumerState<StudentRankListScreen> createState() =>
+      _StudentRankListScreenState();
 }
 
 class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
-  late String _selectedTestId;
-  late String _selectedTestTitle;
+  /// Null until the student picks a test; then the latest attempted test.
+  String? _selectedTestId;
   RankScopeTab _selectedTab = RankScopeTab.globalRank;
   String _selectedDistrict = 'Purulia';
   String _selectedBlock = 'All Blocks';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  static const List<Map<String, String>> _availableTests = [
-    {
-      'id': 'test_exam_wbp_1',
-      'title': 'WBP Constable Full Mock 01',
-      'subtitle': '22 Sep 2026 • 200 Marks • 5,243 Students',
-    },
-    {
-      'id': 'topic_gk_test_1',
-      'title': 'General Knowledge - Topic Test',
-      'subtitle': '18 Sep 2026 • 20 Marks • 1,200 Students',
-    },
-    {
-      'id': 'pyq_wbp_2024_1',
-      'title': 'WBP Constable 2024 Official PYQ',
-      'subtitle': '17 Sep 2026 • 50 Marks • 3,400 Students',
-    },
-    {
-      'id': 'live-test-001',
-      'title': 'WBP Weekly Live Test',
-      'subtitle': '10 Sep 2026 • 200 Marks • 2,400 Students',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
-    _selectedTestId = widget.initialTestId ?? 'test_exam_wbp_1';
-    _selectedTestTitle = widget.initialTestTitle ?? 'WBP Constable Full Mock 01';
+    _selectedTestId = widget.initialTestId;
     final profile = ref.read(studentProfileProvider);
     if (profile.district != null && profile.district!.trim().isNotEmpty) {
       _selectedDistrict = profile.district!.trim();
@@ -70,13 +50,23 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
     }
   }
 
+  /// One entry per test the student actually finished, newest attempt first.
+  static List<_AttemptedTest> _attemptedTests(List<TestAttemptModel> attempts) {
+    final seen = <String>{};
+    return [
+      for (final a in attempts)
+        if (a.testId.isNotEmpty && seen.add(a.testId)) _AttemptedTest(a),
+    ];
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  void _showTestPicker() {
+  void _showTestPicker(List<_AttemptedTest> tests, String? selectedId) {
+    if (tests.isEmpty) return;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -102,7 +92,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                   ),
                 ),
                 const Divider(),
-                for (final test in _availableTests)
+                for (final test in tests)
                   ListTile(
                     leading: Container(
                       width: 40,
@@ -111,21 +101,31 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                         color: const Color(0xFFFEF2F2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFFDC2626), size: 20),
+                      child: const Icon(
+                        Icons.assignment_turned_in_rounded,
+                        color: Color(0xFFDC2626),
+                        size: 20,
+                      ),
                     ),
                     title: Text(
-                      test['title']!,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                      test.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14.5,
+                      ),
                     ),
-                    subtitle: Text(test['subtitle']!, style: const TextStyle(fontSize: 12)),
-                    trailing: _selectedTestId == test['id']
-                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF0158FC))
+                    subtitle: Text(
+                      test.subtitle,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: selectedId == test.id
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF0158FC),
+                          )
                         : null,
                     onTap: () {
-                      setState(() {
-                        _selectedTestId = test['id']!;
-                        _selectedTestTitle = test['title']!;
-                      });
+                      setState(() => _selectedTestId = test.id);
                       Navigator.pop(context);
                     },
                   ),
@@ -139,6 +139,13 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final historyAsync = ref.watch(attemptHistoryProvider);
+    final tests = _attemptedTests(historyAsync.value ?? const []);
+    final selectedId = _selectedTestId ?? tests.firstOrNull?.id;
+    final selected = tests.where((t) => t.id == selectedId).firstOrNull;
+    final selectedTitle =
+        selected?.title ?? widget.initialTestTitle ?? 'Select a test';
+
     final scopeStr = switch (_selectedTab) {
       RankScopeTab.globalRank => 'global',
       RankScopeTab.westBengal => 'west_bengal',
@@ -146,13 +153,26 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
     };
 
     final params = RankingParams(
-      testId: _selectedTestId,
+      testId: selectedId ?? '',
       scope: scopeStr,
-      district: _selectedTab == RankScopeTab.districtRank ? _selectedDistrict : null,
-      block: _selectedTab == RankScopeTab.districtRank && _selectedBlock != 'All Blocks' ? _selectedBlock : null,
+      district: _selectedTab == RankScopeTab.districtRank
+          ? _selectedDistrict
+          : null,
+      block:
+          _selectedTab == RankScopeTab.districtRank &&
+              _selectedBlock != 'All Blocks'
+          ? _selectedBlock
+          : null,
     );
 
-    final ranksAsync = ref.watch(studentRankListProvider(params));
+    // No test chosen yet: nothing to rank against.
+    final AsyncValue<List<StudentRankItem>> ranksAsync = selectedId == null
+        ? (historyAsync.hasError
+              ? AsyncValue.error(historyAsync.error!, StackTrace.empty)
+              : historyAsync.isLoading
+              ? const AsyncValue.loading()
+              : const AsyncValue.data([]))
+        : ref.watch(studentRankListProvider(params));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -161,7 +181,11 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 28, color: Color(0xFF0F172A)),
+          icon: const Icon(
+            Icons.chevron_left_rounded,
+            size: 28,
+            color: Color(0xFF0F172A),
+          ),
           onPressed: () {
             if (GoRouter.of(context).canPop()) {
               context.pop();
@@ -180,9 +204,12 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded, color: Color(0xFF0F172A)),
+            icon: const Icon(
+              Icons.filter_list_rounded,
+              color: Color(0xFF0F172A),
+            ),
             tooltip: 'Filter',
-            onPressed: _showTestPicker,
+            onPressed: () => _showTestPicker(tests, selectedId),
           ),
         ],
       ),
@@ -194,7 +221,12 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 children: [
                   // Test Selector Card
-                  _buildTestSelectorCard(),
+                  _buildTestSelectorCard(
+                    tests,
+                    selectedId,
+                    selectedTitle,
+                    selected,
+                  ),
                   const SizedBox(height: 14),
 
                   // Tabs: Global Rank, West Bengal, District Rank
@@ -223,16 +255,34 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
-                    error: (_, _) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'Could not load ranking data. Please retry.',
-                          style: TextStyle(color: Color(0xFF64748B)),
-                        ),
+                    error: (_, _) => Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: UIMessage.error(
+                        message: 'Could not load ranking data.',
+                        onAction: () {
+                          ref.invalidate(attemptHistoryProvider);
+                          ref.invalidate(studentRankListProvider(params));
+                        },
                       ),
                     ),
                     data: (ranks) {
+                      if (ranks.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(32),
+                          alignment: Alignment.center,
+                          child: Text(
+                            selectedId == null
+                                ? 'Finish a test to see the student rank list.'
+                                : 'No ranked students for this test yet.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }
+
                       final filtered = ranks.where((r) {
                         if (_searchQuery.isEmpty) return true;
                         final q = _searchQuery.toLowerCase();
@@ -247,7 +297,10 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                           alignment: Alignment.center,
                           child: const Text(
                             'No students found matching your search',
-                            style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         );
                       }
@@ -269,31 +322,11 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
               loading: () => const SizedBox.shrink(),
               error: (_, _) => const SizedBox.shrink(),
               data: (ranks) {
-                final userItem = ranks.firstWhere(
-                  (r) => r.isCurrentUser,
-                  orElse: () {
-                    final userName = LocalStorageService.getUserName().trim();
-                    final profile = LocalStorageService.getProfileJson();
-                    String effectiveName = userName.isNotEmpty
-                        ? userName
-                        : (profile?['full_name'] ?? profile?['name'])?.toString().trim() ?? '';
-                    if (effectiveName.isEmpty ||
-                        effectiveName.toLowerCase() == 'you' ||
-                        effectiveName.toLowerCase() == 'student' ||
-                        effectiveName.toLowerCase() == 'aspirant') {
-                      effectiveName = 'Susanta Lohar';
-                    }
-                    return StudentRankItem(
-                      rank: _selectedTab == RankScopeTab.districtRank ? 4 : 24,
-                      studentId: 'me',
-                      name: effectiveName,
-                      score: _selectedTab == RankScopeTab.districtRank ? 164 : 144,
-                      totalMarks: 200,
-                      percentage: _selectedTab == RankScopeTab.districtRank ? 82 : 72,
-                      isCurrentUser: true,
-                    );
-                  },
-                );
+                // Only the student's real row; absent until the server ranks them.
+                final userItem = ranks
+                    .where((r) => r.isCurrentUser)
+                    .firstOrNull;
+                if (userItem == null) return const SizedBox.shrink();
                 return _PinnedCurrentUserRow(item: userItem);
               },
             ),
@@ -303,9 +336,14 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
     );
   }
 
-  Widget _buildTestSelectorCard() {
+  Widget _buildTestSelectorCard(
+    List<_AttemptedTest> tests,
+    String? selectedId,
+    String selectedTitle,
+    _AttemptedTest? selected,
+  ) {
     return InkWell(
-      onTap: _showTestPicker,
+      onTap: () => _showTestPicker(tests, selectedId),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -342,7 +380,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _selectedTestTitle,
+                    selectedTitle,
                     style: const TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
@@ -352,18 +390,23 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    '22 Sep 2026 • 200 Marks • 5,243 Students',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
+                  if (selected != null)
+                    Text(
+                      selected.subtitle,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_drop_down_rounded, size: 28, color: Color(0xFF64748B)),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 28,
+              color: Color(0xFF64748B),
+            ),
           ],
         ),
       ),
@@ -393,7 +436,8 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
           child: _TabButton(
             label: 'District Rank',
             isSelected: _selectedTab == RankScopeTab.districtRank,
-            onTap: () => setState(() => _selectedTab = RankScopeTab.districtRank),
+            onTap: () =>
+                setState(() => _selectedTab = RankScopeTab.districtRank),
           ),
         ),
       ],
@@ -429,7 +473,10 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                   child: DropdownButton<String>(
                     value: _selectedDistrict,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF64748B),
+                    ),
                     style: const TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
@@ -484,15 +531,21 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                     builder: (context) {
                       final availableBlocks = [
                         'All Blocks',
-                        ...StudentProfileModel.getBlocksForDistrict(_selectedDistrict),
+                        ...StudentProfileModel.getBlocksForDistrict(
+                          _selectedDistrict,
+                        ),
                       ];
-                      final effectiveBlock = availableBlocks.contains(_selectedBlock)
+                      final effectiveBlock =
+                          availableBlocks.contains(_selectedBlock)
                           ? _selectedBlock
                           : 'All Blocks';
                       return DropdownButton<String>(
                         value: effectiveBlock,
                         isExpanded: true,
-                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Color(0xFF64748B),
+                        ),
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
@@ -536,10 +589,18 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
         decoration: InputDecoration(
           hintText: 'Search student name or rank...',
           hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-          prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF94A3B8)),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: Color(0xFF94A3B8),
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Color(0xFF94A3B8),
+                  ),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -617,7 +678,9 @@ class _TabButton extends StatelessWidget {
           color: isSelected ? const Color(0xFF0158FC) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0158FC) : const Color(0xFFE2E8F0),
+            color: isSelected
+                ? const Color(0xFF0158FC)
+                : const Color(0xFFE2E8F0),
             width: 1,
           ),
           boxShadow: isSelected
@@ -838,5 +901,29 @@ class _PinnedCurrentUserRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// A test from the student's own history, offered in the test picker.
+class _AttemptedTest {
+  final TestAttemptModel attempt;
+
+  const _AttemptedTest(this.attempt);
+
+  String get id => attempt.testId;
+  String get title =>
+      attempt.testTitle.trim().isEmpty ? 'Test' : attempt.testTitle;
+
+  String get subtitle {
+    final marks = attempt.totalMarks == attempt.totalMarks.roundToDouble()
+        ? attempt.totalMarks.toInt().toString()
+        : attempt.totalMarks.toStringAsFixed(1);
+    final parts = [
+      DateFormat('d MMM yyyy').format(attempt.completedAt),
+      if (attempt.totalMarks > 0) '$marks Marks',
+      if (attempt.totalParticipants > 0)
+        '${NumberFormat.decimalPattern('en_IN').format(attempt.totalParticipants)} Students',
+    ];
+    return parts.join(' • ');
   }
 }

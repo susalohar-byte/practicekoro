@@ -125,12 +125,12 @@ void main() {
       expect(tests, isEmpty);
     });
 
-    test('getTestById resolves live test and returns valid MockTestModel', () async {
+    test('getTestById never invents a test when the server is unreachable', () {
       final repo = CatalogRepository();
-      final test = await repo.getTestById('test_exam_wbp_1');
-      expect(test, isNotNull);
-      expect(test!.title, contains('WBP'));
-      expect(test.totalQuestions, greaterThan(0));
+      expect(
+        repo.getTestById('test_exam_wbp_1'),
+        throwsA(isA<CatalogUnavailable>()),
+      );
     });
   });
 

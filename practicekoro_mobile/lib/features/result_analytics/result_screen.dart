@@ -47,8 +47,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   Widget _buildContent(BuildContext context, TestAttemptModel a) {
     final percent = a.totalMarks > 0 ? (a.score / a.totalMarks).clamp(0.0, 1.0) : 0.0;
     final attempted = a.correctCount + a.wrongCount;
-    final totalQuestions = attempted + a.skippedCount > 0 ? attempted + a.skippedCount : 200;
-    final accuracy = attempted > 0 ? (a.correctCount / attempted * 100) : 72.0;
+    final totalQuestions = attempted + a.skippedCount;
+    final accuracy = attempted > 0 ? (a.correctCount / attempted * 100) : 0.0;
 
     final scoreStr = a.score == a.score.roundToDouble()
         ? a.score.toInt().toString()
@@ -63,8 +63,11 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ? '-${negativeDeduction.toStringAsFixed(negativeDeduction == negativeDeduction.roundToDouble() ? 0 : 2)}'
         : '-0';
 
-    final rankDisplay = a.rank > 0 ? RankingSummary.formatOrdinal(a.rank) : '24th';
-    final participantsDisplay = a.totalParticipants > 0 ? a.totalParticipants.toString() : '5,243';
+    // Ranks come only from the server; show a dash until one exists.
+    final rankDisplay = a.rank > 0 ? RankingSummary.formatOrdinal(a.rank) : '-';
+    final participantsDisplay = a.totalParticipants > 0
+        ? NumberFormat.decimalPattern('en_IN').format(a.totalParticipants)
+        : null;
 
     // Format time spent nicely
     final timeStr = _formatTimeSpent(a.timeSpentSeconds);
@@ -289,7 +292,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 value: rankDisplay,
                 valueColor: const Color(0xFF9333EA),
                 label: 'Rank',
-                subtitle: '(Out of $participantsDisplay)',
+                subtitle: participantsDisplay != null
+                    ? '(Out of $participantsDisplay)'
+                    : '(Not ranked yet)',
               ),
             ),
           ],

@@ -10,25 +10,12 @@ import '../../data/repositories/catalog_repository.dart';
 
 enum _QOutcome { correct, incorrect, skipped }
 
-/// Provides questions with verified answer keys and user picks.
-/// If this is a server attempt, fetches verified answers via get_attempt_solutions RPC.
-/// Otherwise, falls back to catalog questions.
+/// Questions with the server's answer key plus the student's picks. A failure
+/// shows an error with retry; there is no offline answer key to fall back on.
 final testSolutionsProvider = FutureProvider.family<
     (List<QuestionModel>, Map<String, String>),
-    ({String attemptId, String testId})>((ref, arg) async {
-  if (AttemptRepository.usesServer(arg.testId) || arg.attemptId.length > 20) {
-    try {
-      final (serverQuestions, serverAnswers) =
-          await const AttemptRepository().solutions(arg.attemptId, arg.testId);
-      if (serverQuestions.isNotEmpty) {
-        return (serverQuestions, serverAnswers);
-      }
-    } catch (_) {}
-  }
-
-  final questions =
-      await ref.watch(catalogRepositoryProvider).getQuestions(arg.testId);
-  return (questions, const <String, String>{});
+    ({String attemptId, String testId})>((ref, arg) {
+  return const AttemptRepository().solutions(arg.attemptId, arg.testId);
 });
 
 class SolutionsScreen extends ConsumerStatefulWidget {
@@ -219,9 +206,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
         ),
       ),
       data: (attempt) {
-        final testId = (attempt.testId.isNotEmpty)
-            ? attempt.testId
-            : 'test_exam_wbp_1';
+        final testId = attempt.testId;
         final solutionsAsync = ref.watch(
           testSolutionsProvider((attemptId: widget.attemptId, testId: testId)),
         );

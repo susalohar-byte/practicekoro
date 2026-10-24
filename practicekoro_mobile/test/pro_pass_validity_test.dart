@@ -8,6 +8,8 @@ import 'package:practicekoro_mobile/data/repositories/subscription_repository.da
 import 'package:practicekoro_mobile/features/subscription/checkout_screen.dart';
 import 'package:practicekoro_mobile/features/subscription/plans_screen.dart';
 
+import 'plan_fixtures.dart';
+
 StudentSubscriptionModel _pass({
   required String planId,
   required String title,
@@ -43,6 +45,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await LocalStorageService.init();
+    await seedCachedPlans();
   });
 
   group('StudentSubscriptionModel validity', () {
