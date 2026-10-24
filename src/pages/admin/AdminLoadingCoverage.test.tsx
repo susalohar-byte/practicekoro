@@ -30,7 +30,6 @@ const names = [
   'AdminDashboard',
   'AdminExams',
   'AdminBanners',
-  'AdminTestSeries',
   'AdminTests',
   'AdminTestQuestions',
   'AdminSubjects',
