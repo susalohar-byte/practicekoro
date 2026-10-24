@@ -345,7 +345,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
                 }}
                 rows={8}
                 placeholder={
-                  '1. Question text\nA) Option\nB) Option\nC) Option\nD) Option\nAnswer: A'
+                  '1. Question text\n(a) Option A\n(b) Option B\n(c) Option C\n(d) Option D\n\nসঠিক উত্তর: (a) Option A'
                 }
                 className={cn(inputClass, 'font-mono text-xs')}
               />

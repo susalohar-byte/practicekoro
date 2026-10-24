@@ -15,6 +15,13 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     setIsLiveUploadOpen,
     setImportMode,
     importMode,
+    exams,
+    importExam,
+    setImportExam,
+    importPasteText,
+    setImportPasteText,
+    handlePreviewPastedQuestions,
+    importNeedsExam,
     downloadTemplate,
     importFile,
     processImportFile,
@@ -117,6 +124,27 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               </div>
             </div>
 
+            {/* By Exam: which exam the uploaded / pasted questions belong to */}
+            {importMode === 'exam' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Exam (for questions that do not name one):
+                </label>
+                <select
+                  value={importExam}
+                  onChange={(e) => setImportExam(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+                >
+                  <option value="">-- Select exam --</option>
+                  {exams.map((ex) => (
+                    <option key={ex.id} value={ex.title}>
+                      {ex.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Step 2: File Upload */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -153,6 +181,37 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 hint="Supports standard .txt format (Bengali/English) and .csv bulk files"
                 buttonLabel="Browse File"
               />
+
+              {/* By Exam: paste questions directly instead of uploading a file */}
+              {importMode === 'exam' && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    Or paste questions (TXT format)
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  <textarea
+                    value={importPasteText}
+                    onChange={(e) => setImportPasteText(e.target.value)}
+                    rows={7}
+                    disabled={isImporting}
+                    placeholder={
+                      '1. Question text\n(a) Option A\n(b) Option B\n(c) Option C\n(d) Option D\n\nসঠিক উত্তর: (a) Option A'
+                    }
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-[#F8FAFC] font-mono text-xs text-slate-700 focus:outline-none focus:border-[#026BFC]"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!importPasteText.trim() || isImporting}
+                      onClick={handlePreviewPastedQuestions}
+                      className="px-4 py-1.5 rounded-xl border border-[#026BFC] text-[#026BFC] text-xs font-bold hover:bg-blue-50 disabled:opacity-40 cursor-pointer"
+                    >
+                      Preview Pasted Questions
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Step 3: Validation Preview */}
@@ -188,6 +247,12 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               </div>
             )}
 
+            {importNeedsExam && (
+              <p className="text-[11px] font-semibold text-amber-700">
+                Select the exam above — some questions do not name their exam.
+              </p>
+            )}
+
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
@@ -198,7 +263,12 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               </button>
               <button
                 type="button"
-                disabled={!importPreviewStats || importPreviewStats.valid === 0 || isImporting}
+                disabled={
+                  !importPreviewStats ||
+                  importPreviewStats.valid === 0 ||
+                  isImporting ||
+                  importNeedsExam
+                }
                 onClick={handleExecuteImport}
                 className="px-5 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white text-xs font-bold disabled:opacity-40 cursor-pointer shadow-xs"
               >

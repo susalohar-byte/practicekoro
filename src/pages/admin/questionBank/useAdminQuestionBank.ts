@@ -200,6 +200,9 @@ export function useAdminQuestionBank() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importMode, setImportMode] = useState<UploadMode>('exam');
   const [importFile, setImportFile] = useState<File | null>(null);
+  // By Exam import: the exam for rows that do not name one (TXT files / pasted questions)
+  const [importExam, setImportExam] = useState('');
+  const [importPasteText, setImportPasteText] = useState('');
   const [parsedImportQuestions, setParsedImportQuestions] = useState<Question[]>([]);
   const [importPreviewStats, setImportPreviewStats] = useState<{
     total: number;
@@ -1293,6 +1296,17 @@ export function useAdminQuestionBank() {
     setImportPreviewStats(null);
   };
 
+  // Bulk paste box: validate pasted TXT-format questions exactly like an uploaded .txt file
+  const handlePreviewPastedQuestions = () => {
+    const text = importPasteText.trim();
+    if (!text) return;
+    processImportFile(new File([text], 'pasted-questions.txt', { type: 'text/plain' }));
+  };
+
+  // By Exam rows without their own exam take the exam chosen in the import box
+  const importNeedsExam =
+    importMode === 'exam' && !importExam && parsedImportQuestions.some((q) => !q.sourceExam);
+
   const modeIdx = (mode: UploadMode, field: string) => {
     if (mode === 'exam') {
       switch (field) {
@@ -1353,16 +1367,23 @@ export function useAdminQuestionBank() {
 
   // Execute Real Bulk Import with controlled concurrency, real IDs and error retention
   const handleExecuteImport = async () => {
-    if (!parsedImportQuestions.length || isImporting) return;
+    if (!parsedImportQuestions.length || isImporting || importNeedsExam) return;
     setIsImporting(true);
     try {
-      const batch = await runConfirmedBatch(parsedImportQuestions, (q) => api.createQuestion(q));
+      const toImport =
+        importMode === 'exam'
+          ? parsedImportQuestions.map((q) =>
+              q.sourceExam ? q : { ...q, sourceExam: importExam || undefined }
+            )
+          : parsedImportQuestions;
+      const batch = await runConfirmedBatch(toImport, (q) => api.createQuestion(q));
       setQuestions((prev) => [...batch.results.map((r) => r.value), ...prev]);
       setParsedImportQuestions(batch.failures.map((f) => f.input));
       if (!batch.failures.length) {
         setIsImportModalOpen(false);
         setImportFile(null);
         setImportPreviewStats(null);
+        setImportPasteText('');
       }
       showToast(
         batch.results.length +
@@ -1506,6 +1527,12 @@ export function useAdminQuestionBank() {
     isImportModalOpen,
     setIsImportModalOpen,
     importMode,
+    importExam,
+    setImportExam,
+    importPasteText,
+    setImportPasteText,
+    handlePreviewPastedQuestions,
+    importNeedsExam,
     setImportMode,
     importFile,
     setImportFile,

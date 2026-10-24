@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AdminExams } from './AdminExams';
 import { AdminQuestionBank } from './AdminQuestionBank';
 import { api } from '@/services/api';
+import { SAMPLE_TXT_CONTENT } from '@/utils/txtQuestionParser';
 
 vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
@@ -312,6 +313,36 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     await waitFor(() => {
       expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
     });
+  });
+
+  it('By Exam import accepts pasted questions and asks for their exam', async () => {
+    (api.getAllAdminExams as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'exam_wbp', title: 'WBP Constable', slug: 'wbp', isActive: true },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Select All (3 Questions)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Import Questions'));
+    const pasteBox = await screen.findByPlaceholderText(/1\. Question text/);
+    fireEvent.change(pasteBox, { target: { value: SAMPLE_TXT_CONTENT } });
+    fireEvent.click(screen.getByText('Preview Pasted Questions'));
+
+    const importBtn = await screen.findByRole('button', { name: /Import Valid Questions \([1-9]/ });
+    // Pasted TXT questions do not name an exam, so one must be chosen first
+    expect(importBtn).toBeDisabled();
+    expect(screen.getByText(/some questions do not name their exam/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByDisplayValue('-- Select exam --'), {
+      target: { value: 'WBP Constable' },
+    });
+    await waitFor(() => expect(importBtn).not.toBeDisabled());
   });
 
   it('keeps Live Test questions out of the bank and lists them in the Live Test mode', async () => {
