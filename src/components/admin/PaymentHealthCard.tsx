@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import {
   getPaymentHealth,
   resolvePaymentAlert,
@@ -69,13 +69,9 @@ export const PaymentHealthCard: React.FC = () => {
     );
   }
 
+  // When payments are healthy (no open alerts), hide this card to keep the dashboard clean.
   if (!alerts || alerts.length === 0) {
-    return (
-      <div className="flex items-center gap-2 rounded-2xl border border-emerald-200/80 dark:border-emerald-900 bg-emerald-50/60 dark:bg-emerald-950/30 px-4 py-2.5 text-sm text-emerald-800 dark:text-emerald-200">
-        <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-        Payments healthy. No payment errors or unactivated payments.
-      </div>
-    );
+    return null;
   }
 
   return (

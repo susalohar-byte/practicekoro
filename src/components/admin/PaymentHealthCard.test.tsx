@@ -34,23 +34,24 @@ describe('PaymentHealthCard', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows a healthy state when nothing is open', async () => {
+  it('renders nothing when payments are healthy (no open alerts)', async () => {
     getPaymentHealth.mockResolvedValue([]);
-    render(<PaymentHealthCard />);
-    expect(await screen.findByText(/Payments healthy/)).toBeInTheDocument();
+    const { container } = render(<PaymentHealthCard />);
+    await waitFor(() => expect(getPaymentHealth).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('lists open alerts and removes one once resolved', async () => {
     getPaymentHealth.mockResolvedValue([alert]);
     resolvePaymentAlert.mockResolvedValue(undefined);
-    render(<PaymentHealthCard />);
+    const { container } = render(<PaymentHealthCard />);
     expect(await screen.findByText(/1 open alert/)).toBeInTheDocument();
     expect(screen.getByText(/checkout is failing for every student/)).toBeInTheDocument();
     expect(screen.getByText(/3 times/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark resolved' }));
     await waitFor(() => expect(resolvePaymentAlert).toHaveBeenCalledWith('a1'));
-    expect(await screen.findByText(/Payments healthy/)).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('offers a retry when the check fails', async () => {
