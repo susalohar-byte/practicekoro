@@ -349,6 +349,19 @@ describe('AdminQuestionBank Selection UI Updates', () => {
       expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
     });
 
+    // Subject / Topic filters are not used in Live Test mode (nor in Exam mode)
+    expect(screen.getByDisplayValue('Subject: All Subjects')).toBeDisabled();
+    expect(screen.getByDisplayValue('Topic: All Topics')).toBeDisabled();
+    fireEvent.change(viewMode, { target: { value: 'exam' } });
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Subject: All Subjects')).toBeDisabled();
+    });
+    fireEvent.change(viewMode, { target: { value: 'subject' } });
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Subject: All Subjects')).not.toBeDisabled();
+    });
+    fireEvent.change(viewMode, { target: { value: 'live' } });
+
     // Like Exam/Subject: its own stat card and MODE badge
     expect(screen.getByText('Live Test Questions')).toBeInTheDocument();
     expect(screen.getAllByText('Live Test').length).toBeGreaterThan(1);

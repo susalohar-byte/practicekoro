@@ -534,6 +534,19 @@ export function useAdminQuestionBank() {
     selectedSourceFilter,
   ]);
 
+  // Exam and Live Test modes do not use Subject / Topic: clear those filters when entering them
+  useEffect(() => {
+    if (
+      activeUploadMode === 'exam' ||
+      activeUploadMode === 'live' ||
+      viewModeFilter === 'exam' ||
+      viewModeFilter === 'live'
+    ) {
+      setSelectedSubjectFilter('all');
+      setSelectedTopicFilter('all');
+    }
+  }, [activeUploadMode, viewModeFilter]);
+
   // Statistics calculation grounded to database numbers
   const stats = useMemo(() => {
     const total = questions.length;
@@ -718,9 +731,15 @@ export function useAdminQuestionBank() {
         explanation: editExplanation.trim(),
         explanationBengali: editExplanationBengali.trim(),
       };
-      if (subjectId && subjectId !== activeQuestion.subjectId)
+      // Subject / Topic belong to subject-wise questions only (not Exam or Live Test ones).
+      const usesSubjectTopic = !activeQuestion.isLiveOnly && drawerUploadMode === 'subject';
+      if (usesSubjectTopic && subjectId && subjectId !== activeQuestion.subjectId)
         updatedQuestion.subjectId = subjectId;
-      if (chapterId && chapterId !== (activeQuestion.chapterId || activeQuestion.topicId))
+      if (
+        usesSubjectTopic &&
+        chapterId &&
+        chapterId !== (activeQuestion.chapterId || activeQuestion.topicId)
+      )
         updatedQuestion.chapterId = chapterId;
       if (drawerType !== originalType) {
         updatedQuestion.sourceType =
@@ -841,9 +860,10 @@ export function useAdminQuestionBank() {
         correctOption: addCorrect,
         uploadMode: modalUploadMode,
         sourceExam: modalUploadMode === 'exam' ? addExam : undefined,
-        subjectName: modalUploadMode === 'subject' ? addSubject : 'General Awareness',
-        topicName: modalUploadMode === 'subject' ? addTopic : 'PYQ',
-        chapterName: modalUploadMode === 'subject' ? addTopic : 'PYQ',
+        // Exam questions are not linked to a Subject / Topic.
+        subjectName: modalUploadMode === 'subject' ? addSubject : undefined,
+        topicName: modalUploadMode === 'subject' ? addTopic : undefined,
+        chapterName: modalUploadMode === 'subject' ? addTopic : undefined,
         subtopic: addSubtopic || undefined,
         questionType:
           modalUploadMode === 'exam'
@@ -880,8 +900,12 @@ export function useAdminQuestionBank() {
 
       const savedQuestion = await api.createQuestion({
         ...newQuestionItem,
-        subjectId: subjects.find((s) => s.name === addSubject)?.id,
-        chapterId: topics.find((t) => t.name === addTopic)?.id,
+        subjectId:
+          modalUploadMode === 'subject'
+            ? subjects.find((s) => s.name === addSubject)?.id
+            : undefined,
+        chapterId:
+          modalUploadMode === 'subject' ? topics.find((t) => t.name === addTopic)?.id : undefined,
       });
       setQuestions((prev) => [savedQuestion, ...prev]);
       setActiveQuestion(savedQuestion);

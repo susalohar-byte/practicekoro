@@ -223,7 +223,7 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">
-                      Section / Subject (Optional)
+                      Section (Optional)
                     </label>
                     <input
                       type="text"

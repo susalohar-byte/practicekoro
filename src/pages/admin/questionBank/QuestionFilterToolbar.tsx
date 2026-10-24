@@ -38,6 +38,9 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
   } = qb;
 
   // Deduplicated list of available subjects
+  // Exam and Live Test questions are not organised by Subject / Topic.
+  const subjectTopicLocked = viewModeFilter === 'exam' || viewModeFilter === 'live';
+
   const availableSubjectOptions = useMemo(() => {
     const list: string[] = [];
     const seen = new Set<string>();
@@ -163,7 +166,9 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedTopicFilter('all');
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              disabled={subjectTopicLocked}
+              title={subjectTopicLocked ? 'Not used in Exam / Live Test mode' : undefined}
+              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="all">Subject: All Subjects</option>
               {availableSubjectOptions.map((name) => (
@@ -182,8 +187,12 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedTopicFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              disabled={selectedSubjectFilter !== 'all' && filterTopicOptions.length === 0}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50"
+              disabled={
+                subjectTopicLocked ||
+                (selectedSubjectFilter !== 'all' && filterTopicOptions.length === 0)
+              }
+              title={subjectTopicLocked ? 'Not used in Exam / Live Test mode' : undefined}
+              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="all">
                 {selectedSubjectFilter === 'all'

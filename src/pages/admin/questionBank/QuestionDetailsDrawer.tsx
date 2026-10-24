@@ -314,7 +314,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                     <select
                       value={drawerSubject}
                       onChange={(e) => setDrawerSubject(e.target.value)}
-                      className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
+                      disabled
+                      title="Not used for Exam / Live Test questions"
+                      className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-not-allowed opacity-50"
                     >
                       <option value="">—</option>
                       {withCurrentOption(
@@ -334,7 +336,13 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                   <select
                     value={drawerTopic}
                     onChange={(e) => setDrawerTopic(e.target.value)}
-                    className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
+                    disabled={drawerUploadMode === 'exam' || Boolean(activeQuestion.isLiveOnly)}
+                    title={
+                      drawerUploadMode === 'exam' || activeQuestion.isLiveOnly
+                        ? 'Not used for Exam / Live Test questions'
+                        : undefined
+                    }
+                    className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">—</option>
                     {withCurrentOption(drawerTopicNames, drawerTopic).map((name) => (
