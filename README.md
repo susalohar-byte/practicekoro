@@ -1,7 +1,7 @@
 # PracticeKoro 2.0
 
-[![CI](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/ci.yml)
-[![DB Security Assertions](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/db-security.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/db-security.yml)
+[![CI](https://github.com/susalohar-byte/practicekoro/actions/workflows/ci.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro/actions/workflows/ci.yml)
+[![DB Security Assertions](https://github.com/susalohar-byte/practicekoro/actions/workflows/db-security.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro/actions/workflows/db-security.yml)
 [![Live App](https://img.shields.io/badge/Live_App-practicekoro.online-2563eb)](https://practicekoro.online)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
