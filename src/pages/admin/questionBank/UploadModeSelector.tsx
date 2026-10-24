@@ -103,7 +103,7 @@ export function UploadModeSelector({ qb }: UploadModeSelectorProps) {
           onClick={() => {
             const nextMode = activeUploadMode === 'live' ? 'all' : 'live';
             setActiveUploadMode(nextMode);
-            setViewModeFilter('all');
+            setViewModeFilter(nextMode);
             setSelectedLiveTestFilter('all');
             setCurrentPage(1);
             showToast(

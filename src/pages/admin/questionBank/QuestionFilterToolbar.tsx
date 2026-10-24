@@ -115,7 +115,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
             <select
               value={viewModeFilter}
               onChange={(e) => {
-                const val = e.target.value as 'all' | 'exam' | 'subject';
+                const val = e.target.value as 'all' | 'exam' | 'subject' | 'live';
                 setViewModeFilter(val);
                 setActiveUploadMode(val);
                 setCurrentPage(1);
@@ -125,6 +125,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
               <option value="all">View Mode: All Questions</option>
               <option value="exam">View Mode: By Exam</option>
               <option value="subject">View Mode: By Subject</option>
+              <option value="live">View Mode: Live Test</option>
             </select>
           </div>
 

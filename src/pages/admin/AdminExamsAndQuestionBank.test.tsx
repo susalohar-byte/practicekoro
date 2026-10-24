@@ -332,8 +332,19 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     });
     expect(api.getAllAdminQuestions).toHaveBeenCalledWith({ includeLiveOnly: true });
 
-    // Live Test mode: only the live question
+    // Live Test mode from the card: only the live question
     fireEvent.click(screen.getByText('Live Test'));
+    await waitFor(() => {
+      expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
+    });
+
+    // The View Mode dropdown offers and reflects the same Live Test mode
+    const viewMode = screen.getByDisplayValue('View Mode: Live Test');
+    fireEvent.change(viewMode, { target: { value: 'all' } });
+    await waitFor(() => {
+      expect(screen.getByText('Select All (3 Questions)')).toBeInTheDocument();
+    });
+    fireEvent.change(viewMode, { target: { value: 'live' } });
     await waitFor(() => {
       expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
     });

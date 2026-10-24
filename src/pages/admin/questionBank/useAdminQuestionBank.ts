@@ -103,7 +103,7 @@ export function useAdminQuestionBank() {
 
   // Filter Bar State
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewModeFilter, setViewModeFilter] = useState<'all' | 'exam' | 'subject'>('all');
+  const [viewModeFilter, setViewModeFilter] = useState<'all' | 'exam' | 'subject' | 'live'>('all');
   const [selectedExamFilter, setSelectedExamFilter] = useState('all');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all');
   const [selectedTopicFilter, setSelectedTopicFilter] = useState('all');

@@ -116,7 +116,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
   const finish = async (lt: LiveTest, count: number) => {
     await loadInitialData();
     setActiveUploadMode('live');
-    setViewModeFilter('all');
+    setViewModeFilter('live');
     setSelectedLiveTestFilter(lt.id);
     setCurrentPage(1);
     showToast(`${count} question${count === 1 ? '' : 's'} added to Live Test "${lt.title}".`);
