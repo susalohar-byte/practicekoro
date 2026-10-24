@@ -14,15 +14,6 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
   },
-  define: {
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
-      process.env.VITE_SUPABASE_URL || 'https://prycanbnxuihxhskallw.supabase.co'
-    ),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
-      process.env.VITE_SUPABASE_ANON_KEY ||
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByeWNhbmJueHVpaHhoc2thbGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMTY1NTgsImV4cCI6MjEwNDg5MjU1OH0.HOzUGuRqD0Y9qWlGGhvHGenylTJ2Sky_G7E3PEO0EIw'
-    ),
-  },
   build: {
     // Warn when a single chunk grows past 600 kB (raw). CI enforces the
     // total dist budget separately — see .github/workflows/ci.yml.
