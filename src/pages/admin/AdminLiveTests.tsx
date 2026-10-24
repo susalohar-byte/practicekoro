@@ -760,10 +760,16 @@ export const AdminLiveTests: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Layout */}
-        <div className="w-full">
+        {/* Main Content Layout: Table on Left + Details Panel on Right */}
+        <div className="flex flex-col lg:flex-row items-start gap-4 w-full">
           {/* Main Table Container */}
-          <div className="w-full bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div
+            className={cn(
+              'w-full transition-all duration-300 min-w-0',
+              isDrawerOpen && selectedLiveTest ? 'lg:flex-1' : 'w-full'
+            )}
+          >
+            <div className="w-full bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto min-h-[340px]">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -811,7 +817,8 @@ export const AdminLiveTests: React.FC = () => {
                   ) : (
                     paginatedTests.map((test, index) => {
                       const rowNumber = (currentPage - 1) * pageSize + index + 1;
-                      const isSelected = selectedLiveTest?.id === test.id;
+                      const isRowChecked = selectedIds.has(test.id);
+                      const isRowActive = isDrawerOpen && selectedLiveTest?.id === test.id;
                       const schedDate = formatScheduledDate(
                         test.scheduledStartTime || test.startAt
                       );
@@ -825,7 +832,8 @@ export const AdminLiveTests: React.FC = () => {
                           }}
                           className={cn(
                             'hover:bg-slate-50/80 transition-colors cursor-pointer group',
-                            isSelected && 'bg-blue-50/40'
+                            isRowChecked && 'bg-blue-50/30',
+                            isRowActive && 'bg-blue-50/70 ring-1 ring-inset ring-blue-500/30 font-medium'
                           )}
                         >
                           {/* Checkbox */}
@@ -1150,48 +1158,37 @@ export const AdminLiveTests: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Slide-Over Live Test Details Drawer */}
-          {isDrawerOpen && selectedLiveTest && (
-            <div className="fixed inset-0 z-50 overflow-hidden">
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+        {/* Right Column: Live Test Details Panel (Sticky side-by-side like Mock Tests & Question Bank) */}
+        {isDrawerOpen && selectedLiveTest && (
+          <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 bg-white border border-slate-200/80 rounded-2xl shadow-2xs flex flex-col max-h-[calc(100vh-5rem)] self-start sticky top-4 animate-in fade-in-50 duration-200 overflow-hidden">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 bg-slate-50/70 shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Live Test Details</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Overview, candidate leaderboard & controls
+                </p>
+              </div>
+              <button
+                type="button"
                 onClick={() => {
                   setIsDrawerOpen(false);
                   setSelectedTestId(null);
                 }}
-                aria-hidden="true"
-              />
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                aria-label="Close details"
+                title="Close details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              {/* Drawer Container */}
-              <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-                <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl border-l border-slate-200 flex flex-col transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
-                  {/* Drawer Header */}
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/70">
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">Live Test Details</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Overview, candidate leaderboard & controls
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsDrawerOpen(false);
-                        setSelectedTestId(null);
-                      }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
-                      aria-label="Close drawer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Scrollable Drawer Body */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                    {/* Top Identity Card */}
-                    <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80">
+            {/* Scrollable Panel Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Top Identity Card */}
+              <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80">
                       <div className="flex items-start gap-3.5">
                         <div className="w-12 h-12 rounded-xl border border-slate-200 bg-white shrink-0 p-1 flex items-center justify-center shadow-xs">
                           <img
@@ -1652,11 +1649,9 @@ export const AdminLiveTests: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
       {/* CREATE / EDIT LIVE TEST MODAL */}
       {isCreateModalOpen && (
