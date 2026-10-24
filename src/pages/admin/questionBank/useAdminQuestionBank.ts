@@ -834,9 +834,7 @@ export function useAdminQuestionBank() {
   };
 
   // Real File Upload Parser & Validator
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processImportFile = (file: File) => {
     setImportFile(file);
 
     const reader = new FileReader();
@@ -991,6 +989,18 @@ export function useAdminQuestionBank() {
       });
     };
     reader.readAsText(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processImportFile(file);
+  };
+
+  const handleClearImportFile = () => {
+    setImportFile(null);
+    setParsedImportQuestions([]);
+    setImportPreviewStats(null);
   };
 
   const modeIdx = (mode: UploadMode, field: string) => {
@@ -1230,6 +1240,8 @@ export function useAdminQuestionBank() {
     handleCreateQuestionSubmit,
     downloadTemplate,
     handleFileChange,
+    processImportFile,
+    handleClearImportFile,
     handleExecuteImport,
   };
 }

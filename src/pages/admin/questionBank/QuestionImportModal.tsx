@@ -1,5 +1,7 @@
 import { Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
+import { FileDropZone } from '@/components/common/FileDropZone';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface QuestionImportModalProps {
@@ -14,29 +16,55 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     importMode,
     downloadTemplate,
     importFile,
-    handleFileChange,
+    processImportFile,
+    handleClearImportFile,
     importPreviewStats,
     isImporting,
     handleExecuteImport,
   } = qb;
+
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(
+    isImportModalOpen,
+    () => setIsImportModalOpen(false),
+    200
+  );
+
   return (
     <>
       {/* 7. BULK IMPORT MODAL */}
-      {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg p-6 shadow-2xl animate-in zoom-in-95 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      {shouldRender && (
+        <div
+          onClick={handleSmoothClose}
+          className={cn(
+            'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-transparent transition-opacity duration-200 ease-out',
+            isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'relative bg-white border border-slate-300 dark:border-slate-700/90 rounded-3xl w-full max-w-lg p-6 shadow-none transition-all duration-200 ease-out transform space-y-4',
+              isAnimating
+                ? 'opacity-100 scale-100 translate-y-0'
+                : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+            )}
+          >
+            {/* Corner Cross Button */}
+            <button
+              type="button"
+              onClick={handleSmoothClose}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+              aria-label="Close modal"
+              title="Close"
+            >
+              <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+            </button>
+
+            <div className="flex items-center justify-between pb-3 pr-10 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-[#026BFC]" />
                 Import Questions (Bulk CSV)
               </h3>
-              <button
-                type="button"
-                onClick={() => setIsImportModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             {/* Step 1: Select Upload Mode */}
@@ -88,18 +116,17 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 </button>
               </div>
 
-              <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 text-center bg-slate-50 relative">
-                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-700">
-                  {importFile ? importFile.name : 'Choose CSV file (.csv)'}
-                </p>
-                <input
-                  type="file"
-                  accept=".csv, .txt"
-                  onChange={handleFileChange}
-                  className="mt-2 text-xs file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold cursor-pointer"
-                />
-              </div>
+              <FileDropZone
+                accept=".csv, .txt"
+                disabled={isImporting}
+                isProcessing={isImporting}
+                onFile={processImportFile}
+                selectedFile={importFile}
+                onClear={handleClearImportFile}
+                label="Choose CSV file or drag & drop here"
+                hint="Supports .csv and .txt bulk question files"
+                buttonLabel="Browse CSV"
+              />
             </div>
 
             {/* Step 3: Validation Preview */}
@@ -138,7 +165,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setIsImportModalOpen(false)}
+                onClick={handleSmoothClose}
                 className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer hover:bg-slate-50"
               >
                 Cancel

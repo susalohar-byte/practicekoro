@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Shield, BookOpen, X, AlertTriangle } from 'lucide-react';
 import { QuestionBankStatus } from './questionBankUtils';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface AddQuestionModalProps {
@@ -60,13 +61,45 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
     setAddStatus,
     isSubmittingAdd,
   } = qb;
+
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(
+    isAddModalOpen,
+    () => setIsAddModalOpen(false),
+    200
+  );
+
   return (
     <>
       {/* 6. ADD QUESTION MODAL (BY EXAM VS BY SUBJECT) */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      {shouldRender && (
+        <div
+          onClick={handleSmoothClose}
+          className={cn(
+            'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-transparent transition-opacity duration-200 ease-out',
+            isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'relative bg-white border border-slate-300 dark:border-slate-700/90 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-none transition-all duration-200 ease-out transform',
+              isAnimating
+                ? 'opacity-100 scale-100 translate-y-0'
+                : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+            )}
+          >
+            {/* Corner Cross Button */}
+            <button
+              type="button"
+              onClick={handleSmoothClose}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+              aria-label="Close modal"
+              title="Close"
+            >
+              <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+            </button>
+
+            <div className="flex items-center justify-between pb-4 pr-12 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div
                   className={cn(
@@ -91,14 +124,6 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   </p>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             {/* Duplicate Warning Alert */}
@@ -429,7 +454,7 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={handleSmoothClose}
                   className="px-4 py-2 rounded-xl border border-slate-200 font-bold cursor-pointer hover:bg-slate-50"
                 >
                   Cancel

@@ -26,7 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { bannerService } from '@/services/bannerService';
+import { bannerService, optimizeBannerImage } from '@/services/bannerService';
 import type { HeroBanner } from '@/types';
 import { cn } from '@/lib/utils';
 import { getPageNumbers } from '@/utils/pagination';
@@ -784,6 +784,8 @@ export const AdminBanners: React.FC = () => {
   const [editFormData, setEditFormData] = useState<AdminBannerItem | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const fileUploadInputRef = useRef<HTMLInputElement>(null);
+  const [dragActiveEditBanner, setDragActiveEditBanner] = useState(false);
+  const [dragActiveNewBanner, setDragActiveNewBanner] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1003,9 +1005,8 @@ export const AdminBanners: React.FC = () => {
   };
 
   // Image upload with compression and live preview update
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editFormData) return;
+  const handleBannerImageUpload = async (file: File) => {
+    if (!editFormData) return;
 
     if (!file.type.startsWith('image/')) {
       showToast('error', 'Please select a valid image file (PNG, JPG, WebP).');
@@ -1031,25 +1032,59 @@ export const AdminBanners: React.FC = () => {
       );
       showToast('success', `Selected image: ${file.name}`);
     } catch {
-      // Fallback to FileReader
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const result = uploadEvent.target?.result as string;
+      // Fallback: compress client-side to lightweight data URI (< 150KB)
+      try {
+        const opt = await optimizeBannerImage(file);
         setEditFormData((prev) =>
           prev
             ? {
                 ...prev,
-                imageUrl: result,
+                imageUrl: opt.dataUrl,
                 fileName: file.name,
               }
             : null
         );
         setBanners((prev) =>
-          prev.map((b) => (b.id === activeId ? { ...b, imageUrl: result, fileName: file.name } : b))
+          prev.map((b) => (b.id === activeId ? { ...b, imageUrl: opt.dataUrl, fileName: file.name } : b))
         );
         showToast('success', `Selected image: ${file.name}`);
-      };
-      reader.readAsDataURL(file);
+      } catch {
+        showToast('error', 'Failed to process banner image.');
+      }
+    }
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleBannerImageUpload(file);
+  };
+
+  const handleProcessNewBannerFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Please select a valid image file (PNG, JPG, WebP).');
+      return;
+    }
+    try {
+      const { url } = await bannerService.uploadBannerImage(file);
+      setNewBannerData((prev) => ({
+        ...prev,
+        imageUrl: url,
+        fileName: file.name,
+      }));
+      showToast('success', `Selected image: ${file.name}`);
+    } catch {
+      try {
+        const opt = await optimizeBannerImage(file);
+        setNewBannerData((prev) => ({
+          ...prev,
+          imageUrl: opt.dataUrl,
+          fileName: file.name,
+        }));
+        showToast('success', `Selected image: ${file.name}`);
+      } catch {
+        showToast('error', 'Failed to process banner image.');
+      }
     }
   };
 
@@ -1795,7 +1830,36 @@ export const AdminBanners: React.FC = () => {
                   {/* Banner Image Row */}
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">Banner Image</label>
-                    <div className="flex items-center justify-between p-2 bg-slate-50/70 border border-slate-200 rounded-lg">
+                    <div
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActiveEditBanner(true);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActiveEditBanner(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActiveEditBanner(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActiveEditBanner(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleBannerImageUpload(file);
+                      }}
+                      className={cn(
+                        'flex items-center justify-between p-2 rounded-lg transition-all border-2',
+                        dragActiveEditBanner
+                          ? 'border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                          : 'border-slate-200 bg-slate-50/70'
+                      )}
+                    >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-10 h-7 rounded overflow-hidden border border-slate-200 bg-slate-900 shrink-0">
                           <BannerVisual banner={editFormData} />
@@ -1806,6 +1870,7 @@ export const AdminBanners: React.FC = () => {
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => fileUploadInputRef.current?.click()}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[#026BFC] bg-white border border-blue-200 hover:bg-blue-50/60 rounded transition-colors shrink-0"
                       >
@@ -2371,7 +2436,36 @@ export const AdminBanners: React.FC = () => {
               {/* Image Upload Row */}
               <div>
                 <label className="block text-slate-600 font-medium mb-1">Banner Image</label>
-                <div className="flex items-center gap-3 p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                <div
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActiveNewBanner(true);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActiveNewBanner(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActiveNewBanner(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActiveNewBanner(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleProcessNewBannerFile(file);
+                  }}
+                  className={cn(
+                    'flex items-center gap-3 p-2 rounded-lg transition-all border-2',
+                    dragActiveNewBanner
+                      ? 'border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                      : 'border-slate-200 bg-slate-50'
+                  )}
+                >
                   <div className="w-12 h-8 rounded overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
                     <img
                       src={newBannerData.imageUrl}
@@ -2386,31 +2480,17 @@ export const AdminBanners: React.FC = () => {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          const { url } = await bannerService.uploadBannerImage(file);
-                          setNewBannerData((prev) => ({
-                            ...prev,
-                            imageUrl: url,
-                            fileName: file.name,
-                          }));
-                          showToast('success', `Selected image: ${file.name}`);
-                        } catch {
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            setNewBannerData((prev) => ({
-                              ...prev,
-                              imageUrl: ev.target?.result as string,
-                              fileName: file.name,
-                            }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
+                        if (file) handleProcessNewBannerFile(file);
                       }}
-                      className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border file:border-blue-200 file:text-xs file:font-medium file:bg-white file:text-[#026BFC] hover:file:bg-blue-50"
+                      className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border file:border-blue-200 file:text-xs file:font-medium file:bg-white file:text-[#026BFC] hover:file:bg-blue-50 cursor-pointer"
                     />
+                    {dragActiveNewBanner && (
+                      <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                        Drop image to set banner
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

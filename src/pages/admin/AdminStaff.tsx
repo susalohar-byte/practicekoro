@@ -178,12 +178,11 @@ const INITIAL_ADMIN_USERS: AdminUserRecord[] = [
   },
 ];
 
-// System Roles Data matching reference
-const SYSTEM_ROLES: SystemRoleCardData[] = [
+// Static system role definitions (metadata, styling, and base permissions)
+const SYSTEM_ROLE_CONFIGS: Omit<SystemRoleCardData, 'adminsCount'>[] = [
   {
     title: 'Super Admin',
     description: 'Full access to all features',
-    adminsCount: 2,
     permissionsPercentage: 100,
     iconBg: 'bg-[#EDE9FE]',
     iconColor: 'text-[#7C3AED]',
@@ -192,7 +191,6 @@ const SYSTEM_ROLES: SystemRoleCardData[] = [
   {
     title: 'Content Manager',
     description: 'Manage questions, tests, exams',
-    adminsCount: 2,
     permissionsPercentage: 65,
     iconBg: 'bg-[#DBEAFE]',
     iconColor: 'text-[#2563EB]',
@@ -201,7 +199,6 @@ const SYSTEM_ROLES: SystemRoleCardData[] = [
   {
     title: 'Support Manager',
     description: 'Handle support and communication',
-    adminsCount: 1,
     permissionsPercentage: 40,
     iconBg: 'bg-[#DCFCE7]',
     iconColor: 'text-[#16A34A]',
@@ -210,7 +207,6 @@ const SYSTEM_ROLES: SystemRoleCardData[] = [
   {
     title: 'Finance Manager',
     description: 'Manage payments and subscriptions',
-    adminsCount: 1,
     permissionsPercentage: 45,
     iconBg: 'bg-[#FEF3C7]',
     iconColor: 'text-[#D97706]',
@@ -219,7 +215,6 @@ const SYSTEM_ROLES: SystemRoleCardData[] = [
   {
     title: 'Analyst',
     description: 'View analytics and performance',
-    adminsCount: 2,
     permissionsPercentage: 30,
     iconBg: 'bg-[#FEE2E2]',
     iconColor: 'text-[#DC2626]',
@@ -416,6 +411,57 @@ export const AdminStaff: React.FC = () => {
     });
   }, [adminUsers, filterRole, filterStatus, searchQuery]);
 
+  // Synchronized statistics derived reactively from live adminUsers
+  const stats = useMemo(() => {
+    const total = adminUsers.length;
+    const active = adminUsers.filter((a) => a.status === 'Active').length;
+    const inactive = adminUsers.filter((a) => a.status === 'Inactive').length;
+    const assignedRolesCount = new Set(adminUsers.map((a) => a.role)).size;
+    const totalRoles = SYSTEM_ROLE_CONFIGS.length;
+
+    const roleCounts: Record<SystemAdminRole, number> = {
+      'Super Admin': 0,
+      'Content Manager': 0,
+      'Support Manager': 0,
+      'Finance Manager': 0,
+      'Analyst': 0,
+    };
+    adminUsers.forEach((a) => {
+      if (roleCounts[a.role] !== undefined) {
+        roleCounts[a.role]++;
+      }
+    });
+
+    return {
+      total,
+      active,
+      inactive,
+      assignedRolesCount,
+      totalRoles,
+      roleCounts,
+    };
+  }, [adminUsers]);
+
+  // Dynamic system roles with live adminsCount calculated directly from admin users
+  const systemRoles = useMemo(() => {
+    return SYSTEM_ROLE_CONFIGS.map((config) => ({
+      ...config,
+      adminsCount: stats.roleCounts[config.title] || 0,
+    }));
+  }, [stats.roleCounts]);
+
+  // Pagination calculations and clamped values
+  const totalPages = Math.max(1, Math.ceil(filteredAdmins.length / rowsPerPage));
+  const currentPageClamped = Math.min(currentPage, totalPages);
+  const startIndex = filteredAdmins.length === 0 ? 0 : (currentPageClamped - 1) * rowsPerPage + 1;
+  const endIndex = Math.min(currentPageClamped * rowsPerPage, filteredAdmins.length);
+  const paginatedAdmins = useMemo(() => {
+    return filteredAdmins.slice(
+      (currentPageClamped - 1) * rowsPerPage,
+      currentPageClamped * rowsPerPage
+    );
+  }, [filteredAdmins, currentPageClamped, rowsPerPage]);
+
   // Table selection handlers
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -435,6 +481,7 @@ export const AdminStaff: React.FC = () => {
     setSearchQuery('');
     setFilterRole('All Roles');
     setFilterStatus('All Status');
+    setCurrentPage(1);
     showToast('Filters reset.');
   };
 
@@ -622,13 +669,28 @@ export const AdminStaff: React.FC = () => {
             <span className="text-[11px] font-medium text-slate-500 block">Total Admins</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-bold text-slate-900 leading-tight">
-                {adminUsers.length}
+                {stats.total}
               </span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                Active
+              <span
+                className={cn(
+                  'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                  stats.total === 0
+                    ? 'text-slate-500 bg-slate-100'
+                    : stats.inactive === 0
+                    ? 'text-emerald-600 bg-emerald-50'
+                    : 'text-blue-600 bg-blue-50'
+                )}
+              >
+                {stats.total === 0
+                  ? '0 Staff'
+                  : stats.inactive === 0
+                  ? 'All Active'
+                  : `${stats.active} Active`}
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">platform users</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              {stats.active} active · {stats.inactive} inactive
+            </span>
           </div>
         </div>
 
@@ -641,10 +703,15 @@ export const AdminStaff: React.FC = () => {
             <span className="text-[11px] font-medium text-slate-500 block">Total Roles</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-bold text-slate-900 leading-tight">
-                {SYSTEM_ROLES.length}
+                {stats.totalRoles}
+              </span>
+              <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                {stats.assignedRolesCount} in use
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">system roles</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              {stats.assignedRolesCount} of {stats.totalRoles} assigned
+            </span>
           </div>
         </div>
 
@@ -657,7 +724,7 @@ export const AdminStaff: React.FC = () => {
             <span className="text-[11px] font-medium text-slate-500 block">Active Admins</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-bold text-slate-900 leading-tight">
-                {adminUsers.filter((a) => a.status === 'Active').length}
+                {stats.active}
               </span>
               <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                 Online
@@ -678,10 +745,22 @@ export const AdminStaff: React.FC = () => {
             <span className="text-[11px] font-medium text-slate-500 block">Inactive Admins</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-bold text-slate-900 leading-tight">
-                {adminUsers.filter((a) => a.status === 'Inactive').length}
+                {stats.inactive}
+              </span>
+              <span
+                className={cn(
+                  'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                  stats.inactive > 0
+                    ? 'text-rose-600 bg-rose-50'
+                    : 'text-slate-500 bg-slate-100'
+                )}
+              >
+                {stats.inactive > 0 ? `${stats.inactive} Suspended` : '0 Suspended'}
               </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">deactivated</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              {stats.inactive > 0 ? 'deactivated accounts' : 'no inactive accounts'}
+            </span>
           </div>
         </div>
       </div>
@@ -702,6 +781,16 @@ export const AdminStaff: React.FC = () => {
           >
             <Shield className="w-4 h-4" />
             <span>Roles & Permissions</span>
+            <span
+              className={cn(
+                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                activeMainTab === 'Roles & Permissions'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-slate-100 text-slate-500'
+              )}
+            >
+              {stats.totalRoles}
+            </span>
             {activeMainTab === 'Roles & Permissions' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2563EB] rounded-full" />
             )}
@@ -718,6 +807,16 @@ export const AdminStaff: React.FC = () => {
           >
             <Users className="w-4 h-4" />
             <span>Admin Users</span>
+            <span
+              className={cn(
+                'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
+                activeMainTab === 'Admin Users'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-slate-100 text-slate-500'
+              )}
+            >
+              {stats.total}
+            </span>
             {activeMainTab === 'Admin Users' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2563EB] rounded-full" />
             )}
@@ -746,7 +845,8 @@ export const AdminStaff: React.FC = () => {
       {/* ==================================================================== */}
       {activeMainTab === 'Roles & Permissions' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {SYSTEM_ROLES.map((role) => {
+          {systemRoles.map((role) => {
+            const isSelected = filterRole === role.title;
             const getIcon = () => {
               switch (role.title) {
                 case 'Super Admin':
@@ -766,10 +866,21 @@ export const AdminStaff: React.FC = () => {
               <div
                 key={role.title}
                 onClick={() => {
-                  setFilterRole(role.title);
-                  showToast(`Filtered by ${role.title}`);
+                  if (filterRole === role.title) {
+                    setFilterRole('All Roles');
+                    showToast('Showing all roles');
+                  } else {
+                    setFilterRole(role.title);
+                    showToast(`Filtered by ${role.title}`);
+                  }
+                  setCurrentPage(1);
                 }}
-                className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer space-y-3"
+                className={cn(
+                  'bg-white rounded-2xl border p-4 shadow-2xs hover:shadow-xs transition-all cursor-pointer space-y-3',
+                  isSelected
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10'
+                    : 'border-slate-100'
+                )}
               >
                 <div className="flex items-start gap-3">
                   <div
@@ -782,7 +893,14 @@ export const AdminStaff: React.FC = () => {
                     {getIcon()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-slate-900 text-xs truncate">{role.title}</h3>
+                    <div className="flex items-center justify-between gap-1">
+                      <h3 className="font-bold text-slate-900 text-xs truncate">{role.title}</h3>
+                      {isSelected && (
+                        <span className="text-[9px] font-semibold text-blue-600 bg-blue-100 px-1 py-0.2 rounded shrink-0">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-400 truncate mt-0.5">{role.description}</p>
                   </div>
                 </div>
@@ -820,7 +938,13 @@ export const AdminStaff: React.FC = () => {
             {/* Header & Filter Bar */}
             <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-bold text-slate-900">
-                Admin Users ({filteredAdmins.length})
+                Admin Users ({filteredAdmins.length}
+                {filteredAdmins.length !== stats.total && (
+                  <span className="text-slate-400 font-normal text-xs ml-1">
+                    of {stats.total}
+                  </span>
+                )}
+                )
               </h2>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -830,39 +954,48 @@ export const AdminStaff: React.FC = () => {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     placeholder="Search by name, email or role..."
                     className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
 
                 {/* All Roles */}
-                <div className="relative min-w-[120px]">
+                <div className="relative min-w-[130px]">
                   <select
                     value={filterRole}
-                    onChange={(e) => setFilterRole(e.target.value)}
+                    onChange={(e) => {
+                      setFilterRole(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
                   >
-                    <option value="All Roles">All Roles</option>
-                    <option value="Super Admin">Super Admin</option>
-                    <option value="Content Manager">Content Manager</option>
-                    <option value="Support Manager">Support Manager</option>
-                    <option value="Finance Manager">Finance Manager</option>
-                    <option value="Analyst">Analyst</option>
+                    <option value="All Roles">All Roles ({stats.total})</option>
+                    {SYSTEM_ROLE_CONFIGS.map((r) => (
+                      <option key={r.title} value={r.title}>
+                        {r.title} ({stats.roleCounts[r.title]})
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
                 {/* All Status */}
-                <div className="relative min-w-[110px]">
+                <div className="relative min-w-[120px]">
                   <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                    onChange={(e) => {
+                      setFilterStatus(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
                   >
-                    <option value="All Status">All Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
+                    <option value="All Status">All Status ({stats.total})</option>
+                    <option value="Active">Active ({stats.active})</option>
+                    <option value="Inactive">Inactive ({stats.inactive})</option>
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -909,38 +1042,36 @@ export const AdminStaff: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredAdmins
-                      .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
-                      .map((row) => {
-                        const isChecked = selectedIds.includes(row.id);
+                    paginatedAdmins.map((row, idx) => {
+                      const isChecked = selectedIds.includes(row.id);
 
-                        return (
-                          <tr
-                            key={row.id}
-                            className={cn(
-                              'transition-colors cursor-pointer group',
-                              isChecked
-                                ? 'bg-blue-50/40 hover:bg-blue-50/60'
-                                : 'hover:bg-slate-50/60'
-                            )}
+                      return (
+                        <tr
+                          key={row.id}
+                          className={cn(
+                            'transition-colors cursor-pointer group',
+                            isChecked
+                              ? 'bg-blue-50/40 hover:bg-blue-50/60'
+                              : 'hover:bg-slate-50/60'
+                          )}
+                        >
+                          {/* Checkbox */}
+                          <td
+                            className="py-3 px-3 text-center"
+                            onClick={(e) => handleToggleRow(row.id, e)}
                           >
-                            {/* Checkbox */}
-                            <td
-                              className="py-3 px-3 text-center"
-                              onClick={(e) => handleToggleRow(row.id, e)}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => {}}
-                                className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
-                              />
-                            </td>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
+                            />
+                          </td>
 
-                            {/* # */}
-                            <td className="py-3 px-2 text-center text-slate-500 font-normal">
-                              {row.num}
-                            </td>
+                          {/* # */}
+                          <td className="py-3 px-2 text-center text-slate-500 font-normal">
+                            {(currentPageClamped - 1) * rowsPerPage + idx + 1}
+                          </td>
 
                             {/* Name + Avatar + You Badge */}
                             <td className="py-3 px-3">
@@ -1084,28 +1215,42 @@ export const AdminStaff: React.FC = () => {
             {/* Table Footer / Pagination */}
             <div className="border-t border-slate-100 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
               <div>
-                Showing 1–{filteredAdmins.length} of {filteredAdmins.length} admins
+                Showing {startIndex}–{endIndex} of {filteredAdmins.length} admins
+                {filteredAdmins.length !== stats.total && (
+                  <span className="text-slate-400 ml-1">({stats.total} total)</span>
+                )}
               </div>
 
               <div className="flex items-center gap-1.5">
                 <button
-                  disabled={currentPage === 1}
+                  disabled={currentPageClamped <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Previous Page"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
 
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-[#2563EB] text-white font-medium shadow-2xs"
-                >
-                  1
-                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={cn(
+                      'w-7 h-7 flex items-center justify-center rounded-lg font-medium shadow-2xs transition-colors cursor-pointer',
+                      currentPageClamped === pageNum
+                        ? 'bg-[#2563EB] text-white'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    )}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
 
                 <button
-                  disabled
-                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 opacity-50 cursor-not-allowed"
+                  disabled={currentPageClamped >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Next Page"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -1113,11 +1258,15 @@ export const AdminStaff: React.FC = () => {
                 <div className="relative ml-2">
                   <select
                     value={rowsPerPage}
-                    onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                     className="appearance-none border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"
                   >
                     <option value={10}>10 / page</option>
                     <option value={20}>20 / page</option>
+                    <option value={50}>50 / page</option>
                   </select>
                   <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

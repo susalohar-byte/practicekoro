@@ -4,6 +4,7 @@ import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '@/services/api';
+import { SubjectIconBadge } from './AdminSubjects';
 import {
   Upload,
   ArrowUpDown,
@@ -32,8 +33,6 @@ import {
   CheckSquare,
   Crown,
   Building2,
-  Brain,
-  FlaskConical,
   TrendingUp,
   HelpCircle,
   Copy,
@@ -511,6 +510,8 @@ const CANONICAL_TOPICS_PRESET: EnrichedTopicRow[] = [
   },
 ];
 
+const COLOR_PALETTE: SubjectGroup['colorScheme'][] = ['purple', 'blue', 'green', 'amber', 'red'];
+
 export const AdminTopics: React.FC = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -586,7 +587,7 @@ export const AdminTopics: React.FC = () => {
 
   // Reorder list modal state
   const [orderList, setOrderList] = useState<EnrichedTopicRow[]>([]);
-  const [orderSubjectId, setOrderSubjectId] = useState<string>('sub-general-science');
+  const [orderSubjectId, setOrderSubjectId] = useState<string>('');
 
   // Load Data and merge with database
   const loadData = useCallback(async () => {
@@ -630,133 +631,123 @@ export const AdminTopics: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Handle Search & Filter
-  const filteredTopics = useMemo(() => {
-    return topicsList.filter((topic) => {
-      // Search
-      const searchMatch =
-        !searchTerm.trim() ||
-        topic.name.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-        topic.subjectName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-        topic.slug.toLowerCase().includes(searchTerm.toLowerCase().trim());
+  // 1. Group all topics under real Subjects from subjectsList
+  const allSubjectGroups = useMemo<SubjectGroup[]>(() => {
+    const groups: SubjectGroup[] = subjectsList.map((sub, idx) => {
+      const matchingTopics = topicsList
+        .filter((t) => t.subjectId === sub.id)
+        .sort((a, b) => a.orderIndex - b.orderIndex);
 
-      // Subject Filter
-      const subjectMatch =
-        selectedSubjectFilter === 'all' ||
-        topic.subjectId === selectedSubjectFilter ||
-        topic.subjectName.toLowerCase() === selectedSubjectFilter.toLowerCase();
-
-      // Status Filter
-      const statusMatch =
-        selectedStatusFilter === 'all' ||
-        (selectedStatusFilter === 'published' && topic.statusLabel === 'Published') ||
-        (selectedStatusFilter === 'draft' && topic.statusLabel === 'Draft');
-
-      return searchMatch && subjectMatch && statusMatch;
+      return {
+        id: sub.id,
+        name: sub.name,
+        topicsCount: matchingTopics.length,
+        iconName: sub.iconName || 'BookOpen',
+        colorScheme: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+        topics: matchingTopics,
+      };
     });
-  }, [topicsList, searchTerm, selectedSubjectFilter, selectedStatusFilter]);
 
-  // Pagination calculation
-  const totalItems = filteredTopics.length;
+    // Check for any legacy/unassigned topics not mapped to any known subject
+    const knownSubjectIds = new Set(subjectsList.map((s) => s.id));
+    const orphanTopics = topicsList
+      .filter((t) => !knownSubjectIds.has(t.subjectId))
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+
+    if (orphanTopics.length > 0) {
+      groups.push({
+        id: '__unassigned__',
+        name: 'Other Topics (Unassigned)',
+        topicsCount: orphanTopics.length,
+        iconName: 'HelpCircle',
+        colorScheme: 'amber',
+        topics: orphanTopics,
+      });
+    }
+
+    return groups;
+  }, [subjectsList, topicsList]);
+
+  // 2. Filter Subject Groups by search query, selected subject, and status
+  const filteredSubjectGroups = useMemo<SubjectGroup[]>(() => {
+    const query = searchTerm.toLowerCase().trim();
+
+    return allSubjectGroups
+      .map((group) => {
+        // If a specific subject is filtered, only keep that subject
+        if (selectedSubjectFilter !== 'all' && group.id !== selectedSubjectFilter) {
+          return null;
+        }
+
+        // Filter the topics of this subject
+        const matchingTopics = group.topics.filter((topic) => {
+          // Status filter
+          if (selectedStatusFilter === 'published' && topic.statusLabel !== 'Published')
+            return false;
+          if (selectedStatusFilter === 'draft' && topic.statusLabel !== 'Draft') return false;
+
+          // Search on topic name, slug, description
+          if (!query) return true;
+          return (
+            topic.name.toLowerCase().includes(query) ||
+            topic.slug.toLowerCase().includes(query) ||
+            (topic.descriptionBengali && topic.descriptionBengali.toLowerCase().includes(query))
+          );
+        });
+
+        // Does the parent subject name itself match the search query?
+        const subjectMatchesQuery = Boolean(query && group.name.toLowerCase().includes(query));
+
+        // When a search is typed:
+        // keep group if subject matches OR any topics match
+        if (query) {
+          if (!subjectMatchesQuery && matchingTopics.length === 0) {
+            return null;
+          }
+        } else if (selectedStatusFilter !== 'all') {
+          // When status filter is active, only show subjects with matching topics
+          if (matchingTopics.length === 0) {
+            return null;
+          }
+        }
+
+        return {
+          ...group,
+          topics: matchingTopics,
+          topicsCount: matchingTopics.length,
+        };
+      })
+      .filter((g): g is SubjectGroup => g !== null);
+  }, [allSubjectGroups, searchTerm, selectedSubjectFilter, selectedStatusFilter]);
+
+  // Flat list of all currently visible filtered topics
+  const allFilteredTopics = useMemo(() => {
+    return filteredSubjectGroups.flatMap((g) => g.topics);
+  }, [filteredSubjectGroups]);
+
+  // Pagination over Subject Groups so subjects are never cut across pages
+  const totalItems = filteredSubjectGroups.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
 
-  // Keep currentPage within bounds when topics are filtered or deleted
+  // Keep currentPage within bounds
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
 
-  // Sliced topics for the current page
-  const pagedTopics = useMemo(() => {
-    return filteredTopics.slice(startIndex, endIndex);
-  }, [filteredTopics, startIndex, endIndex]);
+  // Paged Subject Groups for current page
+  const pagedSubjectGroups = useMemo(() => {
+    return filteredSubjectGroups.slice(startIndex, endIndex);
+  }, [filteredSubjectGroups, startIndex, endIndex]);
 
-  // Topic global index map for truthful sequential row numbering
-  const topicRowNumberMap = useMemo(() => {
-    const map = new Map<string, number>();
-    pagedTopics.forEach((t, idx) => {
-      map.set(t.id, startIndex + idx + 1);
-    });
-    return map;
-  }, [pagedTopics, startIndex]);
-
-  // Group current page topics by subject to match the accordion table
-  const subjectGroups = useMemo<SubjectGroup[]>(() => {
-    const groupsMap = new Map<string, EnrichedTopicRow[]>();
-
-    // Canonical order of subjects
-    const canonicalSubjects: {
-      id: string;
-      name: string;
-      icon: string;
-      count: number;
-      color: SubjectGroup['colorScheme'];
-    }[] = [
-      {
-        id: 'sub-general-science',
-        name: 'General Science',
-        icon: 'FlaskConical',
-        count: 18,
-        color: 'purple',
-      },
-      {
-        id: 'sub-indian-polity',
-        name: 'Indian Polity',
-        icon: 'Building2',
-        count: 20,
-        color: 'blue',
-      },
-      { id: 'sub-reasoning', name: 'Reasoning', icon: 'Brain', count: 28, color: 'red' },
-    ];
-
-    pagedTopics.forEach((t) => {
-      const subName = t.subjectName || 'General Science';
-      if (!groupsMap.has(subName)) {
-        groupsMap.set(subName, []);
-      }
-      groupsMap.get(subName)!.push(t);
-    });
-
-    const result: SubjectGroup[] = [];
-
-    canonicalSubjects.forEach((cs) => {
-      const matchingTopics = groupsMap.get(cs.name);
-      if (matchingTopics && matchingTopics.length > 0) {
-        result.push({
-          id: cs.id,
-          name: cs.name,
-          topicsCount: matchingTopics.length,
-          iconName: cs.icon,
-          colorScheme: cs.color,
-          topics: matchingTopics,
-        });
-        groupsMap.delete(cs.name);
-      }
-    });
-
-    // Add any remaining dynamic subjects
-    groupsMap.forEach((topics, name) => {
-      result.push({
-        id: topics[0]?.subjectId || name,
-        name,
-        topicsCount: topics.length,
-        iconName: 'BookOpen',
-        colorScheme: 'blue',
-        topics,
-      });
-    });
-
-    return result;
-  }, [pagedTopics]);
-
-  // Toggle Collapse of a Subject Group
-  const toggleGroupCollapse = (groupName: string) => {
+  // Toggle Collapse of a Subject Group by group.id or group.name
+  const toggleGroupCollapse = (groupId: string) => {
     setCollapsedGroups((prev) => ({
       ...prev,
-      [groupName]: !prev[groupName],
+      [groupId]: !prev[groupId],
     }));
   };
 
@@ -778,7 +769,7 @@ export const AdminTopics: React.FC = () => {
     if (selectedTopicIds.size > 0) {
       setSelectedTopicIds(new Set());
     } else {
-      setSelectedTopicIds(new Set(filteredTopics.map((t) => t.id)));
+      setSelectedTopicIds(new Set(allFilteredTopics.map((t) => t.id)));
     }
   };
 
@@ -801,13 +792,21 @@ export const AdminTopics: React.FC = () => {
     setSearchParams({});
   };
 
-  // Create Modal Handlers
-  const handleOpenCreateModal = () => {
+  // Create Modal Handlers with targetSubjectId pre-fill
+  const handleOpenCreateModal = (targetSubjectId?: string) => {
+    const selectedSubId =
+      targetSubjectId ||
+      (selectedSubjectFilter !== 'all' && subjectsList.some((s) => s.id === selectedSubjectFilter)
+        ? selectedSubjectFilter
+        : subjectsList[0]?.id || '');
+
+    const currentSubTopics = topicsList.filter((t) => t.subjectId === selectedSubId);
+
     setFormData({
       name: '',
       slug: '',
-      subjectId: subjectsList[0]?.id || 'sub-general-science',
-      orderIndex: topicsList.length + 1,
+      subjectId: selectedSubId,
+      orderIndex: currentSubTopics.length + 1,
       statusLabel: 'Published',
       description: '',
       iconName: '',
@@ -1076,7 +1075,7 @@ export const AdminTopics: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleOpenCreateModal}
+            onClick={() => handleOpenCreateModal()}
             className="h-9 px-4 rounded-xl bg-[#026BFC] hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
           >
             <Plus className="w-4 h-4 text-white" />
@@ -1182,9 +1181,30 @@ export const AdminTopics: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Total Topic Tests */}
+        {/* Card 4: Total Subjects */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-2xl bg-[#F3E8FF] dark:bg-purple-950/50 text-[#8B5CF6] flex items-center justify-center shrink-0">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 leading-tight">
+              Total Subjects
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                {subjectsList.length}
+              </span>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
+                Active
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Parent Subjects</p>
+          </div>
+        </div>
+
+        {/* Card 5: Total Topic Tests */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5 col-span-2 sm:col-span-1">
+          <div className="w-11 h-11 rounded-2xl bg-[#FEECEC] dark:bg-rose-950/50 text-[#EF4444] flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -1196,29 +1216,10 @@ export const AdminTopics: React.FC = () => {
                 {topicsList.reduce((acc, t) => acc + (t.totalTests || 0), 0).toLocaleString()}
               </span>
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 26%
+                Live
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Card 5: Questions Used */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800/80 shadow-2xs flex items-center gap-3.5 col-span-2 sm:col-span-1">
-          <div className="w-11 h-11 rounded-2xl bg-[#FEECEC] dark:bg-rose-950/50 text-[#EF4444] flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 leading-tight">
-              Questions Used
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-                {topicsList.reduce((acc, t) => acc + (t.totalQuestions || 0), 0).toLocaleString()}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 32%
-              </span>
-            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Across All Topics</p>
           </div>
         </div>
       </div>
@@ -1287,15 +1288,21 @@ export const AdminTopics: React.FC = () => {
           {/* All Subjects Dropdown */}
           <select
             value={selectedSubjectFilter}
-            onChange={(e) => setSelectedSubjectFilter(e.target.value)}
+            onChange={(e) => {
+              setSelectedSubjectFilter(e.target.value);
+              setCurrentPage(1);
+            }}
             className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
           >
-            <option value="all">All Subjects</option>
-            {subjectsList.map((sub) => (
-              <option key={sub.id} value={sub.id}>
-                {sub.name}
-              </option>
-            ))}
+            <option value="all">All Subjects ({topicsList.length} topics)</option>
+            {subjectsList.map((sub) => {
+              const count = topicsList.filter((t) => t.subjectId === sub.id).length;
+              return (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name} ({count})
+                </option>
+              );
+            })}
           </select>
 
           {/* All Status Dropdown */}
@@ -1352,7 +1359,7 @@ export const AdminTopics: React.FC = () => {
                         type="checkbox"
                         checked={
                           selectedTopicIds.size > 0 &&
-                          selectedTopicIds.size === filteredTopics.length
+                          selectedTopicIds.size === allFilteredTopics.length
                         }
                         onChange={toggleSelectAll}
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
@@ -1369,30 +1376,48 @@ export const AdminTopics: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {filteredTopics.length === 0 ? (
+                  {subjectsList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <div className="max-w-md mx-auto space-y-3">
+                          <BookOpen className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                          <div>
+                            <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm">
+                              No subjects created yet
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              Topics must belong to a parent Subject. Please create at least one
+                              subject in the Subjects section first.
+                            </p>
+                          </div>
+                          <a
+                            href="/admin/subjects"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Go to Subjects Page
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredSubjectGroups.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
                         No topics found matching your filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    subjectGroups.map((group) => {
-                      const isCollapsed = collapsedGroups[group.name];
-                      const groupIcon =
-                        group.iconName === 'FlaskConical' ? (
-                          <FlaskConical className="w-4 h-4 text-[#8B5CF6]" />
-                        ) : group.iconName === 'Brain' ? (
-                          <Brain className="w-4 h-4 text-[#EF4444]" />
-                        ) : (
-                          <Building2 className="w-4 h-4 text-[#026BFC]" />
-                        );
+                    pagedSubjectGroups.map((group) => {
+                      const isCollapsed = Boolean(
+                        collapsedGroups[group.id] || collapsedGroups[group.name]
+                      );
 
                       return (
                         <React.Fragment key={group.id}>
                           {/* Collapsible Subject Header Row */}
                           <tr
-                            onClick={() => toggleGroupCollapse(group.name)}
-                            className="bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-100/70 dark:hover:bg-slate-900/80 transition-colors cursor-pointer select-none"
+                            onClick={() => toggleGroupCollapse(group.id)}
+                            className="bg-slate-50/80 dark:bg-slate-900/60 hover:bg-slate-100/80 dark:hover:bg-slate-900/90 transition-colors cursor-pointer select-none border-t border-b border-slate-200/70 dark:border-slate-800"
                           >
                             <td
                               className="py-3 px-3 text-center"
@@ -1400,6 +1425,10 @@ export const AdminTopics: React.FC = () => {
                             >
                               <input
                                 type="checkbox"
+                                checked={
+                                  group.topics.length > 0 &&
+                                  group.topics.every((t) => selectedTopicIds.has(t.id))
+                                }
                                 onChange={(e) => {
                                   const ids = group.topics.map((t) => t.id);
                                   setSelectedTopicIds((prev) => {
@@ -1416,25 +1445,38 @@ export const AdminTopics: React.FC = () => {
                               />
                             </td>
                             <td colSpan={7} className="py-3 px-2">
-                              <div className="flex items-center gap-2.5">
-                                <div
-                                  className={cn(
-                                    'w-6 h-6 rounded-lg flex items-center justify-center shrink-0',
-                                    group.colorScheme === 'purple'
-                                      ? 'bg-[#F6EEFD] text-[#8B5CF6]'
-                                      : group.colorScheme === 'red'
-                                        ? 'bg-[#FEECEC] text-[#EF4444]'
-                                        : 'bg-[#EBF3FF] text-[#026BFC]'
-                                  )}
-                                >
-                                  {groupIcon}
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <SubjectIconBadge
+                                    name={group.name}
+                                    iconName={group.iconName}
+                                    className="w-6 h-6 shrink-0"
+                                  />
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                                    {group.name}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                    {group.topicsCount}{' '}
+                                    {group.topicsCount === 1 ? 'Topic' : 'Topics'}
+                                  </span>
                                 </div>
-                                <span className="font-bold text-slate-900 dark:text-white text-xs">
-                                  {group.name}
-                                </span>
-                                <span className="text-slate-400 font-normal text-xs">
-                                  ({group.topicsCount} Topics)
-                                </span>
+
+                                <div className="flex items-center gap-2 shrink-0 pr-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenCreateModal(
+                                        group.id === '__unassigned__' ? undefined : group.id
+                                      );
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-[#026BFC] text-[11px] font-semibold flex items-center gap-1 transition-colors border border-blue-200/60 dark:border-blue-800 cursor-pointer shadow-2xs"
+                                    title={`Add new topic to ${group.name}`}
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    Add Topic
+                                  </button>
+                                </div>
                               </div>
                             </td>
                             <td className="py-3 px-2.5 text-center text-slate-400">
@@ -1446,6 +1488,39 @@ export const AdminTopics: React.FC = () => {
                             </td>
                           </tr>
 
+                          {/* Empty state when this subject has 0 topics */}
+                          {!isCollapsed && group.topics.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={9}
+                                className="py-6 px-4 text-center bg-slate-50/30 dark:bg-slate-900/20"
+                              >
+                                <div className="flex flex-col items-center justify-center gap-1.5 py-2">
+                                  <Layers className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    No topics created under{' '}
+                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                      "{group.name}"
+                                    </span>{' '}
+                                    yet.
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOpenCreateModal(
+                                        group.id === '__unassigned__' ? undefined : group.id
+                                      )
+                                    }
+                                    className="mt-1 px-3 py-1.5 rounded-xl bg-[#026BFC] hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    Create First Topic
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+
                           {/* Topics under this subject */}
                           {!isCollapsed &&
                             group.topics.map((topic, tIdx) => {
@@ -1454,8 +1529,7 @@ export const AdminTopics: React.FC = () => {
                               );
                               const isChecked = selectedTopicIds.has(topic.id);
                               const isPublished = topic.statusLabel === 'Published';
-                              const rowNumber =
-                                topicRowNumberMap.get(topic.id) ?? startIndex + tIdx + 1;
+                              const rowNumber = tIdx + 1;
 
                               return (
                                 <tr
@@ -1668,7 +1742,8 @@ export const AdminTopics: React.FC = () => {
             {/* Pagination Controls matching screenshot */}
             <div className="p-3.5 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
               <span>
-                Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} topics
+                Showing {totalItems === 0 ? 0 : startIndex + 1}–{endIndex} of {totalItems} subjects
+                ({allFilteredTopics.length} total topics)
               </span>
 
               <div className="flex items-center gap-3">
@@ -1724,9 +1799,9 @@ export const AdminTopics: React.FC = () => {
                   }}
                   className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
                 >
-                  <option value={10}>10 / page</option>
-                  <option value={25}>25 / page</option>
-                  <option value={50}>50 / page</option>
+                  <option value={10}>10 subjects / page</option>
+                  <option value={25}>25 subjects / page</option>
+                  <option value={50}>50 subjects / page</option>
                 </select>
               </div>
             </div>
@@ -2219,18 +2294,29 @@ export const AdminTopics: React.FC = () => {
                   </label>
                   <select
                     value={formData.subjectId}
-                    onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+                    onChange={(e) => {
+                      const newSubId = e.target.value;
+                      const countForSub = topicsList.filter((t) => t.subjectId === newSubId).length;
+                      setFormData({
+                        ...formData,
+                        subjectId: newSubId,
+                        orderIndex: isEditModalOpen ? formData.orderIndex : countForSub + 1,
+                      });
+                    }}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC]"
+                    required
                   >
-                    <option value="sub-general-science">General Science</option>
-                    <option value="sub-indian-polity">Indian Polity</option>
-                    <option value="sub-reasoning">Reasoning</option>
-                    <option value="sub-mathematics">Mathematics</option>
-                    <option value="sub-history">History</option>
-                    <option value="sub-geography">Geography</option>
-                    <option value="sub-economics">Economics</option>
-                    <option value="sub-current-affairs">Current Affairs</option>
-                    <option value="sub-computer-awareness">Computer Awareness</option>
+                    {subjectsList.length === 0 ? (
+                      <option value="" disabled>
+                        No subjects available
+                      </option>
+                    ) : (
+                      subjectsList.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 

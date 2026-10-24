@@ -1815,7 +1815,7 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                   Live Test Icon / Logo
                 </label>
                 <span className="text-[11px] text-slate-400">
-                  Upload a custom PNG, JPG, WebP, or SVG logo, or pick a preset emblem
+                  Upload a custom PNG, JPG, WebP, or SVG logo, or pick a preset official logo below
                 </span>
               </div>
               {logo && logo !== '/images/exams/logo_wbp.png' && (
