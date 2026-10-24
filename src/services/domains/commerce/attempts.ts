@@ -46,14 +46,15 @@ function rankingCriteria(filters?: AdminRankingFilter): RankingCriteria {
   let testTypes: string[] | null = null;
   if (filters?.testType && filters.testType !== 'All Types') {
     const typeFilter = filters.testType.toLowerCase();
-    if (typeFilter.includes('full mock')) testTypes = FULL_MOCK_TEST_TYPES;
+    if (typeFilter.includes('live')) testTypes = FULL_MOCK_TEST_TYPES;
+    else if (typeFilter.includes('full mock')) testTypes = FULL_MOCK_TEST_TYPES;
     else if (typeFilter.includes('topic')) testTypes = TOPIC_TEST_TYPES;
     else if (typeFilter.includes('pyq')) testTypes = PYQ_TEST_TYPES;
   }
   const scopeTypes =
     filters?.scope === 'By Topic'
       ? TOPIC_TEST_TYPES
-      : filters?.scope === 'By Test Series'
+      : filters?.scope === 'By Test Series' || filters?.scope === 'Live Tests'
         ? FULL_MOCK_TEST_TYPES
         : null;
   return {

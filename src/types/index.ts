@@ -1261,12 +1261,13 @@ export interface RankingStudent {
 }
 
 export interface AdminRankingFilter {
-  scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series';
+  scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series' | 'Live Tests';
   exam?: string;
   subject?: string;
   testType?: string;
   timePeriod?: string;
   search?: string;
+  liveTestId?: string;
 }
 
 export interface QuestionInsightRow {
