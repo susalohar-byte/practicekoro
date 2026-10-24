@@ -1,4 +1,4 @@
-import { X, CheckCircle2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { AdminSubscriptionPlansState } from './useAdminSubscriptionPlans';
 
 export interface ActiveSubscriptionsModalProps {
@@ -6,7 +6,9 @@ export interface ActiveSubscriptionsModalProps {
 }
 
 export function ActiveSubscriptionsModal({ plansState }: ActiveSubscriptionsModalProps) {
-  const { isViewActiveModalOpen, setIsViewActiveModalOpen } = plansState;
+  const { isViewActiveModalOpen, setIsViewActiveModalOpen, planMetrics, plans } = plansState;
+  const paidPlans = plans.filter((p) => p.price > 0);
+  const count = (n: number | undefined) => (n == null ? '—' : n.toLocaleString('en-IN'));
   return (
     <>
       {/* ==================================================================== */}
@@ -19,7 +21,9 @@ export function ActiveSubscriptionsModal({ plansState }: ActiveSubscriptionsModa
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Active Subscriptions Overview</h3>
                 <p className="text-[11px] text-slate-500">
-                  4,920 currently active learners across West Bengal
+                  {planMetrics
+                    ? `${count(planMetrics.activeSubscriptions)} currently active subscriptions`
+                    : 'Live subscription figures are unavailable right now.'}
                 </p>
               </div>
               <button
@@ -30,32 +34,26 @@ export function ActiveSubscriptionsModal({ plansState }: ActiveSubscriptionsModa
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-4 gap-3 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 block font-medium">Free Tier</span>
-                  <span className="text-lg font-bold text-slate-900">12,450</span>
-                </div>
-                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                  <span className="text-[10px] text-blue-600 block font-medium">Basic Plan</span>
-                  <span className="text-lg font-bold text-blue-900">2,840</span>
-                </div>
-                <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100">
-                  <span className="text-[10px] text-amber-600 block font-medium">Pro Plan</span>
-                  <span className="text-lg font-bold text-amber-900">1,460</span>
-                </div>
-                <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100">
-                  <span className="text-[10px] text-purple-600 block font-medium">Ultimate</span>
-                  <span className="text-lg font-bold text-purple-900">620</span>
-                </div>
-              </div>
-
-              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>
-                    Renewal automated collection rate is 94.2% via Razorpay & UPI Autopay.
+                  <span className="text-lg font-bold text-slate-900">
+                    {count(planMetrics?.freeStudents)}
                   </span>
                 </div>
+                {paidPlans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className="p-3 bg-blue-50/50 rounded-xl border border-blue-100"
+                  >
+                    <span className="text-[10px] text-blue-600 block font-medium truncate">
+                      {plan.name}
+                    </span>
+                    <span className="text-lg font-bold text-blue-900">
+                      {planMetrics ? count(planMetrics.activeByPlan[plan.id] ?? 0) : '—'}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               <div className="pt-2 flex justify-end">

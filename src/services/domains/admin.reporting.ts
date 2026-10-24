@@ -412,6 +412,19 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
     30_000
   );
 }
+/** Active, unexpired subscriptions grouped by plan id. Empty without a backend. */
+export async function getActiveSubscriptionCountsByPlan(): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured) return {};
+  const subs = await rows('subscriptions', 'id, plan_id', (q) =>
+    q.eq('status', 'active').gt('expires_at', new Date().toISOString())
+  );
+  const counts: Record<string, number> = {};
+  for (const sub of subs) {
+    const planId = String(sub.plan_id ?? '');
+    if (planId) counts[planId] = (counts[planId] || 0) + 1;
+  }
+  return counts;
+}
 interface RevenueRangeTotals {
   earliest: string | null;
   total_net_paise: number;

@@ -102,10 +102,7 @@ function mapLiveParticipantToRankingStudent(
   const rawAcc = Number(participant.accuracy || 0);
   const testTitle = liveTest?.title || 'Live Test';
   const examName =
-    (liveTest as any)?.examName ||
-    liveTest?.examTitle ||
-    liveTest?.test?.examTitle ||
-    'Live Exam';
+    (liveTest as any)?.examName || liveTest?.examTitle || liveTest?.test?.examTitle || 'Live Exam';
   const totalQ = liveTest?.totalQuestions || (rawScore > 0 ? 100 : 0);
 
   return {
@@ -204,7 +201,10 @@ function aggregateLiveParticipants(
 
     return {
       rank: 1,
-      studentId: `PK${user.userId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase()}`,
+      studentId: `PK${user.userId
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 6)
+        .toUpperCase()}`,
       name: user.fullName,
       district: user.district,
       location: `${user.district}, West Bengal`,
@@ -618,10 +618,7 @@ export const AdminRankings: React.FC = () => {
       scopeTab === 'Live Tests' || selectedTestType === 'Live Test'
         ? `live_tests_${selectedLiveTestId !== 'All Live Tests' ? selectedLiveTestId : 'all'}`
         : selectedExam.replace(/\s+/g, '_');
-    link.setAttribute(
-      'download',
-      `practicekoro_rankings_${scopePrefix}_2026.csv`
-    );
+    link.setAttribute('download', `practicekoro_rankings_${scopePrefix}_2026.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -710,9 +707,6 @@ export const AdminRankings: React.FC = () => {
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {totalStudentsCount.toLocaleString('en-IN')}
               </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 26%
-              </span>
             </div>
             <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Total enrolled aspirants</p>
           </div>
@@ -728,9 +722,6 @@ export const AdminRankings: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {activeTestTakersCount.toLocaleString('en-IN')}
-              </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 18%
               </span>
             </div>
             <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">Tested aspirants</p>
@@ -764,11 +755,8 @@ export const AdminRankings: React.FC = () => {
               <span className="text-xl font-black text-[#0F172A] tracking-tight">
                 {studentsList.length.toLocaleString('en-IN')}
               </span>
-              <span className="bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 32%
-              </span>
             </div>
-            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">this month</p>
+            <p className="text-[11px] text-[#94A3B8] mt-0.5 truncate">in the current view</p>
           </div>
         </div>
       </div>

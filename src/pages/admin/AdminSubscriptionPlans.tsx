@@ -41,7 +41,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
 
       <SubscriptionPlansPageHeader plansState={plansState} />
 
-      <SubscriptionKpiCards />
+      <SubscriptionKpiCards plansState={plansState} />
 
       <AvailablePlansHeader plansState={plansState} />
 

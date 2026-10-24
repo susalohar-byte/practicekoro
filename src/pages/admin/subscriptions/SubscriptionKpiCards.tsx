@@ -34,11 +34,10 @@ export function SubscriptionKpiCards({ subscriptionsState }: SubscriptionKpiCard
               <span className="text-xl font-bold text-slate-900 leading-tight">
                 {totalSubscriptionsCount.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                ↑ 28%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">vs last month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              in loaded records
+            </span>
           </div>
         </div>
 
@@ -54,9 +53,6 @@ export function SubscriptionKpiCards({ subscriptionsState }: SubscriptionKpiCard
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-xl font-bold text-slate-900 leading-tight">
                 {activeSubscriptionsCount.toLocaleString('en-IN')}
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                ↑ 24%
               </span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
@@ -76,9 +72,6 @@ export function SubscriptionKpiCards({ subscriptionsState }: SubscriptionKpiCard
               <span className="text-xl font-bold text-slate-900 leading-tight">
                 {expiringSoonCount.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                ↑ 12%
-              </span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-0.5 truncate">in next 7 days</span>
           </div>
@@ -97,11 +90,10 @@ export function SubscriptionKpiCards({ subscriptionsState }: SubscriptionKpiCard
               <span className="text-xl font-bold text-slate-900 leading-tight">
                 {expiredSubscriptionsCount.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
-                ↓ 16%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">this month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
+              in loaded records
+            </span>
           </div>
         </div>
 

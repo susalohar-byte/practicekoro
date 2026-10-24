@@ -7,6 +7,9 @@ export interface BlogKpiCardsProps {
 
 export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
   const { stats } = blogState;
+  const total = stats.total ?? 0;
+  const shareOfTotal = (n: number | undefined) =>
+    total > 0 ? `${Math.round(((n ?? 0) / total) * 100)}% of total` : '—';
   return (
     <>
       {/* Top 4 KPI Cards Redesigned */}
@@ -22,17 +25,12 @@ export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
                 Total Posts
               </span>
             </div>
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 shrink-0">
-              ↑ 24%
-            </span>
           </div>
           <div className="my-auto py-3 text-center flex flex-col items-center justify-center">
             <h3 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
               {(stats.total ?? 0).toLocaleString('en-IN')}
             </h3>
-            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-2">
-              vs last month
-            </p>
+            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-2">all posts</p>
           </div>
         </div>
 
@@ -47,16 +45,13 @@ export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
                 Published
               </span>
             </div>
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 shrink-0">
-              ↑ 32%
-            </span>
           </div>
           <div className="my-auto py-3 text-center flex flex-col items-center justify-center">
             <h3 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
               {(stats.published ?? 0).toLocaleString('en-IN')}
             </h3>
             <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-2">
-              79% of total
+              {shareOfTotal(stats.published)}
             </p>
           </div>
         </div>
@@ -72,16 +67,13 @@ export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
                 Drafts
               </span>
             </div>
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 shrink-0">
-              ↑ 9%
-            </span>
           </div>
           <div className="my-auto py-3 text-center flex flex-col items-center justify-center">
             <h3 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
               {(stats.drafts ?? 0).toLocaleString('en-IN')}
             </h3>
             <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-2">
-              14% of total
+              {shareOfTotal(stats.drafts)}
             </p>
           </div>
         </div>
@@ -97,16 +89,13 @@ export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
                 Total Views
               </span>
             </div>
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 shrink-0">
-              ↑ 46%
-            </span>
           </div>
           <div className="my-auto py-3 text-center flex flex-col items-center justify-center">
             <h3 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-              {stats.totalViews > 0 ? stats.totalViews.toLocaleString('en-IN') : '1,24,580'}
+              {(stats.totalViews ?? 0).toLocaleString('en-IN')}
             </h3>
             <p className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-2">
-              +38,200 this month
+              across all posts
             </p>
           </div>
         </div>

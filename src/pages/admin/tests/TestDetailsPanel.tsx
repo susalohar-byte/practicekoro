@@ -173,15 +173,17 @@ export function TestDetailsPanel({ testsState }: TestDetailsPanelProps) {
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#070D1E] space-y-1">
             <div className="flex justify-between">
               <span className="text-slate-400">Total Attempts:</span>
-              <span className="font-bold">3,240</span>
+              <span className="font-bold">
+                {Number((selectedTest as any).attemptsCount || 0).toLocaleString('en-IN')}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Average Score:</span>
-              <span className="font-bold text-blue-600">68%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Pass Percentage:</span>
-              <span className="font-bold text-emerald-600">72%</span>
+              <span className="font-bold text-blue-600">
+                {(selectedTest as any).avgScore
+                  ? `${Math.round((selectedTest as any).avgScore)}%`
+                  : '—'}
+              </span>
             </div>
           </div>
         </div>

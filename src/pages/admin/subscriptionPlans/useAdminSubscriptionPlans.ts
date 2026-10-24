@@ -1,7 +1,11 @@
 import { isSupabaseConfigured } from '@/lib/supabase';
 import React, { useCallback, useState, useEffect } from 'react';
 import { api } from '@/services/api';
-import type { PlanFeature, SubscriptionPlanItem } from './subscriptionPlanTypes';
+import type {
+  PlanFeature,
+  SubscriptionPlanItem,
+  SubscriptionPlanMetrics,
+} from './subscriptionPlanTypes';
 import { INITIAL_PLANS } from './subscriptionPlanData';
 
 export function useAdminSubscriptionPlans() {
@@ -112,6 +116,31 @@ export function useAdminSubscriptionPlans() {
       setPageLoading(false);
     }
   }, [showToast]);
+
+  // Real subscriber/revenue figures; null means unavailable and renders as "—".
+  const [planMetrics, setPlanMetrics] = useState<SubscriptionPlanMetrics | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let cancelled = false;
+    Promise.all([api.getAdminDashboardV2Stats(), api.getActiveSubscriptionCountsByPlan()])
+      .then(([stats, activeByPlan]) => {
+        if (cancelled) return;
+        setPlanMetrics({
+          subscribers: stats.proStudents,
+          freeStudents: stats.freeStudents,
+          activeSubscriptions: stats.activeSubscriptions,
+          monthRevenue: stats.monthRevenue,
+          activeByPlan,
+        });
+      })
+      .catch((err) => {
+        console.warn('Subscription plan metrics could not be loaded:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load live subscription plans from database on mount
   useEffect(() => {
@@ -294,6 +323,7 @@ export function useAdminSubscriptionPlans() {
 
   return {
     pageLoading,
+    planMetrics,
     setPageLoading,
     plans,
     setPlans,

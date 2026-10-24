@@ -412,7 +412,7 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     subtitle: banner.subtitle || 'Promote mock tests and courses',
     description: banner.subtitle || banner.title,
     bannerType: bType,
-    showTextOverlay: Boolean(banner.showTextOverlay ?? (banner.bannerType === 'text_overlay')),
+    showTextOverlay: Boolean(banner.showTextOverlay ?? banner.bannerType === 'text_overlay'),
     linkUrl: banner.primaryCtaLink || '/test-series',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
@@ -1045,7 +1045,9 @@ export const AdminBanners: React.FC = () => {
             : null
         );
         setBanners((prev) =>
-          prev.map((b) => (b.id === activeId ? { ...b, imageUrl: opt.dataUrl, fileName: file.name } : b))
+          prev.map((b) =>
+            b.id === activeId ? { ...b, imageUrl: opt.dataUrl, fileName: file.name } : b
+          )
         );
         showToast('success', `Selected image: ${file.name}`);
       } catch {
@@ -1259,11 +1261,8 @@ export const AdminBanners: React.FC = () => {
                 <span className="text-2xl font-bold text-slate-900 leading-tight">
                   {stats.total}
                 </span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                  ↑ 20%
-                </span>
               </div>
-              <span className="text-[11px] text-slate-400 block mt-0.5">vs last month</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">all banners</span>
             </div>
           </div>
 
@@ -1278,11 +1277,8 @@ export const AdminBanners: React.FC = () => {
                 <span className="text-2xl font-bold text-slate-900 leading-tight">
                   {stats.active}
                 </span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                  ↑ 11%
-                </span>
               </div>
-              <span className="text-[11px] text-slate-400 block mt-0.5">vs last month</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">live right now</span>
             </div>
           </div>
 
@@ -1297,11 +1293,8 @@ export const AdminBanners: React.FC = () => {
                 <span className="text-2xl font-bold text-slate-900 leading-tight">
                   {stats.scheduled}
                 </span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                  ↑ 100%
-                </span>
               </div>
-              <span className="text-[11px] text-slate-400 block mt-0.5">vs last month</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">waiting to go live</span>
             </div>
           </div>
 
@@ -1316,11 +1309,8 @@ export const AdminBanners: React.FC = () => {
                 <span className="text-2xl font-bold text-slate-900 leading-tight">
                   {stats.archived}
                 </span>
-                <span className="inline-flex items-center text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                  —
-                </span>
               </div>
-              <span className="text-[11px] text-slate-400 block mt-0.5">vs last month</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">no longer shown</span>
             </div>
           </div>
         </div>

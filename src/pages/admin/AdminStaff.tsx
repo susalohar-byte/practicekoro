@@ -21,13 +21,13 @@ import {
   Check,
   X,
   Clock,
-  History,
   Trash2,
   Key,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { StaffActivityLog } from './staff/StaffActivityLog';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // ============================================================================
@@ -424,7 +424,7 @@ export const AdminStaff: React.FC = () => {
       'Content Manager': 0,
       'Support Manager': 0,
       'Finance Manager': 0,
-      'Analyst': 0,
+      Analyst: 0,
     };
     adminUsers.forEach((a) => {
       if (roleCounts[a.role] !== undefined) {
@@ -668,24 +668,22 @@ export const AdminStaff: React.FC = () => {
           <div className="min-w-0 flex-1">
             <span className="text-[11px] font-medium text-slate-500 block">Total Admins</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-slate-900 leading-tight">
-                {stats.total}
-              </span>
+              <span className="text-xl font-bold text-slate-900 leading-tight">{stats.total}</span>
               <span
                 className={cn(
                   'text-[10px] font-semibold px-1.5 py-0.5 rounded',
                   stats.total === 0
                     ? 'text-slate-500 bg-slate-100'
                     : stats.inactive === 0
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-blue-600 bg-blue-50'
+                      ? 'text-emerald-600 bg-emerald-50'
+                      : 'text-blue-600 bg-blue-50'
                 )}
               >
                 {stats.total === 0
                   ? '0 Staff'
                   : stats.inactive === 0
-                  ? 'All Active'
-                  : `${stats.active} Active`}
+                    ? 'All Active'
+                    : `${stats.active} Active`}
               </span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-0.5 truncate">
@@ -723,9 +721,7 @@ export const AdminStaff: React.FC = () => {
           <div className="min-w-0 flex-1">
             <span className="text-[11px] font-medium text-slate-500 block">Active Admins</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xl font-bold text-slate-900 leading-tight">
-                {stats.active}
-              </span>
+              <span className="text-xl font-bold text-slate-900 leading-tight">{stats.active}</span>
               <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                 Online
               </span>
@@ -750,9 +746,7 @@ export const AdminStaff: React.FC = () => {
               <span
                 className={cn(
                   'text-[10px] font-semibold px-1.5 py-0.5 rounded',
-                  stats.inactive > 0
-                    ? 'text-rose-600 bg-rose-50'
-                    : 'text-slate-500 bg-slate-100'
+                  stats.inactive > 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-500 bg-slate-100'
                 )}
               >
                 {stats.inactive > 0 ? `${stats.inactive} Suspended` : '0 Suspended'}
@@ -940,9 +934,7 @@ export const AdminStaff: React.FC = () => {
               <h2 className="text-sm font-bold text-slate-900">
                 Admin Users ({filteredAdmins.length}
                 {filteredAdmins.length !== stats.total && (
-                  <span className="text-slate-400 font-normal text-xs ml-1">
-                    of {stats.total}
-                  </span>
+                  <span className="text-slate-400 font-normal text-xs ml-1">of {stats.total}</span>
                 )}
                 )
               </h2>
@@ -1050,9 +1042,7 @@ export const AdminStaff: React.FC = () => {
                           key={row.id}
                           className={cn(
                             'transition-colors cursor-pointer group',
-                            isChecked
-                              ? 'bg-blue-50/40 hover:bg-blue-50/60'
-                              : 'hover:bg-slate-50/60'
+                            isChecked ? 'bg-blue-50/40 hover:bg-blue-50/60' : 'hover:bg-slate-50/60'
                           )}
                         >
                           {/* Checkbox */}
@@ -1073,140 +1063,140 @@ export const AdminStaff: React.FC = () => {
                             {(currentPageClamped - 1) * rowsPerPage + idx + 1}
                           </td>
 
-                            {/* Name + Avatar + You Badge */}
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-2.5">
-                                {row.avatarType === 'photo' && row.avatarSrc ? (
-                                  <img
-                                    src={row.avatarSrc}
-                                    alt={row.name}
-                                    className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-slate-100"
-                                  />
-                                ) : (
-                                  <div
-                                    className={cn(
-                                      'w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0',
-                                      row.avatarBgColor || 'bg-blue-100',
-                                      row.avatarTextColor || 'text-blue-600'
-                                    )}
-                                  >
-                                    {row.avatarInitials}
-                                  </div>
-                                )}
-
-                                <span className="font-semibold text-slate-900 truncate">
-                                  {row.name}
-                                </span>
-
-                                {row.isCurrentUser && (
-                                  <span className="bg-blue-50 text-blue-600 font-semibold text-[10px] px-1.5 py-0.5 rounded">
-                                    You
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Email */}
-                            <td className="py-3 px-3 text-slate-500 font-normal">{row.email}</td>
-
-                            {/* Role Pill */}
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <span
-                                className={cn(
-                                  'inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold',
-                                  getRoleBadgeClass(row.role)
-                                )}
-                              >
-                                {row.role}
-                              </span>
-                            </td>
-
-                            {/* Status Pill */}
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <span
-                                className={cn(
-                                  'inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold',
-                                  row.status === 'Active'
-                                    ? 'bg-[#DCFCE7] text-[#15803D]'
-                                    : 'bg-[#FEE2E2] text-[#DC2626]'
-                                )}
-                              >
-                                {row.status}
-                              </span>
-                            </td>
-
-                            {/* Last Active */}
-                            <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
-                              {row.lastActive}
-                            </td>
-
-                            {/* Actions */}
-                            <td
-                              className="py-3 px-3 text-center relative"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="relative inline-block text-left">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuId(activeMenuId === row.id ? null : row.id);
-                                  }}
-                                  className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                          {/* Name + Avatar + You Badge */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              {row.avatarType === 'photo' && row.avatarSrc ? (
+                                <img
+                                  src={row.avatarSrc}
+                                  alt={row.name}
+                                  className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-slate-100"
+                                />
+                              ) : (
+                                <div
+                                  className={cn(
+                                    'w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0',
+                                    row.avatarBgColor || 'bg-blue-100',
+                                    row.avatarTextColor || 'text-blue-600'
+                                  )}
                                 >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </button>
+                                  {row.avatarInitials}
+                                </div>
+                              )}
 
-                                {/* Dropdown Menu */}
-                                {activeMenuId === row.id && (
-                                  <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
-                                    <button
-                                      onClick={() => {
-                                        handleToggleStatus(row.id);
-                                        setActiveMenuId(null);
-                                      }}
-                                      className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                    >
-                                      <Shield className="w-3.5 h-3.5 text-slate-400" />
-                                      <span>
-                                        {row.status === 'Active'
-                                          ? 'Deactivate Admin'
-                                          : 'Activate Admin'}
-                                      </span>
-                                    </button>
+                              <span className="font-semibold text-slate-900 truncate">
+                                {row.name}
+                              </span>
 
-                                    <button
-                                      onClick={() => {
-                                        setActiveMenuId(null);
-                                        void handleResetPassword(row.email);
-                                      }}
-                                      className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                    >
-                                      <Key className="w-3.5 h-3.5 text-slate-400" />
-                                      <span>Reset Password</span>
-                                    </button>
+                              {row.isCurrentUser && (
+                                <span className="bg-blue-50 text-blue-600 font-semibold text-[10px] px-1.5 py-0.5 rounded">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                                    {!row.isCurrentUser && (
-                                      <>
-                                        <div className="border-t border-slate-100 my-1" />
-                                        <button
-                                          onClick={() => {
-                                            handleDeleteAdmin(row.id);
-                                            setActiveMenuId(null);
-                                          }}
-                                          className="w-full text-left px-3.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                          <span>Remove Admin</span>
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
+                          {/* Email */}
+                          <td className="py-3 px-3 text-slate-500 font-normal">{row.email}</td>
+
+                          {/* Role Pill */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <span
+                              className={cn(
+                                'inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold',
+                                getRoleBadgeClass(row.role)
+                              )}
+                            >
+                              {row.role}
+                            </span>
+                          </td>
+
+                          {/* Status Pill */}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <span
+                              className={cn(
+                                'inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold',
+                                row.status === 'Active'
+                                  ? 'bg-[#DCFCE7] text-[#15803D]'
+                                  : 'bg-[#FEE2E2] text-[#DC2626]'
+                              )}
+                            >
+                              {row.status}
+                            </span>
+                          </td>
+
+                          {/* Last Active */}
+                          <td className="py-3 px-3 text-slate-500 whitespace-nowrap">
+                            {row.lastActive}
+                          </td>
+
+                          {/* Actions */}
+                          <td
+                            className="py-3 px-3 text-center relative"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="relative inline-block text-left">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(activeMenuId === row.id ? null : row.id);
+                                }}
+                                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+
+                              {/* Dropdown Menu */}
+                              {activeMenuId === row.id && (
+                                <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                                  <button
+                                    onClick={() => {
+                                      handleToggleStatus(row.id);
+                                      setActiveMenuId(null);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  >
+                                    <Shield className="w-3.5 h-3.5 text-slate-400" />
+                                    <span>
+                                      {row.status === 'Active'
+                                        ? 'Deactivate Admin'
+                                        : 'Activate Admin'}
+                                    </span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      void handleResetPassword(row.email);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  >
+                                    <Key className="w-3.5 h-3.5 text-slate-400" />
+                                    <span>Reset Password</span>
+                                  </button>
+
+                                  {!row.isCurrentUser && (
+                                    <>
+                                      <div className="border-t border-slate-100 my-1" />
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteAdmin(row.id);
+                                          setActiveMenuId(null);
+                                        }}
+                                        className="w-full text-left px-3.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                        <span>Remove Admin</span>
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1494,47 +1484,7 @@ export const AdminStaff: React.FC = () => {
       {/* ==================================================================== */}
       {/* 7. ACTIVITY LOG TAB (When active)                                    */}
       {/* ==================================================================== */}
-      {activeMainTab === 'Activity Log' && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-slate-500" />
-            <h2 className="text-sm font-bold text-slate-900">Recent Admin Audit Activity</h2>
-          </div>
-
-          <div className="divide-y divide-slate-100 text-xs">
-            {[
-              {
-                admin: 'Susanta Lohar',
-                action: 'Updated system permissions for Content Manager',
-                time: '25 minutes ago',
-              },
-              {
-                admin: 'Puja Namata',
-                action: 'Published new WBP Constable Mock 4',
-                time: '1 hour ago',
-              },
-              {
-                admin: 'Rohit Kumar',
-                action: 'Resolved support ticket #PKT-1048',
-                time: '3 hours ago',
-              },
-              {
-                admin: 'Sneha Khatun',
-                action: 'Issued refund for txn #pay_2F9kLmX8vP',
-                time: '1 day ago',
-              },
-            ].map((log, i) => (
-              <div key={i} className="py-3 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-900">{log.admin}</span>
-                  <span className="text-slate-500 ml-2">{log.action}</span>
-                </div>
-                <span className="text-[11px] text-slate-400">{log.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {activeMainTab === 'Activity Log' && <StaffActivityLog />}
     </div>,
     { label: 'Loading staff…', variant: 'cards' }
   );

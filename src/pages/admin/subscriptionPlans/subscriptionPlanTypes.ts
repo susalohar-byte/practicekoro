@@ -22,6 +22,16 @@ export interface SubscriptionPlanItem {
   features: PlanFeature[];
 }
 
+export interface SubscriptionPlanMetrics {
+  /** Distinct students holding an active, unexpired subscription. */
+  subscribers: number;
+  freeStudents: number;
+  activeSubscriptions: number;
+  /** Net recorded revenue for the current IST calendar month, in rupees. */
+  monthRevenue: number;
+  activeByPlan: Record<string, number>;
+}
+
 export interface RecentSubscriptionItem {
   id: number;
   studentName: string;
