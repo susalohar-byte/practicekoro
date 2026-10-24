@@ -6,6 +6,8 @@
 -- direct table SELECT on public.questions restricted to admins (preserving
 -- existing security probes) and excluding any questions locked in an active or
 -- upcoming Live Test event.
+-- Answers (correct option, explanations) are deliberately NOT exposed: they stay
+-- behind login so the question bank cannot be scraped with solutions.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.get_public_seo_questions(
@@ -38,9 +40,6 @@ BEGIN
             'optionB', q.option_b,
             'optionC', q.option_c,
             'optionD', q.option_d,
-            'correctOption', q.correct_option,
-            'explanation', q.explanation,
-            'explanationBengali', q.explanation_bengali,
             'difficulty', COALESCE(q.difficulty, 'medium'),
             'defaultMarks', COALESCE(q.default_marks, 1.0),
             'defaultNegativeMarks', COALESCE(q.default_negative_marks, 0),
@@ -109,9 +108,6 @@ BEGIN
         'optionB', q.option_b,
         'optionC', q.option_c,
         'optionD', q.option_d,
-        'correctOption', q.correct_option,
-        'explanation', q.explanation,
-        'explanationBengali', q.explanation_bengali,
         'difficulty', COALESCE(q.difficulty, 'medium'),
         'defaultMarks', COALESCE(q.default_marks, 1.0),
         'defaultNegativeMarks', COALESCE(q.default_negative_marks, 0),
@@ -128,7 +124,7 @@ BEGIN
     FROM public.questions q
     LEFT JOIN public.subjects s ON s.id = q.subject_id
     LEFT JOIN public.chapters c ON c.id = COALESCE(q.chapter_id, q.topic_id)
-    WHERE q.id = p_question_id
+    WHERE q.id::text = p_question_id
       AND q.is_active = true
       AND COALESCE(q.status, 'active') = 'active'
       AND NOT EXISTS (
