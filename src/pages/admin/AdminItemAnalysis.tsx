@@ -54,8 +54,14 @@ export const AdminItemAnalysis: React.FC = () => {
           subjectId: selectedSubjectId || undefined,
           chapterId: selectedChapterId || undefined,
         }),
-        api.getAllAdminSubjects().catch(() => []),
-        api.getAllAdminChapters().catch(() => []),
+        api.getAllAdminSubjects().catch((err) => {
+          console.error('Failed to load subjects for item analysis filters:', err);
+          return [];
+        }),
+        api.getAllAdminChapters().catch((err) => {
+          console.error('Failed to load chapters for item analysis filters:', err);
+          return [];
+        }),
       ]);
       setAllItems(analysisData);
       setSubjects(subs || []);

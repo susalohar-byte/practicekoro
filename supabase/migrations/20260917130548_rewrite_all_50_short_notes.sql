@@ -1,0 +1,11 @@
+-- Applied in production on 2026-09-17 as a content-only change: it rewrote
+-- questions.explanation_bengali for 50 question rows (UPDATE ... CASE id ...).
+--
+-- Most of those rows were created directly in production and do not exist in a
+-- database built from these migrations, so the full statement is not reproduced
+-- here. This file keeps the migration history aligned with
+-- supabase_migrations.schema_migrations. The original SQL (md5 of statement:
+-- 88489c3af1c7e528d492a5e9227d6398) can be read with:
+--   select statements[1] from supabase_migrations.schema_migrations
+--   where version = '20260917130548';
+SELECT 1;

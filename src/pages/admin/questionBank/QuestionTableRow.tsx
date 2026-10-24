@@ -27,7 +27,8 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
   onRequestDelete,
 }) => {
   const isTopic = q.sourceType === 'topic';
-  const isExam = q.sourceType === 'other' || Boolean(q.sourceExam);
+  const isLive = Boolean(q.isLiveOnly);
+  const isExam = !isLive && (q.sourceType === 'other' || Boolean(q.sourceExam));
   const isPyq = q.sourceType === 'pyq';
   return (
     <tr
@@ -82,6 +83,17 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             </p>
             <p className="text-[10px] text-slate-400 dark:text-slate-500">
               {q.topicName || q.chapterName || 'General Topic'}
+            </p>
+          </div>
+        )}
+
+        {isLive && (
+          <div className="space-y-1">
+            <span className="inline-block px-2 py-0.5 rounded-full font-bold text-[10px] bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40">
+              Live Test
+            </span>
+            <p className="font-medium text-slate-700 dark:text-slate-300">
+              {examTitle || q.sourceExam || 'Live Test paper'}
             </p>
           </div>
         )}

@@ -1,50 +1,20 @@
 import React from 'react';
-import { Shield, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// WBP Golden Crest Police Shield Badge SVG (Pixel-perfect recreation matching screenshot)
+// WBP Golden Crest Police Shield Badge (Real Official Logo)
 export const PoliceShieldBadge: React.FC<{ className?: string }> = ({ className = 'w-9 h-10' }) => (
   <div
     className={cn(
-      'relative flex items-center justify-center shrink-0 drop-shadow-xs select-none',
+      'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs select-none',
       className
     )}
   >
-    <svg
-      viewBox="0 0 40 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
-    >
-      <path
-        d="M20 2C20 2 35 4.5 37 10C39 18 37 34 20 46C3 34 1 18 3 10C5 4.5 20 2 20 2Z"
-        fill="#7F1D1D"
-        stroke="#F59E0B"
-        strokeWidth="2.5"
-      />
-      <path
-        d="M20 6C20 6 32 8.5 33.5 13C35 19 33.5 32 20 42C6.5 32 5 19 6.5 13C8 8.5 20 6 20 6Z"
-        fill="#5A0B0B"
-        stroke="#FCD34D"
-        strokeWidth="1"
-      />
-      <path
-        d="M20 13L21.8 17.5L26.5 18L22.8 21.2L24 25.8L20 23.2L16 25.8L17.2 21.2L13.5 18L18.2 17.5L20 13Z"
-        fill="#FCD34D"
-      />
-      <text
-        x="20"
-        y="36"
-        textAnchor="middle"
-        fontSize="8"
-        fontWeight="900"
-        fill="#FCD34D"
-        letterSpacing="0.8"
-        fontFamily="system-ui, -apple-system, sans-serif"
-      >
-        POLICE
-      </text>
-    </svg>
+    <img
+      src="/images/exams/logo_wbp.png"
+      alt="WBP Police Logo"
+      className="w-full h-full object-contain rounded-lg"
+      loading="lazy"
+    />
   </div>
 );
 
@@ -75,7 +45,12 @@ export const ExamEmblemBadge: React.FC<{
           alt={title || 'Exam Logo'}
           className="w-full h-full object-contain rounded-lg"
           onError={(e) => {
-            (e.target as HTMLElement).style.display = 'none';
+            const target = e.target as HTMLImageElement;
+            if (target.src.includes('logo_wbp.png')) {
+              target.style.display = 'none';
+            } else {
+              target.src = '/images/exams/logo_wbp.png';
+            }
           }}
         />
       </div>
@@ -209,42 +184,42 @@ export const ExamEmblemBadge: React.FC<{
     );
   }
 
-  // 9. WBSSC Group C & D -> Green rounded square with open book
-  if (norm.includes('wbssc')) {
-    return (
-      <div
-        className={cn(
-          'rounded-xl bg-[#059669] text-white flex items-center justify-center shrink-0 shadow-2xs',
-          className
-        )}
-      >
-        <BookOpen className="w-4 h-4 text-emerald-100" />
-      </div>
-    );
-  }
-
-  // 10. General Knowledge -> Blue rounded square with open book
+  // 7. General Knowledge or Other WB Exams -> Real WBPSC official emblem
   if (norm.includes('knowledge') || norm.includes('general')) {
     return (
       <div
         className={cn(
-          'rounded-xl bg-[#026BFC] text-white flex items-center justify-center shrink-0 shadow-2xs',
+          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
           className
         )}
       >
-        <BookOpen className="w-4 h-4 text-blue-100" />
+        <img
+          src="/images/exams/logo_wbpsc.png"
+          alt={title || 'General Knowledge'}
+          className="w-full h-full object-contain rounded-lg"
+          loading="lazy"
+        />
       </div>
     );
   }
 
+  // 8. Default fallback -> PracticeKoro official circular badge or WBP logo
   return (
     <div
       className={cn(
-        'rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs',
+        'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
         className
       )}
     >
-      <Shield className="w-4 h-4 text-white" />
+      <img
+        src="/logo-icon-circle.png"
+        alt={title || 'Exam Logo'}
+        className="w-full h-full object-contain rounded-lg"
+        loading="lazy"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = '/images/exams/logo_wbp.png';
+        }}
+      />
     </div>
   );
 };

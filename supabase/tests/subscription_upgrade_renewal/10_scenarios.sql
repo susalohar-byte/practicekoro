@@ -1,5 +1,5 @@
 -- THROWAWAY DATABASE ONLY (writes test users, payments and subscriptions).
--- Scenario checks for 20261014120000_controlled_subscription_upgrade_renewal.sql.
+-- Scenario checks for 20261023044215_controlled_subscription_upgrade_renewal.sql.
 \set ON_ERROR_STOP 1
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT SELECT ON public.subscriptions, public.subscription_plans, public.payments, public.notifications TO authenticated;

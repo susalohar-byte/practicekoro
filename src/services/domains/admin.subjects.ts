@@ -4,9 +4,34 @@ import { notifyExamsUpdated } from '@/lib/dataSync';
 import { validateSubjectInput, type SubjectReportingData } from '@/utils/adminSubjectModel';
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { localChapters, localSubjects } from '@/services/domains/localStore';
+import { localSubjects } from '@/services/domains/localStore';
 import type { Subject } from '@/types';
 import type { SubjectRow } from '@/services/domains/localStore';
+
+import { getStoredChapters } from './admin.chapters';
+
+const SUBJECTS_STORAGE_KEY = 'pk_admin_subjects_list';
+
+export function getStoredSubjects(): Subject[] {
+  try {
+    const raw = localStorage.getItem(SUBJECTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    /* Optional browser cache is unavailable. Backend remains authoritative. */
+  }
+  return [...localSubjects];
+}
+
+export function saveStoredSubjects(subjects: Subject[]): void {
+  try {
+    localStorage.setItem(SUBJECTS_STORAGE_KEY, JSON.stringify(subjects));
+  } catch {
+    /* Optional browser cache is unavailable. Backend remains authoritative. */
+  }
+}
 
 /** Section of the admin API: subjects (split from domains/admin.ts, same behaviour). */
 // --------------------------------------------------------------------------
@@ -14,11 +39,12 @@ import type { SubjectRow } from '@/services/domains/localStore';
 // --------------------------------------------------------------------------
 export async function getAllAdminSubjects(examId?: string): Promise<Subject[]> {
   if (!isSupabaseConfigured) {
-    return localSubjects
+    const chapters = getStoredChapters();
+    return getStoredSubjects()
       .filter((s) => !examId || !s.examId || s.examId === examId)
       .map((s) => ({
         ...s,
-        chaptersCount: localChapters.filter((c) => c.subjectId === s.id).length,
+        chaptersCount: chapters.filter((c) => c.subjectId === s.id).length,
       }));
   }
 
@@ -55,7 +81,7 @@ export async function getAllAdminSubjects(examId?: string): Promise<Subject[]> {
 
 export async function getSubjectById(id: string): Promise<Subject | null> {
   if (!isSupabaseConfigured) {
-    return localSubjects.find((s) => s.id === id) || null;
+    return getStoredSubjects().find((s) => s.id === id) || null;
   }
 
   const { data, error } = await supabase
@@ -117,6 +143,9 @@ export async function createSubject(subjectData: Omit<Subject, 'id'>): Promise<S
       slug,
       chaptersCount: 0,
     };
+    const stored = getStoredSubjects();
+    stored.push(newSubject);
+    saveStoredSubjects(stored);
     localSubjects.push(newSubject);
     return newSubject;
   }
@@ -165,12 +194,18 @@ export async function updateSubject(id: string, updates: Partial<Subject>): Prom
     iconName: updates.iconName,
   });
   if (!isSupabaseConfigured) {
-    const idx = localSubjects.findIndex((s) => s.id === id);
+    const stored = getStoredSubjects();
+    const idx = stored.findIndex((s) => s.id === id);
     if (idx !== -1) {
-      localSubjects[idx] = { ...localSubjects[idx], ...updates };
+      stored[idx] = { ...stored[idx], ...updates };
+      saveStoredSubjects(stored);
+    }
+    const localIdx = localSubjects.findIndex((s) => s.id === id);
+    if (localIdx !== -1) {
+      localSubjects[localIdx] = { ...localSubjects[localIdx], ...updates };
     }
     return (
-      localSubjects[idx] || {
+      stored[idx] || {
         id,
         name: updates.name || '',
         slug: '',
@@ -224,9 +259,13 @@ export async function updateSubject(id: string, updates: Partial<Subject>): Prom
 
 export async function deleteSubject(id: string): Promise<boolean> {
   if (!isSupabaseConfigured) {
-    const i = localSubjects.findIndex((e) => e.id === id);
+    const stored = getStoredSubjects();
+    const i = stored.findIndex((e) => e.id === id);
     if (i < 0) throw new Error('Record not found.');
-    localSubjects.splice(i, 1);
+    stored.splice(i, 1);
+    saveStoredSubjects(stored);
+    const localIdx = localSubjects.findIndex((e) => e.id === id);
+    if (localIdx >= 0) localSubjects.splice(localIdx, 1);
     return true;
   }
   const confirmed = await deleteAdminRecord('subjects', id);

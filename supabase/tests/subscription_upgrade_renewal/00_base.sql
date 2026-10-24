@@ -1,7 +1,7 @@
 -- THROWAWAY DATABASE ONLY. Minimal stand-in for the Supabase objects the
 -- controlled upgrade/renewal migration depends on. Never run against production.
 --   createdb pk_sub_test && psql -d pk_sub_test -f 00_base.sql
---   psql -d pk_sub_test -f ../../migrations/20261014120000_controlled_subscription_upgrade_renewal.sql
+--   psql -d pk_sub_test -f ../../migrations/20261023044215_controlled_subscription_upgrade_renewal.sql
 --   psql -d pk_sub_test -f 10_scenarios.sql   # every block prints PASS or aborts
 -- Minimal stand-in for the Supabase schema pieces the migration touches.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
