@@ -48,6 +48,8 @@ export type AdminQuestionFilters = {
   search?: string;
   status?: string;
   hasImage?: 'all' | 'with_image' | 'without_image';
+  /** Also list questions of unreleased Live Test papers (hidden from the bank by default). */
+  includeLiveOnly?: boolean;
 };
 
 export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Promise<Question[]> {
@@ -163,6 +165,9 @@ function applyQuestionListFilters(
 ): any {
   if (testQuestionIds && testQuestionIds.length > 0) {
     query = query.in('id', testQuestionIds);
+  } else if (!filters?.includeLiveOnly) {
+    // Live Test papers keep their questions out of the bank until released to practice.
+    query = query.eq('is_live_only', false);
   }
   if (filters?.subjectId) query = query.eq('subject_id', filters.subjectId);
   const chapId = filters?.topicId || filters?.chapterId;
@@ -285,6 +290,7 @@ export async function getAdminQuestionsPaged(
         search?: string;
         status?: string;
         hasImage?: 'all' | 'with_image' | 'without_image';
+        includeLiveOnly?: boolean;
       }
     | undefined,
   page: number,
@@ -315,6 +321,7 @@ export async function getAdminQuestionsPaged(
     )
     .order('created_at', { ascending: false });
 
+  if (!filters?.includeLiveOnly) query = query.eq('is_live_only', false);
   if (filters?.subjectId) query = query.eq('subject_id', filters.subjectId);
   const chapId = filters?.topicId || filters?.chapterId;
   if (chapId) query = query.or(`chapter_id.eq.${chapId},topic_id.eq.${chapId}`);
@@ -497,6 +504,9 @@ export async function createQuestion(qData: Omit<Question, 'id'>): Promise<Quest
       subtopic: qData.subtopic || null,
       is_active: qData.isActive ?? true,
       status: databaseQuestionStatus(qData.status),
+      // Hidden from the start when it is created for a Live Test paper (the
+      // test_questions trigger keeps the flag in sync afterwards).
+      ...(qData.isLiveOnly ? { is_live_only: true } : {}),
     })
     .select(
       `

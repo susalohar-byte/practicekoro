@@ -1,6 +1,9 @@
 import { AdminPageSkeleton } from '@/components/admin/AdminSkeleton';
 import React from 'react';
-import { useAdminTestQuestions } from './testQuestions/useAdminTestQuestions';
+import {
+  useAdminTestQuestions,
+  type UseAdminTestQuestionsOptions,
+} from './testQuestions/useAdminTestQuestions';
 import { SelectTestPrompt } from './testQuestions/SelectTestPrompt';
 import { TestQuestionsHeader } from './testQuestions/TestQuestionsHeader';
 import { TestQuestionsAlerts } from './testQuestions/TestQuestionsAlerts';
@@ -11,8 +14,13 @@ import { AssignedQuestionsTab } from './testQuestions/AssignedQuestionsTab';
 import { BulkTxtImportModal } from './testQuestions/BulkTxtImportModal';
 import { CreateQuestionModal } from './testQuestions/CreateQuestionModal';
 
-export const AdminTestQuestions: React.FC = () => {
-  const testQuestionsState = useAdminTestQuestions();
+export interface AdminTestQuestionsProps extends UseAdminTestQuestionsOptions {
+  /** Rendered above the workspace (e.g. the Live Test publish bar). */
+  banner?: React.ReactNode;
+}
+
+export const AdminTestQuestions: React.FC<AdminTestQuestionsProps> = ({ banner, ...options }) => {
+  const testQuestionsState = useAdminTestQuestions(options);
   const { isLoading, referencesLoading, test, assignedQuestions, countPreset, customCount } =
     testQuestionsState;
 
@@ -20,6 +28,13 @@ export const AdminTestQuestions: React.FC = () => {
     return <AdminPageSkeleton label="Loading Test Workspace" variant="detail" />;
 
   if (!test) {
+    if (options.liveMode) {
+      return (
+        <div className="max-w-xl mx-auto mt-16 p-6 rounded-2xl border border-rose-200 bg-rose-50 text-sm text-rose-700">
+          This Live Test paper could not be loaded. Go back to Live Tests and try again.
+        </div>
+      );
+    }
     return <SelectTestPrompt testQuestionsState={testQuestionsState} />;
   }
 
@@ -34,6 +49,8 @@ export const AdminTestQuestions: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
+      {banner}
+
       <TestQuestionsHeader
         testQuestionsState={testQuestionsState}
         test={test}

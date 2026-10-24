@@ -1358,6 +1358,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          is_live_only: boolean
           option_a: string
           option_b: string
           option_c: string
@@ -1390,6 +1391,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_live_only?: boolean
           option_a: string
           option_b: string
           option_c: string
@@ -1422,6 +1424,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_live_only?: boolean
           option_a?: string
           option_b?: string
           option_c?: string
@@ -2235,6 +2238,7 @@ export type Database = {
           icon_url: string | null
           id: string
           is_active: boolean
+          is_live_only: boolean
           is_premium: boolean
           negative_marking: number
           order_index: number
@@ -2263,6 +2267,7 @@ export type Database = {
           icon_url?: string | null
           id: string
           is_active?: boolean
+          is_live_only?: boolean
           is_premium?: boolean
           negative_marking?: number
           order_index?: number
@@ -2291,6 +2296,7 @@ export type Database = {
           icon_url?: string | null
           id?: string
           is_active?: boolean
+          is_live_only?: boolean
           is_premium?: boolean
           negative_marking?: number
           order_index?: number

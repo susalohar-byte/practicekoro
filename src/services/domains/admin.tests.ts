@@ -48,12 +48,15 @@ export async function getAllAdminTests(filter?: {
   testSeriesId?: string;
   testType?: string;
   status?: string;
+  /** Also return Live Test papers (hidden everywhere else until released to practice). */
+  includeLiveOnly?: boolean;
 }): Promise<MockTest[]> {
-  const hasFilter = filter && Object.values(filter).some(Boolean);
-  if (!hasFilter) {
-    return withApiCache('all_admin_tests', () => fetchAdminTests(filter), 60_000);
-  }
-  return fetchAdminTests(filter);
+  const { includeLiveOnly, ...query } = filter || {};
+  const hasFilter = Object.values(query).some(Boolean);
+  const tests = hasFilter
+    ? await fetchAdminTests(query)
+    : await withApiCache('all_admin_tests', () => fetchAdminTests(query), 60_000);
+  return includeLiveOnly ? tests : tests.filter((t) => !t.isLiveOnly);
 }
 
 async function fetchAdminTests(filter?: {
@@ -140,6 +143,7 @@ async function fetchAdminTests(filter?: {
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -227,6 +231,7 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -302,6 +307,8 @@ export async function createTest(
     status: initialStatus,
     icon_url: testData.iconUrl || null,
   };
+  // Only sent for Live Test papers, so regular test creation does not depend on the column.
+  if (testData.isLiveOnly) insertPayload.is_live_only = true;
 
   const selectCols = `
     *,
@@ -384,6 +391,7 @@ export async function createTest(
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'draft',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -431,6 +439,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
   if (updates.isActive !== undefined) payload.is_active = updates.isActive;
   if (updates.status !== undefined) payload.status = updates.status;
   if (updates.iconUrl !== undefined) payload.icon_url = updates.iconUrl || null;
+  if (updates.isLiveOnly !== undefined) payload.is_live_only = updates.isLiveOnly;
 
   const selectCols = `
     *,
@@ -500,6 +509,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -562,6 +572,8 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
     testSeriesId: existing.testSeriesId,
     iconUrl: existing.iconUrl,
     associatedExamIds,
+    // A copy of a Live Test paper stays a Live Test paper.
+    isLiveOnly: existing.isLiveOnly,
     status: 'draft',
   });
 

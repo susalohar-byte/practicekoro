@@ -907,7 +907,11 @@ class CatalogRepository {
             .order('created_at', ascending: true)
             .timeout(const Duration(milliseconds: 600));
         if (res.isNotEmpty) {
-          final list = res.map((e) => MockTestModel.fromJson(e)).toList();
+          // Live Test papers open from the Live Test only, never from the mock list.
+          final list = res
+              .where((e) => e['is_live_only'] != true)
+              .map((e) => MockTestModel.fromJson(e))
+              .toList();
           _mockTestsCache[cleanId] = list;
           return list;
         }
@@ -1135,86 +1139,9 @@ class CatalogRepository {
       }
     } catch (_) {}
 
-    // Authentic live tests matching the reference image and state exams
-    final now = DateTime.now();
-    final today10am = DateTime(now.year, now.month, now.day, 10, 0);
-    final tomorrow11am = DateTime(now.year, now.month, now.day + 1, 11, 0);
-    final dayAfter2pm = DateTime(now.year, now.month, now.day + 2, 14, 0);
-
-    final fallbacks = [
-      LiveTestModel(
-        id: 'live-test-001',
-        testId: 'test_exam_wbp_1',
-        title: 'WBP Full Mock Test',
-        examTitle: 'WBP Constable',
-        examId: 'exam_wbp',
-        status: 'live',
-        startAt: today10am,
-        scheduledStartTime: today10am,
-        scheduledEndTime: today10am.add(const Duration(minutes: 90)),
-        durationMinutes: 90,
-        totalQuestions: 100,
-        totalMarks: 200,
-        negativeMarking: 0.25,
-        participantsCount: 2400,
-        enrolledCount: 3100,
-        logo: 'assets/images/exams/live_icon_wbp.png',
-        examLogo: 'assets/images/exams/logo_wbp.png',
-        instructions:
-            'Official West Bengal Police Constable full mock test. Statewide ranking and detailed solution analysis will be available upon completion.',
-      ),
-      LiveTestModel(
-        id: 'live-test-002',
-        testId: 'test_exam_wbssc_c_1',
-        title: 'WBSSC TET Mock Test',
-        examTitle: 'WBSSC TET',
-        examId: 'exam_wbssc_c',
-        status: 'upcoming',
-        startAt: tomorrow11am,
-        scheduledStartTime: tomorrow11am,
-        scheduledEndTime: tomorrow11am.add(const Duration(minutes: 90)),
-        durationMinutes: 90,
-        totalQuestions: 90,
-        totalMarks: 180,
-        negativeMarking: 0.25,
-        participantsCount: 1800,
-        enrolledCount: 2400,
-        logo: 'assets/images/exams/live_icon_wbssc.png',
-        examLogo: 'assets/images/exams/emblem_wbssc.png',
-        instructions:
-            'School Service Commission TET special live simulation with state-level percentile rank.',
-      ),
-      LiveTestModel(
-        id: 'live-test-003',
-        testId: 'test_exam_railway_1',
-        title: 'Railway NTPC Live Test',
-        examTitle: 'Railway NTPC',
-        examId: 'exam_railway',
-        status: 'upcoming',
-        startAt: dayAfter2pm,
-        scheduledStartTime: dayAfter2pm,
-        scheduledEndTime: dayAfter2pm.add(const Duration(minutes: 90)),
-        durationMinutes: 90,
-        totalQuestions: 100,
-        totalMarks: 100,
-        negativeMarking: 0.33,
-        participantsCount: 3200,
-        enrolledCount: 4500,
-        logo: 'assets/images/exams/live_icon_railway.png',
-        examLogo: 'assets/images/exams/logo_railway.png',
-        instructions:
-            'Indian Railways RRB NTPC Stage 1 full mock test. Bilingual (Bengali + English).',
-      ),
-    ];
-
-    List<LiveTestModel> result = fallbacks;
-    if (examId != null && examId.isNotEmpty) {
-      final filtered = fallbacks.where((t) => t.examId == examId).toList();
-      if (filtered.isNotEmpty) result = filtered;
-    }
-
-    _liveTestsCache[cacheKey] = result;
-    return result;
+    // No invented events: a student must only ever see Live Tests the admin
+    // actually scheduled. Not cached, so the next open retries the server.
+    return const <LiveTestModel>[];
   }
 
   Future<List<QuestionModel>> getQuestions(String testId) async {

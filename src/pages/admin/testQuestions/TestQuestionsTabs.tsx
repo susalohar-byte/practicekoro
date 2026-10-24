@@ -13,6 +13,7 @@ export function TestQuestionsTabs({ testQuestionsState }: TestQuestionsTabsProps
     eligibleBankQuestions,
     handleApplyDefaultsToAll,
     isSectionalOpen,
+    liveMode,
     setActiveTab,
     setIsSectionalOpen,
   } = testQuestionsState;
@@ -23,26 +24,29 @@ export function TestQuestionsTabs({ testQuestionsState }: TestQuestionsTabsProps
       {/* ===================================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#0a1226] p-1.5 rounded-2xl border border-slate-200 dark:border-[#152347] w-fit">
-          <button
-            onClick={() => setActiveTab('select')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
-              activeTab === 'select'
-                ? 'bg-gradient-to-r from-[#0075FF] to-[#0052E0] text-white shadow-md shadow-[#0075FF]/25 scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FolderTree className="w-4 h-4" />
-            <span>+ Add Questions from Topic / Bank</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+          {/* A Live Test paper gets fresh uploads only, never questions students may have seen. */}
+          {!liveMode && (
+            <button
+              onClick={() => setActiveTab('select')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
                 activeTab === 'select'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-slate-200 dark:bg-[#152347] text-slate-700 dark:text-slate-300'
+                  ? 'bg-gradient-to-r from-[#0075FF] to-[#0052E0] text-white shadow-md shadow-[#0075FF]/25 scale-[1.02]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {eligibleBankQuestions.length}
-            </span>
-          </button>
+              <FolderTree className="w-4 h-4" />
+              <span>+ Add Questions from Topic / Bank</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  activeTab === 'select'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-200 dark:bg-[#152347] text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {eligibleBankQuestions.length}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('assigned')}

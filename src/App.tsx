@@ -135,6 +135,11 @@ const AdminItemAnalysis = lazyWithRetry(() =>
     default: module.AdminItemAnalysis,
   }))
 );
+const AdminLiveTestPaper = lazyWithRetry(() =>
+  import('@/pages/admin/liveTests/AdminLiveTestPaper').then((module) => ({
+    default: module.AdminLiveTestPaper,
+  }))
+);
 const AdminLiveTests = lazyWithRetry(() =>
   import('@/pages/admin/AdminLiveTests').then((module) => ({
     default: module.AdminLiveTests,
@@ -263,6 +268,14 @@ export const App: React.FC = () => {
             element={
               <AdminRoute requiredPermission="canManageTests">
                 <AdminLiveTests />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="live-tests/:liveTestId/questions"
+            element={
+              <AdminRoute requiredPermission="canManageTests">
+                <AdminLiveTestPaper />
               </AdminRoute>
             }
           />

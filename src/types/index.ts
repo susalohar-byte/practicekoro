@@ -434,6 +434,11 @@ export interface MockTest {
   orderIndex: number;
   isActive: boolean;
   status: 'draft' | 'published' | 'archived';
+  /**
+   * Paper owned by a Live Test (created from the Live Tests page). Hidden from every
+   * catalog, the Tests page and the Question Bank until it is released to practice.
+   */
+  isLiveOnly?: boolean;
   examTitle?: string;
   subjectName?: string;
   chapterName?: string;
@@ -471,6 +476,8 @@ export interface Question {
   sourcePaper?: string;
   sourceShift?: string;
   isActive: boolean;
+  /** Belongs to an unreleased Live Test paper; kept out of the bank and public pages. */
+  isLiveOnly?: boolean;
   status?: 'active' | 'archived' | 'draft' | 'published' | 'under_review';
   subjectName?: string;
   chapterName?: string;

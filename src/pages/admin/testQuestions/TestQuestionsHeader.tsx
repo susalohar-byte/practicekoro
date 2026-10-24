@@ -42,6 +42,7 @@ export function TestQuestionsHeader({
     handleSelectTest,
     isSaving,
     isTestLocked,
+    liveMode,
     selectedQuestionIds,
     setCreateError,
     setIsBulkModalOpen,
@@ -73,11 +74,12 @@ export function TestQuestionsHeader({
             {/* Navigation & Switch Test Pill */}
             <div className="flex items-center gap-3 flex-wrap">
               <Link
-                to="/admin/tests"
+                to={liveMode ? '/admin/live-tests' : '/admin/tests'}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-slate-200 hover:text-white font-semibold transition-all border border-white/10 shadow-xs"
                 style={{ color: '#e2e8f0' }}
               >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Mock Tests
+                <ArrowLeft className="w-3.5 h-3.5" />{' '}
+                {liveMode ? 'Back to Live Tests' : 'Back to Mock Tests'}
               </Link>
 
               {availableSwitchTests.length > 0 && (
@@ -304,94 +306,99 @@ export function TestQuestionsHeader({
           </div>
         </div>
 
-        {/* 3 Core Metric KPI Counters */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6 pt-5 border-t border-slate-800/80"
-          style={{ borderColor: '#1b2c58' }}
-        >
-          {/* KPI 1 */}
-          <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-[#0075FF]/40 transition-colors">
-            <div className="space-y-0.5">
-              <p
-                className="text-[10px] font-black uppercase tracking-wider text-slate-400"
-                style={{ color: '#94a3b8' }}
-              >
-                Available in Topic / Bank
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span
-                  className="text-2xl sm:text-3xl font-black text-white"
-                  style={{ color: '#ffffff' }}
+        {/* 3 Core Metric KPI Counters (bank metrics do not apply to a Live Test paper) */}
+        {!liveMode && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6 pt-5 border-t border-slate-800/80"
+            style={{ borderColor: '#1b2c58' }}
+          >
+            {/* KPI 1 */}
+            <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-[#0075FF]/40 transition-colors">
+              <div className="space-y-0.5">
+                <p
+                  className="text-[10px] font-black uppercase tracking-wider text-slate-400"
+                  style={{ color: '#94a3b8' }}
                 >
-                  {eligibleBankQuestions.length}
-                </span>
-                <span className="text-xs font-semibold text-sky-400" style={{ color: '#38bdf8' }}>
-                  ({unassignedEligibleQuestions.length} unassigned)
-                </span>
+                  Available in Topic / Bank
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="text-2xl sm:text-3xl font-black text-white"
+                    style={{ color: '#ffffff' }}
+                  >
+                    {eligibleBankQuestions.length}
+                  </span>
+                  <span className="text-xs font-semibold text-sky-400" style={{ color: '#38bdf8' }}>
+                    ({unassignedEligibleQuestions.length} unassigned)
+                  </span>
+                </div>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-[#0075FF]/15 text-[#38bdf8] flex items-center justify-center border border-[#0075FF]/30 shrink-0 shadow-inner">
+                <FolderTree className="w-5 h-5" />
               </div>
             </div>
-            <div className="w-11 h-11 rounded-2xl bg-[#0075FF]/15 text-[#38bdf8] flex items-center justify-center border border-[#0075FF]/30 shrink-0 shadow-inner">
-              <FolderTree className="w-5 h-5" />
-            </div>
-          </div>
 
-          {/* KPI 2 */}
-          <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-emerald-500/40 transition-colors">
-            <div className="space-y-0.5">
-              <p
-                className="text-[10px] font-black uppercase tracking-wider text-slate-400"
-                style={{ color: '#94a3b8' }}
-              >
-                Already in Test
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span
-                  className="text-2xl sm:text-3xl font-black text-emerald-400"
-                  style={{ color: '#34d399' }}
+            {/* KPI 2 */}
+            <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-emerald-500/40 transition-colors">
+              <div className="space-y-0.5">
+                <p
+                  className="text-[10px] font-black uppercase tracking-wider text-slate-400"
+                  style={{ color: '#94a3b8' }}
                 >
-                  {assignedQuestions.length}
-                </span>
-                {targetQuestionCount > 0 && (
+                  Already in Test
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="text-2xl sm:text-3xl font-black text-emerald-400"
+                    style={{ color: '#34d399' }}
+                  >
+                    {assignedQuestions.length}
+                  </span>
+                  {targetQuestionCount > 0 && (
+                    <span
+                      className="text-xs font-semibold text-slate-400"
+                      style={{ color: '#94a3b8' }}
+                    >
+                      / {targetQuestionCount} Target
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0 shadow-inner">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* KPI 3 */}
+            <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-sky-500/40 transition-colors">
+              <div className="space-y-0.5">
+                <p
+                  className="text-[10px] font-black uppercase tracking-wider text-slate-400"
+                  style={{ color: '#94a3b8' }}
+                >
+                  Selected to Add
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className="text-2xl sm:text-3xl font-black text-[#38bdf8]"
+                    style={{ color: '#38bdf8' }}
+                  >
+                    {selectedQuestionIds.length}
+                  </span>
                   <span
                     className="text-xs font-semibold text-slate-400"
                     style={{ color: '#94a3b8' }}
                   >
-                    / {targetQuestionCount} Target
+                    ready to attach
                   </span>
-                )}
+                </div>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center border border-sky-500/30 shrink-0 shadow-inner">
+                <CheckSquare className="w-5 h-5" />
               </div>
             </div>
-            <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0 shadow-inner">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
           </div>
-
-          {/* KPI 3 */}
-          <div className="p-4 rounded-2xl bg-[#081229]/90 border border-[#172852] flex items-center justify-between shadow-sm hover:border-sky-500/40 transition-colors">
-            <div className="space-y-0.5">
-              <p
-                className="text-[10px] font-black uppercase tracking-wider text-slate-400"
-                style={{ color: '#94a3b8' }}
-              >
-                Selected to Add
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span
-                  className="text-2xl sm:text-3xl font-black text-[#38bdf8]"
-                  style={{ color: '#38bdf8' }}
-                >
-                  {selectedQuestionIds.length}
-                </span>
-                <span className="text-xs font-semibold text-slate-400" style={{ color: '#94a3b8' }}>
-                  ready to attach
-                </span>
-              </div>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center border border-sky-500/30 shrink-0 shadow-inner">
-              <CheckSquare className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </>
   );

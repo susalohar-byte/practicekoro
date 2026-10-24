@@ -2,7 +2,7 @@ import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/Admi
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '@/services/api';
 import { isoToLocalDateTimeParts, localDateTimeToIso } from '@/services/domains/admin.liveTests';
-import type { LiveTest, MockTest } from '@/types';
+import type { Exam, LiveTest } from '@/types';
 import {
   Radio,
   Calendar,
@@ -29,9 +29,11 @@ import {
   Monitor,
   AlertCircle,
   Download,
+  ListChecks,
+  Unlock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getPageNumbers } from '@/utils/pagination';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -91,8 +93,9 @@ function formatScheduledDate(
 }
 
 export const AdminLiveTests: React.FC = () => {
+  const navigate = useNavigate();
   const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
-  const [availableTests, setAvailableTests] = useState<MockTest[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
 
@@ -157,12 +160,9 @@ export const AdminLiveTests: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [allLive, tests] = await Promise.all([
-        api.getLiveTests(),
-        api.getAllAdminTests ? api.getAllAdminTests() : Promise.resolve([]),
-      ]);
+      const [allLive, allExams] = await Promise.all([api.getLiveTests(), api.getAllAdminExams()]);
       setLiveTests(allLive);
-      setAvailableTests(tests.filter((t: any) => t.testType === 'full_mock'));
+      setExams(allExams);
     } catch (err) {
       console.error('Failed to load live tests:', err);
       toast.error('Failed to load live tests');
@@ -303,30 +303,39 @@ export const AdminLiveTests: React.FC = () => {
     toast.success('Filters reset');
   };
 
-  // Duplicate Live Test
+  // Duplicate Live Test (a live-only paper is copied with its questions as a new Draft)
   const handleDuplicate = async (lt: LiveTest) => {
     try {
-      const newSchedule = await api.scheduleLiveTest({
-        testId: lt.testId,
-        title: `${lt.title} (Copy)`,
-        startAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-        registrationDeadline: new Date(Date.now() + 23.5 * 3600 * 1000).toISOString(),
-        durationMinutes: lt.durationMinutes || 60,
-        totalQuestions: lt.totalQuestions || 100,
-        totalMarks: lt.totalMarks || 100,
-        negativeMarking: lt.negativeMarking ?? 0.25,
-        rankingEnabled: Boolean(lt.rankingEnabled),
-        subscriptionRequired: Boolean(lt.subscriptionRequired),
-        logo: lt.logo || lt.examLogo || '/images/exams/logo_wbp.png',
-        examLogo: lt.logo || lt.examLogo || '/images/exams/logo_wbp.png',
-      });
+      const newSchedule = await api.duplicateLiveTest(lt.id);
       setLiveTests((prev) => [newSchedule, ...prev]);
       setSelectedTestId(newSchedule.id);
       setIsDrawerOpen(true);
       toast.success('Live Test duplicated successfully');
       setActiveMenuId(null);
-    } catch {
-      toast.error('Failed to duplicate test');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to duplicate test');
+    }
+  };
+
+  // Open the paper's question workspace (upload / review questions)
+  const openPaperQuestions = (lt: LiveTest) => {
+    setActiveMenuId(null);
+    navigate(`/admin/live-tests/${lt.id}/questions`);
+  };
+
+  // Release an ended Live Test's paper to regular practice
+  const handleReleaseToPractice = async (lt: LiveTest) => {
+    try {
+      await api.releaseLivePaperToPractice(lt.id);
+      setLiveTests((prev) =>
+        prev.map((t) =>
+          t.id === lt.id && t.test ? { ...t, test: { ...t.test, isLiveOnly: false } } : t
+        )
+      );
+      toast.success(`"${lt.title}" is now available as a practice Full Mock`);
+      setActiveMenuId(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to release paper');
     }
   };
 
@@ -374,8 +383,8 @@ export const AdminLiveTests: React.FC = () => {
       );
       toast.success(`"${lt.title}" is now LIVE!`);
       setActiveMenuId(null);
-    } catch {
-      toast.error('Failed to launch live test');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to launch live test');
     }
   };
 
@@ -840,6 +849,17 @@ export const AdminLiveTests: React.FC = () => {
                                   <span>Edit Test</span>
                                 </button>
                                 <button
+                                  onClick={() => openPaperQuestions(test)}
+                                  className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                >
+                                  <ListChecks className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>
+                                    {test.status === 'draft'
+                                      ? 'Upload Questions'
+                                      : 'View Questions'}
+                                  </span>
+                                </button>
+                                <button
                                   onClick={() => handleDuplicate(test)}
                                   className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                 >
@@ -856,6 +876,19 @@ export const AdminLiveTests: React.FC = () => {
                                     <span>Start Live Now</span>
                                   </button>
                                 )}
+
+                                {(test.status === 'ended' ||
+                                  test.status === 'completed' ||
+                                  test.status === 'cancelled') &&
+                                  test.test?.isLiveOnly && (
+                                    <button
+                                      onClick={() => handleReleaseToPractice(test)}
+                                      className="w-full px-3 py-2 text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                                    >
+                                      <Unlock className="w-3.5 h-3.5" />
+                                      <span>Release to Practice</span>
+                                    </button>
+                                  )}
 
                                 {test.status === 'live' && (
                                   <button
@@ -1009,6 +1042,20 @@ export const AdminLiveTests: React.FC = () => {
 
                 {/* Top Quick Actions */}
                 <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200/60">
+                  <button
+                    onClick={() => openPaperQuestions(selectedLiveTest)}
+                    className="col-span-2 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 shadow-2xs"
+                  >
+                    <ListChecks className="w-3.5 h-3.5" />
+                    <span>
+                      {selectedLiveTest.status === 'draft' ? 'Upload Questions' : 'View Questions'}{' '}
+                      (
+                      {selectedLiveTest.test?.totalQuestions ??
+                        selectedLiveTest.totalQuestions ??
+                        0}
+                      )
+                    </span>
+                  </button>
                   <button
                     onClick={() => setIsMonitorModalOpen(true)}
                     className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 shadow-xs"
@@ -1363,7 +1410,7 @@ export const AdminLiveTests: React.FC = () => {
         <CreateEditLiveTestModal
           isOpen={isCreateModalOpen}
           initialData={editingTest}
-          availableTests={availableTests}
+          exams={exams}
           onClose={() => {
             setIsCreateModalOpen(false);
             setEditingTest(null);
@@ -1372,14 +1419,13 @@ export const AdminLiveTests: React.FC = () => {
             if (editingTest) {
               setLiveTests((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
               toast.success('Live Test updated successfully');
+              setIsCreateModalOpen(false);
+              setEditingTest(null);
             } else {
-              setLiveTests((prev) => [saved, ...prev]);
-              setSelectedTestId(saved.id);
-              setIsDrawerOpen(true);
-              toast.success('Live Test scheduled successfully');
+              // Next step of a new Live Test: upload its paper's questions.
+              setIsCreateModalOpen(false);
+              navigate(`/admin/live-tests/${saved.id}/questions`);
             }
-            setIsCreateModalOpen(false);
-            setEditingTest(null);
           }}
         />
       )}
@@ -1537,20 +1583,19 @@ export const AdminLiveTests: React.FC = () => {
 interface CreateEditLiveTestModalProps {
   isOpen: boolean;
   initialData: LiveTest | null;
-  availableTests: MockTest[];
+  exams: Exam[];
   onClose: () => void;
   onSave: (test: LiveTest) => Promise<void>;
 }
 
 const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
   initialData,
-  availableTests,
+  exams,
   onClose,
   onSave,
 }) => {
-  const [selectedSourceTestId, setSelectedSourceTestId] = useState(initialData?.testId || '');
   const [title, setTitle] = useState(initialData?.title || '');
-  const [examTitle, setExamTitle] = useState(initialData?.examTitle || 'WBP Constable');
+  const [examId, setExamId] = useState(initialData?.examId || '');
   const [logo, setLogo] = useState(
     initialData?.logo || initialData?.examLogo || PRESET_LOGOS[0].url
   );
@@ -1571,25 +1616,14 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSourceTestChange = (testId: string) => {
-    setSelectedSourceTestId(testId);
-    const found = availableTests.find((t) => t.id === testId);
-    if (found) {
-      if (!initialData) {
-        setTitle(found.title.includes('Live') ? found.title : `${found.title} Live Test`);
-        setExamTitle(found.examTitle || 'WBP Constable');
-        setDurationMinutes(found.durationMinutes || 60);
-        setTotalQuestions(found.totalQuestions || 100);
-        setTotalMarks(found.totalMarks || 100);
-        setNegativeMarking(found.negativeMarking ?? 0.25);
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       toast.error('Title is required');
+      return;
+    }
+    if (!initialData && !examId) {
+      toast.error('Select the exam for this Live Test');
       return;
     }
 
@@ -1614,7 +1648,6 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
         result = await api.updateLiveTest(initialData.id, {
           registrationDeadline: keepDeadline ? initialData.registrationDeadline : startIso,
           title,
-          examTitle,
           logo,
           examLogo: logo,
           startAt: startIso,
@@ -1628,19 +1661,17 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           status: status as any,
         });
       } else {
-        result = await api.scheduleLiveTest({
-          testId: selectedSourceTestId,
+        // Creates the Live Test's own paper (hidden Full Mock) and a Draft event for it.
+        result = await api.createLiveTestWithPaper({
+          examId,
           title,
           startAt: startIso,
-          registrationDeadline: startIso,
           durationMinutes: Number(durationMinutes),
           totalQuestions: Number(totalQuestions),
           totalMarks: Number(totalMarks),
           negativeMarking: Number(negativeMarking),
           rankingEnabled,
           logo,
-          examLogo: logo,
-          status: status as LiveTest['status'],
         });
       }
 
@@ -1668,27 +1699,6 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Base Mock Test Selection */}
-          {!initialData && availableTests.length > 0 && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Select Base Mock Test
-              </label>
-              <select
-                value={selectedSourceTestId}
-                onChange={(e) => handleSourceTestChange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">-- Choose existing test or create new --</option>
-                {availableTests.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title} ({t.totalQuestions} Qs, {t.durationMinutes}m)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Title */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1707,40 +1717,66 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           {/* Exam & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Exam</label>
-              <select
-                value={examTitle}
-                onChange={(e) => setExamTitle(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="WBP Constable">WBP Constable</option>
-                <option value="SSC MTS">SSC MTS</option>
-                <option value="WBCS">WBCS</option>
-                <option value="Railway (NTPC)">Railway (NTPC)</option>
-                <option value="WBPSC Clerkship">WBPSC Clerkship</option>
-                <option value="Food SI">Food SI</option>
-                <option value="KP SI">KP SI</option>
-                <option value="SSC GD">SSC GD</option>
-              </select>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Exam {!initialData && <span className="text-rose-500">*</span>}
+              </label>
+              {initialData ? (
+                <input
+                  type="text"
+                  disabled
+                  value={initialData.examTitle || exams.find((ex) => ex.id === examId)?.title || ''}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-500"
+                />
+              ) : (
+                <select
+                  required
+                  value={examId}
+                  onChange={(e) => setExamId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Select exam --</option>
+                  {exams.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.title}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="upcoming">Scheduled</option>
-                <option value="live">Live Now</option>
-                <option value="draft">Draft</option>
-                <option value="ended">Completed</option>
-                {initialData?.status === 'cancelled' && (
-                  <option value="cancelled">Cancelled</option>
-                )}
-              </select>
+              {initialData ? (
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="upcoming">Scheduled</option>
+                  <option value="live">Live Now</option>
+                  <option value="draft">Draft</option>
+                  <option value="ended">Completed</option>
+                  {initialData.status === 'cancelled' && (
+                    <option value="cancelled">Cancelled</option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  disabled
+                  value="Draft (until questions are uploaded)"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-500"
+                />
+              )}
             </div>
           </div>
+
+          {!initialData && (
+            <p className="text-[11px] text-slate-500 -mt-1">
+              Next you will upload this Live Test's own questions. The paper stays hidden from
+              students, the Tests page and the Question Bank until you publish the Live Test.
+            </p>
+          )}
 
           {/* Date & Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1769,7 +1805,7 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
           </div>
 
           {/* Duration, Questions, Marks */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Duration (Min)
@@ -1789,6 +1825,16 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                 min="1"
                 value={totalQuestions}
                 onChange={(e) => setTotalQuestions(Number(e.target.value))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Total Marks</label>
+              <input
+                type="number"
+                min="1"
+                value={totalMarks}
+                onChange={(e) => setTotalMarks(Number(e.target.value))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -1969,7 +2015,11 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
               disabled={isSubmitting}
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : initialData ? 'Update Live Test' : 'Schedule Live Test'}
+              {isSubmitting
+                ? 'Saving...'
+                : initialData
+                  ? 'Update Live Test'
+                  : 'Create & Upload Questions'}
             </button>
           </div>
         </form>

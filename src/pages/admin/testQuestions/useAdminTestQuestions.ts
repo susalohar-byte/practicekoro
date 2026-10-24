@@ -9,8 +9,20 @@ import { useTestQuestionSelection } from './useTestQuestionSelection';
 import { useBulkTxtImport } from './useBulkTxtImport';
 import { useCreateTestQuestion } from './useCreateTestQuestion';
 
-export function useAdminTestQuestions() {
-  const { testId: routeTestId } = useParams<{ testId: string }>();
+export interface UseAdminTestQuestionsOptions {
+  /** Load this test instead of the `:testId` route param. */
+  testId?: string;
+  /**
+   * Live Test paper workspace (opened from the Live Tests page): no switching to other tests
+   * and no picking questions from the Question Bank; questions are uploaded into the paper.
+   */
+  liveMode?: boolean;
+}
+
+export function useAdminTestQuestions(options: UseAdminTestQuestionsOptions = {}) {
+  const { testId: routeParamTestId } = useParams<{ testId: string }>();
+  const routeTestId = options.testId || routeParamTestId;
+  const liveMode = Boolean(options.liveMode);
   const navigate = useNavigate();
   const { isBilingualEnabled } = useContentLanguage();
 
@@ -46,6 +58,11 @@ export function useAdminTestQuestions() {
 
   // Load tests list
   useEffect(() => {
+    if (liveMode) {
+      // A Live Test paper is never switched for another test.
+      setReferencesLoading(false);
+      return;
+    }
     const fetchTests = async () => {
       setReferencesLoading(true);
       try {
@@ -61,7 +78,7 @@ export function useAdminTestQuestions() {
       }
     };
     fetchTests();
-  }, [routeTestId]);
+  }, [routeTestId, liveMode]);
 
   const [isTestLocked, setIsTestLocked] = useState(false);
   const [lockCheckError, setLockCheckError] = useState('');
@@ -78,7 +95,8 @@ export function useAdminTestQuestions() {
         await Promise.all([
           api.getTestById(currentTestId),
           api.getTestAssignedQuestions(currentTestId),
-          api.getAllAdminQuestions(),
+          // The bank selector is not offered for a Live Test paper.
+          liveMode ? Promise.resolve([] as Question[]) : api.getAllAdminQuestions(),
           api.getAllAdminSubjects(),
           api.getAllAdminChapters(),
           api.getAllAdminExams(),
@@ -102,7 +120,7 @@ export function useAdminTestQuestions() {
       setLockCheckError(locked.error);
 
       // If the test has 0 questions (freshly created), default directly to question selection
-      if (assigned.length === 0) {
+      if (assigned.length === 0 && !liveMode) {
         setActiveTab('select');
       }
     } catch (err) {
@@ -110,13 +128,14 @@ export function useAdminTestQuestions() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentTestId]);
+  }, [currentTestId, liveMode]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   const handleSelectTest = (id: string) => {
+    if (liveMode) return;
     setCurrentTestId(id);
     navigate(`/admin/tests/${id}/questions`);
   };
@@ -142,6 +161,7 @@ export function useAdminTestQuestions() {
 
   // Only show tests created in this same Topic (or same Exam for Full Mock/PYQ)
   const availableSwitchTests = useMemo(() => {
+    if (liveMode) return [];
     if (!test) return allTests;
 
     if (test.testType === 'topic' || test.testType === 'chapter_mock') {
@@ -182,7 +202,7 @@ export function useAdminTestQuestions() {
     }
 
     return allTests.filter((t) => t.id === test.id);
-  }, [test, allTests, testChapter]);
+  }, [test, allTests, testChapter, liveMode]);
 
   // Set of already assigned Question IDs for this test
   const assignedQuestionIds = useMemo(() => {
@@ -444,6 +464,7 @@ export function useAdminTestQuestions() {
     ...bulkImport,
     ...createQuestion,
     isBilingualEnabled,
+    liveMode,
     allTests,
     setAllTests,
     currentTestId,

@@ -39,6 +39,7 @@ export async function createQuestionForTest(
     let testYear: number | undefined;
     let testPaper: string | undefined;
     let testShift: string | undefined;
+    let testIsLiveOnly = false;
 
     if (!isSupabaseConfigured) {
       const localTest = localTests.find((t) => t.id === testId);
@@ -50,11 +51,14 @@ export async function createQuestionForTest(
         testYear = localTest.year;
         testPaper = localTest.paperName;
         testShift = localTest.shift;
+        testIsLiveOnly = Boolean(localTest.isLiveOnly);
       }
     } else {
       const { data, error } = await supabase
         .from('tests')
-        .select('id, test_type, exam_id, chapter_id, subject_id, year, paper_name, shift')
+        .select(
+          'id, test_type, exam_id, chapter_id, subject_id, year, paper_name, shift, is_live_only'
+        )
         .eq('id', testId)
         .maybeSingle();
 
@@ -68,6 +72,7 @@ export async function createQuestionForTest(
       testYear = data.year ? Number(data.year) : undefined;
       testPaper = data.paper_name;
       testShift = data.shift;
+      testIsLiveOnly = Boolean(data.is_live_only);
     }
 
     const sourceType: Question['sourceType'] =
@@ -94,6 +99,7 @@ export async function createQuestionForTest(
       subjectId: effectiveSubjectId,
       chapterId: effectiveTopicId,
       topicId: effectiveTopicId,
+      isLiveOnly: testIsLiveOnly,
     });
 
     let nextOrder = 1;
@@ -181,8 +187,19 @@ export async function bulkCreateQuestionsFromTxt(params: {
   let successCount = 0;
   const errors: string[] = [];
   let currentTestOrder = 1;
+  // Questions of a Live Test paper are created hidden (never briefly visible in the bank).
+  let testIsLiveOnly = params.testId
+    ? Boolean(localTests.find((t) => t.id === params.testId)?.isLiveOnly)
+    : false;
 
   if (params.testId && isSupabaseConfigured) {
+    const { data: testRow, error: testError } = await supabase
+      .from('tests')
+      .select('is_live_only')
+      .eq('id', params.testId)
+      .maybeSingle();
+    if (testError) throw new Error(`Test could not be loaded: ${testError.message}`);
+    testIsLiveOnly = Boolean(testRow?.is_live_only);
     try {
       const { data: lastRow } = await supabase
         .from('test_questions')
@@ -223,6 +240,7 @@ export async function bulkCreateQuestionsFromTxt(params: {
         defaultNegativeMarks: 0,
         isActive: true,
         status: 'active',
+        isLiveOnly: testIsLiveOnly,
       });
 
       if (params.testId) {

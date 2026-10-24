@@ -8,6 +8,15 @@ import {
   localLiveTestParticipations,
   localTests,
 } from '@/services/domains/localStore';
+import {
+  archiveTest,
+  createTest,
+  deleteTest,
+  duplicateTest,
+  getTestById,
+  updateTest,
+  validateTestForPublish,
+} from './admin.tests';
 import type { LiveTest, LiveTestParticipant, MockTest } from '@/types';
 
 /**
@@ -164,6 +173,7 @@ function mapRowToMockTest(row: any): MockTest {
     negativeMarking: Number(row.negative_marking ?? 0.25),
     isPremium: Boolean(row.is_premium),
     isActive: Boolean(row.is_active ?? true),
+    isLiveOnly: Boolean(row.is_live_only),
     orderIndex: Number(row.order_index || 0),
     status: (row.status || (row.is_active ? 'published' : 'draft')) as
       'draft' | 'published' | 'archived',
@@ -679,6 +689,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
       const payload = {
         id,
         test_id: input.testId,
+        exam_id: sourceTest?.examId ?? null,
         start_at: startAt,
         registration_deadline: registrationDeadline,
         status: dbFields.status,
@@ -716,6 +727,190 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
   return newLiveTest;
 }
 
+export interface CreateLiveTestWithPaperInput {
+  examId: string;
+  title: string;
+  startAt: string;
+  durationMinutes: number;
+  /** Target number of questions; the paper's real count follows its uploaded questions. */
+  totalQuestions: number;
+  totalMarks: number;
+  negativeMarking: number;
+  rankingEnabled?: boolean;
+  subscriptionRequired?: boolean;
+  logo?: string;
+}
+
+/**
+ * Create a Live Test together with its own paper: a Full Mock test flagged live-only, so it
+ * and its questions stay out of every catalog and the Question Bank. The event starts as a
+ * Draft; the admin uploads the questions and then publishes it.
+ */
+export async function createLiveTestWithPaper(
+  input: CreateLiveTestWithPaperInput
+): Promise<LiveTest> {
+  const title = input.title.trim();
+  if (!input.examId) throw new Error('Select the exam for this Live Test.');
+  if (!title) throw new Error('Title is required.');
+
+  const slugBase = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const paper = await createTest({
+    title,
+    slug: `live-${slugBase || 'paper'}-${Date.now().toString(36)}`,
+    examId: input.examId,
+    testType: 'full_mock',
+    durationMinutes: Number(input.durationMinutes),
+    totalQuestions: Number(input.totalQuestions),
+    totalMarks: Number(input.totalMarks),
+    passingMarks: 0,
+    negativeMarking: Number(input.negativeMarking),
+    isPremium: Boolean(input.subscriptionRequired),
+    orderIndex: 0,
+    isActive: true,
+    isLiveOnly: true,
+    status: 'draft',
+  });
+
+  try {
+    return await scheduleLiveTest({
+      testId: paper.id,
+      title,
+      startAt: input.startAt,
+      registrationDeadline: input.startAt,
+      durationMinutes: Number(input.durationMinutes),
+      totalQuestions: Number(input.totalQuestions),
+      totalMarks: Number(input.totalMarks),
+      negativeMarking: Number(input.negativeMarking),
+      rankingEnabled: input.rankingEnabled ?? true,
+      subscriptionRequired: Boolean(input.subscriptionRequired),
+      logo: input.logo,
+      examLogo: input.logo,
+      status: 'draft',
+    });
+  } catch (err) {
+    // Never leave a paper behind without its Live Test.
+    await deleteTest(paper.id).catch(() => undefined);
+    throw err;
+  }
+}
+
+const PUBLISHED_EVENT_STATUSES: ReadonlyArray<LiveTest['status']> = [
+  'upcoming',
+  'scheduled',
+  'live',
+];
+
+/**
+ * Keep a live-only paper in step with its event. Edits to title, duration, negative marking and
+ * access are copied onto the paper (the database refuses scoring edits once the event is
+ * published). Publishing the event first validates and publishes the paper, and takes the
+ * question count and marks from what was actually uploaded.
+ */
+async function syncLivePaper(
+  existing: LiveTest,
+  paper: MockTest,
+  updates: Partial<LiveTest>
+): Promise<Partial<LiveTest>> {
+  const paperUpdates: Partial<MockTest> = {};
+  const nextTitle = updates.title?.trim();
+  if (nextTitle && nextTitle !== paper.title) paperUpdates.title = nextTitle;
+  if (
+    updates.durationMinutes !== undefined &&
+    Number(updates.durationMinutes) !== Number(paper.durationMinutes)
+  )
+    paperUpdates.durationMinutes = Number(updates.durationMinutes);
+  if (
+    updates.negativeMarking !== undefined &&
+    Number(updates.negativeMarking) !== Number(paper.negativeMarking)
+  )
+    paperUpdates.negativeMarking = Number(updates.negativeMarking);
+  if (
+    updates.subscriptionRequired !== undefined &&
+    Boolean(updates.subscriptionRequired) !== Boolean(paper.isPremium)
+  )
+    paperUpdates.isPremium = Boolean(updates.subscriptionRequired);
+  if (Object.keys(paperUpdates).length > 0) await updateTest(paper.id, paperUpdates);
+
+  const publishing =
+    updates.status !== undefined &&
+    PUBLISHED_EVENT_STATUSES.includes(updates.status) &&
+    (existing.status === 'draft' || paper.status !== 'published');
+  if (!publishing) return updates;
+
+  const validation = await validateTestForPublish(paper.id);
+  if (!validation.isValid)
+    throw new Error(
+      `Upload this Live Test's questions before publishing it: ${validation.errors.join('; ')}`
+    );
+  if (paper.status !== 'published') await updateTest(paper.id, { status: 'published' });
+  const fresh = await getTestById(paper.id);
+  return fresh
+    ? { ...updates, totalQuestions: fresh.totalQuestions, totalMarks: fresh.totalMarks }
+    : updates;
+}
+
+/** Make an ended Live Test's paper an ordinary Full Mock that students can practise. */
+export async function releaseLivePaperToPractice(id: string): Promise<MockTest> {
+  const liveTest = await getLiveTestById(id);
+  if (!liveTest) throw new Error('Live test not found.');
+  if (!['ended', 'completed', 'cancelled'].includes(liveTest.status))
+    throw new Error('A Live Test paper can be released to practice only after the Live Test ends.');
+  const paper = (await fetchSourceTestsMap([liveTest.testId])).get(liveTest.testId);
+  if (!paper) throw new Error('The Live Test paper no longer exists.');
+  if (!paper.isLiveOnly) throw new Error('This paper is already available for practice.');
+  const released = await updateTest(paper.id, { isLiveOnly: false });
+  notifyExamsUpdated();
+  return released;
+}
+
+/**
+ * Duplicate a Live Test as a new Draft for tomorrow. A live-only paper is copied with its
+ * questions, so the new event never shares (or locks) the original's paper.
+ */
+export async function duplicateLiveTest(id: string): Promise<LiveTest> {
+  const liveTest = await getLiveTestById(id);
+  if (!liveTest) throw new Error('Live test not found.');
+  const startAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const logo = liveTest.logo || liveTest.examLogo || '/images/exams/logo_wbp.png';
+  const common = {
+    title: `${liveTest.title} (Copy)`,
+    startAt,
+    durationMinutes: liveTest.durationMinutes || 60,
+    totalQuestions: liveTest.totalQuestions || 100,
+    totalMarks: liveTest.totalMarks || 100,
+    negativeMarking: liveTest.negativeMarking ?? 0.25,
+    rankingEnabled: Boolean(liveTest.rankingEnabled),
+    subscriptionRequired: Boolean(liveTest.subscriptionRequired),
+    logo,
+    examLogo: logo,
+  };
+
+  if (!liveTest.test?.isLiveOnly) {
+    return scheduleLiveTest({
+      ...common,
+      testId: liveTest.testId,
+      registrationDeadline: new Date(Date.now() + 23.5 * 3600 * 1000).toISOString(),
+    });
+  }
+
+  const copy = await duplicateTest(liveTest.testId);
+  if (!copy) throw new Error('The Live Test paper could not be copied.');
+  try {
+    return await scheduleLiveTest({
+      ...common,
+      testId: copy.id,
+      registrationDeadline: startAt,
+      status: 'draft',
+    });
+  } catch (err) {
+    await deleteTest(copy.id).catch(() => undefined);
+    throw err;
+  }
+}
+
 /** Update Live Test schedule or status */
 export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Promise<LiveTest> {
   const currentList = await getLiveTests();
@@ -737,6 +932,9 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
   const sourceTest = sourceTestsMap.get(testId) || existing?.test || null;
   if (updates.testId && updates.testId !== existing?.testId)
     assertFullMockSource(updates.testId, sourceTestsMap.get(updates.testId) || null);
+  if (sourceTest?.isLiveOnly && testId === existing.testId) {
+    updates = await syncLivePaper(existing, sourceTest, updates);
+  }
 
   // Map the requested status onto the stored columns (Draft = unpublished). Without an explicit
   // status, keep a cancellation and otherwise let deriveLiveTestStatus compute from the schedule.
@@ -880,7 +1078,18 @@ export async function cancelLiveTest(id: string): Promise<boolean> {
 /** Delete a live test */
 export async function deleteLiveTest(id: string): Promise<boolean> {
   if (isSupabaseConfigured) {
+    const before = await getLiveTests();
+    const target = before.find((lt) => lt.id === id);
     const deleted = await deleteAdminRecord('live_tests', id);
+    // A live-only paper has no other home: archive it once no Live Test uses it any more
+    // (archived, not deleted, so attempts and results stay intact).
+    if (
+      deleted &&
+      target?.test?.isLiveOnly &&
+      !before.some((lt) => lt.id !== id && lt.testId === target.testId)
+    ) {
+      await archiveTest(target.testId);
+    }
     notifyExamsUpdated();
     return deleted;
   }
@@ -1434,6 +1643,9 @@ export const adminLiveTestsApi = {
   isTestLockedForEditing,
   scheduleLiveTest,
   createLiveTest,
+  createLiveTestWithPaper,
+  duplicateLiveTest,
+  releaseLivePaperToPractice,
   updateLiveTest,
   cancelLiveTest,
   deleteLiveTest,

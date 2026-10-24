@@ -119,13 +119,10 @@ void main() {
   });
 
   group('CatalogRepository Live Tests', () {
-    test('getLiveTests returns authentic fallback live tests', () async {
+    test('getLiveTests never invents events when the server has none', () async {
       final repo = CatalogRepository();
       final tests = await repo.getLiveTests();
-      expect(tests.length, greaterThanOrEqualTo(3));
-      expect(tests.any((t) => t.title.contains('WBP')), isTrue);
-      expect(tests.any((t) => t.title.contains('WBSSC')), isTrue);
-      expect(tests.any((t) => t.title.contains('Railway')), isTrue);
+      expect(tests, isEmpty);
     });
 
     test('getTestById resolves live test and returns valid MockTestModel', () async {
@@ -144,10 +141,30 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      final now = DateTime.now();
+      final scheduled = LiveTestModel(
+        id: 'live-wbp-01',
+        testId: 'test-live-wbp-01',
+        title: 'WBP Full Mock Test',
+        examTitle: 'WBP Constable',
+        status: 'live',
+        startAt: now.subtract(const Duration(minutes: 5)),
+        scheduledStartTime: now.subtract(const Duration(minutes: 5)),
+        scheduledEndTime: now.add(const Duration(minutes: 85)),
+        durationMinutes: 90,
+        totalQuestions: 100,
+        totalMarks: 200,
+        negativeMarking: 0.25,
+      );
+
       appRouter.go('/home');
       await tester.pumpWidget(
-        const ProviderScope(
-          child: PracticeKoroApp(),
+        ProviderScope(
+          overrides: [
+            // A Live Test the admin actually scheduled (the repository invents none).
+            liveTestsProvider.overrideWith((ref, examId) async => [scheduled]),
+          ],
+          child: const PracticeKoroApp(),
         ),
       );
 
