@@ -30,7 +30,7 @@ try {
   for (const file of [
     '001_initial_schema.sql',
     '002_rls_policies.sql',
-    '011_role_source_of_truth.sql',
+    '0111_role_source_of_truth.sql',
     '018_admin_v2_architecture.sql',
     '029_admin_roles_and_audit_logs.sql',
     '033_strictly_reset_student_roles_and_fix_admin.sql',
