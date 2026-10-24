@@ -298,7 +298,10 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
         final planId = state.pathParameters['planId'] ?? '';
-        return CheckoutScreen(planId: planId);
+        return CheckoutScreen(
+          planId: planId,
+          autoPay: state.uri.queryParameters['pay'] == '1',
+        );
       },
     ),
   ],

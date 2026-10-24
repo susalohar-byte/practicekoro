@@ -77,7 +77,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                       _UpgradeOfferCard(
                         option: option,
                         onUpgrade: () =>
-                            context.push('/checkout/${option.planId}'),
+                            context.push('/checkout/${option.planId}?pay=1'),
                       ),
                       const SizedBox(height: 16),
                     ]
@@ -193,7 +193,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                               plan.durationDays))),
                             onSelect: () {
                               if (!plan.isFree) {
-                                context.push('/checkout/${plan.id}');
+                                context.push('/checkout/${plan.id}?pay=1');
                               }
                             },
                           ),

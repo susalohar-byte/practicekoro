@@ -261,6 +261,39 @@ void main() {
       expect(find.textContaining('Pay ₹299 Now'), findsOneWidget);
     });
 
+    testWidgets('CheckoutScreen with autoPay starts payment without a second tap', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CheckoutScreen(planId: 'pro_1_year', autoPay: true),
+          ),
+        ),
+      );
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      // Signed out in tests, so the automatic start reaches createRazorpayOrder and fails.
+      expect(find.text('Payment Failed'), findsOneWidget);
+      expect(find.text('Please sign in to buy a Pro Pass.'), findsOneWidget);
+    });
+
+    testWidgets('CheckoutScreen without autoPay waits for the Pay button', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CheckoutScreen(planId: 'pro_1_year'),
+          ),
+        ),
+      );
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      expect(find.text('Payment Failed'), findsNothing);
+      expect(find.textContaining('Pay ₹299 Now'), findsOneWidget);
+    });
+
     testWidgets('SettingsScreen displays Plans option', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(

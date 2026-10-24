@@ -14,7 +14,11 @@ import '../../data/repositories/subscription_repository.dart';
 class CheckoutScreen extends ConsumerStatefulWidget {
   final String planId;
 
-  const CheckoutScreen({super.key, required this.planId});
+  /// Opens the Razorpay sheet as soon as the plan is ready, so buying from the Plans
+  /// screen is one tap. The order summary stays underneath if the student cancels.
+  final bool autoPay;
+
+  const CheckoutScreen({super.key, required this.planId, this.autoPay = false});
 
   @override
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -25,6 +29,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
   late Razorpay _razorpay;
   bool _isProcessing = false;
   bool _isConfirming = false;
+  bool _autoPayStarted = false;
   Timer? _resumePollTimer;
 
   SubscriptionPlanModel? _currentPlan;
@@ -719,7 +724,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
   Widget build(BuildContext context) {
     final plansAsync = ref.watch(subscriptionPlansProvider);
     final profile = ref.watch(studentProfileProvider);
-    final currentSub = ref.watch(studentSubscriptionProvider).value;
+    final subState = ref.watch(studentSubscriptionProvider);
+    final currentSub = subState.value;
 
     return Scaffold(
       backgroundColor: UI.page,
@@ -749,6 +755,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
           final hasActivePass = currentSub?.isCurrentlyActive ?? false;
           final blocked = hasActivePass && upgrade == null;
           final payable = upgrade?.amount ?? plan.price;
+
+          // Wait for the current pass so upgrade pricing and the "already active" block apply.
+          if (widget.autoPay &&
+              !_autoPayStarted &&
+              !subState.isLoading &&
+              !blocked &&
+              !plan.isFree) {
+            _autoPayStarted = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_isProcessing) _proceedToPayment(plan);
+            });
+          }
 
           return Stack(
             children: [
