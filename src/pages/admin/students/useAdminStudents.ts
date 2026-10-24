@@ -856,7 +856,12 @@ export function useAdminStudents() {
   const totalStudentsCount = students.length;
   const activeStudentsCount = students.filter((s) => s.status === 'Active').length;
   const paidStudentsCount = students.filter((s) => s.subscriptionPlan !== 'Free').length;
-  const newStudentsCount = students.length;
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const newStudentsCount = students.filter(
+    (s) => s.joinedAt && new Date(s.joinedAt).getTime() >= monthStart.getTime()
+  ).length;
   const scoredStudents = students.filter((s) => s.avgScore != null && s.avgScore > 0);
   const avgTestScoreFormatted =
     scoredStudents.length > 0

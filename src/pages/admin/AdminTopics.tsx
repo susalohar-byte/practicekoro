@@ -1133,11 +1133,8 @@ export const AdminTopics: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {topicsList.length}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 22%
-              </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">all time</p>
           </div>
         </div>
 
@@ -1153,9 +1150,6 @@ export const AdminTopics: React.FC = () => {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {topicsList.filter((t) => t.statusLabel === 'Published').length}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 24%
               </span>
             </div>
           </div>

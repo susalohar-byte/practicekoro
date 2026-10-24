@@ -61,6 +61,7 @@ export function mapDbRowToStudent(row: AdminStudentRow, index: number): Enriched
         : row.accountStatus === 'inactive'
           ? 'Inactive'
           : 'Unavailable',
+    joinedAt: row.createdAt || undefined,
     joinedDate: row.createdAt
       ? new Date(row.createdAt).toLocaleDateString('en-GB', {
           day: '2-digit',

@@ -2,6 +2,7 @@ import { getAuthoritativeAnalytics } from '@/services/domains/admin.analytics';
 import {
   getDashboardOverview,
   getAuthoritativeRevenueRange,
+  getActiveSubscriptionCountsByPlan,
 } from '@/services/domains/admin.reporting';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type {
@@ -153,6 +154,10 @@ export const analyticsApi = {
       completedAttempts: 0,
       totalStudents: studentCount,
     };
+  },
+
+  getActiveSubscriptionCountsByPlan(): Promise<Record<string, number>> {
+    return getActiveSubscriptionCountsByPlan();
   },
 
   async getAdminDashboardV2Stats(): Promise<AdminDashboardV2Stats> {

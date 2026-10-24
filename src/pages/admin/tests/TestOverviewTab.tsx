@@ -106,7 +106,7 @@ export function TestOverviewTab({ testsState, selectedTest }: TestOverviewTabPro
           </div>
           <div className="min-w-0">
             <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-              {(selectedTest as any).attemptsCount ? '72%' : '—'}
+              —
             </span>
             <span className="text-[9.5px] text-slate-400 block truncate">Completion</span>
           </div>

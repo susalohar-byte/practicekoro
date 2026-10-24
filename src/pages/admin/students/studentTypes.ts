@@ -41,6 +41,8 @@ export interface EnrichedStudent {
   lastActive: string;
   status: StudentStatus;
   joinedDate: string;
+  /** Raw ISO registration timestamp, when known. */
+  joinedAt?: string;
   location: string;
   targetExam?: string;
   activities: StudentActivity[];
