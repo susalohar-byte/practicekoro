@@ -23,9 +23,6 @@ const AdminExams = lazyWithRetry(() =>
 const AdminBanners = lazyWithRetry(() =>
   import('@/pages/admin/AdminBanners').then((module) => ({ default: module.AdminBanners }))
 );
-const AdminTestSeries = lazyWithRetry(() =>
-  import('@/pages/admin/AdminTestSeries').then((module) => ({ default: module.AdminTestSeries }))
-);
 const AdminTests = lazyWithRetry(() =>
   import('@/pages/admin/AdminTests').then((module) => ({ default: module.AdminTests }))
 );
@@ -135,6 +132,11 @@ const AdminItemAnalysis = lazyWithRetry(() =>
     default: module.AdminItemAnalysis,
   }))
 );
+const AdminLiveTestPaper = lazyWithRetry(() =>
+  import('@/pages/admin/liveTests/AdminLiveTestPaper').then((module) => ({
+    default: module.AdminLiveTestPaper,
+  }))
+);
 const AdminLiveTests = lazyWithRetry(() =>
   import('@/pages/admin/AdminLiveTests').then((module) => ({
     default: module.AdminLiveTests,
@@ -183,14 +185,6 @@ export const App: React.FC = () => {
             element={
               <AdminRoute requiredPermission="canManageQuestions">
                 <AdminQuestionBank />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="test-series"
-            element={
-              <AdminRoute requiredPermission="canManageTests">
-                <AdminTestSeries />
               </AdminRoute>
             }
           />
@@ -263,6 +257,14 @@ export const App: React.FC = () => {
             element={
               <AdminRoute requiredPermission="canManageTests">
                 <AdminLiveTests />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="live-tests/:liveTestId/questions"
+            element={
+              <AdminRoute requiredPermission="canManageTests">
+                <AdminLiveTestPaper />
               </AdminRoute>
             }
           />

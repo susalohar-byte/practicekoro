@@ -777,11 +777,17 @@ html:not(.dark) .admin-scope header .text-slate-500:not(.admin-dark-card *):not(
 }
 
 /* Form Inputs, Selects, & Textareas in Both Modes */
-html:not(.dark) .admin-scope input:not([class*='bg-transparent']):not([class*='!bg-transparent']),
-html:not(.dark) .admin-scope select:not([class*='bg-transparent']):not([class*='!bg-transparent']),
 html:not(.dark)
   .admin-scope
-  textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
+  input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not(
+    [class*='bg-transparent']
+  ),
+html:not(.dark)
+  .admin-scope
+  select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
+html:not(.dark)
+  .admin-scope
+  textarea:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']) {
   color: #0f172a;
   background-color: #ffffff;
   border-color: #e2e8f0;
@@ -791,17 +797,52 @@ html:not(.dark) .admin-scope textarea::placeholder {
   color: #94a3b8;
 }
 
-/* Explicit rule for transparent admin inputs/selects/textareas */
+/* Explicit rule for transparent admin inputs/selects/textareas & MCQ option inputs */
+.admin-scope .admin-drawer-option-input,
+.admin-scope .admin-transparent-input,
+html:not(.dark) .admin-scope input.admin-drawer-option-input,
+html:not(.dark) .admin-scope input.admin-transparent-input,
+.dark .admin-scope input.admin-drawer-option-input,
+.dark .admin-scope input.admin-transparent-input,
+.admin-scope input.bg-transparent,
 .admin-scope input[class*='bg-transparent'],
-.admin-scope input[class*='!bg-transparent'],
+.admin-scope textarea.bg-transparent,
 .admin-scope textarea[class*='bg-transparent'],
-.admin-scope textarea[class*='!bg-transparent'],
-.admin-scope select[class*='bg-transparent'],
-.admin-scope select[class*='!bg-transparent'] {
+.admin-scope select.bg-transparent,
+.admin-scope select[class*='bg-transparent'] {
+  background: transparent !important;
   background-color: transparent !important;
+  border: 0 !important;
   border-color: transparent !important;
   box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
+
+.admin-scope .admin-drawer-option-input:focus,
+.admin-scope .admin-transparent-input:focus,
+html:not(.dark) .admin-scope input.admin-drawer-option-input:focus,
+html:not(.dark) .admin-scope input.admin-transparent-input:focus,
+.dark .admin-scope input.admin-drawer-option-input:focus,
+.dark .admin-scope input.admin-transparent-input:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.admin-scope .admin-drawer-option-input:-webkit-autofill,
+.admin-scope .admin-drawer-option-input:-webkit-autofill:hover,
+.admin-scope .admin-drawer-option-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 html:not(.dark) .admin-scope select option {
   background-color: #ffffff;
   color: #0f172a;
@@ -826,9 +867,17 @@ html:not(.dark) .admin-scope .admin-dark-card textarea::placeholder {
 }
 
 /* Form Inputs in Dark Mode */
-.dark .admin-scope input:not([class*='bg-transparent']):not([class*='!bg-transparent']),
-.dark .admin-scope select:not([class*='bg-transparent']):not([class*='!bg-transparent']),
-.dark .admin-scope textarea:not([class*='bg-transparent']):not([class*='!bg-transparent']) {
+.dark
+  .admin-scope
+  input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not(
+    [class*='bg-transparent']
+  ),
+.dark
+  .admin-scope
+  select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
+.dark
+  .admin-scope
+  textarea:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']) {
   color: #f8fafc !important;
   background-color: #0b1329 !important;
   border-color: #1e293b !important;

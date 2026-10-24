@@ -178,25 +178,6 @@ export interface PopularExamCard {
   isActive?: boolean;
 }
 
-export interface PopularTestSeriesCard {
-  id: string;
-  testSeriesId?: string;
-  title: string;
-  subtitle?: string; // e.g. "Complete Test Series"
-  cardGradientStart: string;
-  cardGradientEnd: string;
-  cardArrowColor?: string;
-  cardBgImage?: string;
-  cardLogoUrl?: string;
-  orderIndex: number;
-  route?: string;
-  isActive?: boolean;
-  fullMockCount?: number;
-  topicTestCount?: number;
-  pyqTestCount?: number;
-  badgeText?: string;
-}
-
 export interface ExamCategory {
   id: string;
   name: string;
@@ -434,6 +415,11 @@ export interface MockTest {
   orderIndex: number;
   isActive: boolean;
   status: 'draft' | 'published' | 'archived';
+  /**
+   * Paper owned by a Live Test (created from the Live Tests page). Hidden from every
+   * catalog, the Tests page and the Question Bank until it is released to practice.
+   */
+  isLiveOnly?: boolean;
   examTitle?: string;
   subjectName?: string;
   chapterName?: string;
@@ -471,6 +457,8 @@ export interface Question {
   sourcePaper?: string;
   sourceShift?: string;
   isActive: boolean;
+  /** Belongs to an unreleased Live Test paper; kept out of the bank and public pages. */
+  isLiveOnly?: boolean;
   status?: 'active' | 'archived' | 'draft' | 'published' | 'under_review';
   subjectName?: string;
   chapterName?: string;
@@ -816,6 +804,8 @@ export interface AdminSubscriptionRow {
   paymentGateway?: string;
   paymentTransactionId?: string;
   paymentCurrency?: string;
+  /** Net money kept for this subscription: linked payment plus upgrade payments, minus refunds. */
+  recordedRevenue?: number;
   daysRemaining: number;
   createdAt: string;
 }
@@ -840,6 +830,10 @@ export interface AdminPaymentRow {
   refundAmount?: number;
   refundReason?: string;
   refundedAt?: string;
+  // Captured after the purchase stopped being eligible: access was not granted and the
+  // money is owed back, so it is not retained revenue.
+  requiresRefund?: boolean;
+  purchaseType?: 'new' | 'upgrade' | 'renewal';
   createdAt: string;
   created_at?: string;
   subscriptionId?: string;
@@ -1248,12 +1242,13 @@ export interface RankingStudent {
 }
 
 export interface AdminRankingFilter {
-  scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series';
+  scope?: 'Overall' | 'By Exam' | 'By Subject' | 'By Topic' | 'By Test Series' | 'Live Tests';
   exam?: string;
   subject?: string;
   testType?: string;
   timePeriod?: string;
   search?: string;
+  liveTestId?: string;
 }
 
 export interface QuestionInsightRow {

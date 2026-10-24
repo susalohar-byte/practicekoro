@@ -149,10 +149,33 @@ export function parseQuestionsTxt(
   let currentBlock: string[] = [];
 
   const startRegex = /^(?:(?:Q(?:uestion)?\s*)?[0-9০-৯]+[-.:)]\s*)/i;
+  const blockOptionRegex = /^\s*(?:\(([a-dA-D])\)|([a-dA-D])[.)])\s*(.*)$/;
+  const blockExplanationRegex =
+    /^\s*(?:Explanation|ব্যাখ্যা|Short\s*Notes|শর্ট\s*নোটস|Notes?)\s*(?:[:\-–—]\s*(.*))?$/i;
 
+  // Inside an explanation, a numbered line ("1947: Committee formed.") only starts a new
+  // question when it is followed by option lines (at least two distinct letters) before the
+  // next numbered line.
+  const startsQuestionWithOptions = (from: number): boolean => {
+    const letters = new Set<string>();
+    for (let j = from + 1; j < lines.length; j++) {
+      const next = lines[j].trim();
+      if (startRegex.test(next)) break;
+      const opt = next.match(blockOptionRegex);
+      if (opt) letters.add((opt[1] || opt[2]).toUpperCase());
+      if (letters.size >= 2) return true;
+    }
+    return false;
+  };
+
+  let inExplanation = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const isNewQuestionStart = startRegex.test(line.trim());
+    const isNewQuestionStart =
+      startRegex.test(line.trim()) && (!inExplanation || startsQuestionWithOptions(i));
+
+    if (isNewQuestionStart) inExplanation = false;
+    else if (blockExplanationRegex.test(line.trim())) inExplanation = true;
 
     if (isNewQuestionStart && currentBlock.length > 0) {
       // Check if previous block has content before pushing
@@ -271,8 +294,12 @@ export function parseQuestionsTxt(
         continue;
       }
 
+      // Explanation text is free-form: "B. R. Ambedkar ..." is not option B, and an answer
+      // line is only read there if none was given before the explanation.
+      const inExplanationSection = currentSection === 'explanation';
+
       // Check for Answer line
-      const ansMatch = trimmed.match(answerRegex);
+      const ansMatch = inExplanationSection && correctOption ? null : trimmed.match(answerRegex);
       if (ansMatch) {
         const letter = (ansMatch[1] || ansMatch[2]).toUpperCase() as 'A' | 'B' | 'C' | 'D';
         correctOption = letter;
@@ -291,7 +318,7 @@ export function parseQuestionsTxt(
       }
 
       // Check for Option line
-      const optMatch = trimmed.match(optionRegex);
+      const optMatch = inExplanationSection ? null : trimmed.match(optionRegex);
       if (optMatch) {
         const letter = (optMatch[1] || optMatch[2]).toUpperCase() as 'A' | 'B' | 'C' | 'D';
         currentOptionKey = letter;

@@ -2,7 +2,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { parseQuestionsCsv, parseQuestionsText } from '@/utils/csvParser';
 import { catalogApi } from '@/services/domains/catalog';
-import { createQuestion } from './admin.questions';
+import { createQuestion, deleteQuestion } from './admin.questions';
+import { notifyExamsUpdated } from '@/lib/dataSync';
 import { localTestQuestions, localTests } from '@/services/domains/localStore';
 import type { MockTest, Question } from '@/types';
 import type { ParsedTxtQuestion } from '@/utils/txtQuestionParser';
@@ -11,6 +12,21 @@ import type { ParsedTxtQuestion } from '@/utils/txtQuestionParser';
 // --------------------------------------------------------------------------
 // DIRECT TEST QUESTION CREATION & BULK IMPORTS
 // --------------------------------------------------------------------------
+
+/**
+ * Removes a question that was just created for a test but could not be linked to it, so a
+ * failed import leaves no orphan in the Question Bank and a retry does not duplicate it.
+ * Returns a note for the error message when the cleanup itself fails.
+ */
+async function discardUnlinkedQuestion(questionId: string): Promise<string> {
+  try {
+    await deleteQuestion(questionId);
+    return '';
+  } catch (err) {
+    return ` The question was kept in the Question Bank (cleanup failed: ${getErrorMessage(err, 'unknown error')}).`;
+  }
+}
+
 export async function createQuestionForTest(
   testId: string,
   qData: Omit<Question, 'id'>
@@ -23,6 +39,7 @@ export async function createQuestionForTest(
     let testYear: number | undefined;
     let testPaper: string | undefined;
     let testShift: string | undefined;
+    let testIsLiveOnly = false;
 
     if (!isSupabaseConfigured) {
       const localTest = localTests.find((t) => t.id === testId);
@@ -34,11 +51,14 @@ export async function createQuestionForTest(
         testYear = localTest.year;
         testPaper = localTest.paperName;
         testShift = localTest.shift;
+        testIsLiveOnly = Boolean(localTest.isLiveOnly);
       }
     } else {
       const { data, error } = await supabase
         .from('tests')
-        .select('id, test_type, exam_id, chapter_id, subject_id, year, paper_name, shift')
+        .select(
+          'id, test_type, exam_id, chapter_id, subject_id, year, paper_name, shift, is_live_only'
+        )
         .eq('id', testId)
         .maybeSingle();
 
@@ -52,6 +72,7 @@ export async function createQuestionForTest(
       testYear = data.year ? Number(data.year) : undefined;
       testPaper = data.paper_name;
       testShift = data.shift;
+      testIsLiveOnly = Boolean(data.is_live_only);
     }
 
     const sourceType: Question['sourceType'] =
@@ -78,16 +99,24 @@ export async function createQuestionForTest(
       subjectId: effectiveSubjectId,
       chapterId: effectiveTopicId,
       topicId: effectiveTopicId,
+      isLiveOnly: testIsLiveOnly,
     });
 
     let nextOrder = 1;
     if (isSupabaseConfigured) {
-      const { data: lastRow } = await supabase
+      const { data: lastRow, error: orderError } = await supabase
         .from('test_questions')
         .select('question_order')
         .eq('test_id', testId)
         .order('question_order', { ascending: false })
         .limit(1);
+      if (orderError) {
+        const note = await discardUnlinkedQuestion(question.id);
+        return {
+          success: false,
+          error: `Question could not be assigned to the test: ${orderError.message}.${note}`,
+        };
+      }
 
       nextOrder =
         lastRow && lastRow[0] && lastRow[0].question_order != null
@@ -104,10 +133,10 @@ export async function createQuestionForTest(
       });
 
       if (insertError) {
+        const note = await discardUnlinkedQuestion(question.id);
         return {
           success: false,
-          question,
-          error: `Question created but failed to assign to test: ${insertError.message}`,
+          error: `Question could not be assigned to the test: ${insertError.message}.${note}`,
         };
       }
 
@@ -137,6 +166,7 @@ export async function createQuestionForTest(
       });
     }
 
+    notifyExamsUpdated();
     return { success: true, question };
   } catch (err) {
     return { success: false, error: getErrorMessage(err, 'Failed to create question for test') };
@@ -157,8 +187,19 @@ export async function bulkCreateQuestionsFromTxt(params: {
   let successCount = 0;
   const errors: string[] = [];
   let currentTestOrder = 1;
+  // Questions of a Live Test paper are created hidden (never briefly visible in the bank).
+  let testIsLiveOnly = params.testId
+    ? Boolean(localTests.find((t) => t.id === params.testId)?.isLiveOnly)
+    : false;
 
   if (params.testId && isSupabaseConfigured) {
+    const { data: testRow, error: testError } = await supabase
+      .from('tests')
+      .select('is_live_only')
+      .eq('id', params.testId)
+      .maybeSingle();
+    if (testError) throw new Error(`Test could not be loaded: ${testError.message}`);
+    testIsLiveOnly = Boolean(testRow?.is_live_only);
     try {
       const { data: lastRow } = await supabase
         .from('test_questions')
@@ -199,18 +240,24 @@ export async function bulkCreateQuestionsFromTxt(params: {
         defaultNegativeMarks: 0,
         isActive: true,
         status: 'active',
+        isLiveOnly: testIsLiveOnly,
       });
 
       if (params.testId) {
         if (isSupabaseConfigured) {
-          await supabase.from('test_questions').insert({
+          const { error: linkError } = await supabase.from('test_questions').insert({
             test_id: params.testId,
             question_id: created.id,
-            question_order: currentTestOrder++,
+            question_order: currentTestOrder,
             marks: params.defaultMarks ?? 1.0,
             // Questions never carry negative marks — scoring uses the test-level scheme.
             negative_marks: 0,
           });
+          if (linkError) {
+            const note = await discardUnlinkedQuestion(created.id);
+            throw new Error(`could not be assigned to the test: ${linkError.message}.${note}`);
+          }
+          currentTestOrder++;
         } else {
           localTestQuestions.push({
             id: `tq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -253,6 +300,7 @@ export async function bulkCreateQuestionsFromTxt(params: {
       console.warn('Failed to update test total_questions:', err);
     }
   }
+  if (successCount > 0) notifyExamsUpdated();
 
   return {
     successCount,
@@ -277,6 +325,7 @@ export async function importQuestionsCSV(
   }
 
   let successCount = 0;
+  let saveFailures = 0;
   const errors: string[] = [...parsed.errors];
 
   for (const qData of parsed.questions) {
@@ -284,6 +333,7 @@ export async function importQuestionsCSV(
       await createQuestion(qData);
       successCount++;
     } catch (err) {
+      saveFailures++;
       errors.push(
         `Failed to save question "${qData.questionText.slice(0, 30)}...": ${getErrorMessage(err, 'Unknown error')}`
       );
@@ -292,7 +342,7 @@ export async function importQuestionsCSV(
 
   return {
     successCount,
-    errorCount: parsed.invalidCount,
+    errorCount: parsed.invalidCount + saveFailures,
     errors,
   };
 }
@@ -316,6 +366,7 @@ export async function importQuestionsText(
   }
 
   let successCount = 0;
+  let saveFailures = 0;
   const errors: string[] = [...parsed.errors];
 
   for (const qData of parsed.questions) {
@@ -323,6 +374,7 @@ export async function importQuestionsText(
       await createQuestion(qData);
       successCount++;
     } catch (err) {
+      saveFailures++;
       errors.push(
         `Failed to save question "${qData.questionText.slice(0, 30)}...": ${getErrorMessage(err, 'Unknown error')}`
       );
@@ -331,7 +383,7 @@ export async function importQuestionsText(
 
   return {
     successCount,
-    errorCount: parsed.invalidCount,
+    errorCount: parsed.invalidCount + saveFailures,
     errors,
   };
 }

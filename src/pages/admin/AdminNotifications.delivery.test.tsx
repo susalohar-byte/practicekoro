@@ -9,27 +9,35 @@ beforeEach(() => {
   mocks.rows = [];
   mocks.load.mockImplementation(async () => mocks.rows);
 });
-it('does not invent production delivery telemetry or trend percentages', async () => {
-  mocks.rows = Array.from({ length: 100 }, (_, i) => ({
-    id: 'n' + i,
-    title: 'Audit ' + i,
-    message: 'Fixture',
-    targetAudience: 'all',
-    status: 'sent',
-    channel: 'in_app',
-    sentAt: '2026-09-15T10:00:00Z',
-  }));
-  render(<AdminNotifications />);
-  await waitFor(() =>
-    expect(JSON.parse(localStorage.getItem('practicekoro_admin_notifications_v5')!)).toHaveLength(
-      100
-    )
-  );
-  expect(screen.getAllByText('Unavailable')).toHaveLength(4);
-  for (const fake of ['96', '79', '20', '↑ 28%', '79%', '↑ 20%', '↓ 3%'])
-    expect(screen.queryByText(fake)).not.toBeInTheDocument();
-  expect(screen.getByText(/Sent counts are saved notifications/)).toBeInTheDocument();
-});
+// Rendering 100 rows of this large page can exceed waitFor's 1s default when the full suite
+// runs in parallel workers, so allow more time without relaxing what is asserted.
+it(
+  'does not invent production delivery telemetry or trend percentages',
+  { timeout: 15000 },
+  async () => {
+    mocks.rows = Array.from({ length: 100 }, (_, i) => ({
+      id: 'n' + i,
+      title: 'Audit ' + i,
+      message: 'Fixture',
+      targetAudience: 'all',
+      status: 'sent',
+      channel: 'in_app',
+      sentAt: '2026-09-15T10:00:00Z',
+    }));
+    render(<AdminNotifications />);
+    await waitFor(
+      () =>
+        expect(
+          JSON.parse(localStorage.getItem('practicekoro_admin_notifications_v5')!)
+        ).toHaveLength(100),
+      { timeout: 10000 }
+    );
+    expect(screen.getAllByText('Unavailable')).toHaveLength(4);
+    for (const fake of ['96', '79', '20', '↑ 28%', '79%', '↑ 20%', '↓ 3%'])
+      expect(screen.queryByText(fake)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sent counts are saved notifications/)).toBeInTheDocument();
+  }
+);
 it('defaults to All Time and displays October records instead of fixed September filter', async () => {
   mocks.rows = [
     {

@@ -54,6 +54,7 @@ export const QuestionImageField: React.FC<QuestionImageFieldProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewError, setPreviewError] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const cleanUrl = (value || '').trim();
@@ -99,6 +100,28 @@ export const QuestionImageField: React.FC<QuestionImageFieldProps> = ({
     }
   };
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled || isUploading) return;
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (disabled || isUploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
   const handleRemove = () => {
     setErrorMessage('');
     setPreviewError(false);
@@ -122,63 +145,82 @@ export const QuestionImageField: React.FC<QuestionImageFieldProps> = ({
         )}
       </div>
 
-      {/* Input / Upload Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <div className="relative flex-1">
+      {/* Input / Upload Controls — entire area is a drop zone */}
+      <div
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        className={`rounded-xl p-2.5 transition-all border-2 ${
+          dragActive
+            ? 'border-dashed border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30'
+            : 'border-transparent'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative flex-1">
+            <input
+              type="url"
+              value={value}
+              disabled={disabled || isUploading}
+              onChange={(e) => {
+                setErrorMessage('');
+                setPreviewError(false);
+                onChange(e.target.value);
+              }}
+              placeholder="Paste image URL (https://...) or drag & drop an image here"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 disabled:opacity-60 transition-all font-mono"
+            />
+          </div>
+
+          {/* Hidden File Input */}
           <input
-            type="url"
-            value={value}
+            ref={fileInputRef}
+            type="file"
+            accept={ALLOWED_MIME_TYPES.join(',')}
             disabled={disabled || isUploading}
-            onChange={(e) => {
-              setErrorMessage('');
-              setPreviewError(false);
-              onChange(e.target.value);
-            }}
-            placeholder="Paste image URL (https://...) or click Upload"
-            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 disabled:opacity-60 transition-all font-mono"
+            onChange={handleFileChange}
+            className="hidden"
           />
-        </div>
 
-        {/* Hidden File Input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ALLOWED_MIME_TYPES.join(',')}
-          disabled={disabled || isUploading}
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        {/* Upload Button */}
-        <button
-          type="button"
-          disabled={disabled || isUploading}
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 rounded-xl text-xs font-bold transition-all shrink-0 disabled:opacity-50 cursor-pointer"
-        >
-          {isUploading ? (
-            <>
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Uploading...</span>
-            </>
-          ) : (
-            <>
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload Image</span>
-            </>
-          )}
-        </button>
-
-        {/* Remove Button if image present */}
-        {cleanUrl && !disabled && (
+          {/* Upload Button */}
           <button
             type="button"
-            onClick={handleRemove}
-            title="Remove Image"
-            className="inline-flex items-center justify-center p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-rose-200 dark:border-rose-900/50 shrink-0"
+            disabled={disabled || isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 rounded-xl text-xs font-bold transition-all shrink-0 disabled:opacity-50 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            {isUploading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Image</span>
+              </>
+            )}
           </button>
+
+          {/* Remove Button if image present */}
+          {cleanUrl && !disabled && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              title="Remove Image"
+              className="inline-flex items-center justify-center p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all border border-rose-200 dark:border-rose-900/50 shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Drag hint */}
+        {!cleanUrl && !isUploading && (
+          <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">
+            📎 ছবি টেনে এনে ছেড়ে দিন (Drag & Drop) অথবা Upload বাটনে ক্লিক করুন
+          </p>
         )}
       </div>
 

@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import type { Subject, Chapter, MockTest } from '@/types';
 import { cn } from '@/lib/utils';
+import { FileDropZone } from '@/components/common/FileDropZone';
 import { getPageNumbers } from '@/utils/pagination';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -2226,12 +2227,14 @@ export const AdminSubjects: React.FC = () => {
               individually; partial failures are reported and retry excludes saved rows. Omitted
               publish status defaults to Draft.
             </p>
-            <input
-              aria-label="Subject import file"
-              type="file"
+            <FileDropZone
+              ariaLabel="Subject import file"
               accept=".csv,.json"
               disabled={isSaving || isUploadingIcon}
-              onChange={(e) => void chooseImport(e.target.files?.[0])}
+              onFile={(file) => void chooseImport(file)}
+              label="Click to browse or drag & drop CSV/JSON"
+              hint="Up to 100 records and 5 MB"
+              buttonLabel="Select File"
             />
             <button
               onClick={() => download(subjectCsvTemplate, 'subjects-template.csv', 'text/csv')}

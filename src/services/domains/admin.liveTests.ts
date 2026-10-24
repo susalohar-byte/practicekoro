@@ -1,12 +1,24 @@
 import { uploadValidatedImage, validateRasterFile } from '@/lib/rasterUploads';
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { notifyExamsUpdated } from '@/lib/dataSync';
+import { loadAllPages } from '@/utils/loadAllPages';
 import {
   localExams,
   localLiveTests,
   localLiveTestParticipations,
+  localTestQuestions,
   localTests,
 } from '@/services/domains/localStore';
+import {
+  archiveTest,
+  createTest,
+  deleteTest,
+  duplicateTest,
+  getTestById,
+  updateTest,
+  validateTestForPublish,
+} from './admin.tests';
 import type { LiveTest, LiveTestParticipant, MockTest } from '@/types';
 
 /**
@@ -156,13 +168,15 @@ function mapRowToMockTest(row: any): MockTest {
     slug: String(row.slug || row.id),
     description: row.description ?? undefined,
     testType: row.test_type || 'full_mock',
-    durationMinutes: Number(row.duration_minutes || 90),
-    totalQuestions: Number(row.total_questions || 100),
-    totalMarks: Number(row.total_marks || 100),
-    passingMarks: Number(row.passing_marks || 40),
-    negativeMarking: Number(row.negative_marking ?? 0.25),
+    // Stored values only: a fresh paper really has 0 questions (no placeholder numbers).
+    durationMinutes: Number(row.duration_minutes ?? 0),
+    totalQuestions: Number(row.total_questions ?? 0),
+    totalMarks: Number(row.total_marks ?? 0),
+    passingMarks: Number(row.passing_marks ?? 0),
+    negativeMarking: Number(row.negative_marking ?? 0),
     isPremium: Boolean(row.is_premium),
     isActive: Boolean(row.is_active ?? true),
+    isLiveOnly: Boolean(row.is_live_only),
     orderIndex: Number(row.order_index || 0),
     status: (row.status || (row.is_active ? 'published' : 'draft')) as
       'draft' | 'published' | 'archived',
@@ -228,9 +242,11 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
         ? Boolean(lt.is_published)
         : true;
   const scheduleStatus = deriveLiveTestStatus(lt.status, startAt, duration);
-  // Unpublished events are drafts until they are cancelled or have ended.
+  // An unpublished event stays a draft (even after its planned start time passes) until it is
+  // published, cancelled or explicitly ended; it never ran, so it is never "completed".
+  const storedStatus = String(lt.status || 'upcoming');
   const derivedStatus: LiveTest['status'] =
-    !isPublished && (scheduleStatus === 'upcoming' || scheduleStatus === 'live')
+    !isPublished && ['upcoming', 'scheduled', 'live', 'draft'].includes(storedStatus)
       ? 'draft'
       : scheduleStatus;
   const endAt =
@@ -678,6 +694,7 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
       const payload = {
         id,
         test_id: input.testId,
+        exam_id: sourceTest?.examId ?? null,
         start_at: startAt,
         registration_deadline: registrationDeadline,
         status: dbFields.status,
@@ -711,7 +728,192 @@ export async function scheduleLiveTest(input: ScheduleLiveTestInput): Promise<Li
     }
   }
 
+  notifyExamsUpdated();
   return newLiveTest;
+}
+
+export interface CreateLiveTestWithPaperInput {
+  examId: string;
+  title: string;
+  startAt: string;
+  durationMinutes: number;
+  /** Target number of questions; the paper's real count follows its uploaded questions. */
+  totalQuestions: number;
+  totalMarks: number;
+  negativeMarking: number;
+  rankingEnabled?: boolean;
+  subscriptionRequired?: boolean;
+  logo?: string;
+}
+
+/**
+ * Create a Live Test together with its own paper: a Full Mock test flagged live-only, so it
+ * and its questions stay out of every catalog and the Question Bank. The event starts as a
+ * Draft; the admin uploads the questions and then publishes it.
+ */
+export async function createLiveTestWithPaper(
+  input: CreateLiveTestWithPaperInput
+): Promise<LiveTest> {
+  const title = input.title.trim();
+  if (!input.examId) throw new Error('Select the exam for this Live Test.');
+  if (!title) throw new Error('Title is required.');
+
+  const slugBase = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const paper = await createTest({
+    title,
+    slug: `live-${slugBase || 'paper'}-${Date.now().toString(36)}`,
+    examId: input.examId,
+    testType: 'full_mock',
+    durationMinutes: Number(input.durationMinutes),
+    totalQuestions: Number(input.totalQuestions),
+    totalMarks: Number(input.totalMarks),
+    passingMarks: 0,
+    negativeMarking: Number(input.negativeMarking),
+    isPremium: Boolean(input.subscriptionRequired),
+    orderIndex: 0,
+    isActive: true,
+    isLiveOnly: true,
+    status: 'draft',
+  });
+
+  try {
+    return await scheduleLiveTest({
+      testId: paper.id,
+      title,
+      startAt: input.startAt,
+      registrationDeadline: input.startAt,
+      durationMinutes: Number(input.durationMinutes),
+      totalQuestions: Number(input.totalQuestions),
+      totalMarks: Number(input.totalMarks),
+      negativeMarking: Number(input.negativeMarking),
+      rankingEnabled: input.rankingEnabled ?? true,
+      subscriptionRequired: Boolean(input.subscriptionRequired),
+      logo: input.logo,
+      examLogo: input.logo,
+      status: 'draft',
+    });
+  } catch (err) {
+    // Never leave a paper behind without its Live Test.
+    await deleteTest(paper.id).catch(() => undefined);
+    throw err;
+  }
+}
+
+const PUBLISHED_EVENT_STATUSES: ReadonlyArray<LiveTest['status']> = [
+  'upcoming',
+  'scheduled',
+  'live',
+];
+
+/**
+ * Keep a live-only paper in step with its event. Edits to title, duration, negative marking and
+ * access are copied onto the paper (the database refuses scoring edits once the event is
+ * published). Publishing the event first validates and publishes the paper, and takes the
+ * question count and marks from what was actually uploaded.
+ */
+async function syncLivePaper(
+  existing: LiveTest,
+  paper: MockTest,
+  updates: Partial<LiveTest>
+): Promise<Partial<LiveTest>> {
+  const paperUpdates: Partial<MockTest> = {};
+  const nextTitle = updates.title?.trim();
+  if (nextTitle && nextTitle !== paper.title) paperUpdates.title = nextTitle;
+  if (
+    updates.durationMinutes !== undefined &&
+    Number(updates.durationMinutes) !== Number(paper.durationMinutes)
+  )
+    paperUpdates.durationMinutes = Number(updates.durationMinutes);
+  if (
+    updates.negativeMarking !== undefined &&
+    Number(updates.negativeMarking) !== Number(paper.negativeMarking)
+  )
+    paperUpdates.negativeMarking = Number(updates.negativeMarking);
+  if (
+    updates.subscriptionRequired !== undefined &&
+    Boolean(updates.subscriptionRequired) !== Boolean(paper.isPremium)
+  )
+    paperUpdates.isPremium = Boolean(updates.subscriptionRequired);
+  if (Object.keys(paperUpdates).length > 0) await updateTest(paper.id, paperUpdates);
+
+  const publishing =
+    updates.status !== undefined &&
+    PUBLISHED_EVENT_STATUSES.includes(updates.status) &&
+    (existing.status === 'draft' || paper.status !== 'published');
+  if (!publishing) return updates;
+
+  const validation = await validateTestForPublish(paper.id);
+  if (!validation.isValid)
+    throw new Error(
+      `Upload this Live Test's questions before publishing it: ${validation.errors.join('; ')}`
+    );
+  if (paper.status !== 'published') await updateTest(paper.id, { status: 'published' });
+  const fresh = await getTestById(paper.id);
+  return fresh
+    ? { ...updates, totalQuestions: fresh.totalQuestions, totalMarks: fresh.totalMarks }
+    : updates;
+}
+
+/** Make an ended Live Test's paper an ordinary Full Mock that students can practise. */
+export async function releaseLivePaperToPractice(id: string): Promise<MockTest> {
+  const liveTest = await getLiveTestById(id);
+  if (!liveTest) throw new Error('Live test not found.');
+  if (!['ended', 'completed', 'cancelled'].includes(liveTest.status))
+    throw new Error('A Live Test paper can be released to practice only after the Live Test ends.');
+  const paper = (await fetchSourceTestsMap([liveTest.testId])).get(liveTest.testId);
+  if (!paper) throw new Error('The Live Test paper no longer exists.');
+  if (!paper.isLiveOnly) throw new Error('This paper is already available for practice.');
+  const released = await updateTest(paper.id, { isLiveOnly: false });
+  notifyExamsUpdated();
+  return released;
+}
+
+/**
+ * Duplicate a Live Test as a new Draft for tomorrow. A live-only paper is copied with its
+ * questions, so the new event never shares (or locks) the original's paper.
+ */
+export async function duplicateLiveTest(id: string): Promise<LiveTest> {
+  const liveTest = await getLiveTestById(id);
+  if (!liveTest) throw new Error('Live test not found.');
+  const startAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const logo = liveTest.logo || liveTest.examLogo || '/images/exams/logo_wbp.png';
+  const common = {
+    title: `${liveTest.title} (Copy)`,
+    startAt,
+    durationMinutes: liveTest.durationMinutes || 60,
+    totalQuestions: liveTest.totalQuestions || 100,
+    totalMarks: liveTest.totalMarks || 100,
+    negativeMarking: liveTest.negativeMarking ?? 0.25,
+    rankingEnabled: Boolean(liveTest.rankingEnabled),
+    subscriptionRequired: Boolean(liveTest.subscriptionRequired),
+    logo,
+    examLogo: logo,
+  };
+
+  if (!liveTest.test?.isLiveOnly) {
+    return scheduleLiveTest({
+      ...common,
+      testId: liveTest.testId,
+      registrationDeadline: new Date(Date.now() + 23.5 * 3600 * 1000).toISOString(),
+    });
+  }
+
+  const copy = await duplicateTest(liveTest.testId);
+  if (!copy) throw new Error('The Live Test paper could not be copied.');
+  try {
+    return await scheduleLiveTest({
+      ...common,
+      testId: copy.id,
+      registrationDeadline: startAt,
+      status: 'draft',
+    });
+  } catch (err) {
+    await deleteTest(copy.id).catch(() => undefined);
+    throw err;
+  }
 }
 
 /** Update Live Test schedule or status */
@@ -720,11 +922,24 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
   const existing = currentList.find((lt) => lt.id === id);
 
   if (!existing) throw new Error('Live test not found.');
+  // A running event's paper and timing are fixed: students are already answering it.
+  if (existing.status === 'live') {
+    if (updates.testId && updates.testId !== existing.testId)
+      throw new Error('The source test of a running Live Test cannot be changed.');
+    if (
+      updates.durationMinutes !== undefined &&
+      Number(updates.durationMinutes) !== Number(existing.durationMinutes)
+    )
+      throw new Error('The duration of a running Live Test cannot be changed.');
+  }
   const testId = updates.testId || existing.testId;
   const sourceTestsMap = testId ? await fetchSourceTestsMap([testId]) : new Map<string, MockTest>();
   const sourceTest = sourceTestsMap.get(testId) || existing?.test || null;
   if (updates.testId && updates.testId !== existing?.testId)
     assertFullMockSource(updates.testId, sourceTestsMap.get(updates.testId) || null);
+  if (sourceTest?.isLiveOnly && testId === existing.testId) {
+    updates = await syncLivePaper(existing, sourceTest, updates);
+  }
 
   // Map the requested status onto the stored columns (Draft = unpublished). Without an explicit
   // status, keep a cancellation and otherwise let deriveLiveTestStatus compute from the schedule.
@@ -829,6 +1044,7 @@ export async function updateLiveTest(id: string, updates: Partial<LiveTest>): Pr
     }
   }
 
+  notifyExamsUpdated();
   return updatedItem;
 }
 
@@ -866,10 +1082,26 @@ export async function cancelLiveTest(id: string): Promise<boolean> {
 
 /** Delete a live test */
 export async function deleteLiveTest(id: string): Promise<boolean> {
-  if (isSupabaseConfigured) return deleteAdminRecord('live_tests', id);
+  if (isSupabaseConfigured) {
+    const before = await getLiveTests();
+    const target = before.find((lt) => lt.id === id);
+    const deleted = await deleteAdminRecord('live_tests', id);
+    // A live-only paper has no other home: archive it once no Live Test uses it any more
+    // (archived, not deleted, so attempts and results stay intact).
+    if (
+      deleted &&
+      target?.test?.isLiveOnly &&
+      !before.some((lt) => lt.id !== id && lt.testId === target.testId)
+    ) {
+      await archiveTest(target.testId);
+    }
+    notifyExamsUpdated();
+    return deleted;
+  }
   const rows = await getLiveTests();
   if (!rows.some((r) => r.id === id)) throw new Error('Live test not found.');
   await syncLiveTestsToRemote(rows.filter((r) => r.id !== id));
+  notifyExamsUpdated();
   return true;
 }
 
@@ -1185,6 +1417,182 @@ export async function recordLiveTestSubmission(
  * 2. Higher accuracy (accuracy DESC)
  * 3. Lower time taken (timeTaken ASC)
  */
+export interface LiveTestStats {
+  /** Distinct students who started the paper during the live window. */
+  participants: number;
+  /** Distinct students who submitted it during the live window. */
+  submitted: number;
+  /** Mean of each submitter's best score, or null when nobody submitted. */
+  avgScore: number | null;
+  /** Mean time spent on those best attempts, in seconds. */
+  avgTimeSeconds: number | null;
+  /** Districts of participants with a known district, most frequent first. */
+  topDistricts: { name: string; count: number; percent: number }[];
+  /** Submitters ranked by best score, then less time. */
+  leaderboard: { rank: number; userId: string; name: string; score: number; timeSeconds: number }[];
+}
+
+/**
+ * Which Live Test each uploaded live question belongs to (question id -> live test id), so the
+ * Question Bank's Live Test mode can show and filter them by event.
+ */
+export async function getLiveQuestionIndex(liveTests: LiveTest[]): Promise<Record<string, string>> {
+  const liveByPaper = new Map<string, string>();
+  for (const lt of liveTests) if (lt.testId) liveByPaper.set(lt.testId, lt.id);
+  const index: Record<string, string> = {};
+  if (liveByPaper.size === 0) return index;
+
+  if (!isSupabaseConfigured) {
+    for (const tq of localTestQuestions) {
+      const liveId = liveByPaper.get(tq.testId);
+      if (liveId) index[tq.questionId] = liveId;
+    }
+    return index;
+  }
+
+  const { data, error } = await supabase
+    .from('test_questions')
+    .select('test_id, question_id')
+    .in('test_id', Array.from(liveByPaper.keys()));
+  if (error) throw new Error(error.message);
+  for (const row of (data || []) as { test_id: string; question_id: string }[]) {
+    const liveId = liveByPaper.get(String(row.test_id));
+    if (liveId) index[String(row.question_id)] = liveId;
+  }
+  return index;
+}
+
+export const EMPTY_LIVE_TEST_STATS: LiveTestStats = {
+  participants: 0,
+  submitted: 0,
+  avgScore: null,
+  avgTimeSeconds: null,
+  topDistricts: [],
+  leaderboard: [],
+};
+
+interface LiveAttemptRow {
+  id: string;
+  test_id: string;
+  user_id: string;
+  status: string | null;
+  score: number | null;
+  time_spent_seconds: number | null;
+  start_time: string | null;
+}
+
+/**
+ * Real participation numbers for each Live Test, read from `test_attempts` (only attempts
+ * started inside the event's window count, so practice attempts of a released paper do not).
+ */
+export async function getLiveTestsStats(
+  liveTests: LiveTest[]
+): Promise<Record<string, LiveTestStats>> {
+  const result: Record<string, LiveTestStats> = {};
+  for (const lt of liveTests) result[lt.id] = { ...EMPTY_LIVE_TEST_STATS };
+  if (!isSupabaseConfigured) return result;
+
+  const testIds = Array.from(new Set(liveTests.map((lt) => lt.testId).filter(Boolean)));
+  if (testIds.length === 0) return result;
+
+  const attempts = await loadAllPages<LiveAttemptRow>(async (limit, offset) => {
+    const { data, error } = await supabase
+      .from('test_attempts')
+      .select('id, test_id, user_id, status, score, time_spent_seconds, start_time')
+      .in('test_id', testIds)
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
+    if (error) throw new Error(error.message);
+    return (data || []) as LiveAttemptRow[];
+  }, 1000);
+
+  const perLive = new Map<string, LiveAttemptRow[]>();
+  for (const lt of liveTests) {
+    const start = new Date(lt.startAt).getTime();
+    if (isNaN(start)) continue;
+    const end = start + Math.max(1, Number(lt.durationMinutes) || 0) * 60 * 1000;
+    perLive.set(
+      lt.id,
+      attempts.filter((a) => {
+        const t = a.start_time ? new Date(a.start_time).getTime() : NaN;
+        return a.test_id === lt.testId && t >= start && t <= end;
+      })
+    );
+  }
+
+  const userIds = Array.from(
+    new Set(Array.from(perLive.values()).flatMap((rows) => rows.map((a) => a.user_id)))
+  );
+  const profiles = new Map<string, { name?: string; district?: string }>();
+  for (let i = 0; i < userIds.length; i += 200) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, district')
+      .in('id', userIds.slice(i, i + 200));
+    if (error) throw new Error(error.message);
+    for (const row of (data || []) as { id: string; full_name?: string; district?: string }[]) {
+      profiles.set(String(row.id), {
+        name: row.full_name?.trim() || undefined,
+        district: row.district?.trim() || undefined,
+      });
+    }
+  }
+
+  for (const [liveId, rows] of perLive) {
+    const participantIds = new Set(rows.map((a) => a.user_id));
+    const best = new Map<string, LiveAttemptRow>();
+    for (const a of rows) {
+      if (a.status !== 'completed') continue;
+      const prev = best.get(a.user_id);
+      const better =
+        !prev ||
+        Number(a.score || 0) > Number(prev.score || 0) ||
+        (Number(a.score || 0) === Number(prev.score || 0) &&
+          Number(a.time_spent_seconds || 0) < Number(prev.time_spent_seconds || 0));
+      if (better) best.set(a.user_id, a);
+    }
+    const bestRows = Array.from(best.values());
+    const mean = (values: number[]) =>
+      values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null;
+
+    const districtCounts = new Map<string, number>();
+    for (const id of participantIds) {
+      const district = profiles.get(id)?.district;
+      if (district) districtCounts.set(district, (districtCounts.get(district) || 0) + 1);
+    }
+    const withDistrict = Array.from(districtCounts.values()).reduce((sum, n) => sum + n, 0);
+
+    result[liveId] = {
+      participants: participantIds.size,
+      submitted: bestRows.length,
+      avgScore: mean(bestRows.map((a) => Number(a.score || 0))),
+      avgTimeSeconds: mean(bestRows.map((a) => Number(a.time_spent_seconds || 0))),
+      topDistricts: Array.from(districtCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({
+          name,
+          count,
+          percent: Math.round((count / withDistrict) * 100),
+        })),
+      leaderboard: bestRows
+        .sort(
+          (a, b) =>
+            Number(b.score || 0) - Number(a.score || 0) ||
+            Number(a.time_spent_seconds || 0) - Number(b.time_spent_seconds || 0)
+        )
+        .map((a, idx) => ({
+          rank: idx + 1,
+          userId: a.user_id,
+          name: profiles.get(a.user_id)?.name || 'Student',
+          score: Number(a.score || 0),
+          timeSeconds: Number(a.time_spent_seconds || 0),
+        })),
+    };
+  }
+  return result;
+}
+
 export async function getLiveTestLeaderboard(liveTestId: string): Promise<LiveTestParticipant[]> {
   const candidatesByUserId = new Map<string, LiveTestParticipant>();
 
@@ -1416,6 +1824,9 @@ export const adminLiveTestsApi = {
   isTestLockedForEditing,
   scheduleLiveTest,
   createLiveTest,
+  createLiveTestWithPaper,
+  duplicateLiveTest,
+  releaseLivePaperToPractice,
   updateLiveTest,
   cancelLiveTest,
   deleteLiveTest,
@@ -1425,6 +1836,8 @@ export const adminLiveTestsApi = {
   joinLiveTestEvent,
   recordLiveTestSubmission,
   getLiveTestLeaderboard,
+  getLiveTestsStats,
+  getLiveQuestionIndex,
   subscribeToLiveTestUpdates,
   uploadLiveTestLogo,
   uploadLiveTestBackground,

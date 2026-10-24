@@ -5,6 +5,7 @@ import type { MockTest, TestQuestionAssignment } from '@/types';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
 import { cn } from '@/lib/utils';
+import { useSmoothModal } from '@/hooks/useSmoothModal';
 
 interface MockTestPreviewModalProps {
   test: MockTest | null;
@@ -17,6 +18,11 @@ export const MockTestPreviewModal: React.FC<MockTestPreviewModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { shouldRender, isAnimating, handleSmoothClose } = useSmoothModal(
+    isOpen && Boolean(test),
+    onClose,
+    200
+  );
   const [questions, setQuestions] = useState<TestQuestionAssignment[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -50,7 +56,7 @@ export const MockTestPreviewModal: React.FC<MockTestPreviewModalProps> = ({
     };
   }, [testId, isOpen]);
 
-  if (!isOpen || !test) return null;
+  if (!shouldRender || !test) return null;
 
   const currentQ = questions[currentIndex];
 
@@ -62,10 +68,35 @@ export const MockTestPreviewModal: React.FC<MockTestPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/25 dark:bg-black/45 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#0A1024] border border-slate-200/90 dark:border-slate-800 rounded-2xl w-full max-w-5xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] h-[88vh] overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+    <div
+      onClick={handleSmoothClose}
+      className={cn(
+        'fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-3 sm:p-5 bg-transparent transition-opacity duration-200 ease-out',
+        isAnimating ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      )}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          'relative bg-white dark:bg-[#0A1024] border border-slate-300 dark:border-slate-700/90 rounded-2xl w-full max-w-5xl flex flex-col max-h-[92vh] h-[88vh] overflow-hidden my-auto shadow-none transition-all duration-200 ease-out transform',
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
+        )}
+      >
+        {/* Corner Cross Button */}
+        <button
+          type="button"
+          onClick={handleSmoothClose}
+          className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all cursor-pointer group"
+          aria-label="Close modal"
+          title="Close"
+        >
+          <X className="w-4 h-4 transition-transform group-hover:scale-110" />
+        </button>
+
         {/* Top Header */}
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-[#070D1E] shrink-0">
+        <div className="px-6 py-4 pr-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-[#070D1E] shrink-0">
           <div className="flex items-center gap-3">
             <span className="px-2.5 py-1 rounded-lg bg-blue-600 text-white text-[11px] font-bold tracking-wide">
               ADMIN PREVIEW
@@ -81,19 +112,11 @@ export const MockTestPreviewModal: React.FC<MockTestPreviewModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mr-2">
             <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
               <span>{test.durationMinutes}:00</span>
             </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </div>
 

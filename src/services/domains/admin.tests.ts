@@ -48,12 +48,15 @@ export async function getAllAdminTests(filter?: {
   testSeriesId?: string;
   testType?: string;
   status?: string;
+  /** Also return Live Test papers (hidden everywhere else until released to practice). */
+  includeLiveOnly?: boolean;
 }): Promise<MockTest[]> {
-  const hasFilter = filter && Object.values(filter).some(Boolean);
-  if (!hasFilter) {
-    return withApiCache('all_admin_tests', () => fetchAdminTests(filter), 60_000);
-  }
-  return fetchAdminTests(filter);
+  const { includeLiveOnly, ...query } = filter || {};
+  const hasFilter = Object.values(query).some(Boolean);
+  const tests = hasFilter
+    ? await fetchAdminTests(query)
+    : await withApiCache('all_admin_tests', () => fetchAdminTests(query), 60_000);
+  return includeLiveOnly ? tests : tests.filter((t) => !t.isLiveOnly);
 }
 
 async function fetchAdminTests(filter?: {
@@ -140,6 +143,7 @@ async function fetchAdminTests(filter?: {
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -161,6 +165,7 @@ export async function assignTestToSeries(
     if (idx !== -1) {
       localTests[idx].testSeriesId = testSeriesId || undefined;
     }
+    notifyExamsUpdated();
     return;
   }
 
@@ -175,6 +180,7 @@ export async function assignTestToSeries(
   if (error) {
     throw new Error(error.message);
   }
+  notifyExamsUpdated();
 }
 
 export async function getTestById(testId: string): Promise<MockTest | null> {
@@ -225,6 +231,7 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -243,6 +250,11 @@ export async function createTest(
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   const id = `test-${slug}-${Date.now().toString().slice(-4)}`;
+  // A test is always created as a draft and only published through publish validation, so a
+  // test can never go live without questions (or with missing links).
+  const wantsPublish = testData.status === 'published';
+  const initialStatus = wantsPublish ? 'draft' : testData.status || 'draft';
+  const initialActive = wantsPublish ? false : (testData.isActive ?? true);
 
   // Required links per test type (mirrors the tests_type_required_links constraint).
   if ((testData.testType === 'full_mock' || testData.testType === 'pyq') && !testData.examId)
@@ -259,11 +271,12 @@ export async function createTest(
       id,
       ...testData,
       slug,
-      status: testData.status || 'draft',
-      isActive: testData.isActive ?? true,
+      status: initialStatus,
+      isActive: initialActive,
     };
     localTests.unshift(newTest);
     notifyExamsUpdated();
+    if (wantsPublish && (await publishTest(id)).success) return (await getTestById(id)) ?? newTest;
     return newTest;
   }
 
@@ -290,10 +303,12 @@ export async function createTest(
     negative_marking: testData.negativeMarking ?? 0,
     is_premium: testData.isPremium ?? false,
     order_index: testData.orderIndex || 0,
-    is_active: testData.isActive ?? true,
-    status: testData.status || 'draft',
+    is_active: initialActive,
+    status: initialStatus,
     icon_url: testData.iconUrl || null,
   };
+  // Only sent for Live Test papers, so regular test creation does not depend on the column.
+  if (testData.isLiveOnly) insertPayload.is_live_only = true;
 
   const selectCols = `
     *,
@@ -346,6 +361,12 @@ export async function createTest(
   if (testData.iconUrl && row.icon_url !== testData.iconUrl)
     throw new Error('The backend did not confirm the saved test icon.');
   notifyExamsUpdated();
+  // Publish only if the new test passes the same validation as the Publish action; otherwise
+  // it stays a draft (shown as such in the list) until its questions are added.
+  if (wantsPublish && (await publishTest(row.id)).success) {
+    const published = await getTestById(row.id);
+    if (published) return published;
+  }
   return {
     id: row.id,
     iconUrl: row.icon_url || undefined,
@@ -370,6 +391,7 @@ export async function createTest(
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'draft',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -417,6 +439,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
   if (updates.isActive !== undefined) payload.is_active = updates.isActive;
   if (updates.status !== undefined) payload.status = updates.status;
   if (updates.iconUrl !== undefined) payload.icon_url = updates.iconUrl || null;
+  if (updates.isLiveOnly !== undefined) payload.is_live_only = updates.isLiveOnly;
 
   const selectCols = `
     *,
@@ -486,6 +509,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
     isPremium: row.is_premium,
     orderIndex: row.order_index,
     isActive: row.is_active,
+    isLiveOnly: Boolean(row.is_live_only),
     status: (row.status as 'draft' | 'published' | 'archived') || 'published',
     examTitle: row.exams?.title || undefined,
     subjectName: row.subjects?.name || undefined,
@@ -548,6 +572,8 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
     testSeriesId: existing.testSeriesId,
     iconUrl: existing.iconUrl,
     associatedExamIds,
+    // A copy of a Live Test paper stays a Live Test paper.
+    isLiveOnly: existing.isLiveOnly,
     status: 'draft',
   });
 
@@ -579,21 +605,30 @@ export async function getTestAttempts(testId: string): Promise<any[]> {
   if (!isSupabaseConfigured) {
     return [];
   }
-  const { data, error } = await supabase
-    .from('test_attempts')
-    .select(
+  // Page through every attempt (PostgREST caps a single response at 1000 rows); the id
+  // tiebreaker keeps page boundaries stable between equal scores.
+  const readAttempts = (columns: string) =>
+    readCompleteQuery(() =>
+      supabase
+        .from('test_attempts')
+        .select(columns, { count: 'exact' })
+        .eq('test_id', testId)
+        .order('score', { ascending: false })
+        .order('id', { ascending: true })
+    );
+  let data: any[] = [];
+  let error: unknown = null;
+  try {
+    data = await readAttempts(
       'id, user_id, score, total_marks, accuracy, correct_count, wrong_count, skipped_count, time_spent_seconds, status, created_at, profiles(full_name, email)'
-    )
-    .eq('test_id', testId)
-    .order('score', { ascending: false });
+    );
+  } catch (err) {
+    error = err;
+  }
 
   if (error) {
-    const { data: fallbackData } = await supabase
-      .from('test_attempts')
-      .select('*')
-      .eq('test_id', testId)
-      .order('score', { ascending: false });
-    return (fallbackData || []).map((d: any, idx: number) => ({
+    const fallbackData = await readAttempts('*');
+    return fallbackData.map((d: any, idx: number) => ({
       id: d.id,
       rank: idx + 1,
       userId: d.user_id,
@@ -766,13 +801,25 @@ export function exportTestQuestionsToCsv(testTitle: string, questions: Question[
   URL.revokeObjectURL(url);
 }
 
+/** Links each test type needs before publishing (mirrors the tests_type_required_links check). */
+function requiredLinkErrors(
+  testType: string | null | undefined,
+  examId: string | null | undefined,
+  chapterId: string | null | undefined
+): string[] {
+  if (testType === 'topic') return chapterId ? [] : ['Topic must be selected.'];
+  if (testType === 'full_mock' || testType === 'pyq')
+    return examId ? [] : ['Exam must be selected.'];
+  return examId || chapterId ? [] : ['Exam must be selected.'];
+}
+
 export async function validateTestForPublish(testId: string): Promise<PublishValidationResult> {
   const errors: string[] = [];
 
   if (!isSupabaseConfigured) {
     const test = localTests.find((t) => t.id === testId);
     if (!test) return { isValid: false, errors: ['Test not found.'] };
-    if (!test.examId) errors.push('Exam must be selected.');
+    errors.push(...requiredLinkErrors(test.testType, test.examId, test.chapterId));
     if (test.durationMinutes <= 0) errors.push('Test duration must be greater than 0 minutes.');
     if (test.totalMarks <= 0) errors.push('Total marks must be greater than 0.');
     const assigned = localTestQuestions.filter((tq) => tq.testId === testId);
@@ -791,9 +838,7 @@ export async function validateTestForPublish(testId: string): Promise<PublishVal
   if (testError) return { isValid: false, errors: [testError.message] };
   if (!testData) return { isValid: false, errors: ['Test not found in database.'] };
 
-  if (!testData.exam_id) {
-    errors.push('Exam must be selected.');
-  }
+  errors.push(...requiredLinkErrors(testData.test_type, testData.exam_id, testData.chapter_id));
   if (testData.duration_minutes <= 0) {
     errors.push('Test duration must be greater than 0 minutes.');
   }
@@ -876,6 +921,30 @@ export interface GenerateTopicTestsInput {
   questionsPerTest?: number;
 }
 
+/** Question IDs already assigned to any of the given tests, read in one paged query. */
+async function getQuestionIdsUsedByTests(testIds: string[]): Promise<Set<string>> {
+  const used = new Set<string>();
+  if (testIds.length === 0) return used;
+  if (!isSupabaseConfigured) {
+    for (const id of testIds) {
+      for (const a of await getTestAssignedQuestions(id)) used.add(a.questionId);
+    }
+    return used;
+  }
+  const CHUNK = 100;
+  for (let i = 0; i < testIds.length; i += CHUNK) {
+    const rows = await readCompleteQuery(() =>
+      supabase
+        .from('test_questions')
+        .select('id, question_id', { count: 'exact' })
+        .in('test_id', testIds.slice(i, i + CHUNK))
+        .order('id', { ascending: true })
+    );
+    for (const r of rows) used.add(String(r.question_id));
+  }
+  return used;
+}
+
 /**
  * Splits a topic's Question Bank questions that are not yet used by any Topic Test of that
  * topic into new draft Topic Tests of `questionsPerTest` questions each (e.g. 50 -> five
@@ -888,17 +957,16 @@ export async function generateTopicTests(
   if (!input.subjectId || !input.chapterId)
     throw new Error('Topic Tests must be linked to a Subject and a Topic.');
 
+  // Only active Question Bank questions are eligible; drafts and archived ones never go
+  // into generated tests.
   const [bankIds, existingTests] = await Promise.all([
-    getAllAdminQuestionIds({ chapterId: input.chapterId }),
+    getAllAdminQuestionIds({ chapterId: input.chapterId, status: 'active' }),
     fetchAdminTests({ chapterId: input.chapterId }),
   ]);
   const topicTests = existingTests.filter(
     (t) => t.testType === 'topic' || t.testType === 'chapter_mock'
   );
-  const used = new Set<string>();
-  for (const t of topicTests) {
-    for (const a of await getTestAssignedQuestions(t.id)) used.add(a.questionId);
-  }
+  const used = await getQuestionIdsUsedByTests(topicTests.map((t) => t.id));
   // Oldest questions first so numbering follows the order they were added to the bank.
   const pool = [...bankIds].reverse().filter((id) => !used.has(id));
   const batches = Math.floor(pool.length / perTest);

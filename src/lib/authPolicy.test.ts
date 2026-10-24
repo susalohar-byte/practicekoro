@@ -4,7 +4,7 @@ import { isAdminEmail, ADMIN_EMAILS } from './authPolicy';
 describe('authentication policy', () => {
   it('defines trusted admin emails', () => {
     expect(ADMIN_EMAILS).toContain('admin@practicekoro.online');
-    expect(ADMIN_EMAILS).toContain('susalohar@gmail.com');
+    expect(ADMIN_EMAILS).not.toContain('susalohar@gmail.com');
     expect(ADMIN_EMAILS).not.toContain('admin@practicekoro.com');
   });
 
@@ -17,13 +17,12 @@ describe('authentication policy', () => {
     expect(isAdminEmail('admin.attacker@example.com')).toBe(false);
     expect(isAdminEmail('admin@practicekoro.online.fake')).toBe(false);
     expect(isAdminEmail('student@practicekoro.online')).toBe(false);
+    expect(isAdminEmail('susalohar@gmail.com')).toBe(false);
   });
 
   it('accepts authorized admin emails case-insensitively', () => {
     expect(isAdminEmail('admin@practicekoro.online')).toBe(true);
     expect(isAdminEmail('ADMIN@PRACTICEKORO.ONLINE')).toBe(true);
     expect(isAdminEmail('  admin@practicekoro.online  ')).toBe(true);
-    expect(isAdminEmail('susalohar@gmail.com')).toBe(true);
-    expect(isAdminEmail('SUSALOHAR@GMAIL.COM')).toBe(true);
   });
 });

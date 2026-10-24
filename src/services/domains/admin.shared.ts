@@ -31,6 +31,7 @@ export function mapQuestionRow(q: any): Question {
     sourcePaper: q.source_paper ?? undefined,
     sourceShift: q.source_shift ?? undefined,
     isActive: q.is_active,
+    isLiveOnly: Boolean(q.is_live_only),
     status: (q.status as 'active' | 'archived' | 'draft') || 'active',
     subjectName: q.subjects?.name || undefined,
     chapterName: q.chapters?.name || undefined,

@@ -24,6 +24,11 @@ Publish the generated `dist` directory.
 
 Values prefixed with `VITE_` are included in the browser bundle and must never contain secrets.
 
+There is no built-in fallback project. If `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` is
+missing at build time, the site shows a configuration error instead of connecting to
+production. Set them in `.env` or in your host's build environment (Cloudflare Pages,
+Hostinger Git deployments).
+
 ## Required Edge Function secrets
 
 - `SUPABASE_URL`

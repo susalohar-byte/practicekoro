@@ -21,6 +21,8 @@ export function paymentRange(preset: string, now = new Date()) {
   return getDateRangeBounds('Custom Range', from, today);
 }
 export function retainedPaymentAmount(p: AdminPaymentRow) {
+  // Money captured for a purchase that was blocked from activating is owed back.
+  if (p.requiresRefund) return 0;
   // A partially refunded payment is marked 'refunded' but keeps its unrefunded remainder.
   return p.status === 'completed' || p.status === 'refunded'
     ? Math.max(

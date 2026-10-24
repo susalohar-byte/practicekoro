@@ -352,55 +352,42 @@ const YEAR_WISE_COMPARISON: Record<string, { year: string; value: number; color:
 // ============================================================================
 
 const ExamLogoEmblem: React.FC<{ examName: string }> = ({ examName }) => {
-  if (examName.includes('WBP') || examName.includes('Police')) {
-    return (
-      <div className="w-6 h-6 rounded-md bg-[#EF4444] flex items-center justify-center text-white shadow-2xs shrink-0">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" stroke="none">
-          <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 4.5c1.38 0 2.5 1.12 2.5 2.5S13.38 11.5 12 11.5 9.5 10.38 9.5 9s1.12-2.5 2.5-2.5zm0 12c-2.43 0-4.57-1.34-5.65-3.32.03-1.87 3.77-2.9 5.65-2.9 1.87 0 5.62 1.03 5.65 2.9-1.08 1.98-3.22 3.32-5.65 3.32z" />
-        </svg>
-      </div>
-    );
+  const norm = examName.toLowerCase();
+  let logoUrl = '/images/exams/logo_wbpsc.png';
+
+  if (norm.includes('kolkata') || norm.includes('kp')) {
+    logoUrl = '/images/exams/logo_kp.png';
+  } else if (norm.includes('wbp') || norm.includes('police')) {
+    logoUrl = '/images/exams/logo_wbp.png';
+  } else if (norm.includes('railway') || norm.includes('rrb') || norm.includes('ntpc')) {
+    logoUrl = '/images/exams/logo_railway.png';
+  } else if (norm.includes('ssc')) {
+    logoUrl = '/images/exams/logo_ssc.png';
+  } else if (norm.includes('tet') || norm.includes('primary')) {
+    logoUrl = '/images/exams/logo_wbtet.png';
+  } else if (
+    norm.includes('wbpsc') ||
+    norm.includes('clerkship') ||
+    norm.includes('food') ||
+    norm.includes('icds') ||
+    norm.includes('group c') ||
+    norm.includes('group d') ||
+    norm.includes('wbcs')
+  ) {
+    logoUrl = '/images/exams/logo_wbpsc.png';
   }
-  if (examName.includes('Group C')) {
-    return (
-      <div className="w-6 h-6 rounded-md bg-[#EA580C] flex items-center justify-center text-white shadow-2xs shrink-0">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" stroke="none">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      </div>
-    );
-  }
-  if (examName.includes('Group D')) {
-    return (
-      <div className="w-6 h-6 rounded-md bg-[#4F46E5] flex items-center justify-center text-white shadow-2xs shrink-0">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" stroke="none">
-          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.96.76 1.58V19z" />
-        </svg>
-      </div>
-    );
-  }
-  if (examName.includes('ICDS')) {
-    return (
-      <div className="w-6 h-6 rounded-md bg-[#E11D48] flex items-center justify-center text-white shadow-2xs shrink-0">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" stroke="none">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 3" stroke="#fff" strokeWidth="2" fill="none" />
-        </svg>
-      </div>
-    );
-  }
-  if (examName.includes('Railway') || examName.includes('NTPC')) {
-    return (
-      <div className="w-6 h-6 rounded-md bg-[#16A34A] flex items-center justify-center text-white shadow-2xs shrink-0">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" stroke="none">
-          <path d="M4 15.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h12v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V5c0-3.5-3.58-4-8-4s-8 .5-8 4v10.5zm8 1.5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm6-7H6V5h12v5z" />
-        </svg>
-      </div>
-    );
-  }
+
   return (
-    <div className="w-6 h-6 rounded-md bg-[#2563EB] flex items-center justify-center text-white shadow-2xs shrink-0">
-      <BookOpen className="w-3.5 h-3.5" />
+    <div className="w-6 h-6 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 p-0.5 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
+      <img
+        src={logoUrl}
+        alt={examName}
+        className="w-full h-full object-contain rounded-xs"
+        loading="lazy"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = '/images/exams/logo_wbp.png';
+        }}
+      />
     </div>
   );
 };
