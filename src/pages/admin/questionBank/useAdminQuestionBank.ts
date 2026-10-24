@@ -100,6 +100,14 @@ export function useAdminQuestionBank() {
   const [liveQuestionIndex, setLiveQuestionIndex] = useState<Record<string, string>>({});
   const [selectedLiveTestFilter, setSelectedLiveTestFilter] = useState('all');
   const [isLiveUploadOpen, setIsLiveUploadOpen] = useState(false);
+  // Title of the Live Test a live question belongs to (for the table and the drawer)
+  const liveTestTitleFor = useCallback(
+    (questionId: string) => {
+      const liveId = liveQuestionIndex[questionId];
+      return liveTests.find((lt) => lt.id === liveId)?.title || 'Live Test';
+    },
+    [liveQuestionIndex, liveTests]
+  );
 
   // Filter Bar State
   const [searchQuery, setSearchQuery] = useState('');
@@ -698,7 +706,12 @@ export function useAdminQuestionBank() {
         optionC: drawerOptions.C.trim(),
         optionD: drawerOptions.D.trim(),
         correctOption: drawerCorrectOption,
-        sourceExam: drawerUploadMode === 'exam' ? drawerExam || undefined : '',
+        // A Live Test question stays in its Live Test paper (its exam is not edited here).
+        sourceExam: activeQuestion.isLiveOnly
+          ? activeQuestion.sourceExam
+          : drawerUploadMode === 'exam'
+            ? drawerExam || undefined
+            : '',
         isActive: drawerStatus === 'published',
         status: drawerStatus,
         tags: drawerTags,
@@ -1370,6 +1383,7 @@ export function useAdminQuestionBank() {
     loadInitialData,
     liveTests,
     liveQuestionIndex,
+    liveTestTitleFor,
     selectedLiveTestFilter,
     setSelectedLiveTestFilter,
     isLiveUploadOpen,

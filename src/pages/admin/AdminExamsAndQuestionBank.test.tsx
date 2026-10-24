@@ -348,6 +348,10 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     await waitFor(() => {
       expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
     });
+
+    // Like Exam/Subject: its own stat card and MODE badge
+    expect(screen.getByText('Live Test Questions')).toBeInTheDocument();
+    expect(screen.getAllByText('Live Test').length).toBeGreaterThan(1);
   });
 });
 

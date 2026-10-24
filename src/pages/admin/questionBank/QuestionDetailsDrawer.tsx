@@ -10,6 +10,7 @@ export interface QuestionDetailsDrawerProps {
 export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
   const {
     activeQuestion,
+    liveTestTitleFor,
     showToast,
     setActiveQuestion,
     setDrawerTab,
@@ -247,14 +248,20 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                   <label className="block text-[11px] font-bold text-slate-500 mb-1">
                     Upload Mode
                   </label>
-                  <select
-                    value={drawerUploadMode}
-                    onChange={(e) => setDrawerUploadMode(e.target.value as UploadMode)}
-                    className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
-                  >
-                    <option value="exam">By Exam</option>
-                    <option value="subject">By Subject</option>
-                  </select>
+                  {activeQuestion.isLiveOnly ? (
+                    <div className="w-full p-2 bg-rose-50 border border-rose-200 rounded-xl font-semibold text-rose-700">
+                      Live Test · {liveTestTitleFor(activeQuestion.id)}
+                    </div>
+                  ) : (
+                    <select
+                      value={drawerUploadMode}
+                      onChange={(e) => setDrawerUploadMode(e.target.value as UploadMode)}
+                      className="w-full p-2 bg-[#F8FAFC] border border-slate-200 rounded-xl font-semibold cursor-pointer"
+                    >
+                      <option value="exam">By Exam</option>
+                      <option value="subject">By Subject</option>
+                    </select>
+                  )}
                 </div>
 
                 {drawerUploadMode === 'exam' ? (

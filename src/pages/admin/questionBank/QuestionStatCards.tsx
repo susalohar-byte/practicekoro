@@ -1,4 +1,4 @@
-import { BookOpen, Shield, Layers, CheckCircle2, FileText, Clock } from 'lucide-react';
+import { BookOpen, Shield, Layers, CheckCircle2, FileText, Clock, Radio } from 'lucide-react';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface QuestionStatCardsProps {
@@ -6,12 +6,18 @@ export interface QuestionStatCardsProps {
 }
 
 export function QuestionStatCards({ qb }: QuestionStatCardsProps) {
-  const { setActiveUploadMode, setViewModeFilter, setSelectedStatusFilter, setCurrentPage, stats } =
-    qb;
+  const {
+    setActiveUploadMode,
+    setViewModeFilter,
+    setSelectedStatusFilter,
+    setSelectedLiveTestFilter,
+    setCurrentPage,
+    stats,
+  } = qb;
   return (
     <>
       {/* 3. SIX STAT METRIC CARDS (Exact values & styling from media_1791132993733.jpg) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {/* Card 1: Total Questions */}
         <div
           onClick={() => {
@@ -80,6 +86,30 @@ export function QuestionStatCards({ qb }: QuestionStatCardsProps) {
             </span>
           </div>
           <p className="text-[10px] font-normal text-slate-400 mt-0.5">For Topic Tests</p>
+        </div>
+
+        {/* Card: Live Test Questions */}
+        <div
+          onClick={() => {
+            setActiveUploadMode('live');
+            setViewModeFilter('live');
+            setSelectedLiveTestFilter('all');
+            setCurrentPage(1);
+          }}
+          className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs cursor-pointer hover:shadow-xs transition-shadow"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Radio className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-semibold text-slate-500">Live Test Questions</span>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <span className="text-lg font-bold text-slate-900">
+              {stats.liveQuestions.toLocaleString('en-IN')}
+            </span>
+          </div>
+          <p className="text-[10px] font-normal text-slate-400 mt-0.5">For Live Tests</p>
         </div>
 
         {/* Card 4: Published */}

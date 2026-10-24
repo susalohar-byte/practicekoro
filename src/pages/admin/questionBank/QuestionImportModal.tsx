@@ -12,6 +12,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
   const {
     isImportModalOpen,
     setIsImportModalOpen,
+    setIsLiveUploadOpen,
     setImportMode,
     importMode,
     downloadTemplate,
@@ -72,7 +73,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               <label className="block text-xs font-bold text-slate-700 mb-2">
                 1. Select Upload Mode:
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setImportMode('exam')}
@@ -99,6 +100,19 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 >
                   <p className="text-xs">By Subject</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">Topic Tests</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Live Test questions are uploaded into a chosen Live Test's paper.
+                    setIsImportModalOpen(false);
+                    setIsLiveUploadOpen(true);
+                  }}
+                  className="p-3 rounded-2xl border text-left transition-all cursor-pointer border-slate-200 font-semibold text-slate-700 hover:bg-rose-50 hover:border-rose-300"
+                >
+                  <p className="text-xs">Live Test</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Live Test paper</p>
                 </button>
               </div>
             </div>

@@ -8,6 +8,7 @@ import {
   Plus,
   Radio,
 } from 'lucide-react';
+import { downloadSampleTxt } from '@/utils/txtQuestionParser';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface QuestionBankHeaderProps {
@@ -102,6 +103,17 @@ export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
                 >
                   <span>By Subject Template (.csv)</span>
                   <BookOpen className="w-3.5 h-3.5 text-purple-500" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadSampleTxt('live_test_questions_template.txt');
+                    setIsTemplateMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Live Test Template (.txt)</span>
+                  <Radio className="w-3.5 h-3.5 text-rose-500" />
                 </button>
               </div>
             )}

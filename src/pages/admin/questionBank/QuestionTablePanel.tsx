@@ -21,6 +21,7 @@ export interface QuestionTablePanelProps {
 
 export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
   const {
+    liveTestTitleFor,
     activeQuestion,
     handleSelectAll,
     paginatedQuestions,
@@ -89,7 +90,9 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                   paginatedQuestions.map((q, idx) => {
                     const isSelected = selectedRowIds.has(q.id);
                     const isActive = activeQuestion?.id === q.id;
-                    const isExamMode = q.uploadMode === 'exam' || Boolean(q.sourceExam);
+                    const isLiveMode = Boolean(q.isLiveOnly);
+                    const isExamMode =
+                      !isLiveMode && (q.uploadMode === 'exam' || Boolean(q.sourceExam));
                     const questionNumber = (currentPage - 1) * pageSize + idx + 1;
 
                     return (
@@ -137,18 +140,24 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                           <span
                             className={cn(
                               'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-tight',
-                              isExamMode
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-emerald-100 text-emerald-700'
+                              isLiveMode
+                                ? 'bg-rose-100 text-rose-700'
+                                : isExamMode
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-emerald-100 text-emerald-700'
                             )}
                           >
-                            {isExamMode ? 'Exam' : 'Subject'}
+                            {isLiveMode ? 'Live Test' : isExamMode ? 'Exam' : 'Subject'}
                           </span>
                         </td>
 
                         {/* Exam / Subject */}
                         <td className="py-3 px-3 text-slate-700">
-                          {isExamMode ? q.sourceExam || '—' : q.subjectName || '—'}
+                          {isLiveMode
+                            ? liveTestTitleFor(q.id)
+                            : isExamMode
+                              ? q.sourceExam || '—'
+                              : q.subjectName || '—'}
                         </td>
 
                         {/* Topic */}
@@ -161,12 +170,14 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                           <span
                             className={cn(
                               'px-2 py-0.5 rounded text-[10px] font-bold',
-                              questionBankType(q) === 'PYQ'
-                                ? 'bg-purple-100 text-purple-700'
-                                : 'bg-sky-100 text-sky-700'
+                              isLiveMode
+                                ? 'bg-rose-100 text-rose-700'
+                                : questionBankType(q) === 'PYQ'
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'bg-sky-100 text-sky-700'
                             )}
                           >
-                            {questionBankType(q)}
+                            {isLiveMode ? 'Live Test' : questionBankType(q)}
                           </span>
                         </td>
 
