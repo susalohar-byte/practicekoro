@@ -106,7 +106,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             {/* Step 2: File Upload */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700">2. Upload Questions File (.txt / .csv):</label>
+                <label className="text-xs font-bold text-slate-700">
+                  2. Upload Questions File (.txt / .csv):
+                </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"

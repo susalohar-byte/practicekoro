@@ -1151,448 +1151,508 @@ export const AdminLiveTests: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Details Drawer Matching Reference */}
+          {/* Slide-Over Live Test Details Drawer */}
           {isDrawerOpen && selectedLiveTest && (
-            <div className="w-96 shrink-0 bg-white rounded-xl border border-slate-200/80 shadow-xs p-5 space-y-5">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 className="text-base font-bold text-slate-900">Live Test Details</h2>
-                <button
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    setSelectedTestId(null);
-                  }}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="fixed inset-0 z-50 overflow-hidden">
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  setSelectedTestId(null);
+                }}
+                aria-hidden="true"
+              />
 
-              {/* Top Card */}
-              <div className="bg-slate-50/70 rounded-xl p-3.5 border border-slate-200/70">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-lg border border-slate-200 bg-white shrink-0 p-1 flex items-center justify-center">
-                    <img
-                      src={
-                        selectedLiveTest.logo ||
-                        selectedLiveTest.examLogo ||
-                        '/images/exams/logo_wbp.png'
-                      }
-                      alt={selectedLiveTest.title}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900 line-clamp-1">
-                        {selectedLiveTest.title}
-                      </h3>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
-                        <Radio className="w-2.5 h-2.5 animate-pulse" />
-                        <span>LIVE</span>
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'} | Full
-                      Mock Test
-                    </p>
-                  </div>
-                </div>
-
-                {/* Top Quick Actions */}
-                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200/60">
-                  <button
-                    onClick={() => openPaperQuestions(selectedLiveTest)}
-                    className="col-span-2 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 shadow-2xs"
-                  >
-                    <ListChecks className="w-3.5 h-3.5" />
-                    <span>
-                      {selectedLiveTest.status === 'draft' ? 'Upload Questions' : 'View Questions'}{' '}
-                      (
-                      {selectedLiveTest.test?.totalQuestions ??
-                        selectedLiveTest.totalQuestions ??
-                        0}
-                      )
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setIsMonitorModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 shadow-xs"
-                  >
-                    <Monitor className="w-3.5 h-3.5" />
-                    <span>Open Live Test Monitor</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingTest(selectedLiveTest);
-                      setIsCreateModalOpen(true);
-                    }}
-                    className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-blue-600 hover:bg-slate-50 shadow-2xs"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Drawer Tabs */}
-              <div className="border-b border-slate-200">
-                <div className="flex items-center justify-between text-xs font-medium">
-                  <button
-                    onClick={() => setDrawerTab('overview')}
-                    className={cn(
-                      'pb-2.5 transition-colors border-b-2',
-                      drawerTab === 'overview'
-                        ? 'border-blue-600 text-blue-600 font-semibold'
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                    )}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setDrawerTab('participants')}
-                    className={cn(
-                      'pb-2.5 transition-colors border-b-2',
-                      drawerTab === 'participants'
-                        ? 'border-blue-600 text-blue-600 font-semibold'
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                    )}
-                  >
-                    Participants
-                  </button>
-                  <button
-                    onClick={() => setDrawerTab('settings')}
-                    className={cn(
-                      'pb-2.5 transition-colors border-b-2',
-                      drawerTab === 'settings'
-                        ? 'border-blue-600 text-blue-600 font-semibold'
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                    )}
-                  >
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => setDrawerTab('analytics')}
-                    className={cn(
-                      'pb-2.5 transition-colors border-b-2',
-                      drawerTab === 'analytics'
-                        ? 'border-blue-600 text-blue-600 font-semibold'
-                        : 'border-transparent text-slate-500 hover:text-slate-800'
-                    )}
-                  >
-                    Analytics
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab 1: Overview */}
-              {drawerTab === 'overview' && (
-                <div className="space-y-5">
-                  {/* 6 Metric Grid */}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {/* 1. Participants */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-blue-600">
-                        <Users className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {selectedStats.participants.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Participants</p>
-                    </div>
-
-                    {/* 2. Submission Rate */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-emerald-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {submissionRate === null ? '—' : `${submissionRate}%`}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Submission Rate</p>
-                    </div>
-
-                    {/* 3. Duration */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-purple-600">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {selectedLiveTest.durationMinutes || 0} min
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Duration</p>
-                    </div>
-
-                    {/* 4. Total Questions */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-indigo-600">
-                        <FileText className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {selectedPaperQuestions}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Total Questions</p>
-                    </div>
-
-                    {/* 5. Avg. Score */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-rose-600">
-                        <Target className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {selectedStats.avgScore === null
-                            ? '—'
-                            : `${Number(selectedStats.avgScore.toFixed(1))} / ${selectedMarks}`}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Avg. Score</p>
-                    </div>
-
-                    {/* 6. Avg. Time Taken */}
-                    <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
-                      <div className="flex items-center gap-1.5 text-amber-600">
-                        <Hourglass className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">
-                          {formatMinutes(selectedStats.avgTimeSeconds)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Avg. Time Taken</p>
-                    </div>
-                  </div>
-
-                  {/* Live Test Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900">Live Test Progress</span>
-                      <span className="font-bold text-blue-600">{windowProgress}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${windowProgress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Key-Value Details */}
-                  <div className="text-xs space-y-1.5 text-slate-600 divide-y divide-slate-100 pt-1">
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Start Time</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {drawerSchedStart
-                          ? `${drawerSchedStart.date}, ${drawerSchedStart.time}`
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">End Time</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {drawerSchedEnd ? `${drawerSchedEnd.date}, ${drawerSchedEnd.time}` : '—'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Duration</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.durationMinutes || 0} minutes
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Exam</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Test Type</span>
-                      <span className="font-medium text-slate-800 text-right">Full Mock Test</span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Total Questions</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {selectedPaperQuestions}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Total Marks</span>
-                      <span className="font-medium text-slate-800 text-right">{selectedMarks}</span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Negative Marks</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {selectedNegative > 0 ? `${selectedNegative} (Per Wrong Answer)` : 'None'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Status</span>
-                      <span className="font-semibold text-slate-800 text-right">
-                        {STATUS_LABELS[selectedLiveTest.status] || selectedLiveTest.status}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Created At</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {drawerCreatedAt ? `${drawerCreatedAt.date}, ${drawerCreatedAt.time}` : '—'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Last Updated</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {formatDateTime(selectedLiveTest.updatedAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <button
-                      onClick={() => setEndCandidate(selectedLiveTest)}
-                      className="py-2 px-3 border border-rose-200 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <StopCircle className="w-3.5 h-3.5" />
-                      <span>End Live Test</span>
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(selectedLiveTest)}
-                      className="py-2 px-3 border border-blue-200 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Duplicate Test</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Participants */}
-              {drawerTab === 'participants' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800">
-                      Leaderboard ({selectedStats.submitted} submitted)
-                    </span>
-                    <button
-                      onClick={() =>
-                        exportParticipantsCsv(selectedLiveTest, selectedStats.leaderboard)
-                      }
-                      className="text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
-                    >
-                      <Download className="w-3 h-3" />
-                      <span>Export CSV</span>
-                    </button>
-                  </div>
-
-                  {selectedStats.leaderboard.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
-                      {statsError
-                        ? `Participants could not be loaded: ${statsError}`
-                        : 'No student has submitted this Live Test yet.'}
-                    </div>
-                  ) : (
-                    <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
-                      <div className="grid grid-cols-12 bg-slate-50 p-2 font-semibold text-slate-600 border-b border-slate-200">
-                        <span className="col-span-2 text-center">Rank</span>
-                        <span className="col-span-5">Student</span>
-                        <span className="col-span-3 text-right">Score</span>
-                        <span className="col-span-2 text-right">Time</span>
-                      </div>
-                      <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
-                        {selectedStats.leaderboard.map((p) => (
-                          <div
-                            key={p.userId}
-                            className="grid grid-cols-12 p-2 items-center hover:bg-slate-50/60"
-                          >
-                            <span className="col-span-2 text-center font-bold text-slate-700">
-                              #{p.rank}
-                            </span>
-                            <span className="col-span-5 font-medium text-slate-800 truncate">
-                              {p.name}
-                            </span>
-                            <span className="col-span-3 text-right font-semibold text-emerald-600">
-                              {p.score}
-                            </span>
-                            <span className="col-span-2 text-right text-slate-500">
-                              {Math.round(p.timeSeconds / 60)}m
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab 3: Settings */}
-              {drawerTab === 'settings' && (
-                <div className="space-y-3 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Statewide Ranking</span>
-                      <span
-                        className={
-                          selectedLiveTest.rankingEnabled
-                            ? 'text-emerald-600 font-bold'
-                            : 'text-slate-500 font-bold'
-                        }
-                      >
-                        {selectedLiveTest.rankingEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Calculates percentile and ranks among all candidates automatically upon
-                      submission.
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Negative Marking</span>
-                      <span className="font-bold text-slate-800">
-                        {selectedNegative > 0 ? `${selectedNegative} Marks` : 'None'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      {selectedNegative > 0
-                        ? `${selectedNegative} marks deducted per incorrect response.`
-                        : 'No marks are deducted for incorrect responses.'}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Access</span>
-                      <span className="font-bold text-slate-800">
-                        {selectedLiveTest.subscriptionRequired ? 'Pro Pass only' : 'Free for all'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Analytics */}
-              {drawerTab === 'analytics' && (
-                <div className="space-y-3 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
-                    <span className="font-semibold text-slate-800">
-                      Top Participating Districts
-                    </span>
-                    {selectedStats.topDistricts.length === 0 ? (
-                      <p className="pt-1 text-slate-500">
-                        {statsError
-                          ? `District data could not be loaded: ${statsError}`
-                          : 'No participant district data yet.'}
+              {/* Drawer Container */}
+              <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+                <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl border-l border-slate-200 flex flex-col transform transition-transform duration-300 ease-out animate-in slide-in-from-right">
+                  {/* Drawer Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/70">
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900">Live Test Details</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Overview, candidate leaderboard & controls
                       </p>
-                    ) : (
-                      <div className="space-y-1.5 pt-1">
-                        {selectedStats.topDistricts.map((d) => (
-                          <div key={d.name} className="flex justify-between text-slate-600">
-                            <span>
-                              {d.name} ({d.count})
-                            </span>
-                            <span className="font-bold text-slate-900">{d.percent}%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDrawerOpen(false);
+                        setSelectedTestId(null);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                      aria-label="Close drawer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Scrollable Drawer Body */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                    {/* Top Identity Card */}
+                    <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-12 h-12 rounded-xl border border-slate-200 bg-white shrink-0 p-1 flex items-center justify-center shadow-xs">
+                          <img
+                            src={
+                              selectedLiveTest.logo ||
+                              selectedLiveTest.examLogo ||
+                              '/images/exams/logo_wbp.png'
+                            }
+                            alt={selectedLiveTest.title}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-bold text-slate-900 line-clamp-1">
+                              {selectedLiveTest.title}
+                            </h3>
+                            {/* Dynamic Live Status Badge */}
+                            {selectedLiveTest.status === 'live' && (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
+                                <Radio className="w-2.5 h-2.5 animate-pulse" />
+                                <span>Live Now</span>
+                              </span>
+                            )}
+                            {(selectedLiveTest.status === 'upcoming' ||
+                              selectedLiveTest.status === 'scheduled') && (
+                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 shrink-0">
+                                Scheduled
+                              </span>
+                            )}
+                            {selectedLiveTest.status === 'draft' && (
+                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
+                                Draft
+                              </span>
+                            )}
+                            {(selectedLiveTest.status === 'ended' ||
+                              selectedLiveTest.status === 'completed') && (
+                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 shrink-0">
+                                Completed
+                              </span>
+                            )}
+                            {selectedLiveTest.status === 'cancelled' && (
+                              <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                                Cancelled
+                              </span>
+                            )}
                           </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'} • Full Mock Test
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Top Quick Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 mt-4 pt-3.5 border-t border-slate-200/80">
+                        <button
+                          type="button"
+                          onClick={() => openPaperQuestions(selectedLiveTest)}
+                          className="col-span-2 inline-flex items-center justify-center gap-2 py-2 px-3.5 bg-white border border-blue-200 rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <ListChecks className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span>
+                            {selectedLiveTest.status === 'draft' ? 'Upload Questions' : 'View Questions'} ({selectedPaperQuestions})
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsMonitorModalOpen(true)}
+                          className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
+                        >
+                          <Monitor className="w-3.5 h-3.5 shrink-0" />
+                          <span>Live Monitor</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingTest(selectedLiveTest);
+                            setIsCreateModalOpen(true);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span>Edit Details</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Drawer Tabs Navigation */}
+                    <div className="border-b border-slate-200">
+                      <div className="flex items-center gap-6 text-xs font-medium">
+                        {(['overview', 'participants', 'settings', 'analytics'] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setDrawerTab(tab)}
+                            className={cn(
+                              'pb-2.5 transition-colors border-b-2 capitalize font-semibold cursor-pointer text-xs',
+                              drawerTab === tab
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                            )}
+                          >
+                            {tab}
+                          </button>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Tab 1: Overview */}
+                    {drawerTab === 'overview' && (
+                      <div className="space-y-5">
+                        {/* 6 Key Metric Cards */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {/* 1. Participants */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-blue-600">
+                              <Users className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {selectedStats.participants.toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Total Candidates</p>
+                          </div>
+
+                          {/* 2. Submission Rate */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-emerald-600">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {submissionRate === null ? '—' : `${submissionRate}%`}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Submission Rate</p>
+                          </div>
+
+                          {/* 3. Duration */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-purple-600">
+                              <Clock className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {selectedLiveTest.durationMinutes || 0} min
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Exam Duration</p>
+                          </div>
+
+                          {/* 4. Total Questions */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-indigo-600">
+                              <FileText className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {selectedPaperQuestions}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Total Questions</p>
+                          </div>
+
+                          {/* 5. Avg. Score */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-rose-600">
+                              <Target className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {selectedStats.avgScore === null
+                                  ? '—'
+                                  : `${Number(selectedStats.avgScore.toFixed(1))} / ${selectedMarks}`}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Avg. Score</p>
+                          </div>
+
+                          {/* 6. Avg. Time Taken */}
+                          <div className="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80">
+                            <div className="flex items-center gap-1.5 text-amber-600">
+                              <Hourglass className="w-4 h-4" />
+                              <span className="text-sm font-bold text-slate-900">
+                                {formatMinutes(selectedStats.avgTimeSeconds)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">Avg. Time Taken</p>
+                          </div>
+                        </div>
+
+                        {/* Live Test Window Progress */}
+                        <div className="space-y-1.5 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-800">Exam Window Progress</span>
+                            <span className="font-bold text-blue-600">{windowProgress}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/70 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                              style={{ width: `${windowProgress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Detailed Key-Value Breakdown */}
+                        <div className="text-xs space-y-2 text-slate-600 divide-y divide-slate-100 bg-white rounded-xl border border-slate-200/80 p-3.5">
+                          <div className="flex items-start justify-between pt-1">
+                            <span className="text-slate-400 w-32 shrink-0">Start Window</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {drawerSchedStart
+                                ? `${drawerSchedStart.date}, ${drawerSchedStart.time}`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">End Window</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {drawerSchedEnd ? `${drawerSchedEnd.date}, ${drawerSchedEnd.time}` : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Duration</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {selectedLiveTest.durationMinutes || 0} minutes
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Target Exam</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Exam Format</span>
+                            <span className="font-semibold text-slate-800 text-right">Full Mock Test</span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Questions Count</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {selectedPaperQuestions}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Total Marks</span>
+                            <span className="font-semibold text-slate-800 text-right">{selectedMarks}</span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Negative Marking</span>
+                            <span className="font-semibold text-slate-800 text-right">
+                              {selectedNegative > 0 ? `${selectedNegative} / wrong` : 'None'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Current Status</span>
+                            <span className="font-bold text-slate-800 text-right">
+                              {STATUS_LABELS[selectedLiveTest.status] || selectedLiveTest.status}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Created Date</span>
+                            <span className="font-medium text-slate-700 text-right">
+                              {drawerCreatedAt ? `${drawerCreatedAt.date}, ${drawerCreatedAt.time}` : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-start justify-between pt-2">
+                            <span className="text-slate-400 w-32 shrink-0">Last Updated</span>
+                            <span className="font-medium text-slate-700 text-right">
+                              {formatDateTime(selectedLiveTest.updatedAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Contextual Action Buttons */}
+                        <div className="flex items-center gap-2 pt-2">
+                          {selectedLiveTest.status === 'live' && (
+                            <button
+                              type="button"
+                              onClick={() => setEndCandidate(selectedLiveTest)}
+                              className="flex-1 py-2 px-3 border border-rose-200 text-rose-600 bg-rose-50/50 rounded-lg text-xs font-semibold hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <StopCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>End Live Test</span>
+                            </button>
+                          )}
+
+                          {selectedLiveTest.status !== 'live' &&
+                            selectedLiveTest.status !== 'ended' &&
+                            selectedLiveTest.status !== 'completed' && (
+                              <button
+                                type="button"
+                                onClick={() => handleStartLiveNow(selectedLiveTest)}
+                                className="flex-1 py-2 px-3 border border-emerald-200 text-emerald-700 bg-emerald-50 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Play className="w-3.5 h-3.5 shrink-0" />
+                                <span>Start Live Now</span>
+                              </button>
+                            )}
+
+                          {(selectedLiveTest.status === 'ended' || selectedLiveTest.status === 'completed') &&
+                            selectedLiveTest.test?.isLiveOnly && (
+                              <button
+                                type="button"
+                                onClick={() => handleReleaseToPractice(selectedLiveTest)}
+                                className="flex-1 py-2 px-3 border border-emerald-200 text-emerald-700 bg-emerald-50 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Unlock className="w-3.5 h-3.5 shrink-0" />
+                                <span>Release to Practice</span>
+                              </button>
+                            )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicate(selectedLiveTest)}
+                            className="flex-1 py-2 px-3 border border-slate-200 text-slate-700 bg-white rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Duplicate</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 2: Participants */}
+                    {drawerTab === 'participants' && (
+                      <div className="space-y-3.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-800">
+                            Leaderboard ({selectedStats.submitted} submitted)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              exportParticipantsCsv(selectedLiveTest, selectedStats.leaderboard)
+                            }
+                            className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 text-xs cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Export CSV</span>
+                          </button>
+                        </div>
+
+                        {selectedStats.leaderboard.length === 0 ? (
+                          <div className="p-8 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 space-y-1">
+                            <Users className="w-6 h-6 text-slate-400 mx-auto mb-2 opacity-60" />
+                            <p className="font-semibold text-slate-700">No submissions yet</p>
+                            <p className="text-[11px] text-slate-400">
+                              {statsError
+                                ? `Error loading participants: ${statsError}`
+                                : 'When candidates submit this test, real ranks will appear here.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="border border-slate-200 rounded-xl overflow-hidden text-xs bg-white shadow-2xs">
+                            <div className="grid grid-cols-12 bg-slate-50 px-3 py-2.5 font-bold text-slate-600 border-b border-slate-200">
+                              <span className="col-span-2 text-center">Rank</span>
+                              <span className="col-span-5">Candidate</span>
+                              <span className="col-span-3 text-right">Score</span>
+                              <span className="col-span-2 text-right">Time</span>
+                            </div>
+                            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                              {selectedStats.leaderboard.map((p) => (
+                                <div
+                                  key={p.userId}
+                                  className="grid grid-cols-12 px-3 py-2.5 items-center hover:bg-slate-50/80 transition-colors"
+                                >
+                                  <span className="col-span-2 text-center font-bold text-slate-700">
+                                    #{p.rank}
+                                  </span>
+                                  <span className="col-span-5 font-semibold text-slate-800 truncate pr-2">
+                                    {p.name}
+                                  </span>
+                                  <span className="col-span-3 text-right font-bold text-emerald-600">
+                                    {p.score}
+                                  </span>
+                                  <span className="col-span-2 text-right text-slate-500 font-medium">
+                                    {Math.round(p.timeSeconds / 60)}m
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tab 3: Settings */}
+                    {drawerTab === 'settings' && (
+                      <div className="space-y-3 text-xs">
+                        <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/80 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800">Statewide Ranking</span>
+                            <span
+                              className={cn(
+                                'font-bold px-2 py-0.5 rounded text-[11px]',
+                                selectedLiveTest.rankingEnabled
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-slate-200 text-slate-700'
+                              )}
+                            >
+                              {selectedLiveTest.rankingEnabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Calculates percentile and statewide rank among all candidates automatically upon submission.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/80 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800">Negative Marking</span>
+                            <span className="font-bold text-slate-800">
+                              {selectedNegative > 0 ? `${selectedNegative} Marks` : 'None'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            {selectedNegative > 0
+                              ? `${selectedNegative} marks deducted per incorrect response.`
+                              : 'No marks are deducted for incorrect responses.'}
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/80 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800">Access Level</span>
+                            <span className="font-bold text-slate-800">
+                              {selectedLiveTest.subscriptionRequired ? 'Pro Pass only' : 'Free for all students'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            {selectedLiveTest.subscriptionRequired
+                              ? 'Only active Pro Pass subscribers can attempt this Live Test.'
+                              : 'All registered candidates can attempt this Live Test.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 4: Analytics */}
+                    {drawerTab === 'analytics' && (
+                      <div className="space-y-3 text-xs">
+                        <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200/80 space-y-2">
+                          <span className="font-bold text-slate-800">
+                            Top Participating Districts
+                          </span>
+                          {selectedStats.topDistricts.length === 0 ? (
+                            <p className="pt-1 text-slate-500 text-[11px]">
+                              {statsError
+                                ? `District data could not be loaded: ${statsError}`
+                                : 'No participant district data recorded yet.'}
+                            </p>
+                          ) : (
+                            <div className="space-y-2 pt-1">
+                              {selectedStats.topDistricts.map((d) => (
+                                <div key={d.name} className="flex justify-between items-center text-slate-700">
+                                  <span className="font-medium">
+                                    {d.name} <span className="text-slate-400">({d.count})</span>
+                                  </span>
+                                  <span className="font-bold text-slate-900">{d.percent}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
