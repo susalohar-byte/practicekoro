@@ -60,8 +60,8 @@ class QuestionModel {
     required this.options,
     this.explanationBengali,
     this.explanationEnglish,
-    this.marks = 2.0,
-    this.negativeMarks = 0.25,
+    this.marks = 1,
+    this.negativeMarks = 0,
     this.relatedNotes = const [],
     this.subjectName,
   });
@@ -81,7 +81,8 @@ class QuestionModel {
             id: 'opt_$i',
             label: i < labels.length ? labels[i] : '$i',
             text: rawOptions[i].toString(),
-            isCorrect: i == 1, // fallback default
+            // Plain-string options carry no answer key.
+            isCorrect: false,
           ),
         );
       }
@@ -111,8 +112,8 @@ class QuestionModel {
       explanationEnglish:
           json['explanation_english']?.toString() ??
           json['explanation']?.toString(),
-      marks: (json['marks'] as num?)?.toDouble() ?? 2.0,
-      negativeMarks: (json['negative_marks'] as num?)?.toDouble() ?? 0.25,
+      marks: (json['marks'] as num?)?.toDouble() ?? 1,
+      negativeMarks: (json['negative_marks'] as num?)?.toDouble() ?? 0,
       relatedNotes: notes,
       subjectName: json['subject_name']?.toString() ?? json['subjectName']?.toString(),
     );

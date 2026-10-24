@@ -242,12 +242,15 @@ export function useAdminStudents() {
 
     const derivedActivities: StudentActivity[] = [];
     completed.slice(0, 5).forEach((att, idx) => {
-      const pct = att.totalMarks > 0 ? Math.round((att.score / att.totalMarks) * 100) : att.score;
+      const hasTotal = att.totalMarks > 0;
+      const pct = hasTotal ? Math.round((att.score / att.totalMarks) * 100) : null;
       derivedActivities.push({
         id: `att-act-${att.id || idx}`,
         type: 'completed',
         title: `Completed: ${att.testTitle || 'Mock Test'}`,
-        subtitle: `Score: ${pct}% (${att.score}/${att.totalMarks || 100})`,
+        subtitle: hasTotal
+          ? `Score: ${pct}% (${att.score}/${att.totalMarks})`
+          : `Score: ${att.score} (total marks not recorded)`,
         time: att.createdAt
           ? new Date(att.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
           : 'Recently',

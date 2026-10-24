@@ -609,20 +609,26 @@ class _TestCard extends StatelessWidget {
                 // Questions • Time • Marks
                 Row(
                   children: [
-                    _MetaItem(
-                      icon: Icons.quiz_outlined,
-                      label: '${test.totalQuestions} Qs',
-                    ),
-                    const SizedBox(width: 10),
-                    _MetaItem(
-                      icon: Icons.timer_outlined,
-                      label: '${test.durationMinutes}m',
-                    ),
-                    const SizedBox(width: 10),
-                    _MetaItem(
-                      icon: Icons.military_tech_outlined,
-                      label: '${test.totalMarks.toInt()} Marks',
-                    ),
+                    // Unknown (0) values are hidden rather than shown as 0.
+                    if (test.totalQuestions > 0) ...[
+                      _MetaItem(
+                        icon: Icons.quiz_outlined,
+                        label: '${test.totalQuestions} Qs',
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    if (test.durationMinutes > 0) ...[
+                      _MetaItem(
+                        icon: Icons.timer_outlined,
+                        label: '${test.durationMinutes}m',
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    if (test.totalMarks > 0)
+                      _MetaItem(
+                        icon: Icons.military_tech_outlined,
+                        label: '${test.totalMarks.toInt()} Marks',
+                      ),
                   ],
                 ),
               ],

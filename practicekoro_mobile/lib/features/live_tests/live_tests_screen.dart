@@ -179,14 +179,15 @@ class _LiveTestPalette {
   final Color accentColor;
   final Color thumbBg;
   final Color timeColor;
-  final String iconAsset;
+  /// Exam-specific artwork; null shows a neutral quiz icon.
+  final String? iconAsset;
 
   const _LiveTestPalette({
     required this.borderColor,
     required this.accentColor,
     required this.thumbBg,
     required this.timeColor,
-    required this.iconAsset,
+    this.iconAsset,
   });
 
   static _LiveTestPalette forTest(LiveTestModel test, int index) {
@@ -219,7 +220,8 @@ class _LiveTestPalette {
       );
     }
 
-    // Index-based rotation fallback
+    // Unknown exam: rotate colours only. No exam-specific icon, so the card
+    // never suggests the test belongs to a different exam.
     final mod = index % 3;
     if (mod == 0) {
       return const _LiveTestPalette(
@@ -227,7 +229,6 @@ class _LiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
       );
     } else if (mod == 1) {
       return const _LiveTestPalette(
@@ -235,7 +236,6 @@ class _LiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
       );
     } else {
       return const _LiveTestPalette(
@@ -243,7 +243,6 @@ class _LiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
       );
     }
   }
@@ -295,17 +294,23 @@ class _LiveTestCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Image.asset(
-                    palette.iconAsset,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => Icon(
-                      Icons.quiz_outlined,
-                      size: 28,
-                      color: palette.accentColor,
-                    ),
-                  ),
+                  child: palette.iconAsset == null
+                      ? Icon(
+                          Icons.quiz_outlined,
+                          size: 28,
+                          color: palette.accentColor,
+                        )
+                      : Image.asset(
+                          palette.iconAsset!,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, _, _) => Icon(
+                            Icons.quiz_outlined,
+                            size: 28,
+                            color: palette.accentColor,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -369,7 +374,9 @@ class _LiveTestCard extends StatelessWidget {
 
                     // Test Title
                     Text(
-                      test.title,
+                      test.title.isNotEmpty
+                          ? test.title
+                          : (test.examTitle ?? 'Untitled test'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -394,28 +401,31 @@ class _LiveTestCard extends StatelessWidget {
                     // Bottom info: duration, participants, arrow CTA
                     Row(
                       children: [
-                        const Icon(
-                          Icons.access_time_rounded,
-                          size: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${test.durationMinutes} Mins',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                        if (test.durationMinutes > 0) ...[
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
                             color: Color(0xFF64748B),
                           ),
-                        ),
-                        if (test.formattedParticipants != null) ...[
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              '•',
-                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${test.durationMinutes} Mins',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
                             ),
                           ),
+                        ],
+                        if (test.formattedParticipants != null) ...[
+                          if (test.durationMinutes > 0)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                '•',
+                                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+                              ),
+                            ),
                           const Icon(
                             Icons.group_outlined,
                             size: 13,

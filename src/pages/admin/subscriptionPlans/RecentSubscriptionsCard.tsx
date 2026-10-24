@@ -1,5 +1,11 @@
 import { cn } from '@/lib/utils';
-import { RECENT_SUBSCRIPTIONS } from './subscriptionPlanData';
+import {
+  formatSubscriptionAmount,
+  formatSubscriptionDate,
+  subscriptionInitials,
+  subscriptionStatusClass,
+  subscriptionStatusLabel,
+} from './recentSubscriptionFormat';
 import type { AdminSubscriptionPlansState } from './useAdminSubscriptionPlans';
 
 export interface RecentSubscriptionsCardProps {
@@ -7,7 +13,14 @@ export interface RecentSubscriptionsCardProps {
 }
 
 export function RecentSubscriptionsCard({ plansState }: RecentSubscriptionsCardProps) {
-  const { setIsViewAllRecentOpen } = plansState;
+  const { setIsViewAllRecentOpen, recentSubscriptions, recentSubscriptionsError } = plansState;
+  const rows = (recentSubscriptions ?? []).slice(0, 5);
+  const emptyMessage =
+    recentSubscriptions === null
+      ? 'Loading recent subscriptions…'
+      : recentSubscriptionsError
+        ? recentSubscriptionsError
+        : 'No subscriptions yet.';
   return (
     <>
       {/* COL 3 (4 COLS): RECENT SUBSCRIPTIONS TABLE */}
@@ -36,18 +49,24 @@ export function RecentSubscriptionsCard({ plansState }: RecentSubscriptionsCardP
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/70">
-                {RECENT_SUBSCRIPTIONS.map((sub, idx) => (
+                {rows.map((sub, idx) => (
                   <tr key={sub.id} className="hover:bg-slate-50/60">
                     <td className="py-2.5 px-2 text-center text-slate-400 font-normal">
                       {idx + 1}
                     </td>
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-2">
-                        <img
-                          src={sub.studentAvatar}
-                          alt={sub.studentName}
-                          className="w-6 h-6 rounded-full object-cover shrink-0"
-                        />
+                        {sub.avatarUrl ? (
+                          <img
+                            src={sub.avatarUrl}
+                            alt={sub.studentName}
+                            className="w-6 h-6 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-[9px] font-bold flex items-center justify-center shrink-0">
+                            {subscriptionInitials(sub.studentName)}
+                          </span>
+                        )}
                         <span className="font-semibold text-slate-800 truncate">
                           {sub.studentName}
                         </span>
@@ -57,23 +76,37 @@ export function RecentSubscriptionsCard({ plansState }: RecentSubscriptionsCardP
                       <span
                         className={cn(
                           'inline-block px-2 py-0.5 rounded text-[10px] font-medium',
-                          sub.planBadgeClass
+                          'bg-[#DBEAFE] text-[#1E40AF]'
                         )}
                       >
-                        {sub.plan}
+                        {sub.planTitle}
                       </span>
                     </td>
-                    <td className="py-2.5 px-2 font-semibold text-slate-800">₹{sub.amount}</td>
+                    <td className="py-2.5 px-2 font-semibold text-slate-800">
+                      {formatSubscriptionAmount(sub)}
+                    </td>
                     <td className="py-2.5 px-2 text-slate-500 text-[11px] whitespace-nowrap">
-                      {sub.date}
+                      {formatSubscriptionDate(sub.createdAt || sub.startsAt)}
                     </td>
                     <td className="py-2.5 px-2 text-right">
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#DCFCE7] text-[#15803D]">
-                        {sub.status}
+                      <span
+                        className={cn(
+                          'inline-block px-2 py-0.5 rounded text-[10px] font-medium',
+                          subscriptionStatusClass(sub.status)
+                        )}
+                      >
+                        {subscriptionStatusLabel(sub.status)}
                       </span>
                     </td>
                   </tr>
                 ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
+                      {emptyMessage}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

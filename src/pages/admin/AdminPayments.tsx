@@ -246,7 +246,7 @@ export const AdminPayments: React.FC = () => {
           const avatar = (d.avatarUrl || '').trim();
           return {
             id: d.id,
-            studentName: d.studentName || 'Student Aspirant',
+            studentName: d.studentName || 'Unknown student',
             studentEmail: d.studentEmail || '',
             avatarType: avatar ? 'photo' : 'initials',
             avatarSrc: avatar || undefined,

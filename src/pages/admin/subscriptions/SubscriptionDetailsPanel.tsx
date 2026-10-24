@@ -91,7 +91,7 @@ export function SubscriptionDetailsPanel({ subscriptionsState }: SubscriptionDet
                   {selectedSubscription.studentEmail}
                 </span>
                 <span className="text-[11px] text-slate-400 block">
-                  {selectedSubscription.studentPhone || '+91 98765 43210'}
+                  {selectedSubscription.studentPhone || 'Not provided'}
                 </span>
               </div>
             </div>
@@ -139,7 +139,10 @@ export function SubscriptionDetailsPanel({ subscriptionsState }: SubscriptionDet
                     </span>
                     <span className="text-[11px] text-slate-500 block mt-0.5">
                       Valid till {selectedSubscription.endDate} (
-                      {Math.ceil((selectedSubscription.daysLeft || 124) / 30)} months left)
+                      {(selectedSubscription.daysLeft ?? 0) > 0
+                        ? `${Math.ceil((selectedSubscription.daysLeft ?? 0) / 30)} months left`
+                        : 'Expired'}
+                      )
                     </span>
                   </div>
                 </div>
@@ -203,7 +206,9 @@ export function SubscriptionDetailsPanel({ subscriptionsState }: SubscriptionDet
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400 font-normal">Days Left</span>
                   <span className="font-semibold text-slate-800">
-                    {selectedSubscription.daysLeft || 124} days
+                    {(selectedSubscription.daysLeft ?? 0) > 0
+                      ? `${selectedSubscription.daysLeft} days`
+                      : 'Expired'}
                   </span>
                 </div>
 
@@ -224,21 +229,21 @@ export function SubscriptionDetailsPanel({ subscriptionsState }: SubscriptionDet
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400 font-normal">Transaction ID</span>
                   <span className="font-mono text-slate-700">
-                    {selectedSubscription.transactionId || 'pay_2F9kLmX8vP6QeH'}
+                    {selectedSubscription.transactionId || '—'}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <span className="text-slate-400 font-normal">Created At</span>
                   <span className="font-medium text-slate-800">
-                    {selectedSubscription.createdAt || '12 Aug 2026, 11:20 AM'}
+                    {selectedSubscription.createdAt || '—'}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-1">
                   <span className="text-slate-400 font-normal">Last Updated</span>
                   <span className="font-medium text-slate-800">
-                    {selectedSubscription.lastUpdated || '12 Aug 2026, 11:20 AM'}
+                    {selectedSubscription.lastUpdated || '—'}
                   </span>
                 </div>
               </div>

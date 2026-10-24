@@ -181,15 +181,6 @@ class _SavedQuestionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Marks: 2.0',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
                 const Spacer(),
                 IconButton(
                   tooltip: 'Remove bookmark',

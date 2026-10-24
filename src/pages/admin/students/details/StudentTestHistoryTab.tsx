@@ -32,8 +32,8 @@ export function StudentTestHistoryTab({ studentsState }: StudentTestHistoryTabPr
             ) : (
               studentMetrics.completedAttempts.map((att) => {
                 const pct =
-                  att.totalMarks > 0 ? Math.round((att.score / att.totalMarks) * 100) : att.score;
-                const isPassed = pct >= 40;
+                  att.totalMarks > 0 ? Math.round((att.score / att.totalMarks) * 100) : null;
+                const isPassed = pct !== null && pct >= 40;
                 return (
                   <div
                     key={att.id}
@@ -44,7 +44,7 @@ export function StudentTestHistoryTab({ studentsState }: StudentTestHistoryTabPr
                         {att.testTitle || 'Mock Test'}
                       </span>
                       <span className="text-[11px] text-slate-500">
-                        {att.score}/{att.totalMarks || 100} Marks ({pct}%)
+                        {att.score}/{att.totalMarks || '—'} Marks{pct !== null ? ` (${pct}%)` : ''}
                         {att.accuracy != null ? ` • Accuracy: ${Math.round(att.accuracy)}%` : ''}
                         {att.rank ? ` • Rank #${att.rank}` : ''}
                       </span>

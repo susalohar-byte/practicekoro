@@ -13,7 +13,8 @@ class LiveTestModel {
   final int durationMinutes;
   final int totalQuestions;
   final double totalMarks;
-  final double negativeMarking;
+  /// Null when the server did not report the negative-marking rule.
+  final double? negativeMarking;
   final int participantsCount;
   final int enrolledCount;
   final String? logo;
@@ -33,10 +34,10 @@ class LiveTestModel {
     this.startAt,
     this.scheduledStartTime,
     this.scheduledEndTime,
-    this.durationMinutes = 90,
-    this.totalQuestions = 100,
-    this.totalMarks = 200,
-    this.negativeMarking = 0.25,
+    this.durationMinutes = 0,
+    this.totalQuestions = 0,
+    this.totalMarks = 0,
+    this.negativeMarking,
     this.participantsCount = 0,
     this.enrolledCount = 0,
     this.logo,
@@ -57,6 +58,9 @@ class LiveTestModel {
     if (start == null) return false;
 
     final now = DateTime.now();
+    // Without a known end or duration the live window can't be computed
+    // locally; rely on the server status (handled above).
+    if (scheduledEndTime == null && durationMinutes <= 0) return false;
     final end = scheduledEndTime ?? start.add(Duration(minutes: durationMinutes));
     return now.isAfter(start) && now.isBefore(end);
   }
@@ -122,7 +126,7 @@ class LiveTestModel {
 
     final rawTitle = json['title']?.toString() ??
         joinedTest?['title']?.toString() ??
-        'Live Mock Test';
+        '';
 
     final examData = joinedTest?['exams'] is Map<String, dynamic>
         ? joinedTest!['exams'] as Map<String, dynamic>
@@ -158,22 +162,21 @@ class LiveTestModel {
     final duration = (json['duration_minutes'] as num?)?.toInt() ??
         (json['durationMinutes'] as num?)?.toInt() ??
         (joinedTest?['duration_minutes'] as num?)?.toInt() ??
-        90;
+        0;
 
     final questions = (json['total_questions'] as num?)?.toInt() ??
         (json['totalQuestions'] as num?)?.toInt() ??
         (joinedTest?['total_questions'] as num?)?.toInt() ??
-        100;
+        0;
 
     final marks = (json['total_marks'] as num?)?.toDouble() ??
         (json['totalMarks'] as num?)?.toDouble() ??
         (joinedTest?['total_marks'] as num?)?.toDouble() ??
-        200.0;
+        0;
 
     final negMark = (json['negative_marking'] as num?)?.toDouble() ??
         (json['negativeMarking'] as num?)?.toDouble() ??
-        (joinedTest?['negative_marking'] as num?)?.toDouble() ??
-        0.25;
+        (joinedTest?['negative_marking'] as num?)?.toDouble();
 
     final participants = (json['participants_count'] as num?)?.toInt() ??
         (json['participantsCount'] as num?)?.toInt() ??

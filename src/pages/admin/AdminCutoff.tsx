@@ -38,6 +38,8 @@ export interface CutoffItem {
   cutoffMarks: number;
   totalPosts: string;
   addedOn?: string;
+  /** ISO timestamp of the last change (updated, else created) — orders "Recent Updates". */
+  updatedAt?: string;
   addedBy?: string;
   source?: string;
   notes?: string;
@@ -96,16 +98,6 @@ function getCategoryBadgeClass(cat: string): string {
     default:
       return 'bg-slate-100 text-slate-800';
   }
-}
-
-export interface RecentUpdateItem {
-  id: number;
-  exam: string;
-  year: number;
-  stage: string;
-  addedOn: string;
-  addedBy: string;
-  type: string;
 }
 
 // Initial Cutoff Table dataset strictly matching screenshot media_1791200550498.jpg
@@ -224,128 +216,19 @@ const INITIAL_CUTOFFS: CutoffItem[] = [
   },
 ];
 
-// Recent Updates dataset strictly matching screenshot media_1791200550498.jpg
-const RECENT_UPDATES: RecentUpdateItem[] = [
-  {
-    id: 1,
-    exam: 'WBP Constable',
-    year: 2024,
-    stage: 'Final Merit',
-    addedOn: '12 Aug 2026',
-    addedBy: 'Admin',
-    type: 'Official',
-  },
-  {
-    id: 2,
-    exam: 'WBSSC Group C',
-    year: 2024,
-    stage: 'Final Merit',
-    addedOn: '10 Aug 2026',
-    addedBy: 'Admin',
-    type: 'Official',
-  },
-  {
-    id: 3,
-    exam: 'WBSSC Group D',
-    year: 2024,
-    stage: 'Final Merit',
-    addedOn: '08 Aug 2026',
-    addedBy: 'Admin',
-    type: 'Official',
-  },
-  {
-    id: 4,
-    exam: 'ICDS',
-    year: 2024,
-    stage: 'Final Merit',
-    addedOn: '05 Aug 2026',
-    addedBy: 'Admin',
-    type: 'Official',
-  },
-  {
-    id: 5,
-    exam: 'Railway (NTPC)',
-    year: 2024,
-    stage: 'CBT-1',
-    addedOn: '02 Aug 2026',
-    addedBy: 'Admin',
-    type: 'Official',
-  },
-];
-
-// Cutoff Trend Data (WBP Constable – General) matching screenshot
-const GENERAL_TREND_DATA = [
-  { year: '2019', value: 67.5 },
-  { year: '2020', value: 72.25 },
-  { year: '2021', value: 76.0 },
-  { year: '2022', value: 80.5 },
-  { year: '2023', value: 83.75 },
-  { year: '2024', value: 85.25 },
-];
-
-// Category-wise Cutoff horizontal bars (WBP Constable 2024) matching screenshot
-const CATEGORY_BARS_DATA = [
-  { category: 'General', value: 85.25, color: '#2563EB' },
-  { category: 'OBC-A', value: 81.5, color: '#10B981' },
-  { category: 'OBC-B', value: 78.75, color: '#F59E0B' },
-  { category: 'SC', value: 73.25, color: '#8B5CF6' },
-  { category: 'ST', value: 68.5, color: '#FB7185' },
-  { category: 'EWS', value: 80.0, color: '#06B6D4' },
-  { category: 'Female (General)', value: 82.0, color: '#F43F5E' },
-  { category: 'Female (SC)', value: 70.25, color: '#A855F7' },
-];
-
-// Multi-category year-wise data for Comparison Widget
-const YEAR_WISE_COMPARISON: Record<string, { year: string; value: number; color: string }[]> = {
-  General: [
-    { year: '2019', value: 67.5, color: '#60A5FA' },
-    { year: '2020', value: 72.25, color: '#34D399' },
-    { year: '2021', value: 76.0, color: '#FBBF24' },
-    { year: '2022', value: 80.5, color: '#C084FC' },
-    { year: '2023', value: 83.75, color: '#FB7185' },
-    { year: '2024', value: 85.25, color: '#2DD4BF' },
-  ],
-  'OBC-A': [
-    { year: '2019', value: 63.25, color: '#60A5FA' },
-    { year: '2020', value: 68.0, color: '#34D399' },
-    { year: '2021', value: 71.5, color: '#FBBF24' },
-    { year: '2022', value: 75.75, color: '#C084FC' },
-    { year: '2023', value: 79.25, color: '#FB7185' },
-    { year: '2024', value: 81.5, color: '#2DD4BF' },
-  ],
-  'OBC-B': [
-    { year: '2019', value: 60.5, color: '#60A5FA' },
-    { year: '2020', value: 65.25, color: '#34D399' },
-    { year: '2021', value: 69.0, color: '#FBBF24' },
-    { year: '2022', value: 73.0, color: '#C084FC' },
-    { year: '2023', value: 76.5, color: '#FB7185' },
-    { year: '2024', value: 78.75, color: '#2DD4BF' },
-  ],
-  SC: [
-    { year: '2019', value: 54.0, color: '#60A5FA' },
-    { year: '2020', value: 59.5, color: '#34D399' },
-    { year: '2021', value: 63.75, color: '#FBBF24' },
-    { year: '2022', value: 67.25, color: '#C084FC' },
-    { year: '2023', value: 70.8, color: '#FB7185' },
-    { year: '2024', value: 73.25, color: '#2DD4BF' },
-  ],
-  ST: [
-    { year: '2019', value: 49.25, color: '#60A5FA' },
-    { year: '2020', value: 53.5, color: '#34D399' },
-    { year: '2021', value: 58.0, color: '#FBBF24' },
-    { year: '2022', value: 62.1, color: '#C084FC' },
-    { year: '2023', value: 65.75, color: '#FB7185' },
-    { year: '2024', value: 68.5, color: '#2DD4BF' },
-  ],
-  EWS: [
-    { year: '2019', value: 61.0, color: '#60A5FA' },
-    { year: '2020', value: 66.5, color: '#34D399' },
-    { year: '2021', value: 70.25, color: '#FBBF24' },
-    { year: '2022', value: 74.0, color: '#C084FC' },
-    { year: '2023', value: 77.5, color: '#FB7185' },
-    { year: '2024', value: 80.0, color: '#2DD4BF' },
-  ],
+// Chart colours per category (presentation only; values come from the cutoff records).
+const CATEGORY_COLORS: Record<string, string> = {
+  General: '#2563EB',
+  'OBC-A': '#10B981',
+  'OBC-B': '#F59E0B',
+  SC: '#8B5CF6',
+  ST: '#FB7185',
+  EWS: '#06B6D4',
+  'Female (General)': '#F43F5E',
+  'Female (SC)': '#A855F7',
 };
+const YEAR_BAR_COLORS = ['#60A5FA', '#34D399', '#FBBF24', '#C084FC', '#FB7185', '#2DD4BF'];
+const COMPARISON_CATEGORIES = ['General', 'OBC-A', 'OBC-B', 'SC', 'ST', 'EWS'];
 
 // ============================================================================
 // EXAM ICON EMBLEM COMPONENT
@@ -448,7 +331,7 @@ export const AdminCutoff: React.FC = () => {
 
           return {
             id: r.id,
-            exam: r.examTitle || 'WBP Constable',
+            exam: r.examTitle || 'Unknown exam',
             year: r.year,
             stage: r.stage,
             category,
@@ -461,6 +344,7 @@ export const AdminCutoff: React.FC = () => {
               : r.createdAt
                 ? new Date(r.createdAt).toLocaleDateString('en-GB')
                 : '',
+            updatedAt: r.updatedAt || r.createdAt,
             addedBy: r.verifiedBy || 'Admin',
             source: r.source,
             notes: r.notes,
@@ -529,16 +413,12 @@ export const AdminCutoff: React.FC = () => {
   const [formYear, setFormYear] = useState('2024');
   const [formStage, setFormStage] = useState('Final Merit');
   const [formCategory, setFormCategory] = useState('General');
-  const [formCutoffMarks, setFormCutoffMarks] = useState('85.25');
+  const [formCutoffMarks, setFormCutoffMarks] = useState('');
   const [formTotalPosts, setFormTotalPosts] = useState('');
   // Students only see 'active' cutoffs (RLS), so new records default to Active.
   const [formStatus, setFormStatus] = useState<CutoffRecordStatus>('active');
-  const [formSource, setFormSource] = useState(
-    'WBPRB Official Notification Memo No. PRB/RECT/2024-89'
-  );
-  const [formNotes, setFormNotes] = useState(
-    'Official normalized threshold score for merit placement.'
-  );
+  const [formSource, setFormSource] = useState('');
+  const [formNotes, setFormNotes] = useState('');
 
   // Helper Toast trigger
   const showToast = (msg: string) => {
@@ -607,8 +487,8 @@ export const AdminCutoff: React.FC = () => {
     setFormCutoffMarks('');
     setFormTotalPosts('');
     setFormStatus('active');
-    setFormSource('WBPRB Official Notification Memo No. PRB/RECT/2024-89');
-    setFormNotes('Official cutoff benchmark for recruitment selection.');
+    setFormSource('');
+    setFormNotes('');
     setIsAddModalOpen(true);
   };
 
@@ -622,7 +502,7 @@ export const AdminCutoff: React.FC = () => {
     setFormCutoffMarks(item.cutoffMarks.toFixed(2));
     setFormTotalPosts(item.totalPosts);
     setFormStatus(item.status || 'draft');
-    setFormSource(item.source || 'WBPRB Official Notification Memo No. PRB/RECT/2024-89');
+    setFormSource(item.source || '');
     setFormNotes(item.notes || '');
     setIsAddModalOpen(true);
   };
@@ -678,6 +558,7 @@ export const AdminCutoff: React.FC = () => {
         totalPosts: saved.totalPosts || '',
         status: saved.status,
         addedOn: new Date(saved.createdAt || Date.now()).toLocaleDateString('en-GB'),
+        updatedAt: saved.updatedAt || saved.createdAt || new Date().toISOString(),
         addedBy: saved.verifiedBy || 'Admin',
         source: saved.source,
         notes: saved.notes,
@@ -725,9 +606,65 @@ export const AdminCutoff: React.FC = () => {
     showToast('Review the copy and Save to persist a new record.');
   };
 
-  // Comparison comparison data for Widget 3
-  const activeComparisonData =
-    YEAR_WISE_COMPARISON[comparisonCategory] || YEAR_WISE_COMPARISON['General'];
+  // ---- Analytics widgets: derived from the real cutoff records only ----
+  const selectedRow = cutoffsList.find((c) => c.id === selectedRowId);
+  const widgetExam =
+    appliedFilters.exam !== 'All Exams'
+      ? appliedFilters.exam
+      : selectedRow?.exam || cutoffsList[0]?.exam || '';
+  const widgetRows = useMemo(
+    () =>
+      cutoffsList.filter(
+        (c) =>
+          c.exam === widgetExam &&
+          (appliedFilters.stage === 'All Stages' || c.stage === appliedFilters.stage)
+      ),
+    [cutoffsList, widgetExam, appliedFilters.stage]
+  );
+  const widgetYears = useMemo(
+    () => Array.from(new Set(widgetRows.map((c) => c.year))).sort((a, b) => a - b),
+    [widgetRows]
+  );
+  /** First matching record's marks for a category/year (null when no record exists). */
+  const cutoffFor = (category: string, year: number): number | null =>
+    widgetRows.find((c) => c.category === category && c.year === year)?.cutoffMarks ?? null;
+  const trendData = widgetYears
+    .map((year) => ({ year, value: cutoffFor('General', year) }))
+    .filter((t): t is { year: number; value: number } => t.value !== null);
+  const barYear =
+    appliedFilters.year !== 'All Years'
+      ? Number(appliedFilters.year)
+      : widgetYears[widgetYears.length - 1];
+  const categoryBars = Array.from(
+    new Map(
+      widgetRows.filter((c) => c.year === barYear).map((c) => [c.category, c.cutoffMarks])
+    ).entries()
+  ).map(([category, value]) => ({
+    category,
+    value,
+    color: CATEGORY_COLORS[category] || '#64748B',
+  }));
+  const activeComparisonData = widgetYears
+    .map((year) => ({ year, value: cutoffFor(comparisonCategory, year) }))
+    .filter((d): d is { year: number; value: number } => d.value !== null)
+    .map((d, i) => ({ ...d, color: YEAR_BAR_COLORS[i % YEAR_BAR_COLORS.length] }));
+  const recentUpdates = useMemo(
+    () =>
+      [...cutoffsList].sort(
+        (a, b) => (Date.parse(b.updatedAt || '') || 0) - (Date.parse(a.updatedAt || '') || 0)
+      ),
+    [cutoffsList]
+  );
+  // Chart scale: 0–100 unless a record exceeds it.
+  const chartMax = Math.max(
+    100,
+    Math.ceil(Math.max(0, ...widgetRows.map((c) => c.cutoffMarks)) / 20) * 20
+  );
+  const trendX = (i: number) =>
+    trendData.length <= 1 ? 197 : 55 + (i * (340 - 55)) / (trendData.length - 1);
+  const trendY = (v: number) => 155 - (v / chartMax) * 140;
+  const trendPath = trendData.map((t, i) => `${i ? 'L' : 'M'} ${trendX(i)} ${trendY(t.value)}`);
+  const widgetExamLabel = widgetExam || 'No exam selected';
 
   return withAdminSkeleton(
     pageLoading,
@@ -1201,7 +1138,7 @@ export const AdminCutoff: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    cutoffsList.slice(0, 5).map((item, idx) => (
+                    recentUpdates.slice(0, 5).map((item, idx) => (
                       <tr
                         key={item.id}
                         onClick={() => {
@@ -1243,7 +1180,7 @@ export const AdminCutoff: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-slate-900">
-                Cutoff Trend (WBP Constable - General)
+                Cutoff Trend ({widgetExamLabel} - General)
               </h2>
               <button
                 onClick={() => setViewAllTrendOpen(true)}
@@ -1254,124 +1191,107 @@ export const AdminCutoff: React.FC = () => {
             </div>
 
             {/* SVG Area Chart */}
-            <div className="relative pt-2 pb-1">
-              <svg viewBox="0 0 360 170" className="w-full h-44 overflow-visible">
-                <defs>
-                  <linearGradient id="cutoffAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
+            {trendData.length === 0 ? (
+              <p className="py-10 text-center text-xs text-slate-400">No data yet</p>
+            ) : (
+              <div className="relative pt-2 pb-1">
+                <svg viewBox="0 0 360 170" className="w-full h-44 overflow-visible">
+                  <defs>
+                    <linearGradient id="cutoffAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563EB" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-                {/* Y-axis grid lines and labels: 100, 80, 60, 40, 20, 0 */}
-                {[
-                  { val: 100, y: 15 },
-                  { val: 80, y: 45 },
-                  { val: 60, y: 75 },
-                  { val: 40, y: 105 },
-                  { val: 20, y: 135 },
-                  { val: 0, y: 155 },
-                ].map((tick) => (
-                  <g key={tick.val}>
-                    <line
-                      x1="30"
-                      y1={tick.y}
-                      x2="350"
-                      y2={tick.y}
-                      stroke="#F1F5F9"
-                      strokeWidth="1"
-                    />
-                    <text
-                      x="18"
-                      y={tick.y + 3.5}
-                      fontSize="9"
-                      fill="#94A3B8"
-                      textAnchor="end"
-                      fontWeight="400"
-                    >
-                      {tick.val}
-                    </text>
-                  </g>
-                ))}
+                  {/* Y-axis grid lines and labels */}
+                  {[1, 0.8, 0.6, 0.4, 0.2, 0].map((f) => {
+                    const val = Math.round(chartMax * f);
+                    const y = trendY(val);
+                    return (
+                      <g key={f}>
+                        <line x1="30" y1={y} x2="350" y2={y} stroke="#F1F5F9" strokeWidth="1" />
+                        <text
+                          x="18"
+                          y={y + 3.5}
+                          fontSize="9"
+                          fill="#94A3B8"
+                          textAnchor="end"
+                          fontWeight="400"
+                        >
+                          {val}
+                        </text>
+                      </g>
+                    );
+                  })}
 
-                {/* Trend line and Area fill */}
-                {/* 
-                  Points mapping:
-                  2019: 67.50 -> x=55, y = 155 - (67.5/100)*140 = 60.5
-                  2020: 72.25 -> x=112, y = 155 - (72.25/100)*140 = 53.85
-                  2021: 76.00 -> x=169, y = 155 - (76/100)*140 = 48.6
-                  2022: 80.50 -> x=226, y = 155 - (80.5/100)*140 = 42.3
-                  2023: 83.75 -> x=283, y = 155 - (83.75/100)*140 = 37.75
-                  2024: 85.25 -> x=340, y = 155 - (85.25/100)*140 = 35.65
-                */}
-                <path
-                  d="M 55 60.5 L 112 53.85 L 169 48.6 L 226 42.3 L 283 37.75 L 340 35.65 L 340 155 L 55 155 Z"
-                  fill="url(#cutoffAreaGrad)"
-                />
-                <path
-                  d="M 55 60.5 L 112 53.85 L 169 48.6 L 226 42.3 L 283 37.75 L 340 35.65"
-                  fill="none"
-                  stroke="#2563EB"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                  {/* Trend line and Area fill */}
+                  {trendData.length > 1 && (
+                    <>
+                      <path
+                        d={`${trendPath.join(' ')} L ${trendX(trendData.length - 1)} 155 L ${trendX(0)} 155 Z`}
+                        fill="url(#cutoffAreaGrad)"
+                      />
+                      <path
+                        d={trendPath.join(' ')}
+                        fill="none"
+                        stroke="#2563EB"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </>
+                  )}
 
-                {/* Data points with floating score labels */}
-                {[
-                  { year: '2019', val: '67.50', x: 55, y: 60.5 },
-                  { year: '2020', val: '72.25', x: 112, y: 53.85 },
-                  { year: '2021', val: '76.00', x: 169, y: 48.6 },
-                  { year: '2022', val: '80.50', x: 226, y: 42.3 },
-                  { year: '2023', val: '83.75', x: 283, y: 37.75 },
-                  { year: '2024', val: '85.25', x: 340, y: 35.65 },
-                ].map((pt) => (
-                  <g key={pt.year}>
-                    {/* Floating score text */}
-                    <text
-                      x={pt.x}
-                      y={pt.y - 8}
-                      fontSize="9"
-                      fontWeight="600"
-                      fill="#1E293B"
-                      textAnchor="middle"
-                    >
-                      {pt.val}
-                    </text>
-                    {/* Circle marker */}
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r="4"
-                      fill="#2563EB"
-                      stroke="#FFFFFF"
-                      strokeWidth="2"
-                    />
-                    {/* X-axis year label */}
-                    <text
-                      x={pt.x}
-                      y={166}
-                      fontSize="9"
-                      fill="#64748B"
-                      textAnchor="middle"
-                      fontWeight="400"
-                    >
-                      {pt.year}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-            </div>
+                  {/* Data points with floating score labels */}
+                  {trendData.map((pt, i) => (
+                    <g key={pt.year}>
+                      <text
+                        x={trendX(i)}
+                        y={trendY(pt.value) - 8}
+                        fontSize="9"
+                        fontWeight="600"
+                        fill="#1E293B"
+                        textAnchor="middle"
+                      >
+                        {pt.value.toFixed(2)}
+                      </text>
+                      <circle
+                        cx={trendX(i)}
+                        cy={trendY(pt.value)}
+                        r="4"
+                        fill="#2563EB"
+                        stroke="#FFFFFF"
+                        strokeWidth="2"
+                      />
+                      <text
+                        x={trendX(i)}
+                        y={166}
+                        fontSize="9"
+                        fill="#64748B"
+                        textAnchor="middle"
+                        fontWeight="400"
+                      >
+                        {pt.year}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              </div>
+            )}
           </div>
 
           {/* WIDGET 2: CATEGORY-WISE CUTOFF (WBP Constable 2024) */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xs p-5">
             <h2 className="text-sm font-bold text-slate-900 mb-4">
-              Category-wise Cutoff (WBP Constable 2024)
+              Category-wise Cutoff ({widgetExamLabel}
+              {categoryBars.length > 0 ? ` ${barYear}` : ''})
             </h2>
 
             <div className="space-y-3">
-              {CATEGORY_BARS_DATA.map((item) => (
+              {categoryBars.length === 0 && (
+                <p className="py-6 text-center text-xs text-slate-400">No data yet</p>
+              )}
+              {categoryBars.map((item) => (
                 <div key={item.category} className="flex items-center justify-between text-xs">
                   {/* Category Name */}
                   <span className="w-28 text-slate-600 font-normal truncate">{item.category}</span>
@@ -1381,7 +1301,7 @@ export const AdminCutoff: React.FC = () => {
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
-                        width: `${item.value}%`,
+                        width: `${(item.value / chartMax) * 100}%`,
                         backgroundColor: item.color,
                       }}
                     />
@@ -1410,7 +1330,7 @@ export const AdminCutoff: React.FC = () => {
 
             {/* Category Filter Tabs */}
             <div className="flex items-center gap-1.5 flex-wrap mb-4">
-              {['General', 'OBC-A', 'OBC-B', 'SC', 'ST', 'EWS'].map((cat) => (
+              {COMPARISON_CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setComparisonCategory(cat)}
@@ -1427,49 +1347,50 @@ export const AdminCutoff: React.FC = () => {
             </div>
 
             {/* Vertical Bar Chart with Y-axis */}
-            <div className="relative pt-2">
-              <div className="flex items-end gap-2 h-44 border-b border-slate-100 pb-1 pl-7 pr-2">
-                {/* Y-axis numbers positioned on left */}
-                <div className="absolute left-0 top-2 bottom-5 flex flex-col justify-between text-[9px] text-slate-400 font-normal">
-                  <span>100</span>
-                  <span>80</span>
-                  <span>60</span>
-                  <span>40</span>
-                  <span>20</span>
-                  <span>0</span>
-                </div>
+            {activeComparisonData.length === 0 ? (
+              <p className="py-10 text-center text-xs text-slate-400">No data yet</p>
+            ) : (
+              <div className="relative pt-2">
+                <div className="flex items-end gap-2 h-44 border-b border-slate-100 pb-1 pl-7 pr-2">
+                  {/* Y-axis numbers positioned on left */}
+                  <div className="absolute left-0 top-2 bottom-5 flex flex-col justify-between text-[9px] text-slate-400 font-normal">
+                    {[1, 0.8, 0.6, 0.4, 0.2, 0].map((f) => (
+                      <span key={f}>{Math.round(chartMax * f)}</span>
+                    ))}
+                  </div>
 
-                {/* Bars */}
-                {activeComparisonData.map((bar) => {
-                  const heightPercent = (bar.value / 100) * 100;
-                  return (
-                    <div
-                      key={bar.year}
-                      className="flex-1 flex flex-col items-center justify-end h-full group"
-                    >
-                      {/* Floating value on top */}
-                      <span className="text-[10px] font-semibold text-slate-700 mb-1">
-                        {bar.value.toFixed(2)}
-                      </span>
-
-                      {/* Bar Pillar */}
+                  {/* Bars */}
+                  {activeComparisonData.map((bar) => {
+                    const heightPercent = (bar.value / chartMax) * 100;
+                    return (
                       <div
-                        className="w-full rounded-t-md transition-all duration-500"
-                        style={{
-                          height: `${heightPercent}%`,
-                          backgroundColor: bar.color,
-                        }}
-                      />
+                        key={bar.year}
+                        className="flex-1 flex flex-col items-center justify-end h-full group"
+                      >
+                        {/* Floating value on top */}
+                        <span className="text-[10px] font-semibold text-slate-700 mb-1">
+                          {bar.value.toFixed(2)}
+                        </span>
 
-                      {/* Year label below */}
-                      <span className="text-[10px] text-slate-500 font-normal mt-2">
-                        {bar.year}
-                      </span>
-                    </div>
-                  );
-                })}
+                        {/* Bar Pillar */}
+                        <div
+                          className="w-full rounded-t-md transition-all duration-500"
+                          style={{
+                            height: `${heightPercent}%`,
+                            backgroundColor: bar.color,
+                          }}
+                        />
+
+                        {/* Year label below */}
+                        <span className="text-[10px] text-slate-500 font-normal mt-2">
+                          {bar.year}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -1735,7 +1656,7 @@ export const AdminCutoff: React.FC = () => {
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-500">Official Source</span>
                   <span className="font-medium text-slate-800 truncate max-w-[200px]">
-                    {detailsItem.source || 'WBPRB Notice'}
+                    {detailsItem.source || '—'}
                   </span>
                 </div>
                 <div className="flex justify-between py-1">
@@ -1808,7 +1729,7 @@ export const AdminCutoff: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">
-                Historical Cutoff Trend — WBP Constable
+                Historical Cutoff Trend — {widgetExamLabel} (General)
               </h3>
               <button
                 onClick={() => setViewAllTrendOpen(false)}
@@ -1819,7 +1740,10 @@ export const AdminCutoff: React.FC = () => {
             </div>
             <div className="p-6">
               <div className="space-y-2.5 text-xs">
-                {GENERAL_TREND_DATA.map((t, i) => (
+                {trendData.length === 0 && (
+                  <p className="py-6 text-center text-slate-400">No data yet</p>
+                )}
+                {trendData.map((t, i) => (
                   <div
                     key={t.year}
                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100"
@@ -1830,7 +1754,8 @@ export const AdminCutoff: React.FC = () => {
                       <span className="font-bold text-blue-600">{t.value.toFixed(2)}</span>
                       {i > 0 && (
                         <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
-                          +{(t.value - GENERAL_TREND_DATA[i - 1].value).toFixed(2)}
+                          {t.value >= trendData[i - 1].value ? '+' : ''}
+                          {(t.value - trendData[i - 1].value).toFixed(2)}
                         </span>
                       )}
                     </div>
@@ -1856,7 +1781,12 @@ export const AdminCutoff: React.FC = () => {
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="divide-y divide-slate-100 text-xs">
-                {RECENT_UPDATES.map((item) => (
+                {recentUpdates.length === 0 && (
+                  <p className="py-6 text-center text-slate-400">
+                    No recent cutoff updates recorded
+                  </p>
+                )}
+                {recentUpdates.map((item) => (
                   <div key={item.id} className="py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2.5">
                       <ExamLogoEmblem examName={item.exam} />
@@ -1884,7 +1814,7 @@ export const AdminCutoff: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">
-                Comprehensive Year-wise Cutoff Comparison
+                Year-wise Cutoff Comparison — {widgetExamLabel}
               </h3>
               <button
                 onClick={() => setViewAllComparisonOpen(false)}
@@ -1898,7 +1828,7 @@ export const AdminCutoff: React.FC = () => {
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-400 font-semibold">
                     <th className="py-2">Year</th>
-                    {['General', 'OBC-A', 'OBC-B', 'SC', 'ST', 'EWS'].map((c) => (
+                    {COMPARISON_CATEGORIES.map((c) => (
                       <th key={c} className="py-2 text-right">
                         {c}
                       </th>
@@ -1906,15 +1836,21 @@ export const AdminCutoff: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {['2019', '2020', '2021', '2022', '2023', '2024'].map((yr) => (
+                  {widgetYears.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-6 text-center text-slate-400">
+                        No data yet
+                      </td>
+                    </tr>
+                  )}
+                  {widgetYears.map((yr) => (
                     <tr key={yr} className="hover:bg-slate-50">
                       <td className="py-2.5 font-bold text-slate-900">{yr}</td>
-                      {['General', 'OBC-A', 'OBC-B', 'SC', 'ST', 'EWS'].map((cat) => {
-                        const val =
-                          YEAR_WISE_COMPARISON[cat]?.find((d) => d.year === yr)?.value || 0;
+                      {COMPARISON_CATEGORIES.map((cat) => {
+                        const val = cutoffFor(cat, yr);
                         return (
                           <td key={cat} className="py-2.5 text-right font-semibold">
-                            {val.toFixed(2)}
+                            {val === null ? '—' : val.toFixed(2)}
                           </td>
                         );
                       })}

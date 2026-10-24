@@ -212,18 +212,20 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
                       {/* Author */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <img
-                            src={
-                              post.authorAvatar ||
-                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'
-                            }
-                            alt={post.author}
-                            className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
-                            }}
-                          />
+                          {post.authorAvatar ? (
+                            <img
+                              src={post.authorAvatar}
+                              alt={post.author}
+                              className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.visibility = 'hidden';
+                              }}
+                            />
+                          ) : (
+                            <span className="w-6 h-6 rounded-full shrink-0 border border-slate-200 bg-slate-100 text-slate-500 text-[9px] font-bold flex items-center justify-center">
+                              {(post.author || '?').trim().charAt(0).toUpperCase() || '?'}
+                            </span>
+                          )}
                           <span className="text-xs font-medium text-slate-700">{post.author}</span>
                         </div>
                       </td>

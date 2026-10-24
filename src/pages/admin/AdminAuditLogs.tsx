@@ -82,16 +82,16 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     details: 'Added new question in In...',
     fullDetails:
       'Added new question in Indus Valley Civilization with options, explanation and short notes.',
-    resourceId: 'QST-10485',
+    resourceId: 'Not recorded',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
-    device: 'Mac (macOS 14.6)',
-    location: 'Kolkata, West Bengal, India',
+    browser: 'Not recorded',
+    device: 'Not recorded',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'create',
       resource: 'question',
-      resource_id: 'QST-10485',
+      resource_id: 'Not recorded',
       exam_id: 12,
       subject_id: 34,
       topic_id: 78,
@@ -113,9 +113,9 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     fullDetails: 'Updated test series "WBP Constable 2026 Mega Pack" questions list and duration.',
     resourceId: 'TS-902',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
+    browser: 'Not recorded',
     device: 'Windows 11',
-    location: 'Kolkata, West Bengal, India',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'update',
@@ -169,9 +169,9 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
       'Created promotional discount coupon "DIWALI50" with 50% discount and 500 max usage.',
     resourceId: 'CPN-DIWALI50',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
+    browser: 'Not recorded',
     device: 'Windows 10',
-    location: 'Kolkata, West Bengal, India',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'create',
@@ -226,9 +226,9 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     fullDetails: 'Admin user authenticated successfully via OTP MFA.',
     resourceId: 'AUTH-SESSION-889',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
-    device: 'Mac (macOS 14.6)',
-    location: 'Kolkata, West Bengal, India',
+    browser: 'Not recorded',
+    device: 'Not recorded',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'login',
@@ -255,7 +255,7 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
       'Updated student profile (ID: STU-8492) email verification flag and district preference.',
     resourceId: 'STU-8492',
     ipAddress: '49.36.112.84',
-    browser: 'Chrome 128.0.6613.120',
+    browser: 'Not recorded',
     device: 'Windows 11',
     location: 'Burdwan, West Bengal, India',
     severity: 'Info',
@@ -284,7 +284,7 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     ipAddress: '103.78.212.6',
     browser: 'Safari 17.5',
     device: 'MacBook Air',
-    location: 'Kolkata, West Bengal, India',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'view',
@@ -308,9 +308,9 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
     fullDetails: 'Processed refund for TXN_987165 (₹99.00) to customer bank account via Razorpay.',
     resourceId: 'RFND-10492',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
-    device: 'Mac (macOS 14.6)',
-    location: 'Kolkata, West Bengal, India',
+    browser: 'Not recorded',
+    device: 'Not recorded',
+    location: 'Not recorded',
     severity: 'Warning',
     jsonData: {
       action: 'refund',
@@ -338,7 +338,7 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
       'Updated platform settings: Maintenance mode configuration, payment gateway toggle.',
     resourceId: 'SYS-CONF-GLOBAL',
     ipAddress: '49.36.112.84',
-    browser: 'Chrome 128.0.6613.120',
+    browser: 'Not recorded',
     device: 'Windows 11',
     location: 'Howrah, West Bengal, India',
     severity: 'High',
@@ -366,9 +366,9 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
       'Added new subject "Ancient History & Indus Civilization" under West Bengal Police Exams.',
     resourceId: 'SUB-HIST-01',
     ipAddress: '117.247.32.91',
-    browser: 'Chrome 128.0.6613.120',
-    device: 'Mac (macOS 14.6)',
-    location: 'Kolkata, West Bengal, India',
+    browser: 'Not recorded',
+    device: 'Not recorded',
+    location: 'Not recorded',
     severity: 'Info',
     jsonData: {
       action: 'create',
@@ -1409,7 +1409,7 @@ export const AdminAuditLogs: React.FC = () => {
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-400 font-normal">Resource ID</span>
                 <span className="font-mono text-slate-700">
-                  {selectedLog.resourceId || 'QST-10485'}
+                  {selectedLog.resourceId || 'Not recorded'}
                 </span>
               </div>
 
@@ -1431,7 +1431,7 @@ export const AdminAuditLogs: React.FC = () => {
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-400 font-normal">Browser</span>
                 <span className="font-medium text-slate-800">
-                  {selectedLog.browser || 'Chrome 128.0.6613.120'}
+                  {selectedLog.browser || 'Not recorded'}
                 </span>
               </div>
 
@@ -1439,7 +1439,7 @@ export const AdminAuditLogs: React.FC = () => {
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-400 font-normal">Device</span>
                 <span className="font-medium text-slate-800">
-                  {selectedLog.device || 'Mac (macOS 14.6)'}
+                  {selectedLog.device || 'Not recorded'}
                 </span>
               </div>
 
@@ -1447,7 +1447,7 @@ export const AdminAuditLogs: React.FC = () => {
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-400 font-normal">Location</span>
                 <span className="font-medium text-slate-800">
-                  {selectedLog.location || 'Kolkata, West Bengal, India'}
+                  {selectedLog.location || 'Not recorded'}
                 </span>
               </div>
 

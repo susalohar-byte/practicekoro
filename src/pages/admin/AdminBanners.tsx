@@ -409,11 +409,11 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     id: banner.id,
     order: banner.displayOrder || index + 1,
     title: banner.title,
-    subtitle: banner.subtitle || 'Promote mock tests and courses',
-    description: banner.subtitle || banner.title,
+    subtitle: banner.subtitle || '',
+    description: banner.subtitle || '',
     bannerType: bType,
     showTextOverlay: Boolean(banner.showTextOverlay ?? banner.bannerType === 'text_overlay'),
-    linkUrl: banner.primaryCtaLink || '/test-series',
+    linkUrl: banner.primaryCtaLink || '',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
     startDate: formatDate(banner.startsAt),
@@ -422,11 +422,11 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     startsAt: banner.startsAt || undefined,
     expiresAt: banner.expiresAt || undefined,
     status: deriveBannerStatus(banner),
-    imageUrl: banner.imageUrl || '/images/exam_hero_banner.png',
-    fileName: banner.imageUrl ? banner.imageUrl.split('/').pop() || 'banner.jpg' : 'banner.jpg',
+    imageUrl: banner.imageUrl || '',
+    fileName: banner.imageUrl ? banner.imageUrl.split('/').pop() || '' : '',
     clickCount: banner.clickCount || 0,
     badgeText: banner.badgeText,
-    ctaText: banner.primaryCtaText || 'এখনই শুরু করুন →',
+    ctaText: banner.primaryCtaText || '',
   };
 }
 
@@ -544,7 +544,6 @@ export const BannerVisual: React.FC<BannerVisualProps> = ({
               )}
             >
               <span>★</span>
-              <span>100+</span>
             </div>
           </div>
         </div>
@@ -807,7 +806,7 @@ export const AdminBanners: React.FC = () => {
     description: '',
     bannerType: 'Test Series',
     showTextOverlay: false,
-    linkUrl: '/test-series',
+    linkUrl: '',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },
     startDate: '',
@@ -816,8 +815,8 @@ export const AdminBanners: React.FC = () => {
     startsAt: '',
     expiresAt: '',
     status: 'Active',
-    imageUrl: '/images/exam_hero_banner.png',
-    fileName: 'banner-new.jpg',
+    imageUrl: '',
+    fileName: '',
   });
 
   // Toast notifier
@@ -1109,7 +1108,7 @@ export const AdminBanners: React.FC = () => {
         title: newBannerData.title,
         subtitle: newBannerData.subtitle,
         primaryCtaLink: newBannerData.linkUrl,
-        primaryCtaText: newBannerData.ctaText || 'Start Now',
+        primaryCtaText: newBannerData.ctaText || '',
         badgeText: newBannerData.badgeText,
         imageUrl: newBannerData.imageUrl,
         isActive: record.isActive,
@@ -1524,7 +1523,7 @@ export const AdminBanners: React.FC = () => {
                           {/* Link */}
                           <td className="py-3 px-3">
                             <span className="font-mono text-[11px] text-slate-600 hover:text-[#026BFC] transition-colors truncate block max-w-[140px]">
-                              {banner.linkUrl}
+                              {banner.linkUrl || '—'}
                             </span>
                           </td>
 
@@ -1802,6 +1801,7 @@ export const AdminBanners: React.FC = () => {
                     <input
                       type="text"
                       value={editFormData.description}
+                      placeholder="Short line shown under the title"
                       onChange={(e) =>
                         setEditFormData((prev) =>
                           prev
@@ -1855,7 +1855,7 @@ export const AdminBanners: React.FC = () => {
                           <BannerVisual banner={editFormData} />
                         </div>
                         <span className="font-mono text-slate-700 text-[11px] truncate max-w-[170px]">
-                          {editFormData.fileName}
+                          {editFormData.fileName || 'No image set'}
                         </span>
                       </div>
 
@@ -1962,6 +1962,7 @@ export const AdminBanners: React.FC = () => {
                     <input
                       type="text"
                       value={editFormData.linkUrl}
+                      placeholder="Page students open on click"
                       onChange={(e) =>
                         setEditFormData((prev) =>
                           prev ? { ...prev, linkUrl: e.target.value } : null
@@ -2140,18 +2141,6 @@ export const AdminBanners: React.FC = () => {
                     <span className="text-xl font-bold text-slate-900 mt-0.5 block">
                       {editFormData.clickCount.toLocaleString()} clicks
                     </span>
-                    <span className="text-[11px] text-emerald-600 mt-1 block">
-                      High engagement banner (Top 10%)
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">Target Audience</label>
-                    <select className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800">
-                      <option>All Students (Free & Pro)</option>
-                      <option>Free Users Only</option>
-                      <option>Pro Pass Subscribers Only</option>
-                    </select>
                   </div>
 
                   <div>
@@ -2457,14 +2446,17 @@ export const AdminBanners: React.FC = () => {
                   )}
                 >
                   <div className="w-12 h-8 rounded overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
-                    <img
-                      src={newBannerData.imageUrl}
-                      alt="Banner Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/exam_hero_banner.png';
-                      }}
-                    />
+                    {newBannerData.imageUrl ? (
+                      <img
+                        src={newBannerData.imageUrl}
+                        alt="Banner Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <input

@@ -8,8 +8,6 @@ import '../../data/models/attempt_model.dart';
 import '../../data/models/ranking_model.dart';
 import '../../data/repositories/catalog_repository.dart';
 
-enum DetailTab { overview, subjects, timeAnalysis }
-
 class ResultScreen extends ConsumerStatefulWidget {
   final String attemptId;
 
@@ -20,8 +18,6 @@ class ResultScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultScreenState extends ConsumerState<ResultScreen> {
-  DetailTab _activeTab = DetailTab.overview;
-
   @override
   Widget build(BuildContext context) {
     final attemptAsync = ref.watch(testAttemptProvider(widget.attemptId));
@@ -56,12 +52,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final totalMarksStr = a.totalMarks == a.totalMarks.roundToDouble()
         ? a.totalMarks.toInt().toString()
         : a.totalMarks.toStringAsFixed(0);
-
-    // Negative marking calculation: default 0.25 per wrong answer unless test has 0
-    final negativeDeduction = (a.wrongCount * 0.25);
-    final negativeDisplay = negativeDeduction > 0
-        ? '-${negativeDeduction.toStringAsFixed(negativeDeduction == negativeDeduction.roundToDouble() ? 0 : 2)}'
-        : '-0';
 
     // Ranks come only from the server; show a dash until one exists.
     final rankDisplay = a.rank > 0 ? RankingSummary.formatOrdinal(a.rank) : '-';
@@ -163,7 +153,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      DateFormat('d MMM yyyy • h:mm a').format(a.completedAt),
+                      a.completedAtOrNull != null
+                          ? DateFormat('d MMM yyyy • h:mm a').format(a.completedAtOrNull!)
+                          : '—',
                       style: const TextStyle(
                         fontSize: 11.5,
                         color: Color(0xFF64748B),
@@ -177,36 +169,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ),
         ),
         const SizedBox(height: 14),
-
-        // 2. Segmented Tabs (Overview, Subjects, Time Analysis)
-        Row(
-          children: [
-            Expanded(
-              child: _DetailTabButton(
-                label: 'Overview',
-                isSelected: _activeTab == DetailTab.overview,
-                onTap: () => setState(() => _activeTab = DetailTab.overview),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _DetailTabButton(
-                label: 'Subjects',
-                isSelected: _activeTab == DetailTab.subjects,
-                onTap: () => setState(() => _activeTab = DetailTab.subjects),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _DetailTabButton(
-                label: 'Time Analysis',
-                isSelected: _activeTab == DetailTab.timeAnalysis,
-                onTap: () => setState(() => _activeTab = DetailTab.timeAnalysis),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
 
         // 3. Circular Score Progress Ring
         Center(
@@ -336,12 +298,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               const Divider(height: 18, color: Color(0xFFF1F5F9)),
               _buildBreakdownRow('Skipped', '${a.skippedCount}'),
               const Divider(height: 18, color: Color(0xFFF1F5F9)),
-              _buildBreakdownRow(
-                'Negative Marking',
-                negativeDisplay,
-                valueColor: const Color(0xFFDC2626),
-              ),
-              const Divider(height: 18, color: Color(0xFFF1F5F9)),
+              // Negative marking is not reported by the server per attempt,
+              // so no deduction row is shown rather than an estimated one.
               _buildBreakdownRow(
                 'Final Score',
                 '$scoreStr / $totalMarksStr',
@@ -416,54 +374,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   }
 
   String _formatTimeSpent(int seconds) {
-    if (seconds <= 0) return '6h 12m';
+    if (seconds <= 0) return '—';
     final hours = seconds ~/ 3600;
     final mins = (seconds % 3600) ~/ 60;
     if (hours > 0) {
       return '${hours}h ${mins}m';
     }
     return '${mins}m ${seconds % 60}s';
-  }
-}
-
-class _DetailTabButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _DetailTabButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0158FC) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF0158FC) : const Color(0xFFE2E8F0),
-            width: 1,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
-          ),
-        ),
-      ),
-    );
   }
 }
 

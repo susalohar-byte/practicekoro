@@ -13,7 +13,7 @@ class PerformerRank {
 
   factory PerformerRank.fromJson(Map<String, dynamic> json) {
     return PerformerRank(
-      rank: (json['rank'] as num?)?.toInt() ?? 1,
+      rank: (json['rank'] as num?)?.toInt() ?? 0,
       name: json['name']?.toString() ?? '',
       score: (json['score'] as num?)?.toDouble() ?? 0.0,
       isCurrentUser: json['is_current_user'] as bool? ?? false,
@@ -48,7 +48,9 @@ class TestAttemptModel {
   final int wrongCount;
   final int skippedCount;
   final int timeSpentSeconds;
-  final DateTime completedAt;
+  /// When the attempt was completed, or null when the server did not report
+  /// it. Display sites should show '—' for null.
+  final DateTime? completedAtOrNull;
   final Map<String, dynamic> userAnswers; // questionId -> optionId
   final Map<String, String> expectedCutoffs;
   final List<PerformerRank> topPerformers;
@@ -73,11 +75,16 @@ class TestAttemptModel {
     this.wrongCount = 0,
     this.skippedCount = 0,
     this.timeSpentSeconds = 0,
-    required this.completedAt,
+    DateTime? completedAt,
     this.userAnswers = const {},
     this.expectedCutoffs = const {},
     this.topPerformers = const [],
-  });
+  }) : completedAtOrNull = completedAt;
+
+  /// Legacy non-null accessor kept for older call sites. Prefer
+  /// [completedAtOrNull]; this falls back to the current time when the
+  /// completion time is unknown.
+  DateTime get completedAt => completedAtOrNull ?? DateTime.now();
 
   factory TestAttemptModel.fromJson(Map<String, dynamic> json) {
     final rawPerformers = json['top_performers'] as List? ?? const [];
@@ -103,8 +110,8 @@ class TestAttemptModel {
       skippedCount: (json['skipped_count'] as num?)?.toInt() ?? 0,
       timeSpentSeconds: (json['time_spent_seconds'] as num?)?.toInt() ?? 0,
       completedAt: json['completed_at'] != null
-          ? DateTime.tryParse(json['completed_at'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+          ? DateTime.tryParse(json['completed_at'].toString())
+          : null,
       userAnswers: () {
         final raw = json['user_answers'];
         if (raw is Map) {
@@ -158,7 +165,7 @@ class TestAttemptModel {
     'wrong_count': wrongCount,
     'skipped_count': skippedCount,
     'time_spent_seconds': timeSpentSeconds,
-    'completed_at': completedAt.toIso8601String(),
+    'completed_at': completedAtOrNull?.toIso8601String(),
     'user_answers': userAnswers,
     'expected_cutoffs': expectedCutoffs,
     'top_performers': topPerformers.map((p) => p.toJson()).toList(),

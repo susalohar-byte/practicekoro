@@ -131,7 +131,7 @@ class _AttemptCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${DateFormat('d MMM yyyy, h:mm a').format(a.completedAt)} · '
+                      '${a.completedAtOrNull != null ? DateFormat('d MMM yyyy, h:mm a').format(a.completedAtOrNull!) : '—'} · '
                       '${_duration(a.timeSpentSeconds)}',
                       style: UI.caption,
                     ),

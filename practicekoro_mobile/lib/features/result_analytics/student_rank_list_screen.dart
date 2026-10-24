@@ -919,7 +919,8 @@ class _AttemptedTest {
         ? attempt.totalMarks.toInt().toString()
         : attempt.totalMarks.toStringAsFixed(1);
     final parts = [
-      DateFormat('d MMM yyyy').format(attempt.completedAt),
+      if (attempt.completedAtOrNull != null)
+        DateFormat('d MMM yyyy').format(attempt.completedAtOrNull!),
       if (attempt.totalMarks > 0) '$marks Marks',
       if (attempt.totalParticipants > 0)
         '${NumberFormat.decimalPattern('en_IN').format(attempt.totalParticipants)} Students',

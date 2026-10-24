@@ -171,6 +171,7 @@ void main() {
     expect(find.byType(Image), findsAtLeastNWidgets(1));
     expect(find.text('পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি'), findsOneWidget);
     expect(find.text('Practice Today, Progress Tomorrow'), findsOneWidget);
-    expect(find.text('Version 2.0.0'), findsOneWidget);
+    // No hard-coded version string on the splash.
+    expect(find.textContaining('Version'), findsNothing);
   });
 }

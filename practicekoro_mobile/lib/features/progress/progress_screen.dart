@@ -269,7 +269,7 @@ class _TrendChart extends StatelessWidget {
         Row(
           children: [
             Text(
-              DateFormat('d MMM').format(attempts.first.completedAt),
+              _fmtDay(attempts.first.completedAtOrNull),
               style: UI.caption,
             ),
             const Spacer(),
@@ -279,7 +279,7 @@ class _TrendChart extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              DateFormat('d MMM').format(attempts.last.completedAt),
+              _fmtDay(attempts.last.completedAtOrNull),
               style: UI.caption,
             ),
           ],
@@ -287,4 +287,7 @@ class _TrendChart extends StatelessWidget {
       ],
     );
   }
+
+  static String _fmtDay(DateTime? d) =>
+      d == null ? '—' : DateFormat('d MMM').format(d);
 }

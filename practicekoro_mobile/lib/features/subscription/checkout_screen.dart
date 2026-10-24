@@ -1134,8 +1134,11 @@ class _BillingBreakdownCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final upgrade = this.upgrade;
     if (upgrade != null) return _buildUpgrade(upgrade);
-    final original = plan.originalPrice ?? (plan.price * 2);
-    final discount = (original - plan.price).toInt();
+    // Only show MRP / discount when the plan has a real, higher original
+    // price. Never invent one.
+    final original = plan.originalPrice;
+    final hasDiscount = original != null && original > plan.price;
+    final discount = hasDiscount ? (original - plan.price).toInt() : 0;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1156,17 +1159,19 @@ class _BillingBreakdownCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _PriceRow(
-            label: 'Plan MRP',
-            value: '₹${original.toInt()}',
-          ),
-          const SizedBox(height: 8),
-          _PriceRow(
-            label: 'Special Offer Discount',
-            value: '-₹$discount',
-            valueColor: UI.success,
-          ),
-          const SizedBox(height: 8),
+          if (hasDiscount) ...[
+            _PriceRow(
+              label: 'Plan MRP',
+              value: '₹${original.toInt()}',
+            ),
+            const SizedBox(height: 8),
+            _PriceRow(
+              label: 'Special Offer Discount',
+              value: '-₹$discount',
+              valueColor: UI.success,
+            ),
+            const SizedBox(height: 8),
+          ],
           const _PriceRow(
             label: 'Platform & Processing Fee',
             value: 'FREE',

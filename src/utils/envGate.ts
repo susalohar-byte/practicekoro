@@ -42,3 +42,20 @@ export function resolveSupabaseConfig(env: SupabaseEnv, demoMode: boolean): Supa
 export function isSupabaseEnvValid(env: SupabaseEnv, demoMode: boolean): boolean {
   return resolveSupabaseConfig(env, demoMode) !== null;
 }
+
+/**
+ * Demo mode serves the in-memory sample data from localStore/mockData. It is
+ * for unit tests, E2E and local mock testing only, so a demo build refuses to
+ * run anywhere but a loopback host; deploying one by mistake shows an error
+ * page instead of invented exams, tests and stats to real visitors.
+ */
+export function isDemoModeAllowedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host === '::1' ||
+    host.endsWith('.localhost')
+  );
+}

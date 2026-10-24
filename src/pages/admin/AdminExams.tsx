@@ -596,6 +596,8 @@ export const AdminExams: React.FC = () => {
 
   // Categories & Modal
   const [categories, setCategories] = useState<string[]>(() => {
+    // Live mode lists only the backend's categories (set in loadData).
+    if (isSupabaseConfigured) return [];
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CATEGORIES);
       if (saved) {
@@ -608,6 +610,7 @@ export const AdminExams: React.FC = () => {
     return DEFAULT_EXAM_CATEGORIES;
   });
   const [kpiLoadFailed, setKpiLoadFailed] = useState({ tests: false });
+  const [categoriesLoadError, setCategoriesLoadError] = useState('');
   // Backend ids by category name (required to persist a reorder).
   const [categoryIds, setCategoryIds] = useState<Record<string, string>>({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -750,24 +753,33 @@ export const AdminExams: React.FC = () => {
         api.getAllAdminTests().catch(() => null),
         api.getSubjects().catch(() => []),
         api.getExamMappingCounts().catch(() => null),
-        api.getExamCategories().catch(() => []),
+        api.getExamCategories().catch((err) => {
+          setCategoriesLoadError(getErrorMessage(err, 'Exam categories could not be loaded.'));
+          return null;
+        }),
       ]);
 
       // A failed count source shows "—" instead of a misleading zero.
       setKpiLoadFailed({ tests: allTests === null });
       setDbTests(allTests || []);
 
+      if (dbCats) setCategoriesLoadError('');
       if (dbCats && dbCats.length > 0) {
         setCategoryIds(Object.fromEntries(dbCats.map((c) => [c.name, c.id])));
         const catNames = dbCats
           .map((c) => c.name)
           .filter((name) => !LEGACY_EXAM_CATEGORY_NAMES.has(name.toLowerCase()));
-        if (catNames.length > 0) {
-          const merged = isSupabaseConfigured
-            ? catNames
-            : Array.from(new Set([...['State Govt', 'Central Govt', 'Other'], ...catNames]));
-          setCategories(merged);
+        if (isSupabaseConfigured) {
+          setCategories(catNames);
+        } else if (catNames.length > 0) {
+          setCategories(
+            Array.from(new Set([...['State Govt', 'Central Govt', 'Other'], ...catNames]))
+          );
         }
+      } else if (dbCats && isSupabaseConfigured) {
+        // The backend has no categories: show none rather than invented defaults.
+        setCategoryIds({});
+        setCategories([]);
       }
 
       const mergedList: EnrichedExamRow[] = rawExams.map((dbEx) => {
@@ -1129,6 +1141,11 @@ export const AdminExams: React.FC = () => {
           <button type="button" onClick={() => void loadData()} className="ml-2 underline">
             Retry exam list
           </button>
+        </div>
+      )}
+      {categoriesLoadError && (
+        <div role="alert" className="rounded-xl bg-amber-50 p-3 text-amber-800">
+          Exam categories could not be loaded: {categoriesLoadError}
         </div>
       )}
       {/* Toast Notification */}
@@ -1814,9 +1831,9 @@ export const AdminExams: React.FC = () => {
                     {selectedExam.title}
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[11px] text-slate-400 truncate">
-                      {selectedExam.subtitle || 'West Bengal Police Constable'}
-                    </p>
+                    {selectedExam.subtitle && (
+                      <p className="text-[11px] text-slate-400 truncate">{selectedExam.subtitle}</p>
+                    )}
                     <label
                       htmlFor={`drawer-logo-upload-badge-${selectedExam.id}`}
                       className="text-[10px] text-[#026BFC] hover:underline font-semibold cursor-pointer shrink-0 flex items-center gap-0.5"

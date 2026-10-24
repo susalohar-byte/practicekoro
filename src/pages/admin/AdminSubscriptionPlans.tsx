@@ -51,7 +51,7 @@ export const AdminSubscriptionPlans: React.FC = () => {
       {/* 5. BOTTOM SECTION: 3 COLUMNS LAYOUT                                  */}
       {/* ==================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <FeatureComparisonCard />
+        <FeatureComparisonCard plansState={plansState} />
 
         <PlanHighlightsCard />
 

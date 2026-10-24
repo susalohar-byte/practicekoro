@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEMO_SUPABASE_ANON_KEY,
   DEMO_SUPABASE_URL,
+  isDemoModeAllowedHost,
   isSupabaseEnvValid,
   resolveSupabaseConfig,
 } from './envGate';
@@ -65,4 +66,20 @@ describe('isSupabaseEnvValid', () => {
     expect(isSupabaseEnvValid({}, false)).toBe(false);
     expect(isSupabaseEnvValid({}, true)).toBe(true);
   });
+});
+
+describe('isDemoModeAllowedHost', () => {
+  it.each(['localhost', '127.0.0.1', '[::1]', 'app.localhost', 'LOCALHOST'])(
+    'allows demo data on loopback host %s',
+    (host) => expect(isDemoModeAllowedHost(host)).toBe(true)
+  );
+  it.each([
+    'practicekoro.com',
+    'www.practicekoro.com',
+    'practicekoro.vercel.app',
+    '192.168.1.5',
+    'localhost.evil.com',
+  ])('refuses demo data on public host %s', (host) =>
+    expect(isDemoModeAllowedHost(host)).toBe(false)
+  );
 });

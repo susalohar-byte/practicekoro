@@ -73,7 +73,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
     iconUrl: '',
     durationMinutes: 90,
     totalMarks: 100,
-    passingMarks: 40,
+    passingMarks: 0,
     negativeMarking: 0.25,
     isPremium: false,
     status: 'draft' as 'draft' | 'published' | 'archived',
@@ -137,7 +137,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       iconUrl: test.iconUrl || '',
       durationMinutes: test.durationMinutes || 90,
       totalMarks: test.totalMarks || 100,
-      passingMarks: test.passingMarks || 40,
+      passingMarks: test.passingMarks || 0,
       negativeMarking: test.negativeMarking ?? 0.25,
       isPremium: Boolean(test.isPremium),
       status: test.status || 'draft',
@@ -269,14 +269,14 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       : '0.0';
   const highestScore =
     attempts.length > 0 ? Math.max(...attempts.map((a) => a.score || 0)).toFixed(1) : '0.0';
+  // No pass rate without a configured passing mark.
   const passRate =
-    attempts.length > 0
+    attempts.length > 0 && test.passingMarks > 0
       ? Math.round(
-          (attempts.filter((a) => (a.score || 0) >= (test.passingMarks || 40)).length /
-            attempts.length) *
+          (attempts.filter((a) => (a.score || 0) >= test.passingMarks).length / attempts.length) *
             100
         )
-      : 0;
+      : null;
 
   // Type badge colors
   const getTypeBadge = (type: string) => {
@@ -477,7 +477,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                       Pass Rate
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">
-                      {passRate}%
+                      {passRate === null ? '—' : `${passRate}%`}
                     </p>
                   </div>
                 </div>
@@ -523,8 +523,13 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                     <div>
                       <span className="text-slate-400 block text-[11px]">Passing Marks</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {test.passingMarks} marks (
-                        {Math.round((test.passingMarks / (test.totalMarks || 100)) * 100)}%)
+                        {test.passingMarks > 0
+                          ? `${test.passingMarks} marks${
+                              test.totalMarks > 0
+                                ? ` (${Math.round((test.passingMarks / test.totalMarks) * 100)}%)`
+                                : ''
+                            }`
+                          : 'Not set'}
                       </span>
                     </div>
 

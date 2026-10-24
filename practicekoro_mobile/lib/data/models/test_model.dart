@@ -8,7 +8,8 @@ class MockTestModel {
   final int totalQuestions;
   final int durationMinutes;
   final double totalMarks;
-  final double negativeMarking;
+  /// Null when the server did not report the negative-marking rule.
+  final double? negativeMarking;
   final bool isPro;
   final String category; // 'Full Test', 'Topic Test', 'PYQ'
   final String? syllabus;
@@ -42,14 +43,14 @@ class MockTestModel {
     this.examLogo,
     required this.title,
     this.description,
-    this.totalQuestions = 100,
-    this.durationMinutes = 90,
-    this.totalMarks = 200,
-    this.negativeMarking = 0.25,
+    this.totalQuestions = 0,
+    this.durationMinutes = 0,
+    this.totalMarks = 0,
+    this.negativeMarking,
     this.isPro = false,
     this.category = 'Full Test',
-    this.syllabus = 'Latest Exam Pattern',
-    this.language = 'Bengali + English',
+    this.syllabus,
+    this.language,
     // Empty means the details screen builds the rules from this test's real
     // numbers (marks, negative marking, duration) instead of generic text.
     this.instructions = const [],
@@ -64,19 +65,19 @@ class MockTestModel {
       examLogo: json['exam_logo']?.toString(),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString(),
-      totalQuestions: (json['total_questions'] as num?)?.toInt() ?? 100,
+      totalQuestions: (json['total_questions'] as num?)?.toInt() ?? 0,
       durationMinutes:
           (json['duration_minutes'] as num?)?.toInt() ??
           (json['duration'] as num?)?.toInt() ??
-          90,
-      totalMarks: (json['total_marks'] as num?)?.toDouble() ?? 200.0,
-      negativeMarking: (json['negative_marking'] as num?)?.toDouble() ?? 0.25,
+          0,
+      totalMarks: (json['total_marks'] as num?)?.toDouble() ?? 0,
+      negativeMarking: (json['negative_marking'] as num?)?.toDouble(),
       isPro: json['is_pro'] as bool? ?? json['is_premium'] as bool? ?? false,
       category: normalizeCategory(
         json['category']?.toString() ?? json['test_type']?.toString(),
       ),
-      syllabus: json['syllabus']?.toString() ?? 'Latest Exam Pattern',
-      language: json['language']?.toString() ?? 'Bengali + English',
+      syllabus: json['syllabus']?.toString(),
+      language: json['language']?.toString(),
       year: (json['year'] as num?)?.toInt(),
       instructions: json['instructions'] != null
           ? (json['instructions'] as List).map((e) => e.toString()).toList()

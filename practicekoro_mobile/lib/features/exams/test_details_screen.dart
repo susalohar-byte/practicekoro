@@ -65,19 +65,27 @@ class TestDetailsScreen extends ConsumerWidget {
               );
             }
 
+            // Only state rules backed by this test's real numbers; unknown
+            // values (0 / null) are left out rather than guessed.
             final perQuestion = test.totalQuestions > 0 && test.totalMarks > 0
                 ? (test.totalMarks / test.totalQuestions)
-                : 4.0;
+                : null;
+            final negative = test.negativeMarking;
 
             final rules = [
-              'The test contains ${test.totalQuestions} multiple choice questions.',
-              'Total duration of this test is ${test.durationMinutes} minutes.',
-              'Each correct answer carries ${_num(perQuestion)} ${_num(perQuestion) == "1" ? "mark" : "marks"}.',
-              test.negativeMarking > 0
-                  ? 'Negative marking of ${_num(test.negativeMarking)} marks will be deducted for each wrong answer.'
-                  : 'There is no negative marking for wrong answers.',
+              if (test.totalQuestions > 0)
+                'The test contains ${test.totalQuestions} multiple choice questions.',
+              if (test.durationMinutes > 0)
+                'Total duration of this test is ${test.durationMinutes} minutes.',
+              if (perQuestion != null)
+                'Each correct answer carries ${_num(perQuestion)} ${_num(perQuestion) == "1" ? "mark" : "marks"}.',
+              if (negative != null)
+                negative > 0
+                    ? 'Negative marking of ${_num(negative)} marks will be deducted for each wrong answer.'
+                    : 'There is no negative marking for wrong answers.',
               'You can review and change your answers before final submission.',
-              'The test will be automatically submitted when the timer reaches 00:00.',
+              if (test.durationMinutes > 0)
+                'The test will be automatically submitted when the timer reaches 00:00.',
             ];
 
             return Column(
@@ -154,7 +162,7 @@ class TestDetailsScreen extends ConsumerWidget {
                             child: _MetricTile(
                               icon: Icons.help_outline_rounded,
                               label: 'Questions',
-                              value: '${test.totalQuestions}',
+                              value: test.totalQuestions > 0 ? '${test.totalQuestions}' : '—',
                               color: const Color(0xFF2563EB),
                             ),
                           ),
@@ -163,7 +171,7 @@ class TestDetailsScreen extends ConsumerWidget {
                             child: _MetricTile(
                               icon: Icons.timer_outlined,
                               label: 'Minutes',
-                              value: '${test.durationMinutes}',
+                              value: test.durationMinutes > 0 ? '${test.durationMinutes}' : '—',
                               color: const Color(0xFF0D9488),
                             ),
                           ),
@@ -176,7 +184,7 @@ class TestDetailsScreen extends ConsumerWidget {
                             child: _MetricTile(
                               icon: Icons.workspace_premium_outlined,
                               label: 'Total Marks',
-                              value: _num(test.totalMarks),
+                              value: test.totalMarks > 0 ? _num(test.totalMarks) : '—',
                               color: const Color(0xFFD97706),
                             ),
                           ),
@@ -185,7 +193,11 @@ class TestDetailsScreen extends ConsumerWidget {
                             child: _MetricTile(
                               icon: Icons.remove_circle_outline_rounded,
                               label: 'Negative Marking',
-                              value: test.negativeMarking > 0 ? '-${_num(test.negativeMarking)}' : 'None',
+                              value: negative == null
+                                  ? '—'
+                                  : negative > 0
+                                      ? '-${_num(negative)}'
+                                      : 'None',
                               color: const Color(0xFFDC2626),
                             ),
                           ),

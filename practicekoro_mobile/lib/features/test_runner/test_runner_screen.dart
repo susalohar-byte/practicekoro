@@ -89,23 +89,28 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
     super.dispose();
   }
 
+  /// [minutes] <= 0 means the duration is unknown: time spent is still
+  /// tracked, but there is no countdown and no auto-submit (a 0-minute
+  /// countdown would submit the test immediately).
   void _startTimerOnce(int minutes) {
     if (_timer != null) return;
     final server = _server;
     if (server != null) {
       // Follow the server clock so a resumed attempt keeps its remaining time.
-      _secondsLeft = server.secondsLeft(DateTime.now());
+      _secondsLeft = server.durationMinutes > 0
+          ? server.secondsLeft(DateTime.now())
+          : null;
       _secondsSpent = DateTime.now().difference(server.startedAt).inSeconds;
     } else {
-      _secondsLeft = minutes * 60;
+      _secondsLeft = minutes > 0 ? minutes * 60 : null;
     }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
         _secondsSpent++;
-        _secondsLeft = (_secondsLeft ?? 0) - 1;
+        if (_secondsLeft != null) _secondsLeft = _secondsLeft! - 1;
       });
-      if ((_secondsLeft ?? 0) <= 0) {
+      if (_secondsLeft != null && _secondsLeft! <= 0) {
         final questions = ref.read(testQuestionsProvider(widget.testId)).value;
         if (questions != null) _submit(questions, auto: true);
       }
@@ -541,7 +546,7 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
                     ),
                   );
                 }
-                _startTimerOnce(test?.durationMinutes ?? questions.length);
+                _startTimerOnce(test?.durationMinutes ?? 0);
                 final i = _index.clamp(0, questions.length - 1);
                 final q = questions[i];
                 final isLast = i >= questions.length - 1;

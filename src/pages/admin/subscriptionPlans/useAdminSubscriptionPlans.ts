@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from '@/lib/supabase';
 import React, { useCallback, useState, useEffect } from 'react';
 import { api } from '@/services/api';
+import type { AdminSubscriptionRow } from '@/types';
 import type {
   PlanFeature,
   SubscriptionPlanItem,
@@ -91,7 +92,6 @@ export function useAdminSubscriptionPlans() {
             originalPrice: p.originalPrice ?? p.price,
             durationDays: p.durationDays || 30,
             renewalWindowDays: p.renewalWindowDays ?? null,
-            badge: p.id === 'pro_1_year' ? 'Best Value' : undefined,
             badgeColor: 'bg-[#F43F5E] text-white',
             buttonText: p.price === 0 ? 'Current Plan' : `Get ${p.title}`,
             buttonClass:
@@ -136,6 +136,31 @@ export function useAdminSubscriptionPlans() {
       })
       .catch((err) => {
         console.warn('Subscription plan metrics could not be loaded:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Latest real subscriptions; null while loading, error string when the read failed.
+  const [recentSubscriptions, setRecentSubscriptions] = useState<AdminSubscriptionRow[] | null>(
+    null
+  );
+  const [recentSubscriptionsError, setRecentSubscriptionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getAdminSubscriptions(undefined, undefined, 20, 0)
+      .then((rows) => {
+        if (!cancelled) setRecentSubscriptions(rows);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setRecentSubscriptions([]);
+        setRecentSubscriptionsError(
+          err instanceof Error ? err.message : 'Recent subscriptions could not be loaded.'
+        );
       });
     return () => {
       cancelled = true;
@@ -324,6 +349,8 @@ export function useAdminSubscriptionPlans() {
   return {
     pageLoading,
     planMetrics,
+    recentSubscriptions,
+    recentSubscriptionsError,
     setPageLoading,
     plans,
     setPlans,

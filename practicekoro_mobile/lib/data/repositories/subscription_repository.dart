@@ -40,6 +40,11 @@ final studentSubscriptionProvider =
 class SubscriptionRepository {
   const SubscriptionRepository();
 
+  /// A paid plan without a duration from the server can't be described
+  /// honestly (validity unknown), so it is not offered.
+  static bool _hasKnownDuration(SubscriptionPlanModel p) =>
+      p.isFree || p.durationDays > 0;
+
   /// Fetches active subscription packages from Supabase `subscription_plans` table.
   /// Falls back to the plans cached on the last successful load; with none,
   /// throws [PlansUnavailable].
@@ -58,6 +63,7 @@ class SubscriptionRepository {
 
         final plans = response
             .map((row) => SubscriptionPlanModel.fromJson(row))
+            .where(_hasKnownDuration)
             .toList();
 
         // Cache locally for offline access
@@ -73,7 +79,11 @@ class SubscriptionRepository {
     // Try reading cached plans
     final cached = LocalStorageService.getCachedPlans();
     if (cached != null && cached.isNotEmpty) {
-      return cached.map((p) => SubscriptionPlanModel.fromJson(p)).toList();
+      final plans = cached
+          .map((p) => SubscriptionPlanModel.fromJson(p))
+          .where(_hasKnownDuration)
+          .toList();
+      if (plans.isNotEmpty) return plans;
     }
 
     // Never show made-up plans or prices: the screen offers a retry instead.

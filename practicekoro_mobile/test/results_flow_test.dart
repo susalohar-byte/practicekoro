@@ -462,10 +462,12 @@ void main() {
 
       for (final row in [
         'Total Questions', 'Attempted', 'Correct', 'Incorrect', 'Skipped',
-        'Negative Marking', 'Final Score',
+        'Final Score',
       ]) {
         expect(find.text(row), findsOneWidget);
       }
+      // No per-attempt deduction from the server, so no estimated row.
+      expect(find.text('Negative Marking'), findsNothing);
       expect(find.text('View Answer'), findsOneWidget);
     });
 

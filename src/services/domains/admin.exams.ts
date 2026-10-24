@@ -364,37 +364,31 @@ export const DEFAULT_POPULAR_EXAMS: PopularExamCard[] = [
 
 export async function getPopularExams(): Promise<PopularExamCard[]> {
   if (!isSupabaseConfigured) return attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('id', 'popular_exams_config')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  // Nothing configured yet: show an honest empty list, never the demo cards.
+  if (!data?.value) return [];
+  const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+  if (!Array.isArray(parsed) || parsed.length === 0) return [];
   try {
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('id', 'popular_exams_config')
-      .maybeSingle();
-    if (error) throw error;
-    if (!data?.value) return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
-    const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('pk_popular_exams_config', JSON.stringify(parsed));
     }
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('pk_popular_exams_config', JSON.stringify(parsed));
-      }
-    } catch {
-      // Browser storage is an optional cache.
-    }
-    // Check if legacy uncustomized seed exists (primary-tet demo cards)
-    const isLegacyDemo =
-      parsed.length === 5 &&
-      parsed.some(
-        (c: any) => c.id === 'popular-primary-tet' && c.cardBgImage?.includes('popular_exams/bg_')
-      );
-    const cardsToUse = isLegacyDemo ? DEFAULT_POPULAR_EXAMS : (parsed as PopularExamCard[]);
-    return await attachPopularExamCounts(cardsToUse);
-  } catch (err) {
-    console.warn('Could not fetch remote Popular Exam settings:', err);
-    return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
+  } catch {
+    // Browser storage is an optional cache.
   }
+  // A legacy uncustomized seed (primary-tet demo cards) is demo data, not real configuration.
+  const isLegacyDemo =
+    parsed.length === 5 &&
+    parsed.some(
+      (c: any) => c.id === 'popular-primary-tet' && c.cardBgImage?.includes('popular_exams/bg_')
+    );
+  if (isLegacyDemo) return [];
+  return await attachPopularExamCounts(parsed as PopularExamCard[]);
 }
 
 async function attachPopularExamCounts(cards: PopularExamCard[]): Promise<PopularExamCard[]> {
@@ -442,7 +436,7 @@ async function attachPopularExamCounts(cards: PopularExamCard[]): Promise<Popula
     .map((card) => {
       if (!card.examId) return card;
       const count = [...examByTest.values()].filter((ids) => ids.has(card.examId!)).length;
-      const label = count > 0 ? `${count}+ Tests` : card.testsCount || '0 Tests';
+      const label = `${count} Tests`;
       return { ...card, testsCount: label, cardBadge: label };
     })
     .sort((a, b) => a.orderIndex - b.orderIndex);

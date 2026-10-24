@@ -252,15 +252,10 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
               ...serverAnswers,
             };
 
-            final int attemptTotal = attempt.correctCount +
-                attempt.wrongCount +
-                attempt.skippedCount;
-            final int totalCount = (rawQuestions.isNotEmpty &&
-                    rawQuestions.length >= attemptTotal)
-                ? rawQuestions.length
-                : (attemptTotal > 0
-                    ? attemptTotal
-                    : (rawQuestions.isNotEmpty ? rawQuestions.length : 20));
+            // Only real questions returned by the server are shown. If none
+            // came back, the empty state below is rendered instead of
+            // placeholder questions.
+            final int totalCount = rawQuestions.length;
 
             if (totalCount == 0) {
               return Scaffold(
@@ -288,71 +283,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
               );
             }
 
-            // Materialize questions list
-            final List<QuestionModel> questions = List.generate(totalCount, (i) {
-              if (i < rawQuestions.length) return rawQuestions[i];
-              if (rawQuestions.isEmpty) {
-                return QuestionModel(
-                  id: 'q_${i + 1}',
-                  questionNumber: i + 1,
-                  subjectName: 'General Knowledge',
-                  textEnglish: 'Question ${i + 1}',
-                  textBengali: 'প্রশ্ন ${i + 1}',
-                  options: [
-                    OptionModel(
-                      id: 'opt_${i + 1}_a',
-                      label: 'A',
-                      text: 'Option A',
-                      textBengali: 'অপশন A',
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_b',
-                      label: 'B',
-                      text: 'Option B',
-                      textBengali: 'অপশন B',
-                      isCorrect: true,
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_c',
-                      label: 'C',
-                      text: 'Option C',
-                      textBengali: 'অপশন C',
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_d',
-                      label: 'D',
-                      text: 'Option D',
-                      textBengali: 'অপশন D',
-                    ),
-                  ],
-                  explanationEnglish:
-                      'Official explanation for Question ${i + 1}.',
-                  explanationBengali: '${i + 1} নম্বর প্রশ্নের ব্যাখ্যা।',
-                );
-              }
-              final tmpl = rawQuestions[i % rawQuestions.length];
-              return QuestionModel(
-                id: 'q_${i + 1}',
-                questionNumber: i + 1,
-                subjectName: tmpl.subjectName,
-                textEnglish: tmpl.textEnglish,
-                textBengali: tmpl.textBengali,
-                options: [
-                  for (final opt in tmpl.options)
-                    OptionModel(
-                      id: 'opt_${i + 1}_${opt.label.toLowerCase()}',
-                      label: opt.label,
-                      text: opt.text,
-                      textBengali: opt.textBengali,
-                      isCorrect: opt.isCorrect,
-                    ),
-                ],
-                explanationEnglish: tmpl.explanationEnglish,
-                explanationBengali: tmpl.explanationBengali,
-                marks: tmpl.marks,
-                negativeMarks: tmpl.negativeMarks,
-              );
-            });
+            final List<QuestionModel> questions = rawQuestions;
 
             final safeIndex = _currentIndex.clamp(0, questions.length - 1);
             final q = questions[safeIndex];

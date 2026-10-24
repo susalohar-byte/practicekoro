@@ -8,6 +8,14 @@ export interface AvailablePlansHeaderProps {
 
 export function AvailablePlansHeader({ plansState }: AvailablePlansHeaderProps) {
   const { plans, billingCycle, setBillingCycle, showToast, setIsAddPlanModalOpen } = plansState;
+  // Largest real discount (original vs current price) across the loaded plans; 0 hides the pill.
+  const maxSavingPct = plans.reduce((max, plan) => {
+    if (!(plan.originalPrice > plan.price && plan.originalPrice > 0)) return max;
+    return Math.max(
+      max,
+      Math.round(((plan.originalPrice - plan.price) / plan.originalPrice) * 100)
+    );
+  }, 0);
   return (
     <>
       {/* ==================================================================== */}
@@ -49,7 +57,7 @@ export function AvailablePlansHeader({ plansState }: AvailablePlansHeaderProps) 
             <button
               onClick={() => {
                 setBillingCycle('yearly');
-                showToast('Displaying yearly pricing with up to 70% savings.');
+                showToast('Displaying yearly pricing.');
               }}
               className={cn(
                 'px-3.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer',
@@ -62,10 +70,12 @@ export function AvailablePlansHeader({ plansState }: AvailablePlansHeaderProps) 
             </button>
           </div>
 
-          <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 border border-emerald-300/60 dark:border-emerald-800 px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Save up to 70%</span>
-          </span>
+          {maxSavingPct > 0 && (
+            <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 border border-emerald-300/60 dark:border-emerald-800 px-2.5 py-1 rounded-xl shadow-2xs flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Save up to {maxSavingPct}%</span>
+            </span>
+          )}
 
           <button
             onClick={() => setIsAddPlanModalOpen(true)}

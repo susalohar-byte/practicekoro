@@ -16,7 +16,7 @@ import { csvCell } from '@/utils/csvExport';
 import { parseCsvRaw } from '@/utils/csvParser';
 import { parseQuestionsTxt, downloadSampleTxt } from '@/utils/txtQuestionParser';
 
-// Standard syllabus topics offered in the topic filter when a subject has none yet.
+// Offline demo only: syllabus topics offered in the topic filter when a subject has none yet.
 const FALLBACK_SUBJECT_TOPICS: Record<string, string[]> = {
   history: ['Modern India', 'Ancient India', 'Medieval India', 'Indian National Movement'],
   'general science': [
@@ -392,9 +392,8 @@ export function useAdminQuestionBank() {
       }
     });
 
-    // 3. Fallback standard syllabus topics by subject
-
-    if (topicNames.size === 0) {
+    // 3. Offline demo only: standard syllabus topics by subject. Live mode lists only real topics.
+    if (!isSupabaseConfigured && topicNames.size === 0) {
       const fallbacks = FALLBACK_SUBJECT_TOPICS[subjectNameLower];
       if (fallbacks) {
         fallbacks.forEach((f) => topicNames.add(f));

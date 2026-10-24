@@ -48,6 +48,7 @@ class SubscriptionPlanModel {
 
   String get formattedDuration {
     if (isFree) return 'Lifetime';
+    if (durationDays <= 0) return '';
     if (durationDays >= 365) {
       final years = (durationDays / 365).round();
       return years == 1 ? '1 Year' : '$years Years';
@@ -71,7 +72,8 @@ class SubscriptionPlanModel {
       name: json['name']?.toString() ?? '',
       title: json['title']?.toString() ?? json['name']?.toString() ?? 'Pro Plan',
       description: json['description']?.toString() ?? '',
-      durationDays: (json['duration_days'] as num?)?.toInt() ?? 365,
+      // 0 = not specified; such paid plans are not offered (see repository).
+      durationDays: (json['duration_days'] as num?)?.toInt() ?? 0,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       originalPrice: (json['original_price'] as num?)?.toDouble(),
       currency: json['currency']?.toString() ?? 'INR',
@@ -378,7 +380,7 @@ class SubscriptionOrderModel {
       planTitle: json['plan_title']?.toString() ?? json['planTitle']?.toString() ?? 'Pro Plan',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency']?.toString() ?? 'INR',
-      durationDays: (json['duration_days'] as num?)?.toInt() ?? (json['durationDays'] as num?)?.toInt() ?? 365,
+      durationDays: (json['duration_days'] as num?)?.toInt() ?? (json['durationDays'] as num?)?.toInt() ?? 0,
       keyId: keyId,
       isRealRazorpayOrder: isExplicitReal || isEdgeOrder,
       purchaseType: json['purchase_type']?.toString() ?? json['purchaseType']?.toString(),

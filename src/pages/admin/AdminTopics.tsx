@@ -42,7 +42,7 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
-import type { Subject, Chapter } from '@/types';
+import type { Subject, Chapter, MockTest } from '@/types';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { getPageNumbers } from '@/utils/pagination';
@@ -545,6 +545,30 @@ export const AdminTopics: React.FC = () => {
     'overview'
   );
 
+  // Real tests linked to the selected topic (tests.chapter_id); null while loading.
+  const [topicTests, setTopicTests] = useState<MockTest[] | null>(null);
+  const [topicTestsError, setTopicTestsError] = useState<string | null>(null);
+  const selectedTopicId = selectedTopic?.id;
+  useEffect(() => {
+    if (detailsTab !== 'tests' || !selectedTopicId) return;
+    let cancelled = false;
+    setTopicTests(null);
+    setTopicTestsError(null);
+    api
+      .getAllAdminTests({ chapterId: selectedTopicId })
+      .then((rows) => {
+        if (!cancelled) setTopicTests(rows);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setTopicTests([]);
+        setTopicTestsError(getErrorMessage(err, 'Topic tests could not be loaded.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailsTab, selectedTopicId]);
+
   // Row selection checkboxes
   const [selectedTopicIds, setSelectedTopicIds] = useState<Set<string>>(new Set());
 
@@ -609,7 +633,9 @@ export const AdminTopics: React.FC = () => {
         avgScoreFormatted: 'Unavailable',
         descriptionBengali: r.description || '',
         subjectTopicsCount: rows.filter((c) => c.subjectId === r.subjectId).length,
-        subjectTotalTestsCount: 0,
+        subjectTotalTestsCount: rows
+          .filter((c) => c.subjectId === r.subjectId)
+          .reduce((acc, c) => acc + (c.testsCount || 0), 0),
         subjectTotalQuestionsCount: 0,
         createdByName: 'Unavailable',
         createdAtFormatted: 'Unavailable',
@@ -1999,18 +2025,17 @@ export const AdminTopics: React.FC = () => {
 
                       <span className="text-slate-400 font-medium">Total Topics</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                        {selectedTopic.subjectTopicsCount || 18}
+                        {selectedTopic.subjectTopicsCount ?? '—'}
                       </span>
 
                       <span className="text-slate-400 font-medium">Total Topic Tests</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                        {selectedTopic.subjectTotalTestsCount || 42}
+                        {selectedTopic.subjectTotalTestsCount ?? '—'}
                       </span>
 
                       <span className="text-slate-400 font-medium">Total Questions</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-                        {selectedTopic.subjectTotalQuestionsCount?.toLocaleString('en-IN') ||
-                          '3,280'}
+                        {selectedTopic.subjectTotalQuestionsCount?.toLocaleString('en-IN') ?? '—'}
                       </span>
                     </div>
                   </div>
@@ -2097,7 +2122,7 @@ export const AdminTopics: React.FC = () => {
               <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    Tests ({selectedTopic.totalTests})
+                    Tests ({topicTests?.length ?? selectedTopic.totalTests})
                   </span>
                   <a
                     href={`/admin/tests?topic=${selectedTopic.id}`}
@@ -2108,24 +2133,40 @@ export const AdminTopics: React.FC = () => {
                   </a>
                 </div>
                 <div className="space-y-2">
-                  {Array.from({ length: selectedTopic.totalTests || 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                          {selectedTopic.name} - Test {i + 1}
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          30 Questions • 30 Mins • 30 Marks
-                        </p>
+                  {topicTests === null || topicTests.length === 0 ? (
+                    <p className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500">
+                      {topicTests === null
+                        ? 'Loading tests…'
+                        : topicTestsError || 'No tests are linked to this topic yet.'}
+                    </p>
+                  ) : (
+                    topicTests.map((test) => (
+                      <div
+                        key={test.id}
+                        className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {test.title}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {test.totalQuestions ?? '—'} Questions • {test.durationMinutes ?? '—'}{' '}
+                            Mins • {Number.isFinite(test.totalMarks) ? test.totalMarks : '—'} Marks
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize',
+                            test.status === 'published'
+                              ? 'bg-[#E8F8F0] text-[#10B981]'
+                              : 'bg-slate-100 text-slate-600'
+                          )}
+                        >
+                          {test.status || 'Unknown'}
+                        </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F8F0] text-[#10B981]">
-                        Active
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}

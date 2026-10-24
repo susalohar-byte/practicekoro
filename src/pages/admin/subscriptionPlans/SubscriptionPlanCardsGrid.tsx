@@ -56,7 +56,7 @@ export function SubscriptionPlanCardsGrid({ plansState }: SubscriptionPlanCardsG
                 <div className="bg-gradient-to-r from-[#026BFC] via-blue-600 to-indigo-600 px-4 py-1.5 flex items-center justify-between text-white text-[11px] font-black uppercase tracking-wider shadow-xs">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-                    {plan.badge || 'BEST VALUE • 1 YEAR ALL-ACCESS'}
+                    {plan.badge || plan.name}
                   </span>
                   <span className="text-[9.5px] font-bold bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full">
                     Flagship
@@ -84,11 +84,11 @@ export function SubscriptionPlanCardsGrid({ plansState }: SubscriptionPlanCardsG
                       <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#026BFC] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
                         All-Access Pass
                       </span>
-                    ) : (
+                    ) : plan.badge ? (
                       <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800">
-                        {plan.badge || 'Popular'}
+                        {plan.badge}
                       </span>
-                    )}
+                    ) : null}
 
                     {/* Quick Edit Icon Button */}
                     <button

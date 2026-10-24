@@ -240,23 +240,27 @@ class CatalogRepository {
           return MockTestModel(
             id: lt.testId.isNotEmpty ? lt.testId : lt.id,
             examId: lt.examId,
-            examTitle: lt.examTitle ?? 'Live Test',
+            examTitle: lt.examTitle,
             examLogo: lt.logo ?? lt.examLogo,
             title: lt.title,
-            description: lt.instructions ?? 'Official Live Test examination.',
+            description: lt.instructions,
             totalQuestions: lt.totalQuestions,
             durationMinutes: lt.durationMinutes,
             totalMarks: lt.totalMarks,
             negativeMarking: lt.negativeMarking,
             isPro: lt.subscriptionRequired,
             category: 'Full Test',
+            // Only facts the server reported; unknown values are omitted.
             instructions: [
-              'The test contains ${lt.totalQuestions} multiple choice questions.',
-              'Total duration of this test is ${lt.durationMinutes} minutes.',
-              'Total marks: ${lt.totalMarks.toInt()}.',
-              if (lt.negativeMarking > 0)
+              if (lt.totalQuestions > 0)
+                'The test contains ${lt.totalQuestions} multiple choice questions.',
+              if (lt.durationMinutes > 0)
+                'Total duration of this test is ${lt.durationMinutes} minutes.',
+              if (lt.totalMarks > 0) 'Total marks: ${lt.totalMarks.toInt()}.',
+              if ((lt.negativeMarking ?? 0) > 0)
                 'Negative marking of ${lt.negativeMarking} marks will be deducted for each wrong answer.',
-              'Live leaderboard and statewide ranking will be published after test conclusion.',
+              if (lt.rankingEnabled)
+                'Live leaderboard and ranking will be published after test conclusion.',
             ],
           );
         }
@@ -408,7 +412,14 @@ class CatalogRepository {
       // "no attempts yet".
       if (attempts.isEmpty) rethrow;
     }
-    attempts.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    attempts.sort((a, b) {
+      final ad = a.completedAtOrNull;
+      final bd = b.completedAtOrNull;
+      if (ad == null && bd == null) return 0;
+      if (ad == null) return 1; // unknown completion time sorts last
+      if (bd == null) return -1;
+      return bd.compareTo(ad);
+    });
     return attempts;
   }
 

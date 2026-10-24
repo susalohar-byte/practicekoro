@@ -209,7 +209,11 @@ class _TopicTestItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metaText = '${test.totalQuestions} Questions • ${test.durationMinutes} Mins • ${_formatMarks(test.totalMarks)} Marks';
+    final metaText = [
+      if (test.totalQuestions > 0) '${test.totalQuestions} Questions',
+      if (test.durationMinutes > 0) '${test.durationMinutes} Mins',
+      if (test.totalMarks > 0) '${_formatMarks(test.totalMarks)} Marks',
+    ].join(' • ');
 
     return InkWell(
       onTap: onTap,

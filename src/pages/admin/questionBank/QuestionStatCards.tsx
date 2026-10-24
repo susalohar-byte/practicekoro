@@ -39,7 +39,7 @@ export function QuestionStatCards({ qb }: QuestionStatCardsProps) {
               {stats.total.toLocaleString('en-IN')}
             </span>
           </div>
-          <p className="text-[10px] font-normal text-slate-400 mt-0.5">vs last month</p>
+          <p className="text-[10px] font-normal text-slate-400 mt-0.5">All question sources</p>
         </div>
 
         {/* Card 2: Exam Questions */}

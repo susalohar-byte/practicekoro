@@ -10,7 +10,8 @@ import '../../data/repositories/profile_repository.dart';
 /// Preference keys shared with the rest of the app (saved on this device).
 const dailyReminderKey = 'daily_reminder';
 const privacyPolicyUrl = 'https://practicekoro.online/privacy';
-const appVersionLabel = 'PracticeKoro · Version 2.1.0';
+// Keep in step with `version:` in pubspec.yaml.
+const appVersionLabel = 'PracticeKoro · Version 1.0.2';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

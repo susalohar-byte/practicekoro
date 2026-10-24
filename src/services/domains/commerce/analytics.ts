@@ -66,76 +66,62 @@ export const analyticsApi = {
         console.warn('Fallback to local stats calculation', err);
       }
 
-      try {
-        const [
-          examsRes,
-          subjectsRes,
-          chaptersRes,
-          testSeriesRes,
-          testsRes,
-          questionsRes,
-          attemptsRes,
-          profilesRes,
-        ] = await Promise.all([
-          supabase.from('exams').select('*', { count: 'exact', head: true }),
-          supabase.from('subjects').select('*', { count: 'exact', head: true }),
-          supabase.from('chapters').select('*', { count: 'exact', head: true }),
-          supabase.from('test_series').select('*', { count: 'exact', head: true }),
-          supabase.from('tests').select('status'),
-          supabase.from('questions').select('is_active, status'),
-          supabase.from('test_attempts').select('status'),
-          supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('role', 'student'),
-        ]);
-
-        const tests = (Array.isArray(testsRes.data) ? testsRes.data : []) as {
-          status: string | null;
-        }[];
-        const questions = (Array.isArray(questionsRes.data) ? questionsRes.data : []) as {
-          is_active: boolean | null;
-          status: string | null;
-        }[];
-        const attempts = (Array.isArray(attemptsRes.data) ? attemptsRes.data : []) as {
-          status: string | null;
-        }[];
-
-        return {
-          totalExams: examsRes.count ?? 0,
-          activeExams: examsRes.count ?? 0,
-          totalSubjects: subjectsRes.count ?? 0,
-          totalChapters: chaptersRes.count ?? 0,
-          totalTestSeries: testSeriesRes.count ?? 0,
-          totalTests: tests.length,
-          publishedTests: tests.filter((t) => t.status === 'published').length,
-          draftTests: tests.filter((t) => t.status === 'draft').length,
-          archivedTests: tests.filter((t) => t.status === 'archived').length,
-          totalQuestions: questions.length,
-          activeQuestions: questions.filter((q) => q.is_active && q.status !== 'archived').length,
-          totalAttempts: attempts.length,
-          completedAttempts: attempts.filter((a) => a.status === 'completed').length,
-          totalStudents: profilesRes.count ?? 0,
-        };
-      } catch (err) {
-        console.warn('Fallback direct stats calculation failed:', err);
-        return {
-          totalExams: 0,
-          activeExams: 0,
-          totalSubjects: 0,
-          totalChapters: 0,
-          totalTestSeries: 0,
-          totalTests: 0,
-          publishedTests: 0,
-          draftTests: 0,
-          archivedTests: 0,
-          totalQuestions: 0,
-          activeQuestions: 0,
-          totalAttempts: 0,
-          completedAttempts: 0,
-          totalStudents: 0,
-        };
+      // RPC unavailable: exact head counts per table. Any failed count throws rather than
+      // reporting a misleading zero.
+      const count = (table: string) =>
+        supabase.from(table).select('*', { count: 'exact', head: true });
+      const results = await Promise.all([
+        count('exams'),
+        count('subjects'),
+        count('chapters'),
+        count('test_series'),
+        count('tests'),
+        count('tests').eq('status', 'published'),
+        count('tests').eq('status', 'draft'),
+        count('tests').eq('status', 'archived'),
+        count('questions'),
+        count('questions').eq('is_active', true).neq('status', 'archived'),
+        count('test_attempts'),
+        count('test_attempts').eq('status', 'completed'),
+        count('profiles').eq('role', 'student'),
+      ]);
+      const failed = results.find((r) => r.error || r.count === null);
+      if (failed) {
+        throw new Error(
+          `Dashboard counts could not be loaded: ${failed.error?.message || 'count unavailable'}`
+        );
       }
+      const [
+        exams,
+        subjects,
+        chapters,
+        testSeries,
+        tests,
+        publishedTests,
+        draftTests,
+        archivedTests,
+        questions,
+        activeQuestions,
+        attempts,
+        completedAttempts,
+        students,
+      ] = results.map((r) => r.count as number);
+      return {
+        totalExams: exams,
+        activeExams: exams,
+        totalSubjects: subjects,
+        totalChapters: chapters,
+        totalTestSeries: testSeries,
+        totalTests: tests,
+        publishedTests,
+        draftTests,
+        archivedTests,
+        totalQuestions: questions,
+        activeQuestions,
+        totalAttempts: attempts,
+        completedAttempts,
+        totalStudents: students,
+      };
     }
 
     return {

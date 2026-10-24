@@ -223,9 +223,9 @@ export const AdminRevenueAnalytics: React.FC = () => {
       p.orderId || p.razorpayOrderId || p.id,
       p.studentName,
       p.studentEmail,
-      p.planTitle || 'Pro Subscription',
+      p.planTitle || 'Unknown plan',
       p.amount,
-      p.gateway || 'Razorpay',
+      p.gateway || 'Unknown',
       p.status,
       new Date(p.createdAt || p.created_at || Date.now()).toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -945,7 +945,7 @@ export const AdminRevenueAnalytics: React.FC = () => {
                         <div className="text-[10px] text-slate-400">{p.studentEmail}</div>
                       </td>
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                        {p.planTitle || 'Pro Subscription'}
+                        {p.planTitle || 'Unknown plan'}
                       </td>
                       <td className="px-4 py-2.5 font-bold text-slate-900 dark:text-white">
                         ₹{p.amount}

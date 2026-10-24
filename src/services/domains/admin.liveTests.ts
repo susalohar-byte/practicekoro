@@ -192,10 +192,12 @@ async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string, MockT
   const uniqueIds = Array.from(new Set(testIds.filter(Boolean)));
   if (uniqueIds.length === 0) return map;
 
-  // 1. Seed from localTests first
-  for (const id of uniqueIds) {
-    const local = localTests.find((t) => t.id === id);
-    if (local) map.set(id, local);
+  // 1. Demo mode only: seed from localTests (never mix demo data into production)
+  if (!isSupabaseConfigured) {
+    for (const id of uniqueIds) {
+      const local = localTests.find((t) => t.id === id);
+      if (local) map.set(id, local);
+    }
   }
 
   // 2. Query Supabase `public.tests` when configured
@@ -224,17 +226,17 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
   const test =
     sourceTest ||
     lt.test ||
-    localTests.find((t) => t.id === lt.testId || t.id === lt.test_id) ||
+    (!isSupabaseConfigured
+      ? localTests.find((t) => t.id === lt.testId || t.id === lt.test_id)
+      : undefined) ||
     null;
-  const exam = localExams.find((e) => e.id === (lt.examId || lt.exam_id || test?.examId));
+  const exam = !isSupabaseConfigured
+    ? localExams.find((e) => e.id === (lt.examId || lt.exam_id || test?.examId))
+    : undefined;
 
   const startAt =
-    lt.startAt ||
-    lt.start_at ||
-    lt.scheduledStartTime ||
-    lt.scheduled_start_time ||
-    new Date().toISOString();
-  const duration = Number(test?.durationMinutes || lt.durationMinutes || lt.duration_minutes || 90);
+    lt.startAt || lt.start_at || lt.scheduledStartTime || lt.scheduled_start_time || '';
+  const duration = Number(test?.durationMinutes || lt.durationMinutes || lt.duration_minutes || 0);
   const isPublished =
     lt.isPublished !== undefined
       ? Boolean(lt.isPublished)
@@ -252,7 +254,9 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
   const endAt =
     lt.scheduledEndTime ||
     lt.scheduled_end_time ||
-    new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
+    (startAt && !isNaN(new Date(startAt).getTime())
+      ? new Date(new Date(startAt).getTime() + duration * 60000).toISOString()
+      : '');
 
   const resolvedTitle =
     (lt.customTitle && String(lt.customTitle).trim()) ||
@@ -316,10 +320,10 @@ function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
     examTitle: test?.examTitle || exam?.title || lt.examTitle,
     testTitle: test?.title || lt.testTitle || resolvedTitle,
     durationMinutes: duration,
-    totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 100),
-    totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 100),
+    totalQuestions: Number(test?.totalQuestions || lt.totalQuestions || lt.total_questions || 0),
+    totalMarks: Number(test?.totalMarks || lt.totalMarks || lt.total_marks || 0),
     negativeMarking: Number(
-      test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0.25
+      test?.negativeMarking ?? lt.negativeMarking ?? lt.negative_marking ?? 0
     ),
     instructions: rawInstructions,
     enrolledCount: enrolled,
@@ -879,14 +883,14 @@ export async function duplicateLiveTest(id: string): Promise<LiveTest> {
   const liveTest = await getLiveTestById(id);
   if (!liveTest) throw new Error('Live test not found.');
   const startAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-  const logo = liveTest.logo || liveTest.examLogo || '/images/exams/logo_wbp.png';
+  const logo = liveTest.logo || liveTest.examLogo || undefined;
   const common = {
     title: `${liveTest.title} (Copy)`,
     startAt,
-    durationMinutes: liveTest.durationMinutes || 60,
-    totalQuestions: liveTest.totalQuestions || 100,
-    totalMarks: liveTest.totalMarks || 100,
-    negativeMarking: liveTest.negativeMarking ?? 0.25,
+    durationMinutes: liveTest.durationMinutes ?? 0,
+    totalQuestions: liveTest.totalQuestions ?? 0,
+    totalMarks: liveTest.totalMarks ?? 0,
+    negativeMarking: liveTest.negativeMarking ?? 0,
     rankingEnabled: Boolean(liveTest.rankingEnabled),
     subscriptionRequired: Boolean(liveTest.subscriptionRequired),
     logo,
@@ -1276,7 +1280,10 @@ export async function joinLiveTestEvent(
     };
   }
 
-  const duration = liveTest.durationMinutes || 90;
+  const duration = liveTest.durationMinutes;
+  if (!duration) {
+    return { success: false, error: 'This Live Test has no duration set yet.' };
+  }
   const endTime = startTime + duration * 60 * 1000;
   if (now > endTime || liveTest.status === 'ended') {
     return { success: false, error: 'This Live Test event has already ended.' };

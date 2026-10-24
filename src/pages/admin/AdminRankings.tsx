@@ -103,7 +103,7 @@ function mapLiveParticipantToRankingStudent(
   const testTitle = liveTest?.title || 'Live Test';
   const examName =
     (liveTest as any)?.examName || liveTest?.examTitle || liveTest?.test?.examTitle || 'Live Exam';
-  const totalQ = liveTest?.totalQuestions || (rawScore > 0 ? 100 : 0);
+  const totalQ = liveTest?.totalQuestions || 0;
 
   return {
     rank: rankOverride ?? (participant.rank || 1),
@@ -112,12 +112,12 @@ function mapLiveParticipantToRankingStudent(
       .slice(0, 6)
       .toUpperCase()}`,
     name,
-    district: districtName || 'West Bengal',
-    location: districtName ? `${districtName}, West Bengal` : 'West Bengal',
+    district: districtName || 'Unknown',
+    location: districtName ? `${districtName}, West Bengal` : 'Unknown',
     avatar: participant.avatarUrl || undefined,
     initials: rankingInitials(name),
     initialsBg: 'bg-rose-100 text-rose-600 border border-rose-200',
-    testsAttempted: 1,
+    testsAttempted: participant.completedAt || participant.attemptId ? 1 : 0,
     questionsAnswered: totalQ,
     accuracy: Math.round(rawAcc),
     avgScore: Math.round(rawScore),
@@ -168,14 +168,14 @@ function aggregateLiveParticipants(
       byUser.set(uid, {
         userId: uid,
         fullName: p.fullName || 'Student',
-        district: p.district || 'West Bengal',
+        district: p.district || 'Unknown',
         avatarUrl: p.avatarUrl,
         tests: [testEntry],
       });
     } else {
       if (!existing.avatarUrl && p.avatarUrl) existing.avatarUrl = p.avatarUrl;
       if (p.fullName && existing.fullName === 'Student') existing.fullName = p.fullName;
-      if (p.district && existing.district === 'West Bengal') existing.district = p.district;
+      if (p.district && existing.district === 'Unknown') existing.district = p.district;
       existing.tests.push(testEntry);
     }
   }
@@ -187,7 +187,7 @@ function aggregateLiveParticipants(
     const avgScore = Math.round(totalScore / Math.max(1, testsCount));
     const avgAcc = Math.round(totalAcc / Math.max(1, testsCount));
     const totalQuestions = user.tests.reduce(
-      (acc, t) => acc + (t.liveTest?.totalQuestions || 100),
+      (acc, t) => acc + (t.liveTest?.totalQuestions || 0),
       0
     );
 
@@ -207,7 +207,7 @@ function aggregateLiveParticipants(
         .toUpperCase()}`,
       name: user.fullName,
       district: user.district,
-      location: `${user.district}, West Bengal`,
+      location: user.district === 'Unknown' ? 'Unknown' : `${user.district}, West Bengal`,
       avatar: user.avatarUrl,
       initials: rankingInitials(user.fullName),
       initialsBg: 'bg-rose-100 text-rose-600 border border-rose-200',
