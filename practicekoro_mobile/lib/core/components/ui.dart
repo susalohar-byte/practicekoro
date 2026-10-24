@@ -1239,30 +1239,109 @@ class UIMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          UIIconBadge(icon, color: UI.muted, size: 56),
-          const SizedBox(height: 14),
-          Text(title, style: UI.heading, textAlign: TextAlign.center),
-          if (message != null) ...[
-            const SizedBox(height: 6),
-            Text(message!, style: UI.caption, textAlign: TextAlign.center),
-          ],
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 18),
-            SizedBox(
-              width: 200,
-              child: UIButton.secondary(
-                actionLabel!,
-                onPressed: onAction,
-                height: 46,
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: const Color(0xFFE2E8F0),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                color: const Color(0xFF475569),
+                size: 34,
               ),
             ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+                letterSpacing: -0.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (message != null && message!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Text(
+                  message!,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                    height: 1.45,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: 200,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: onAction,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: UI.primary,
+                    side: const BorderSide(
+                      color: Color(0xFF0158FC),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (actionLabel!.toLowerCase().contains('try') ||
+                          actionLabel!.toLowerCase().contains('again') ||
+                          actionLabel!.toLowerCase().contains('retry')) ...[
+                        const Icon(Icons.refresh_rounded, size: 18),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        actionLabel!,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

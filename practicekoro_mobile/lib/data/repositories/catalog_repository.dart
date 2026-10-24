@@ -79,6 +79,9 @@ final testAttemptProvider = FutureProvider.family<TestAttemptModel, String>((
 
 class CatalogRepository {
   static List<ExamModel>? _examsCache;
+  static List<SubjectModel>? _subjectsCache;
+  static List<TopicModel>? _allTopicsCache;
+  static final Map<String, List<TopicModel>> _subjectTopicsCache = {};
   static final Map<String, List<MockTestModel>> _mockTestsCache = {};
   static final Map<String, List<MockTestModel>> _topicTestsCache = {};
   static final Map<String, List<LiveTestModel>> _liveTestsCache = {};
@@ -89,6 +92,16 @@ class CatalogRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  void clearCatalogCache() {
+    _examsCache = null;
+    _subjectsCache = null;
+    _allTopicsCache = null;
+    _subjectTopicsCache.clear();
+    _mockTestsCache.clear();
+    _topicTestsCache.clear();
+    _liveTestsCache.clear();
   }
 
   void clearExamsCache() {
@@ -199,16 +212,20 @@ class CatalogRepository {
     ];
   }
 
-  Future<List<SubjectModel>> getSubjects() async {
+  Future<List<SubjectModel>> getSubjects({bool forceRefresh = false}) async {
+    if (!forceRefresh && _subjectsCache != null) return _subjectsCache!;
     try {
       final supa = _supabase;
       if (supa != null) {
         final res = await supa
             .from('subjects')
-            .select()
-            .order('order_index', ascending: true);
+            .select('*, chapters(count), tests(count)')
+            .eq('is_active', true)
+            .order('order_index', ascending: true)
+            .timeout(const Duration(seconds: 4));
         if (res.isNotEmpty) {
-          return res.map((e) => SubjectModel.fromJson(e)).toList();
+          _subjectsCache = res.map((e) => SubjectModel.fromJson(e)).toList();
+          return _subjectsCache!;
         }
       }
     } catch (_) {}
@@ -334,7 +351,51 @@ class CatalogRepository {
     ];
   }
 
-  Future<List<TopicModel>> getTopics([String? subjectId]) async {
+  Future<List<TopicModel>> getTopics([
+    String? subjectId,
+    bool forceRefresh = false,
+  ]) async {
+    final cleanSubId = subjectId?.trim();
+    if (!forceRefresh) {
+      if (cleanSubId != null &&
+          cleanSubId.isNotEmpty &&
+          _subjectTopicsCache.containsKey(cleanSubId)) {
+        return _subjectTopicsCache[cleanSubId]!;
+      }
+      if ((cleanSubId == null || cleanSubId.isEmpty) &&
+          _allTopicsCache != null) {
+        return _allTopicsCache!;
+      }
+    }
+
+    try {
+      final supa = _supabase;
+      if (supa != null) {
+        var query = supa
+            .from('chapters')
+            .select('*, tests(count)')
+            .eq('is_active', true);
+
+        if (cleanSubId != null && cleanSubId.isNotEmpty) {
+          query = query.eq('subject_id', cleanSubId);
+        }
+
+        final res = await query
+            .order('order_index', ascending: true)
+            .timeout(const Duration(seconds: 4));
+
+        if (res.isNotEmpty) {
+          final list = res.map((e) => TopicModel.fromJson(e)).toList();
+          if (cleanSubId != null && cleanSubId.isNotEmpty) {
+            _subjectTopicsCache[cleanSubId] = list;
+          } else {
+            _allTopicsCache = list;
+          }
+          return list;
+        }
+      }
+    } catch (_) {}
+
     const historyTopics = [
       TopicModel(
         id: 'top_hist_1',
@@ -622,26 +683,41 @@ class CatalogRepository {
       ),
     ];
 
-    if (subjectId != null && subjectId.isNotEmpty) {
-      final clean = subjectId.toLowerCase();
-      return allTopics
-          .where((t) => t.subjectId.toLowerCase() == clean ||
-                        t.subjectId.toLowerCase().contains(clean) ||
-                        clean.contains(t.subjectId.toLowerCase()) ||
-                        (clean.contains('history') && t.subjectId == 'sub_history') ||
-                        (clean.contains('gk') && t.subjectId == 'sub_gk') ||
-                        (clean.contains('geo') && t.subjectId == 'sub_geography') ||
-                        (clean.contains('polity') && t.subjectId == 'sub_polity') ||
-                        (clean.contains('sci') && t.subjectId == 'sub_science') ||
-                        (clean.contains('math') && t.subjectId == 'sub_math') ||
-                        (clean.contains('reason') && t.subjectId == 'sub_reasoning') ||
-                        (clean.contains('eng') && t.subjectId == 'sub_english') ||
-                        (clean.contains('static') && t.subjectId == 'sub_static_gk') ||
-                        (clean.contains('comp') && t.subjectId == 'sub_computer') ||
-                        (clean.contains('econ') && t.subjectId == 'sub_economy') ||
-                        (clean.contains('env') && t.subjectId == 'sub_environment') ||
-                        (clean.contains('ca') && t.subjectId == 'sub_ca'))
+    if (cleanSubId != null && cleanSubId.isNotEmpty) {
+      final clean = cleanSubId.toLowerCase();
+      final matched = allTopics
+          .where((t) =>
+              t.subjectId.toLowerCase() == clean ||
+              t.subjectId.toLowerCase().contains(clean) ||
+              clean.contains(t.subjectId.toLowerCase()) ||
+              (clean.contains('history') && t.subjectId == 'sub_history') ||
+              (clean.contains('gk') && t.subjectId == 'sub_gk') ||
+              (clean.contains('geo') && t.subjectId == 'sub_geography') ||
+              (clean.contains('polity') && t.subjectId == 'sub_polity') ||
+              (clean.contains('sci') && t.subjectId == 'sub_science') ||
+              (clean.contains('math') && t.subjectId == 'sub_math') ||
+              (clean.contains('reason') && t.subjectId == 'sub_reasoning') ||
+              (clean.contains('eng') && t.subjectId == 'sub_english') ||
+              (clean.contains('static') && t.subjectId == 'sub_static_gk') ||
+              (clean.contains('comp') && t.subjectId == 'sub_computer') ||
+              (clean.contains('econ') && t.subjectId == 'sub_economy') ||
+              (clean.contains('env') && t.subjectId == 'sub_environment') ||
+              (clean.contains('ca') && t.subjectId == 'sub_ca'))
+          .map((t) => TopicModel(
+                id: t.id,
+                subjectId: cleanSubId,
+                title: t.title,
+                titleBengali: t.titleBengali,
+                slug: t.slug,
+                totalQuestions: t.totalQuestions,
+                attemptedQuestions: t.attemptedQuestions,
+                completedTests: t.completedTests,
+                totalTests: t.totalTests,
+                progress: t.progress,
+                isWeak: t.isWeak,
+              ))
           .toList();
+      if (matched.isNotEmpty) return matched;
     }
     return allTopics;
   }
@@ -657,10 +733,10 @@ class CatalogRepository {
         final res = await supa
             .from('tests')
             .select()
-            .eq('topic_id', topicId)
+            .eq('chapter_id', topicId)
             .eq('is_active', true)
-            .order('created_at', ascending: true)
-            .timeout(const Duration(milliseconds: 600));
+            .order('order_index', ascending: true)
+            .timeout(const Duration(seconds: 4));
         if (res.isNotEmpty) {
           final list = res.map((e) => MockTestModel.fromJson(e)).toList();
           _topicTestsCache[topicId] = list;
@@ -670,7 +746,16 @@ class CatalogRepository {
     } catch (_) {}
 
     String chapterTitle = 'Chapter Practice';
-    if (topicId == 'top_hist_2' || topicId.contains('indus')) {
+    final cachedTopic = _allTopicsCache
+            ?.where((t) => t.id == topicId)
+            .firstOrNull ??
+        _subjectTopicsCache.values
+            .expand((l) => l)
+            .where((t) => t.id == topicId)
+            .firstOrNull;
+    if (cachedTopic != null && cachedTopic.title.isNotEmpty) {
+      chapterTitle = cachedTopic.title;
+    } else if (topicId == 'top_hist_2' || topicId.contains('indus')) {
       chapterTitle = 'Indus Valley Civilization';
     } else if (topicId == 'top_hist_1') {
       chapterTitle = 'Ancient Indian History';

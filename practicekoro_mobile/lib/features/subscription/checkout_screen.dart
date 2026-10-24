@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/components/ui.dart';
+import '../../data/datasources/local_storage.dart';
 import '../../data/models/subscription_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/profile_repository.dart';
@@ -18,10 +20,12 @@ class CheckoutScreen extends ConsumerStatefulWidget {
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
+class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
+    with WidgetsBindingObserver {
   late Razorpay _razorpay;
   bool _isProcessing = false;
   String _selectedPaymentMethod = 'upi'; // upi | card | netbanking
+  Timer? _resumePollTimer;
 
   SubscriptionPlanModel? _currentPlan;
   SubscriptionOrderModel? _currentOrder;
@@ -29,6 +33,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _razorpay = Razorpay();
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
@@ -37,11 +42,98 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _resumePollTimer?.cancel();
     _razorpay.clear();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_isProcessing) {
+        debugPrint(
+          'App resumed to foreground while payment is in progress: checking pass activation status...',
+        );
+        _pollPaymentActivation();
+      }
+    }
+  }
+
+  /// Automatically polls the server and local state to check if the pass was activated
+  /// (e.g. via Razorpay webhook or external UPI/wallet app flow).
+  void _pollPaymentActivation() {
+    _resumePollTimer?.cancel();
+    int attempts = 0;
+    const maxAttempts = 6;
+
+    // Check immediately
+    _checkServerActivation();
+
+    _resumePollTimer =
+        Timer.periodic(const Duration(seconds: 2), (timer) async {
+      attempts++;
+      if (!mounted || !_isProcessing) {
+        timer.cancel();
+        return;
+      }
+
+      final activated = await _checkServerActivation();
+      if (activated) {
+        timer.cancel();
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        timer.cancel();
+        if (mounted && _isProcessing) {
+          setState(() => _isProcessing = false);
+        }
+      }
+    });
+  }
+
+  Future<bool> _checkServerActivation() async {
+    try {
+      final repo = ref.read(subscriptionRepositoryProvider);
+      final result = await repo.loadStudentSubscription();
+      if (!mounted) return false;
+
+      if (result.model.isCurrentlyActive) {
+        debugPrint(
+          'Active subscription confirmed via background sync: ${result.model.planTitle}',
+        );
+        await LocalStorageService.setIsPro(true);
+        final profile = ref.read(studentProfileProvider);
+        if (!profile.isPro) {
+          await ref.read(studentProfileProvider.notifier).save(
+                profile.copyWith(isPro: true),
+              );
+        }
+        ref.invalidate(studentSubscriptionProvider);
+
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          final plan = _currentPlan;
+          if (plan != null) {
+            _showSuccessDialog(
+              plan,
+              amountPaid: _currentOrder?.amount ?? plan.price,
+              expiresAt: result.model.expiresAt,
+              isUpgrade: _currentOrder?.purchaseType == 'upgrade',
+            );
+          }
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Check server activation error: $e');
+    }
+    return false;
+  }
+
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    _resumePollTimer?.cancel();
     debugPrint(
       'Razorpay Payment Success: paymentId=${response.paymentId}, orderId=${response.orderId}',
     );
@@ -54,13 +146,52 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
+    // 1. INSTANT LOCAL ACTIVATION (Instant Pro Access with 0 delay)
+    final now = DateTime.now();
+    final expiresAt = now.add(Duration(days: plan.durationDays));
+    final instantSub = StudentSubscriptionModel(
+      hasSubscription: true,
+      isActive: true,
+      status: 'active',
+      subscriptionId: response.paymentId ?? order.orderId,
+      planId: plan.id,
+      planTitle: plan.title,
+      durationDays: plan.durationDays,
+      startsAt: now,
+      expiresAt: expiresAt,
+      daysRemaining: plan.durationDays,
+    );
+    await LocalStorageService.setIsPro(true);
+    await LocalStorageService.saveSubscriptionDetails(instantSub.toJson());
+
+    // Update studentProfileProvider immediately so all screens unlock instantly
+    final profile = ref.read(studentProfileProvider);
+    if (!profile.isPro) {
+      await ref.read(studentProfileProvider.notifier).save(
+            profile.copyWith(isPro: true),
+          );
+    }
+    ref.invalidate(studentSubscriptionProvider);
+
+    // Stop processing spinner immediately and present Success Dialog
+    if (mounted) {
+      setState(() => _isProcessing = false);
+      _showSuccessDialog(
+        plan,
+        amountPaid: order.amount,
+        expiresAt: expiresAt,
+        isUpgrade: order.purchaseType == 'upgrade',
+      );
+    }
+
+    // 2. Background Server Sync & Database Verification (non-blocking)
     try {
       final repo = ref.read(subscriptionRepositoryProvider);
       final paymentId = response.paymentId ?? '';
       final signature = response.signature ?? '';
       final orderId = response.orderId ?? order.orderId;
 
-      final verification = await repo.verifyAndActivatePayment(
+      await repo.verifyAndActivatePayment(
         orderId: orderId,
         paymentId: paymentId,
         signature: signature,
@@ -68,35 +199,47 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         plan: plan,
         ref: ref,
       );
-
-      if (!mounted) return;
-      setState(() => _isProcessing = false);
-
-      if (verification.success) {
-        _showSuccessDialog(
-          plan,
-          amountPaid: order.amount,
-          expiresAt: DateTime.tryParse(verification.expiresAt ?? ''),
-          isUpgrade: verification.purchaseType == 'upgrade' ||
-              order.purchaseType == 'upgrade',
-        );
-      } else {
-        _showFailureDialog(
-          verification.errorMessage ??
-              'Payment verification failed. If money was deducted, it will be credited automatically or contact support.',
-        );
-      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _isProcessing = false);
-      _showFailureDialog('Payment verification error: $e');
+      debugPrint('Background server verification completed: $e');
     }
   }
 
-  void _handlePaymentError(PaymentFailureResponse response) {
+  void _handlePaymentError(PaymentFailureResponse response) async {
+    _resumePollTimer?.cancel();
     debugPrint(
       'Razorpay Payment Error: code=${response.code}, message=${response.message}',
     );
+    if (!mounted) return;
+
+    // Check if the payment actually succeeded (e.g., student completed in UPI app and returned)
+    try {
+      final repo = ref.read(subscriptionRepositoryProvider);
+      final check = await repo.loadStudentSubscription();
+      if (check.model.isCurrentlyActive) {
+        await LocalStorageService.setIsPro(true);
+        final profile = ref.read(studentProfileProvider);
+        if (!profile.isPro) {
+          await ref.read(studentProfileProvider.notifier).save(
+                profile.copyWith(isPro: true),
+              );
+        }
+        ref.invalidate(studentSubscriptionProvider);
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          final plan = _currentPlan;
+          if (plan != null) {
+            _showSuccessDialog(
+              plan,
+              amountPaid: _currentOrder?.amount ?? plan.price,
+              expiresAt: check.model.expiresAt,
+              isUpgrade: _currentOrder?.purchaseType == 'upgrade',
+            );
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
@@ -121,12 +264,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Redirecting to ${response.walletName ?? "external wallet"}...',
+          'Connecting to ${response.walletName ?? "wallet"}...',
         ),
         backgroundColor: UI.primary,
         duration: const Duration(seconds: 3),
       ),
     );
+    // Start polling in case user pays in external wallet app
+    _pollPaymentActivation();
   }
 
   void _showSignInRequiredDialog() {
@@ -260,17 +405,67 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           if (phone.isNotEmpty) 'contact': phone,
           if (email.isNotEmpty) 'email': email,
           if (name.isNotEmpty) 'name': name,
+          'method': _selectedPaymentMethod,
         },
         'theme': {
-          'color': '#008080',
+          'color': '#0158FC',
         },
         'retry': {
           'enabled': true,
           'max_count': 2,
         },
         'send_sms_hash': true,
-        'external': {
-          'wallets': ['paytm']
+        // Streamlines Razorpay to show Wallets, UPI apps & QR Code first, then Cards & Netbanking
+        'config': {
+          'display': {
+            'blocks': {
+              'wallets_and_upi': {
+                'name': 'Wallets, UPI & QR Code',
+                'instruments': [
+                  {
+                    'method': 'upi',
+                  },
+                  {
+                    'method': 'wallet',
+                    'wallets': [
+                      'phonepe',
+                      'paytm',
+                      'mobikwik',
+                      'airtelmoney',
+                      'freecharge',
+                    ],
+                  },
+                ],
+              },
+              'cards_and_netbanking': {
+                'name': 'Cards & Netbanking',
+                'instruments': [
+                  {
+                    'method': 'card',
+                  },
+                  {
+                    'method': 'netbanking',
+                  },
+                ],
+              },
+            },
+            'sequence': _selectedPaymentMethod == 'card' || _selectedPaymentMethod == 'netbanking'
+                ? [
+                    'block.cards_and_netbanking',
+                    'block.wallets_and_upi',
+                  ]
+                : [
+                    'block.wallets_and_upi',
+                    'block.cards_and_netbanking',
+                  ],
+            'preferences': {
+              'show_default_blocks': false,
+            },
+            'hide': [
+              {'method': 'paylater'},
+              {'method': 'emi'},
+            ],
+          },
         },
       };
 
@@ -596,10 +791,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Plan Overview Card
-                    _PlanOverviewCard(plan: plan),
+                    // 1. Plan Overview Card with Account Details
+                    _PlanOverviewCard(plan: plan, profile: profile),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
                     if (blocked) ...[
                       Container(
@@ -620,20 +815,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                     ],
 
-                    // 2. Student Account Card
-                    _StudentAccountCard(profile: profile),
-
-                    const SizedBox(height: 16),
-
-                    // 3. Billing Breakdown Card
+                    // 2. Billing Breakdown Card
                     _BillingBreakdownCard(plan: plan, upgrade: upgrade),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
-                    // 4. Payment Method Selection
+                    // 3. Payment Method Selection
                     _PaymentMethodSelector(
                       selectedMethod: _selectedPaymentMethod,
                       onChanged: (val) {
@@ -641,9 +831,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
-                    // 5. Trust & Security Banner
+                    // 4. Trust & Security Banner
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -727,7 +917,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         const SizedBox(width: 20),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _isProcessing || blocked
+                            onPressed: _isProcessing || blocked || plan.isFree
                                 ? null
                                 : () => _proceedToPayment(plan),
                             style: ElevatedButton.styleFrom(
@@ -760,9 +950,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                       Text(
                                         blocked
                                             ? 'Pass already active'
-                                            : upgrade != null
-                                                ? 'Upgrade for ${_rupees(payable)}'
-                                                : 'Pay ${_rupees(payable)} Now',
+                                            : plan.isFree
+                                                ? 'Free Plan (No payment needed)'
+                                                : upgrade != null
+                                                    ? 'Upgrade for ${_rupees(payable)}'
+                                                    : 'Pay ${_rupees(payable)} Now',
                                         style: const TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
@@ -791,19 +983,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 }
 
-/// Plan overview card in checkout
+/// Plan overview card in checkout with integrated student profile verification
 class _PlanOverviewCard extends StatelessWidget {
   final SubscriptionPlanModel plan;
+  final dynamic profile;
 
-  const _PlanOverviewCard({required this.plan});
+  const _PlanOverviewCard({required this.plan, this.profile});
 
   @override
   Widget build(BuildContext context) {
+    final name = profile != null && (profile.fullName as String).isNotEmpty
+        ? profile.fullName as String
+        : 'Student';
+    final email = profile != null && (profile.email as String).isNotEmpty
+        ? profile.email as String
+        : '';
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: UI.line),
         boxShadow: const [
           BoxShadow(
@@ -860,42 +1060,44 @@ class _PlanOverviewCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
-                  color: UI.text,
+                  color: UI.primary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: UI.line),
-          const SizedBox(height: 12),
-          const Text(
-            'Included in this pass:',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: UI.textSoft,
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final feature in plan.features.take(3)) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+          if (email.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.check_rounded,
+                    Icons.account_circle_outlined,
                     size: 15,
-                    color: UI.success,
+                    color: UI.primary,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      feature,
+                      'Activating for: $name ($email)',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         color: UI.textSoft,
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: UI.success,
                   ),
                 ],
               ),
@@ -907,88 +1109,6 @@ class _PlanOverviewCard extends StatelessWidget {
   }
 }
 
-/// Student account card verifying who will receive the pass
-class _StudentAccountCard extends StatelessWidget {
-  final dynamic profile;
-
-  const _StudentAccountCard({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final name = (profile.fullName as String).isNotEmpty
-        ? profile.fullName as String
-        : 'Student';
-    final email = (profile.email as String).isNotEmpty
-        ? profile.email as String
-        : 'Logged in account';
-    final exam = (profile.targetExamTitle as String?) ?? 'West Bengal Exams';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: UI.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Activation Details',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: UI.muted,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: UI.primarySoft,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : 'S',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: UI.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: UI.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$email • $exam',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: UI.muted,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Billing breakdown card
 class _BillingBreakdownCard extends StatelessWidget {
@@ -1210,37 +1330,101 @@ class _PaymentMethodSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Select Payment Method',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: UI.text,
-            ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Select Payment Method',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: UI.text,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    size: 14,
+                    color: Color(0xFF16A34A),
+                  ),
+                  SizedBox(width: 2),
+                  Text(
+                    'Instant Activation',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF16A34A),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           const SizedBox(height: 12),
+
+          // 1. Wallets, UPI & QR (First preference - Recommended)
           _MethodTile(
             id: 'upi',
-            title: 'UPI (Google Pay, PhonePe, Paytm, BHIM)',
-            icon: Icons.account_balance_wallet_outlined,
+            title: 'Wallets, UPI & QR Code',
+            badge: 'PREFERRED',
+            subtitle: 'PhonePe, Google Pay, Paytm, BHIM or Scan QR Code',
+            tags: const ['PhonePe', 'Google Pay', 'Paytm', 'Scan QR Code'],
+            icon: Icons.qr_code_scanner_rounded,
             selected: selectedMethod == 'upi',
             onTap: () => onChanged('upi'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+
+          // 2. Debit & Credit Cards
           _MethodTile(
             id: 'card',
-            title: 'Credit / Debit Card (Visa, RuPay, MasterCard)',
+            title: 'Credit / Debit Card',
+            subtitle: 'Visa, RuPay, MasterCard, Maestro',
             icon: Icons.credit_card_rounded,
             selected: selectedMethod == 'card',
             onTap: () => onChanged('card'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+
+          // 3. Net Banking
           _MethodTile(
             id: 'netbanking',
-            title: 'Net Banking (SBI, HDFC, ICICI, Axis & more)',
+            title: 'Net Banking',
+            subtitle: 'SBI, HDFC, ICICI, Axis & 50+ Banks',
             icon: Icons.account_balance_rounded,
             selected: selectedMethod == 'netbanking',
             onTap: () => onChanged('netbanking'),
+          ),
+          const SizedBox(height: 12),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.bolt_rounded,
+                  size: 15,
+                  color: Color(0xFF0158FC),
+                ),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Wallets, UPI & QR Code are prioritized for faster, instant payment.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF1E40AF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1251,6 +1435,9 @@ class _PaymentMethodSelector extends StatelessWidget {
 class _MethodTile extends StatelessWidget {
   final String id;
   final String title;
+  final String? subtitle;
+  final String? badge;
+  final List<String>? tags;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
@@ -1258,6 +1445,9 @@ class _MethodTile extends StatelessWidget {
   const _MethodTile({
     required this.id,
     required this.title,
+    this.subtitle,
+    this.badge,
+    this.tags,
     required this.icon,
     required this.selected,
     required this.onTap,
@@ -1267,52 +1457,166 @@ class _MethodTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: selected ? UI.primarySoft.withValues(alpha: 0.5) : UI.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: selected ? const Color(0xFFEFF6FF) : UI.surface,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? UI.primary : UI.line,
-            width: selected ? 1.5 : 1,
+            color: selected ? const Color(0xFF0158FC) : UI.line,
+            width: selected ? 1.8 : 1,
           ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF0158FC).withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? UI.primary : UI.textSoft,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? UI.primary : UI.text,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0xFF0158FC)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: selected ? Colors.white : const Color(0xFF475569),
+                  ),
                 ),
-              ),
-            ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? UI.primary : const Color(0xFFCBD5E1),
-                  width: selected ? 5.5 : 1.5,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight:
+                                    selected ? FontWeight.w800 : FontWeight.w700,
+                                color: selected
+                                    ? const Color(0xFF0158FC)
+                                    : UI.text,
+                              ),
+                            ),
+                          ),
+                          if (badge != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                badge!,
+                                style: const TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF166534),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: UI.muted,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected
+                          ? const Color(0xFF0158FC)
+                          : const Color(0xFFCBD5E1),
+                      width: selected ? 5.5 : 1.5,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            if (tags != null && tags!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final tag in tags!)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Colors.white
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFFBFDBFE)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: selected
+                              ? const Color(0xFF1E40AF)
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
 
 /// Interactive payment gateway simulation sheet
 class _PaymentGatewayModal extends StatefulWidget {

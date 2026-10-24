@@ -29,17 +29,41 @@ class TopicModel {
     final tQ = (json['total_questions'] as num?)?.toInt() ?? 0;
     final aQ = (json['attempted_questions'] as num?)?.toInt() ?? 0;
     final cT = (json['completed_tests'] as num?)?.toInt() ?? 0;
-    final tT = (json['total_tests'] as num?)?.toInt() ?? 0;
+
+    int tT = (json['total_tests'] as num?)?.toInt() ?? 0;
+    if (tT == 0 && json['tests'] is List) {
+      final testsList = json['tests'] as List;
+      if (testsList.isNotEmpty && testsList[0] is Map) {
+        tT = (testsList[0]['count'] as num?)?.toInt() ?? 0;
+      }
+    }
+
     final prog = json['progress'] != null
         ? (json['progress'] as num).toDouble()
         : (tQ > 0 ? (aQ / tQ) : (tT > 0 ? cT / tT : 0.0));
 
+    final rawTitle =
+        json['title']?.toString() ?? json['name']?.toString() ?? '';
+    String title = rawTitle;
+    String? titleBengali =
+        json['title_bengali']?.toString() ?? json['name_bn']?.toString();
+
+    // If title has "(বাংলা)" format (e.g. "Indus Valley Civilization (সিন্ধু সভ্যতা)")
+    if ((titleBengali == null || titleBengali.isEmpty) &&
+        rawTitle.contains('(') &&
+        rawTitle.contains(')')) {
+      final match = RegExp(r'^(.*?)\s*\((.*?)\)\s*$').firstMatch(rawTitle);
+      if (match != null) {
+        title = match.group(1)?.trim() ?? rawTitle;
+        titleBengali = match.group(2)?.trim();
+      }
+    }
+
     return TopicModel(
       id: json['id']?.toString() ?? '',
       subjectId: json['subject_id']?.toString() ?? '',
-      title: json['title']?.toString() ?? json['name']?.toString() ?? '',
-      titleBengali:
-          json['title_bengali']?.toString() ?? json['name_bn']?.toString(),
+      title: title.isNotEmpty ? title : rawTitle,
+      titleBengali: titleBengali,
       slug: json['slug']?.toString() ?? '',
       totalQuestions: tQ,
       attemptedQuestions: aQ,

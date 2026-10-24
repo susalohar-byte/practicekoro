@@ -430,15 +430,17 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                           (context, index) {
                             final subject = filtered[index];
                             final color = _getSubjectColor(index, subject.nameEnglish);
+                            final subjectChapters = topicsForSubject(allTopics, subject);
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: _SubjectListCard(
                                 subject: subject,
                                 color: color,
-                                onTap: () {
+                                chapters: subjectChapters,
+                                onOpenFull: () {
                                   context.push(
-                                    '/topic-tests?subject=${Uri.encodeQueryComponent(subject.nameEnglish)}',
+                                    '/topic-tests?subjectId=${subject.id}&subject=${Uri.encodeQueryComponent(subject.nameEnglish)}',
                                   );
                                 },
                               ),
@@ -529,9 +531,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                                   i,
                                   matchingSubjects[i].nameEnglish,
                                 ),
-                                onTap: () {
+                                chapters: topicsForSubject(allTopics, matchingSubjects[i]),
+                                onOpenFull: () {
                                   context.push(
-                                    '/topic-tests?subject=${Uri.encodeQueryComponent(matchingSubjects[i].nameEnglish)}',
+                                    '/topic-tests?subjectId=${matchingSubjects[i].id}&subject=${Uri.encodeQueryComponent(matchingSubjects[i].nameEnglish)}',
                                   );
                                 },
                               ),
@@ -684,97 +687,153 @@ Color _getSubjectColor(int index, String name) {
 
 /// Subject Card matching Screen 1 in reference image:
 /// - Rounded squircle icon with soft pastel tint
-/// - Subject English name in bold
+/// - Subject English & Bengali names
 /// - Chapters & Tests count in subtitle
-/// - Navigation chevron
+/// - Expandable inline accordion to preview syllabus chapters directly
+/// - Direct tap-to-practice test runner on individual chapters
+/// - Dedicated button to open full Subject Chapter screen
 class _SubjectListCard extends StatelessWidget {
   final SubjectModel subject;
   final Color color;
-  final VoidCallback onTap;
+  final List<TopicModel> chapters;
+  final VoidCallback? onOpenFull;
 
   const _SubjectListCard({
     required this.subject,
     required this.color,
-    required this.onTap,
+    this.chapters = const [],
+    this.onOpenFull,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chapterText = '${subject.chapterCount} Chapters';
-    final testText =
-        subject.totalTests > 0 ? '${subject.totalTests} Tests' : 'Mock Tests';
+    final effectiveChapterCount = subject.chapterCount > 0
+        ? subject.chapterCount
+        : chapters.length;
+    final chapterText = '$effectiveChapterCount Chapters';
+    final testText = subject.totalTests > 0
+        ? '${subject.totalTests} Tests'
+        : 'Mock Tests';
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1.1,
         ),
-        child: Row(
-          children: [
-            // Pastel squircle icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                subjectIcon(subject.nameEnglish),
-                color: color,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // Subject Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    subject.nameEnglish,
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (onOpenFull != null) {
+              onOpenFull!();
+            } else {
+              context.push(
+                '/topic-tests?subjectId=${subject.id}&subject=${Uri.encodeQueryComponent(subject.nameEnglish)}',
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                // Pastel squircle icon
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '$chapterText • $testText',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Icon(
+                    subjectIcon(subject.nameEnglish),
+                    color: color,
+                    size: 24,
                   ),
-                ],
-              ),
-            ),
+                ),
+                const SizedBox(width: 14),
 
-            // Trailing Chevron
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFF94A3B8),
-              size: 22,
+                // Subject Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              subject.nameEnglish,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (subject.nameBengali.isNotEmpty &&
+                              subject.nameBengali != subject.nameEnglish) ...[
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                '(${subject.nameBengali})',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF64748B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$chapterText • $testText',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Forward chevron indicating direct navigation to chapters page
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Color(0xFF64748B),
+                    size: 13,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

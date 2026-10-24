@@ -126,7 +126,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     title: s.nameEnglish,
                     subtitle: s.nameBengali,
                     onTap: () => context.push(
-                      '/topic-tests?subject=${Uri.encodeQueryComponent(s.nameEnglish)}',
+                      '/topic-tests?subjectId=${s.id}&subject=${Uri.encodeQueryComponent(s.nameEnglish)}',
                     ),
                   ),
               ],

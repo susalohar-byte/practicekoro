@@ -272,6 +272,30 @@ class LocalStorageService {
     await _prefs?.setString('cached_subscription_plans', jsonEncode(plans));
   }
 
+  static List<Map<String, dynamic>> getSavedTickets() {
+    final raw = _prefs?.getString('saved_support_tickets');
+    if (raw == null) return [];
+    try {
+      final list = jsonDecode(raw) as List;
+      return list.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveTicketLocally(Map<String, dynamic> ticket) async {
+    final list = getSavedTickets();
+    list.removeWhere((t) => t['id'] == ticket['id']);
+    list.insert(0, ticket);
+    await _prefs?.setString('saved_support_tickets', jsonEncode(list));
+  }
+
+  static Future<void> saveAllTicketsLocally(
+    List<Map<String, dynamic>> tickets,
+  ) async {
+    await _prefs?.setString('saved_support_tickets', jsonEncode(tickets));
+  }
+
   /// Removes everything tied to the signed-in student (profile, cached
   /// results, bookmarks) so the next account on this phone starts clean.
   static Future<void> clearAccountData() async {

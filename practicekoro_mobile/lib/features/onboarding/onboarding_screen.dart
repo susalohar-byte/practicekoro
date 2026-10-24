@@ -26,15 +26,18 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 550),
     );
 
-    _fadeAnim = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOutCubic,
+    // Start with 0.35 opacity so the logo is immediately visible on first frame
+    _fadeAnim = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutCubic,
+      ),
     );
 
-    _scaleAnim = Tween<double>(begin: 0.92, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
         curve: Curves.easeOutBack,
@@ -76,121 +79,182 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: Stack(
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // App Icon Logo with soft elevation
-                      Container(
-                        width: 104,
-                        height: 104,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: UI.brand.withValues(alpha: 0.18),
-                              blurRadius: 28,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Image.asset(
-                            'assets/images/logo-icon.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              color: UI.brand,
-                              child: const Icon(
-                                Icons.school_rounded,
-                                color: Colors.white,
-                                size: 52,
+      body: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          gradient: RadialGradient(
+            center: Alignment(0, -0.15),
+            radius: 0.95,
+            colors: [
+              Color(0xFFF1F6FF), // Soft royal blue glow behind logo
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Stack(
+                children: [
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // App Icon Logo: high-res squircle with ambient glow
+                        Container(
+                          width: 108,
+                          height: 108,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(26),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0158FC).withValues(alpha: 0.24),
+                                blurRadius: 36,
+                                offset: const Offset(0, 12),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(26),
+                            child: Image.asset(
+                              'assets/images/logo-icon.png',
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (_, _, _) => Container(
+                                color: UI.brand,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.school_rounded,
+                                  color: Colors.white,
+                                  size: 54,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                      // Brand typography logo
-                      Image.asset(
-                        'assets/images/logo-transparent.png',
-                        width: 210,
-                        errorBuilder: (_, _, _) => const Text(
-                          'PracticeKoro',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: UI.brand,
-                            letterSpacing: -0.5,
+                        // Official Brand Typography: PracticeKoro Wordmark
+                        Image.asset(
+                          'assets/images/logo-text.png',
+                          height: 38,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, _, _) => RichText(
+                            text: const TextSpan(
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.6,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'Practice',
+                                  style: TextStyle(color: Color(0xFF0F172A)),
+                                ),
+                                TextSpan(
+                                  text: 'Koro',
+                                  style: TextStyle(color: Color(0xFF0158FC)),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
-                      // Subtitle / Tagline
-                      const Text(
-                        'পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: UI.text,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Practice Today, Progress Tomorrow',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          color: UI.textSoft.withValues(alpha: 0.85),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Bottom loading indicator & version
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 28),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            color: UI.brand,
+                        // Bengali Subtitle
+                        const Text(
+                          'পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                            letterSpacing: 0.2,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Version 2.0.0',
+                        const SizedBox(height: 5),
+
+                        // English Tagline
+                        const Text(
+                          'Practice Today, Progress Tomorrow',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w600,
-                            color: UI.textSoft.withValues(alpha: 0.6),
-                            letterSpacing: 0.5,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Exam Focus Pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFBFDBFE),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Text(
+                            'WBCS  •  WBP  •  WBPSC  •  SSC  •  RAILWAY',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0158FC),
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+
+                  // Bottom loading indicator & platform tagline
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF0158FC),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Version 2.0.0',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF94A3B8),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

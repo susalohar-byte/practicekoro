@@ -11,11 +11,13 @@ import 'practice_common.dart';
 /// Shows all chapters/topics of a chosen subject with search, filters (All, Weak, Completed),
 /// numbered badges (01, 02...), test count, progress bar, and navigates to Topic Tests (Screen 3).
 class TopicTestScreen extends ConsumerStatefulWidget {
+  final String? initialSubjectId;
   final String? initialSubjectName;
   final String? initialFilter;
 
   const TopicTestScreen({
     super.key,
+    this.initialSubjectId,
     this.initialSubjectName,
     this.initialFilter,
   });
@@ -35,6 +37,12 @@ class _TopicTestScreenState extends ConsumerState<TopicTestScreen> {
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    _subjectId = widget.initialSubjectId;
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -47,10 +55,17 @@ class _TopicTestScreenState extends ConsumerState<TopicTestScreen> {
         if (s.id == _subjectId) return s;
       }
     }
+    final wantedId = widget.initialSubjectId?.trim().toLowerCase();
+    if (wantedId != null && wantedId.isNotEmpty) {
+      for (final s in subjects) {
+        if (s.id.toLowerCase() == wantedId) return s;
+      }
+    }
     final wanted = widget.initialSubjectName?.trim().toLowerCase();
     if (wanted != null && wanted.isNotEmpty) {
       for (final s in subjects) {
         if (s.nameEnglish.toLowerCase() == wanted ||
+            s.nameBengali.toLowerCase() == wanted ||
             s.slug.toLowerCase() == wanted ||
             s.id.toLowerCase() == wanted) {
           return s;

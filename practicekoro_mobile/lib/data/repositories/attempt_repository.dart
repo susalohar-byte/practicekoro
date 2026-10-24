@@ -8,9 +8,12 @@ import 'auth_repository.dart';
 class AttemptRepository {
   const AttemptRepository();
 
-  /// Server attempts apply to real tests; topic practice (`topic_<id>`) is local.
+  /// Server attempts apply to real tests; topic/chapter practice is local.
   static bool usesServer(String testId) =>
       !testId.startsWith('topic_') &&
+      !testId.startsWith('test_top_') &&
+      !testId.contains('top_') &&
+      !testId.contains('chapter') &&
       supabaseClient != null &&
       const AuthRepository().session != null;
 

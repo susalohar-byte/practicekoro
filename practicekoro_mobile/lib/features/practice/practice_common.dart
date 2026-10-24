@@ -35,9 +35,36 @@ List<TopicModel> topicsForSubject(
   SubjectModel? subject,
 ) {
   if (subject == null) return topics;
-  return topics
-      .where((t) => t.subjectId.isEmpty || t.subjectId == subject.id)
-      .toList();
+  final sId = subject.id.toLowerCase();
+  final sSlug = subject.slug.toLowerCase();
+  final sName = subject.nameEnglish.toLowerCase();
+
+  return topics.where((t) {
+    if (t.subjectId.isEmpty) return true;
+    final tSub = t.subjectId.toLowerCase();
+    if (tSub == sId) return true;
+    if (tSub == sSlug) return true;
+    if (sId.contains(tSub) || tSub.contains(sId)) return true;
+    if (sSlug.contains(tSub) || tSub.contains(sSlug)) return true;
+    // Common subject keywords
+    if (sName.contains('hist') && tSub.contains('hist')) return true;
+    if (sName.contains('geo') && tSub.contains('geo')) return true;
+    if (sName.contains('math') && tSub.contains('math')) return true;
+    if (sName.contains('sci') && tSub.contains('sci')) return true;
+    if (sName.contains('polity') && tSub.contains('polity')) return true;
+    if (sName.contains('const') &&
+        (tSub.contains('polity') || tSub.contains('const'))) {
+      return true;
+    }
+    if (sName.contains('env') && tSub.contains('env')) return true;
+    if (sName.contains('reas') && tSub.contains('reas')) return true;
+    if (sName.contains('eng') && tSub.contains('eng')) return true;
+    if (sName.contains('comp') && tSub.contains('comp')) return true;
+    if (sName.contains('gk') && tSub.contains('gk')) return true;
+    if (sName.contains('ca') && tSub.contains('ca')) return true;
+    if (sName.contains('beng') && tSub.contains('beng')) return true;
+    return false;
+  }).toList();
 }
 
 /// Starts a practice session for one topic through the existing test runner.

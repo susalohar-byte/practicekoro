@@ -235,7 +235,7 @@ void main() {
       expect(find.text('Why Aspirants Choose Pro'), findsOneWidget);
     });
 
-    testWidgets('CheckoutScreen renders plan details and order breakdown', (tester) async {
+    testWidgets('CheckoutScreen renders plan details, price breakdown, and payment method selector', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -249,7 +249,14 @@ void main() {
 
       expect(find.text('Order Summary'), findsOneWidget);
       expect(find.text('Price Breakdown'), findsOneWidget);
+      expect(find.text('Plan MRP'), findsOneWidget);
+      expect(find.text('Special Offer Discount'), findsOneWidget);
+      expect(find.text('Total Payable'), findsOneWidget);
       expect(find.text('Select Payment Method'), findsOneWidget);
+      expect(find.text('Wallets, UPI & QR Code'), findsOneWidget);
+      expect(find.text('PREFERRED'), findsOneWidget);
+      expect(find.text('Credit / Debit Card'), findsOneWidget);
+      expect(find.text('Net Banking'), findsOneWidget);
       expect(find.textContaining('Pay ₹299 Now'), findsOneWidget);
     });
 

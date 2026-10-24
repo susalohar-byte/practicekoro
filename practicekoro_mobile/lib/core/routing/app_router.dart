@@ -227,6 +227,8 @@ final appRouter = GoRouter(
       path: '/topic-tests',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => TopicTestScreen(
+        initialSubjectId: state.uri.queryParameters['subjectId'] ??
+            state.uri.queryParameters['id'],
         initialSubjectName: state.uri.queryParameters['subject'],
         initialFilter: state.uri.queryParameters['filter'],
       ),
