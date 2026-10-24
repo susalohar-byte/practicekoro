@@ -1,7 +1,13 @@
 import { withAdminSkeleton, AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { api } from '@/services/api';
-import { isoToLocalDateTimeParts, localDateTimeToIso } from '@/services/domains/admin.liveTests';
+import {
+  EMPTY_LIVE_TEST_STATS,
+  isoToLocalDateTimeParts,
+  localDateTimeToIso,
+  type LiveTestStats,
+} from '@/services/domains/admin.liveTests';
+import { csvCell } from '@/utils/csvExport';
 import type { Exam, LiveTest } from '@/types';
 import {
   Radio,
@@ -98,6 +104,9 @@ export const AdminLiveTests: React.FC = () => {
   const navigate = useNavigate();
   const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  // Real participation numbers per Live Test (from test_attempts), keyed by live test id.
+  const [statsById, setStatsById] = useState<Record<string, LiveTestStats>>({});
+  const [statsError, setStatsError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
 
@@ -147,16 +156,38 @@ export const AdminLiveTests: React.FC = () => {
     };
   }, []);
 
-  // Click outside to close action menu
+  // Click outside to close action menu and Escape key to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!(e.target as HTMLElement).closest('.action-menu-container')) {
         setActiveMenuId(null);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveMenuId(null);
+        setIsDrawerOpen(false);
+        setSelectedTestId(null);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
+
+  // Prevent background body scroll when drawer is open
+  useEffect(() => {
+    if (isDrawerOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [isDrawerOpen]);
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -198,7 +229,7 @@ export const AdminLiveTests: React.FC = () => {
       (t) => t.status === 'ended' || t.status === 'completed'
     ).length;
     const totalParticipants = liveTests.reduce(
-      (sum, t) => sum + (t.participantsCount || t.enrolledCount || 0),
+      (sum, t) => sum + (statsById[t.id]?.participants || 0),
       0
     );
 
@@ -208,6 +239,31 @@ export const AdminLiveTests: React.FC = () => {
       upcomingCount,
       endedCount,
       totalParticipants,
+    };
+  }, [liveTests, statsById]);
+
+  // Load real participation stats whenever the list changes
+  useEffect(() => {
+    if (liveTests.length === 0) {
+      setStatsById({});
+      return;
+    }
+    let cancelled = false;
+    api
+      .getLiveTestsStats(liveTests)
+      .then((next) => {
+        if (cancelled) return;
+        setStatsById(next);
+        setStatsError('');
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setStatsError(
+          err instanceof Error ? err.message : 'Participation stats could not be loaded'
+        );
+      });
+    return () => {
+      cancelled = true;
     };
   }, [liveTests]);
 
@@ -275,6 +331,85 @@ export const AdminLiveTests: React.FC = () => {
     if (!selectedTestId) return null;
     return liveTests.find((t) => t.id === selectedTestId) || null;
   }, [liveTests, selectedTestId]);
+
+  // Real numbers for the drawer and the monitor
+  const selectedStats: LiveTestStats = selectedLiveTest
+    ? statsById[selectedLiveTest.id] || EMPTY_LIVE_TEST_STATS
+    : EMPTY_LIVE_TEST_STATS;
+  const selectedPaperQuestions =
+    selectedLiveTest?.test?.totalQuestions ?? selectedLiveTest?.totalQuestions ?? 0;
+  const selectedMarks = selectedLiveTest?.test?.totalMarks ?? selectedLiveTest?.totalMarks ?? 0;
+  const selectedNegative =
+    selectedLiveTest?.test?.negativeMarking ?? selectedLiveTest?.negativeMarking ?? 0;
+  const submissionRate =
+    selectedStats.participants > 0
+      ? Math.round((selectedStats.submitted / selectedStats.participants) * 100)
+      : null;
+  // Share of the live window that has elapsed (0 before start, 100 after the end).
+  const windowProgress = (() => {
+    if (!selectedLiveTest) return 0;
+    const start = new Date(selectedLiveTest.startAt).getTime();
+    const minutes = Number(selectedLiveTest.durationMinutes) || 0;
+    if (isNaN(start) || minutes <= 0) return 0;
+    const pct = ((Date.now() - start) / (minutes * 60 * 1000)) * 100;
+    return Math.max(0, Math.min(100, Math.round(pct)));
+  })();
+  const formatDateTime = (iso?: string | null) => {
+    const parts = formatScheduledDate(iso);
+    return parts ? `${parts.date}, ${parts.time}` : '—';
+  };
+  const formatMinutes = (seconds: number | null) =>
+    seconds === null ? '—' : `${Math.round(seconds / 60)} min`;
+  const STATUS_LABELS: Record<string, string> = {
+    live: 'Live Now',
+    upcoming: 'Scheduled',
+    scheduled: 'Scheduled',
+    draft: 'Draft',
+    ended: 'Completed',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  };
+
+  const exportParticipantsCsv = (lt: LiveTest, rows: LiveTestStats['leaderboard']) => {
+    if (rows.length === 0) {
+      toast.info('No submissions to export yet');
+      return;
+    }
+    const lines = [
+      ['Rank', 'Student', 'Score', 'Time (min)'].map(csvCell).join(','),
+      ...rows.map((r) =>
+        [r.rank, r.name, r.score, Math.round(r.timeSeconds / 60)].map(csvCell).join(',')
+      ),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(lt.title || 'live-test').replace(/[^a-z0-9]+/gi, '-')}-participants.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const drawerSchedStart = useMemo(() => {
+    if (!selectedLiveTest) return null;
+    return formatScheduledDate(selectedLiveTest.scheduledStartTime || selectedLiveTest.startAt);
+  }, [selectedLiveTest]);
+
+  const drawerSchedEnd = useMemo(() => {
+    if (!selectedLiveTest) return null;
+    const startIso = selectedLiveTest.scheduledStartTime || selectedLiveTest.startAt;
+    if (!startIso) return null;
+    const startDate = new Date(startIso);
+    if (isNaN(startDate.getTime())) return null;
+    const duration = selectedLiveTest.durationMinutes || 60;
+    const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
+    return formatScheduledDate(endDate.toISOString());
+  }, [selectedLiveTest]);
+
+  const drawerCreatedAt = useMemo(() => {
+    if (!selectedLiveTest?.createdAt) return null;
+    return formatScheduledDate(selectedLiveTest.createdAt);
+  }, [selectedLiveTest]);
 
   // Select all checkbox
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -454,9 +589,6 @@ export const AdminLiveTests: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-500 border border-emerald-100">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                <span>↑ 28%</span>
-              </div>
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium text-slate-500">Completed</p>
@@ -471,18 +603,15 @@ export const AdminLiveTests: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-purple-50 text-purple-500 border border-purple-100">
                 <Users className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                <span>↑ 46%</span>
-              </div>
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium text-slate-500">Total Participants</p>
               <h3 className="text-2xl font-bold text-slate-900 mt-1">
-                {stats.totalParticipants > 0
-                  ? stats.totalParticipants.toLocaleString('en-IN')
-                  : '24,860'}
+                {statsError ? '—' : stats.totalParticipants.toLocaleString('en-IN')}
               </h3>
-              <p className="text-xs text-slate-400 mt-1">across all live tests</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {statsError ? 'stats unavailable' : 'students who sat a live test'}
+              </p>
             </div>
           </div>
         </div>
@@ -631,11 +760,11 @@ export const AdminLiveTests: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Layout: Table on Left + Details Drawer on Right */}
-        <div className="flex items-start gap-6">
+        {/* Main Content Layout */}
+        <div className="w-full">
           {/* Main Table Container */}
-          <div className="flex-1 min-w-0 bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="w-full bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto min-h-[340px]">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -746,7 +875,7 @@ export const AdminLiveTests: React.FC = () => {
 
                           {/* Exam */}
                           <td className="py-3.5 px-3 text-xs font-medium text-slate-700 whitespace-nowrap">
-                            {test.examTitle || 'WBP Constable'}
+                            {test.examTitle || test.test?.examTitle || '—'}
                           </td>
 
                           {/* Scheduled Date & Time */}
@@ -770,9 +899,7 @@ export const AdminLiveTests: React.FC = () => {
 
                           {/* Participants */}
                           <td className="py-3.5 px-3 text-xs font-semibold text-slate-700 whitespace-nowrap">
-                            {(test.participantsCount || test.enrolledCount || 0).toLocaleString(
-                              'en-IN'
-                            )}
+                            {(statsById[test.id]?.participants || 0).toLocaleString('en-IN')}
                           </td>
 
                           {/* Status Badge */}
@@ -806,11 +933,17 @@ export const AdminLiveTests: React.FC = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveMenuId(activeMenuId === test.id ? null : test.id);
                               }}
-                              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                              className={cn(
+                                'p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer',
+                                activeMenuId === test.id &&
+                                  'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 ring-2 ring-blue-500/20'
+                              )}
+                              title="Actions"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </button>
@@ -818,94 +951,125 @@ export const AdminLiveTests: React.FC = () => {
                             {activeMenuId === test.id && (
                               <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="absolute right-3 top-10 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-30 text-left text-xs font-medium"
+                                className="absolute right-2 top-10 w-52 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 z-40 text-left text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
                               >
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setSelectedTestId(test.id);
                                     setIsDrawerOpen(true);
                                     setActiveMenuId(null);
                                   }}
-                                  className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  className="w-full px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
-                                  <Monitor className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>View Details</span>
+                                  <Monitor className="w-4 h-4 text-blue-600 shrink-0" />
+                                  <span className="font-semibold">View Details</span>
                                 </button>
+
                                 <button
+                                  type="button"
+                                  onClick={() => {
+                                    openPaperQuestions(test);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between transition-colors cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <ListChecks className="w-4 h-4 text-indigo-600 shrink-0" />
+                                    <span className="font-semibold">
+                                      {test.status === 'draft'
+                                        ? 'Upload Questions'
+                                        : 'View Questions'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                    {test.test?.totalQuestions ?? test.totalQuestions ?? 0}
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     setEditingTest(test);
                                     setIsCreateModalOpen(true);
                                     setActiveMenuId(null);
                                   }}
-                                  className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  className="w-full px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
-                                  <Edit className="w-3.5 h-3.5 text-slate-500" />
+                                  <Edit className="w-4 h-4 text-slate-500 shrink-0" />
                                   <span>Edit Test</span>
                                 </button>
+
                                 <button
-                                  onClick={() => openPaperQuestions(test)}
-                                  className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                  type="button"
+                                  onClick={() => {
+                                    handleDuplicate(test);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
-                                  <ListChecks className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>
-                                    {test.status === 'draft'
-                                      ? 'Upload Questions'
-                                      : 'View Questions'}
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={() => handleDuplicate(test)}
-                                  className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-purple-600" />
+                                  <Copy className="w-4 h-4 text-purple-600 shrink-0" />
                                   <span>Duplicate Test</span>
                                 </button>
 
-                                {test.status !== 'live' && test.status !== 'ended' && (
-                                  <button
-                                    onClick={() => handleStartLiveNow(test)}
-                                    className="w-full px-3 py-2 text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
-                                  >
-                                    <Play className="w-3.5 h-3.5" />
-                                    <span>Start Live Now</span>
-                                  </button>
-                                )}
+                                {/* Contextual actions */}
+                                {test.status !== 'live' &&
+                                  test.status !== 'ended' &&
+                                  test.status !== 'completed' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleStartLiveNow(test);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className="w-full px-3.5 py-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-semibold"
+                                    >
+                                      <Play className="w-4 h-4 shrink-0" />
+                                      <span>Start Live Now</span>
+                                    </button>
+                                  )}
 
                                 {(test.status === 'ended' ||
                                   test.status === 'completed' ||
                                   test.status === 'cancelled') &&
                                   test.test?.isLiveOnly && (
                                     <button
-                                      onClick={() => handleReleaseToPractice(test)}
-                                      className="w-full px-3 py-2 text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+                                      type="button"
+                                      onClick={() => {
+                                        handleReleaseToPractice(test);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className="w-full px-3.5 py-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-semibold"
                                     >
-                                      <Unlock className="w-3.5 h-3.5" />
+                                      <Unlock className="w-4 h-4 shrink-0" />
                                       <span>Release to Practice</span>
                                     </button>
                                   )}
 
                                 {test.status === 'live' && (
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setEndCandidate(test);
                                       setActiveMenuId(null);
                                     }}
-                                    className="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                                    className="w-full px-3.5 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-semibold"
                                   >
-                                    <StopCircle className="w-3.5 h-3.5" />
+                                    <StopCircle className="w-4 h-4 shrink-0" />
                                     <span>End Live Test</span>
                                   </button>
                                 )}
 
-                                <div className="border-t border-slate-100 my-1" />
+                                <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setDeleteCandidate(test);
                                     setActiveMenuId(null);
                                   }}
-                                  className="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                                  className="w-full px-3.5 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4 shrink-0" />
                                   <span>Delete Test</span>
                                 </button>
                               </div>
@@ -1029,7 +1193,8 @@ export const AdminLiveTests: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {selectedLiveTest.examTitle || 'WBP Constable'} | Full Mock Test
+                      {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'} | Full
+                      Mock Test
                     </p>
                   </div>
                 </div>
@@ -1131,11 +1296,7 @@ export const AdminLiveTests: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-blue-600">
                         <Users className="w-3.5 h-3.5" />
                         <span className="text-xs font-bold text-slate-900">
-                          {(
-                            selectedLiveTest.participantsCount ||
-                            selectedLiveTest.enrolledCount ||
-                            1248
-                          ).toLocaleString('en-IN')}
+                          {selectedStats.participants.toLocaleString('en-IN')}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Participants</p>
@@ -1145,7 +1306,9 @@ export const AdminLiveTests: React.FC = () => {
                     <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
                       <div className="flex items-center gap-1.5 text-emerald-600">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">68%</span>
+                        <span className="text-xs font-bold text-slate-900">
+                          {submissionRate === null ? '—' : `${submissionRate}%`}
+                        </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Submission Rate</p>
                     </div>
@@ -1155,7 +1318,7 @@ export const AdminLiveTests: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-purple-600">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs font-bold text-slate-900">
-                          {selectedLiveTest.durationMinutes || 60} min
+                          {selectedLiveTest.durationMinutes || 0} min
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Duration</p>
@@ -1166,7 +1329,7 @@ export const AdminLiveTests: React.FC = () => {
                       <div className="flex items-center gap-1.5 text-indigo-600">
                         <FileText className="w-3.5 h-3.5" />
                         <span className="text-xs font-bold text-slate-900">
-                          {selectedLiveTest.totalQuestions || 100}
+                          {selectedPaperQuestions}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Total Questions</p>
@@ -1176,7 +1339,11 @@ export const AdminLiveTests: React.FC = () => {
                     <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
                       <div className="flex items-center gap-1.5 text-rose-600">
                         <Target className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">87</span>
+                        <span className="text-xs font-bold text-slate-900">
+                          {selectedStats.avgScore === null
+                            ? '—'
+                            : `${Number(selectedStats.avgScore.toFixed(1))} / ${selectedMarks}`}
+                        </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Avg. Score</p>
                     </div>
@@ -1185,7 +1352,9 @@ export const AdminLiveTests: React.FC = () => {
                     <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
                       <div className="flex items-center gap-1.5 text-amber-600">
                         <Hourglass className="w-3.5 h-3.5" />
-                        <span className="text-xs font-bold text-slate-900">42 min</span>
+                        <span className="text-xs font-bold text-slate-900">
+                          {formatMinutes(selectedStats.avgTimeSeconds)}
+                        </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5">Avg. Time Taken</p>
                     </div>
@@ -1195,12 +1364,12 @@ export const AdminLiveTests: React.FC = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900">Live Test Progress</span>
-                      <span className="font-bold text-blue-600">68%</span>
+                      <span className="font-bold text-blue-600">{windowProgress}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: '68%' }}
+                        style={{ width: `${windowProgress}%` }}
                       />
                     </div>
                   </div>
@@ -1210,19 +1379,27 @@ export const AdminLiveTests: React.FC = () => {
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Start Time</span>
                       <span className="font-medium text-slate-800 text-right">
-                        30 Sep 2026, 11:00 AM
+                        {drawerSchedStart
+                          ? `${drawerSchedStart.date}, ${drawerSchedStart.time}`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between pt-1">
+                      <span className="text-slate-400 w-28 shrink-0">End Time</span>
+                      <span className="font-medium text-slate-800 text-right">
+                        {drawerSchedEnd ? `${drawerSchedEnd.date}, ${drawerSchedEnd.time}` : '—'}
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Duration</span>
                       <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.durationMinutes || 60} minutes
+                        {selectedLiveTest.durationMinutes || 0} minutes
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Exam</span>
                       <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.examTitle || 'WBP Constable'}
+                        {selectedLiveTest.examTitle || selectedLiveTest.test?.examTitle || '—'}
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
@@ -1232,39 +1409,35 @@ export const AdminLiveTests: React.FC = () => {
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Total Questions</span>
                       <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.totalQuestions || 100}
+                        {selectedPaperQuestions}
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Total Marks</span>
-                      <span className="font-medium text-slate-800 text-right">
-                        {selectedLiveTest.totalMarks || 100}
-                      </span>
+                      <span className="font-medium text-slate-800 text-right">{selectedMarks}</span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Negative Marks</span>
                       <span className="font-medium text-slate-800 text-right">
-                        0.25 (Per Wrong Answer)
+                        {selectedNegative > 0 ? `${selectedNegative} (Per Wrong Answer)` : 'None'}
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Status</span>
-                      <span className="font-semibold text-rose-600 text-right">Live Now</span>
-                    </div>
-                    <div className="flex items-start justify-between pt-1">
-                      <span className="text-slate-400 w-28 shrink-0">Created By</span>
-                      <span className="font-medium text-slate-800 text-right">Admin</span>
+                      <span className="font-semibold text-slate-800 text-right">
+                        {STATUS_LABELS[selectedLiveTest.status] || selectedLiveTest.status}
+                      </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Created At</span>
                       <span className="font-medium text-slate-800 text-right">
-                        25 Sep 2026, 04:20 PM
+                        {drawerCreatedAt ? `${drawerCreatedAt.date}, ${drawerCreatedAt.time}` : '—'}
                       </span>
                     </div>
                     <div className="flex items-start justify-between pt-1">
                       <span className="text-slate-400 w-28 shrink-0">Last Updated</span>
                       <span className="font-medium text-slate-800 text-right">
-                        30 Sep 2026, 08:15 AM
+                        {formatDateTime(selectedLiveTest.updatedAt)}
                       </span>
                     </div>
                   </div>
@@ -1293,9 +1466,13 @@ export const AdminLiveTests: React.FC = () => {
               {drawerTab === 'participants' && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800">Live Leaderboard</span>
+                    <span className="font-bold text-slate-800">
+                      Leaderboard ({selectedStats.submitted} submitted)
+                    </span>
                     <button
-                      onClick={() => toast.success('Exporting participants CSV...')}
+                      onClick={() =>
+                        exportParticipantsCsv(selectedLiveTest, selectedStats.leaderboard)
+                      }
                       className="text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
                     >
                       <Download className="w-3 h-3" />
@@ -1303,41 +1480,43 @@ export const AdminLiveTests: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
-                    <div className="grid grid-cols-12 bg-slate-50 p-2 font-semibold text-slate-600 border-b border-slate-200">
-                      <span className="col-span-2 text-center">Rank</span>
-                      <span className="col-span-5">Student</span>
-                      <span className="col-span-3 text-right">Score</span>
-                      <span className="col-span-2 text-right">Time</span>
+                  {selectedStats.leaderboard.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg">
+                      {statsError
+                        ? `Participants could not be loaded: ${statsError}`
+                        : 'No student has submitted this Live Test yet.'}
                     </div>
-                    <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
-                      {[
-                        { rank: 1, name: 'Sourav Ganguly', score: 94.5, time: '38m' },
-                        { rank: 2, name: 'Ananya Roy', score: 91.0, time: '41m' },
-                        { rank: 3, name: 'Bikram Das', score: 88.5, time: '43m' },
-                        { rank: 4, name: 'Priyanka Sen', score: 86.0, time: '45m' },
-                        { rank: 5, name: 'Subhadip Ghosh', score: 84.5, time: '42m' },
-                        { rank: 6, name: 'Tanmoy Mallick', score: 82.0, time: '48m' },
-                        { rank: 7, name: 'Debolina Paul', score: 80.5, time: '44m' },
-                      ].map((p) => (
-                        <div
-                          key={p.rank}
-                          className="grid grid-cols-12 p-2 items-center hover:bg-slate-50/60"
-                        >
-                          <span className="col-span-2 text-center font-bold text-slate-700">
-                            #{p.rank}
-                          </span>
-                          <span className="col-span-5 font-medium text-slate-800 truncate">
-                            {p.name}
-                          </span>
-                          <span className="col-span-3 text-right font-semibold text-emerald-600">
-                            {p.score}
-                          </span>
-                          <span className="col-span-2 text-right text-slate-500">{p.time}</span>
-                        </div>
-                      ))}
+                  ) : (
+                    <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                      <div className="grid grid-cols-12 bg-slate-50 p-2 font-semibold text-slate-600 border-b border-slate-200">
+                        <span className="col-span-2 text-center">Rank</span>
+                        <span className="col-span-5">Student</span>
+                        <span className="col-span-3 text-right">Score</span>
+                        <span className="col-span-2 text-right">Time</span>
+                      </div>
+                      <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                        {selectedStats.leaderboard.map((p) => (
+                          <div
+                            key={p.userId}
+                            className="grid grid-cols-12 p-2 items-center hover:bg-slate-50/60"
+                          >
+                            <span className="col-span-2 text-center font-bold text-slate-700">
+                              #{p.rank}
+                            </span>
+                            <span className="col-span-5 font-medium text-slate-800 truncate">
+                              {p.name}
+                            </span>
+                            <span className="col-span-3 text-right font-semibold text-emerald-600">
+                              {p.score}
+                            </span>
+                            <span className="col-span-2 text-right text-slate-500">
+                              {Math.round(p.timeSeconds / 60)}m
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -1347,7 +1526,15 @@ export const AdminLiveTests: React.FC = () => {
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-slate-800">Statewide Ranking</span>
-                      <span className="text-emerald-600 font-bold">Enabled</span>
+                      <span
+                        className={
+                          selectedLiveTest.rankingEnabled
+                            ? 'text-emerald-600 font-bold'
+                            : 'text-slate-500 font-bold'
+                        }
+                      >
+                        {selectedLiveTest.rankingEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
                       Calculates percentile and ranks among all candidates automatically upon
@@ -1357,11 +1544,23 @@ export const AdminLiveTests: React.FC = () => {
                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-slate-800">Negative Marking</span>
-                      <span className="font-bold text-slate-800">0.25 Marks</span>
+                      <span className="font-bold text-slate-800">
+                        {selectedNegative > 0 ? `${selectedNegative} Marks` : 'None'}
+                      </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Standard 1/4th deduction per incorrect response.
+                      {selectedNegative > 0
+                        ? `${selectedNegative} marks deducted per incorrect response.`
+                        : 'No marks are deducted for incorrect responses.'}
                     </p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800">Access</span>
+                      <span className="font-bold text-slate-800">
+                        {selectedLiveTest.subscriptionRequired ? 'Pro Pass only' : 'Free for all'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1373,24 +1572,24 @@ export const AdminLiveTests: React.FC = () => {
                     <span className="font-semibold text-slate-800">
                       Top Participating Districts
                     </span>
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between text-slate-600">
-                        <span>North 24 Parganas</span>
-                        <span className="font-bold text-slate-900">28%</span>
+                    {selectedStats.topDistricts.length === 0 ? (
+                      <p className="pt-1 text-slate-500">
+                        {statsError
+                          ? `District data could not be loaded: ${statsError}`
+                          : 'No participant district data yet.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 pt-1">
+                        {selectedStats.topDistricts.map((d) => (
+                          <div key={d.name} className="flex justify-between text-slate-600">
+                            <span>
+                              {d.name} ({d.count})
+                            </span>
+                            <span className="font-bold text-slate-900">{d.percent}%</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Murshidabad</span>
-                        <span className="font-bold text-slate-900">22%</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Nadia</span>
-                        <span className="font-bold text-slate-900">18%</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Purba Bardhaman</span>
-                        <span className="font-bold text-slate-900">14%</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1445,26 +1644,39 @@ export const AdminLiveTests: React.FC = () => {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-center">
-                <span className="text-2xl font-bold text-blue-700">1,248</span>
-                <p className="text-xs text-blue-900 mt-0.5">Active Test Takers</p>
+                <span className="text-2xl font-bold text-blue-700">
+                  {selectedStats.participants.toLocaleString('en-IN')}
+                </span>
+                <p className="text-xs text-blue-900 mt-0.5">Students Started</p>
               </div>
               <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-center">
-                <span className="text-2xl font-bold text-emerald-700">849</span>
-                <p className="text-xs text-emerald-900 mt-0.5">Submitted Answers</p>
+                <span className="text-2xl font-bold text-emerald-700">
+                  {selectedStats.submitted.toLocaleString('en-IN')}
+                </span>
+                <p className="text-xs text-emerald-900 mt-0.5">Submitted</p>
               </div>
               <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 text-center">
-                <span className="text-2xl font-bold text-purple-700">399</span>
+                <span className="text-2xl font-bold text-purple-700">
+                  {Math.max(0, selectedStats.participants - selectedStats.submitted).toLocaleString(
+                    'en-IN'
+                  )}
+                </span>
                 <p className="text-xs text-purple-900 mt-0.5">Currently Writing</p>
               </div>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
               <div className="flex justify-between text-xs font-semibold text-slate-700">
-                <span>Real-Time Completion</span>
-                <span className="text-blue-600">68%</span>
+                <span>Submission Rate</span>
+                <span className="text-blue-600">
+                  {submissionRate === null ? '—' : `${submissionRate}%`}
+                </span>
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '68%' }} />
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: `${submissionRate ?? 0}%` }}
+                />
               </div>
             </div>
 
@@ -1825,8 +2037,8 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                   <span className="font-semibold text-blue-900 dark:text-blue-200">
                     Dedicated Live Mock Architecture:
                   </span>{' '}
-                  This creates a clean, isolated full mock paper for this live test. Questions are uploaded
-                  exclusively inside this test and stay hidden until published.
+                  This creates a clean, isolated full mock paper for this live test. Questions are
+                  uploaded exclusively inside this test and stay hidden until published.
                 </div>
               </div>
             )}
@@ -1841,7 +2053,11 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                   <input
                     type="text"
                     disabled
-                    value={initialData.examTitle || exams.find((ex) => ex.id === examId)?.title || 'Assigned Exam'}
+                    value={
+                      initialData.examTitle ||
+                      exams.find((ex) => ex.id === examId)?.title ||
+                      'Assigned Exam'
+                    }
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium"
                   />
                 ) : (
@@ -2138,7 +2354,11 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                         )}
                       >
                         <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
-                          <img src={pl.url} alt={pl.name} className="w-full h-full object-contain" />
+                          <img
+                            src={pl.url}
+                            alt={pl.name}
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <span className="truncate text-xs">{pl.name}</span>
                       </button>
@@ -2162,7 +2382,8 @@ const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = ({
                     Enable Statewide Real-Time Ranking & Percentile
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Automatically computes statewide rank, district rank, and percentile score for every student upon submission.
+                    Automatically computes statewide rank, district rank, and percentile score for
+                    every student upon submission.
                   </span>
                 </div>
               </label>

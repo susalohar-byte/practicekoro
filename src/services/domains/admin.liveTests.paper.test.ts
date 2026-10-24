@@ -118,6 +118,20 @@ describe('admin.liveTests — Live Test papers', () => {
     expect((await getAllAdminTests()).some((t) => t.id === live.testId)).toBe(true);
   });
 
+  it('keeps an unpublished Live Test a Draft after its planned start time passes', async () => {
+    const live = await createLiveTestWithPaper({
+      examId: 'wbp-constable',
+      title: 'Past draft',
+      startAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+      durationMinutes: 60,
+      totalQuestions: 2,
+      totalMarks: 2,
+      negativeMarking: 0,
+    });
+
+    expect((await getLiveTestById(live.id))?.status).toBe('draft');
+  });
+
   it('duplicates a live-only Live Test onto a new copy of its paper', async () => {
     const live = await createPaper();
     attachQuestions(live.testId, 2);
