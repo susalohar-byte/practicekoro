@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Question, Exam, Subject, Chapter } from '@/types';
+import { Question, Exam, Subject, Chapter, LiveTest } from '@/types';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { INITIAL_DEMO_QUESTIONS } from './demoQuestions';
 import {
@@ -90,8 +90,16 @@ export function useAdminQuestionBank() {
   const [topics, setTopics] = useState<Chapter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Top Upload Mode Filter: 'all' | 'exam' | 'subject'
-  const [activeUploadMode, setActiveUploadMode] = useState<'all' | 'exam' | 'subject'>('all');
+  // Top Upload Mode Filter: 'all' | 'exam' | 'subject' | 'live'
+  const [activeUploadMode, setActiveUploadMode] = useState<'all' | 'exam' | 'subject' | 'live'>(
+    'all'
+  );
+
+  // Live Test mode: questions uploaded into Live Test papers (kept apart from Exam/Subject)
+  const [liveTests, setLiveTests] = useState<LiveTest[]>([]);
+  const [liveQuestionIndex, setLiveQuestionIndex] = useState<Record<string, string>>({});
+  const [selectedLiveTestFilter, setSelectedLiveTestFilter] = useState('all');
+  const [isLiveUploadOpen, setIsLiveUploadOpen] = useState(false);
 
   // Filter Bar State
   const [searchQuery, setSearchQuery] = useState('');
@@ -219,12 +227,16 @@ export function useAdminQuestionBank() {
   const loadInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [allQuestions, allExams, allSubjects, allChapters] = await Promise.all([
-        api.getAllAdminQuestions(),
+      const [allQuestions, allExams, allSubjects, allChapters, allLiveTests] = await Promise.all([
+        // Live Test questions are loaded too, but only shown in the Live Test mode.
+        api.getAllAdminQuestions({ includeLiveOnly: true }),
         api.getAllAdminExams().catch(() => []),
         api.getAllAdminSubjects().catch(() => []),
         api.getAllAdminChapters().catch(() => []),
+        api.getLiveTests().catch(() => [] as LiveTest[]),
       ]);
+      setLiveTests(allLiveTests);
+      setLiveQuestionIndex(await api.getLiveQuestionIndex(allLiveTests).catch(() => ({})));
 
       if (allExams && allExams.length > 0) setExams(allExams);
       if (allSubjects && allSubjects.length > 0) setSubjects(allSubjects);
@@ -396,6 +408,15 @@ export function useAdminQuestionBank() {
   // Filtered Questions Dataset
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
+      // 0. Live Test questions appear only in the Live Test mode (and never in Exam/Subject)
+      if (activeUploadMode === 'live') {
+        if (!q.isLiveOnly) return false;
+        if (selectedLiveTestFilter !== 'all' && liveQuestionIndex[q.id] !== selectedLiveTestFilter)
+          return false;
+      } else if (q.isLiveOnly) {
+        return false;
+      }
+
       // 1. Top Selector Mode Filter (By Exam vs By Subject)
       if (activeUploadMode === 'exam' && q.uploadMode !== 'exam' && !q.sourceExam) return false;
       if (activeUploadMode === 'subject' && q.uploadMode === 'exam' && q.sourceExam) return false;
@@ -492,6 +513,8 @@ export function useAdminQuestionBank() {
   }, [
     questions,
     activeUploadMode,
+    selectedLiveTestFilter,
+    liveQuestionIndex,
     searchQuery,
     viewModeFilter,
     selectedExamFilter,
@@ -506,12 +529,14 @@ export function useAdminQuestionBank() {
   // Statistics calculation grounded to database numbers
   const stats = useMemo(() => {
     const total = questions.length;
-    const examQuestions = questions.filter(
+    const bankQuestions = questions.filter((q) => !q.isLiveOnly);
+    const examQuestions = bankQuestions.filter(
       (q) => q.uploadMode === 'exam' || Boolean(q.sourceExam)
     ).length;
-    const subjectQuestions = questions.filter(
+    const subjectQuestions = bankQuestions.filter(
       (q) => q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
     ).length;
+    const liveQuestions = questions.length - bankQuestions.length;
     const published = questions.filter((q) => questionBankStatus(q) === 'published').length;
     const draft = questions.filter((q) => questionBankStatus(q) === 'draft').length;
     const underReview = questions.filter((q) => {
@@ -522,6 +547,7 @@ export function useAdminQuestionBank() {
       total,
       examQuestions,
       subjectQuestions,
+      liveQuestions,
       published,
       draft,
       underReview,
@@ -1341,6 +1367,13 @@ export function useAdminQuestionBank() {
     setSelectedYearFilter,
     selectedSourceFilter,
     setSelectedSourceFilter,
+    loadInitialData,
+    liveTests,
+    liveQuestionIndex,
+    selectedLiveTestFilter,
+    setSelectedLiveTestFilter,
+    isLiveUploadOpen,
+    setIsLiveUploadOpen,
     selectedRowIds,
     setSelectedRowIds,
     activeQuestion,

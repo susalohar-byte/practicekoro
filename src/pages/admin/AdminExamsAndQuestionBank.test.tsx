@@ -62,6 +62,8 @@ vi.mock('@/services/api', () => ({
     getAllAdminQuestions: vi.fn(),
     getAllAdminSubjects: vi.fn(),
     getAllAdminChapters: vi.fn(),
+    getLiveTests: vi.fn(() => Promise.resolve([])),
+    getLiveQuestionIndex: vi.fn(() => Promise.resolve({})),
     getAllAdminTests: vi.fn(),
     getSubjects: vi.fn().mockResolvedValue([]),
     getExamMappingCounts: vi.fn().mockResolvedValue({}),
@@ -307,6 +309,31 @@ describe('AdminQuestionBank Selection UI Updates', () => {
       </MemoryRouter>
     );
 
+    await waitFor(() => {
+      expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps Live Test questions out of the bank and lists them in the Live Test mode', async () => {
+    (api.getAllAdminQuestions as ReturnType<typeof vi.fn>).mockResolvedValue([
+      ...mockQuestions,
+      { ...mockQuestions[0], id: 'q_live_1', isLiveOnly: true },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    // Default view: only the 3 bank questions
+    await waitFor(() => {
+      expect(screen.getByText('Select All (3 Questions)')).toBeInTheDocument();
+    });
+    expect(api.getAllAdminQuestions).toHaveBeenCalledWith({ includeLiveOnly: true });
+
+    // Live Test mode: only the live question
+    fireEvent.click(screen.getByText('Live Test'));
     await waitFor(() => {
       expect(screen.getByText('Select All (1 Question)')).toBeInTheDocument();
     });

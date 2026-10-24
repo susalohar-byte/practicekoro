@@ -1,4 +1,13 @@
-import { RefreshCw, Upload, Download, ChevronDown, Shield, BookOpen, Plus } from 'lucide-react';
+import {
+  RefreshCw,
+  Upload,
+  Download,
+  ChevronDown,
+  Shield,
+  BookOpen,
+  Plus,
+  Radio,
+} from 'lucide-react';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface QuestionBankHeaderProps {
@@ -18,6 +27,7 @@ export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
     setIsAddMenuOpen,
     isAddMenuOpen,
     setModalUploadMode,
+    setIsLiveUploadOpen,
     setIsAddModalOpen,
   } = qb;
   return (
@@ -140,6 +150,17 @@ export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
                 >
                   <BookOpen className="w-4 h-4 text-purple-500" />
                   <span>+ Add by Subject</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLiveUploadOpen(true);
+                    setIsAddMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-800 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
+                >
+                  <Radio className="w-4 h-4 text-rose-500" />
+                  <span>+ Add to Live Test</span>
                 </button>
               </div>
             )}

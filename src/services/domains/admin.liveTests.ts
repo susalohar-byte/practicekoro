@@ -7,6 +7,7 @@ import {
   localExams,
   localLiveTests,
   localLiveTestParticipations,
+  localTestQuestions,
   localTests,
 } from '@/services/domains/localStore';
 import {
@@ -1430,6 +1431,36 @@ export interface LiveTestStats {
   leaderboard: { rank: number; userId: string; name: string; score: number; timeSeconds: number }[];
 }
 
+/**
+ * Which Live Test each uploaded live question belongs to (question id -> live test id), so the
+ * Question Bank's Live Test mode can show and filter them by event.
+ */
+export async function getLiveQuestionIndex(liveTests: LiveTest[]): Promise<Record<string, string>> {
+  const liveByPaper = new Map<string, string>();
+  for (const lt of liveTests) if (lt.testId) liveByPaper.set(lt.testId, lt.id);
+  const index: Record<string, string> = {};
+  if (liveByPaper.size === 0) return index;
+
+  if (!isSupabaseConfigured) {
+    for (const tq of localTestQuestions) {
+      const liveId = liveByPaper.get(tq.testId);
+      if (liveId) index[tq.questionId] = liveId;
+    }
+    return index;
+  }
+
+  const { data, error } = await supabase
+    .from('test_questions')
+    .select('test_id, question_id')
+    .in('test_id', Array.from(liveByPaper.keys()));
+  if (error) throw new Error(error.message);
+  for (const row of (data || []) as { test_id: string; question_id: string }[]) {
+    const liveId = liveByPaper.get(String(row.test_id));
+    if (liveId) index[String(row.question_id)] = liveId;
+  }
+  return index;
+}
+
 export const EMPTY_LIVE_TEST_STATS: LiveTestStats = {
   participants: 0,
   submitted: 0,
@@ -1805,6 +1836,7 @@ export const adminLiveTestsApi = {
   recordLiveTestSubmission,
   getLiveTestLeaderboard,
   getLiveTestsStats,
+  getLiveQuestionIndex,
   subscribeToLiveTestUpdates,
   uploadLiveTestLogo,
   uploadLiveTestBackground,

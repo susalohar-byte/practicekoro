@@ -3,6 +3,7 @@ import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useAdminQuestionBank } from './questionBank/useAdminQuestionBank';
 import { QuestionImportModal } from './questionBank/QuestionImportModal';
+import { LiveTestUploadModal } from './questionBank/LiveTestUploadModal';
 import { AddQuestionModal } from './questionBank/AddQuestionModal';
 import { QuestionDetailsDrawer } from './questionBank/QuestionDetailsDrawer';
 import { QuestionTablePanel } from './questionBank/QuestionTablePanel';
@@ -51,6 +52,8 @@ export const AdminQuestionBank: React.FC = () => {
       <AddQuestionModal qb={qb} />
 
       <QuestionImportModal qb={qb} />
+
+      <LiveTestUploadModal qb={qb} />
     </div>,
     { label: 'Loading question bank…', variant: 'table' }
   );
