@@ -117,7 +117,8 @@ describe('Confirmed runtime settings', () => {
     await waitFor(() =>
       expect(screen.getByRole('img')).toHaveAttribute('src', 'https://assets.test/logo.png')
     );
-    expect(link.getAttribute('href')).toBe('https://assets.test/favicon.png');
+    // The favicon is swapped in a passive effect, which can commit after the logo renders.
+    await waitFor(() => expect(link.getAttribute('href')).toBe('https://assets.test/favicon.png'));
     await act(async () => {
       await context.checkMaintenanceMode();
     });
