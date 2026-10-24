@@ -102,7 +102,7 @@ export async function getAuthoritativeAnalytics(
   return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions, monthPayments);
 }
 
-/** Aggregates returned by admin_analytics_overview (see migration 20261016150000). */
+/** Aggregates returned by admin_analytics_overview (see migration 20261023073325). */
 export interface ServerAnalyticsAggregates {
   total_students: number;
   new_students: number;
