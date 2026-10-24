@@ -211,7 +211,10 @@ function sanitizeBanner(item: any, index: number): HeroBanner {
         : [],
     imageUrl: item.imageUrl || item.image_url || '/images/exam_hero_banner.png',
     mobileImageUrl: item.mobileImageUrl || item.mobile_image_url || undefined,
-    bannerType: (item.bannerType || item.banner_type || (item.showTextOverlay || item.show_text_overlay ? 'text_overlay' : 'full_image')) as 'full_image' | 'text_overlay',
+    bannerType: (item.bannerType ||
+      item.banner_type ||
+      (item.showTextOverlay || item.show_text_overlay ? 'text_overlay' : 'full_image')) as
+      'full_image' | 'text_overlay',
     showTextOverlay:
       item.showTextOverlay !== undefined
         ? Boolean(item.showTextOverlay)
@@ -320,7 +323,7 @@ async function syncBannersToRemote(banners: HeroBanner[]): Promise<void> {
           image_url: b.imageUrl,
           mobile_image_url: b.mobileImageUrl,
           banner_type: b.bannerType || (b.showTextOverlay ? 'text_overlay' : 'full_image'),
-          show_text_overlay: Boolean(b.showTextOverlay ?? (b.bannerType === 'text_overlay')),
+          show_text_overlay: Boolean(b.showTextOverlay ?? b.bannerType === 'text_overlay'),
           theme_gradient: b.themeGradient,
           target_audience: b.targetAudience,
           placement: b.placement,

@@ -412,7 +412,7 @@ function mapHeroBannerToAdminItem(banner: HeroBanner, index: number): AdminBanne
     subtitle: banner.subtitle || 'Promote mock tests and courses',
     description: banner.subtitle || banner.title,
     bannerType: bType,
-    showTextOverlay: Boolean(banner.showTextOverlay ?? (banner.bannerType === 'text_overlay')),
+    showTextOverlay: Boolean(banner.showTextOverlay ?? banner.bannerType === 'text_overlay'),
     linkUrl: banner.primaryCtaLink || '/test-series',
     openIn: 'Same Tab',
     devices: { desktop: true, mobile: true },

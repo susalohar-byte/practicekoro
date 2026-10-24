@@ -34,14 +34,14 @@ React + TypeScript admin console ── Supabase Auth + PostgreSQL + RLS
 
 ## Repository layout
 
-| Path                   | Purpose                                        |
-| ---------------------- | ---------------------------------------------- |
-| `src/`                 | Admin console, services and unit tests         |
-| `supabase/migrations/` | Ordered database migrations                    |
-| `supabase/functions/`  | Server-side Edge Functions                     |
-| `supabase/tests/`      | Database and RLS security assertions           |
-| `tests/e2e/`           | Playwright end-to-end tests                    |
-| `docs/`                | Deployment and operational documentation       |
+| Path                   | Purpose                                  |
+| ---------------------- | ---------------------------------------- |
+| `src/`                 | Admin console, services and unit tests   |
+| `supabase/migrations/` | Ordered database migrations              |
+| `supabase/functions/`  | Server-side Edge Functions               |
+| `supabase/tests/`      | Database and RLS security assertions     |
+| `tests/e2e/`           | Playwright end-to-end tests              |
+| `docs/`                | Deployment and operational documentation |
 
 ## Local setup
 
