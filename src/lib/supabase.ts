@@ -1,29 +1,28 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
-import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '@/utils/envGate';
+import { resolveSupabaseConfig } from '@/utils/envGate';
 
-// PracticeKoro Production Supabase credentials
-// Supabase anon key is the public client key intended for browsers.
-const supabaseUrl =
-  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || DEFAULT_SUPABASE_URL;
-const supabaseAnonKey =
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ||
-  DEFAULT_SUPABASE_ANON_KEY;
+export const isDemoModeEnabled = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
-if (
-  !supabaseUrl ||
-  !supabaseAnonKey ||
-  !supabaseUrl.startsWith('http') ||
-  supabaseUrl.includes('your-project-ref') ||
-  supabaseUrl.includes('placeholder')
-) {
+// The anon key is the public client key intended for browsers; access is
+// enforced by Row Level Security. Settings come only from VITE_* env vars.
+const supabaseConfig = resolveSupabaseConfig(
+  {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL as string | undefined,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined,
+  },
+  isDemoModeEnabled
+);
+
+if (!supabaseConfig) {
   throw new Error(
     'Supabase configuration missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file (see .env.example).'
   );
 }
 
-export const isDemoModeEnabled = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
+const supabaseUrl = supabaseConfig.url;
+const supabaseAnonKey = supabaseConfig.anonKey;
 
 export const isSupabaseConfigured = !isDemoModeEnabled;
 

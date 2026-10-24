@@ -68,7 +68,15 @@ function renderConfigError(): void {
 }
 
 async function bootstrap(): Promise<void> {
-  if (!isSupabaseEnvValid(import.meta.env as Record<string, string | undefined>)) {
+  if (
+    !isSupabaseEnvValid(
+      {
+        VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL as string | undefined,
+        VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined,
+      },
+      import.meta.env.VITE_ENABLE_DEMO_MODE === 'true'
+    )
+  ) {
     renderConfigError();
     return;
   }
