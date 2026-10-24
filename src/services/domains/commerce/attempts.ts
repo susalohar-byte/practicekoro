@@ -5,6 +5,15 @@ import { ADMIN_EMAILS, isAdminEmail } from '@/lib/authPolicy';
 import { loadAllPages } from '@/utils/loadAllPages';
 import type { RankingStudent, AdminRankingFilter } from '@/types';
 
+import type {
+  AdminTestAttempt,
+  AttemptListRow,
+  AttemptProfileRow,
+  RankingAttemptRow,
+  RankingProfileRow,
+  RankingTestRow,
+} from '@/services/domains/commerce/rows';
+
 /** Test attempts and student rankings. */
 
 const TOPIC_TEST_TYPES = ['topic', 'topic_test', 'chapter_mock', 'subject_mock'];
@@ -81,7 +90,7 @@ interface RankingAggregate {
 /** Browser aggregation used until admin_rankings_aggregate is deployed. */
 async function aggregateRankingsInBrowser(criteria: RankingCriteria): Promise<RankingAggregate[]> {
   // Read every row (PostgREST caps unpaged reads), and fail loudly on errors.
-  const [rawAttempts, profileRows, testRows, examRows, subjectRows] = await Promise.all([
+  const [rawAttempts, profileRows, testRows, examRows, subjectRows] = (await Promise.all([
     readCompleteQuery(() =>
       supabase
         .from('test_attempts')
@@ -121,38 +130,45 @@ async function aggregateRankingsInBrowser(criteria: RankingCriteria): Promise<Ra
         .select('id, name', { count: 'exact' })
         .order('id', { ascending: true })
     ),
-  ]);
+  ])) as [
+    RankingAttemptRow[],
+    RankingProfileRow[],
+    RankingTestRow[],
+    { id: string; title: string | null }[],
+    { id: string; name: string | null }[],
+  ];
 
-  const profilesMap = new Map<string, any>();
-  profileRows.forEach((p: any) => {
+  const profilesMap = new Map<string, RankingProfileRow>();
+  profileRows.forEach((p) => {
     if (p.id) profilesMap.set(p.id, p);
   });
-  const testsMap = new Map<string, any>();
-  testRows.forEach((t: any) => {
+  const testsMap = new Map<string, RankingTestRow>();
+  testRows.forEach((t) => {
     if (t.id) testsMap.set(t.id, t);
   });
   const examsMap = new Map<string, string>();
-  examRows.forEach((e: any) => {
+  examRows.forEach((e) => {
     if (e.id) examsMap.set(e.id, e.title || '');
   });
   const subjectsMap = new Map<string, string>();
-  subjectRows.forEach((s: any) => {
+  subjectRows.forEach((s) => {
     if (s.id) subjectsMap.set(s.id, s.name || '');
   });
-  const testType = (a: any) => (testsMap.get(a.test_id)?.test_type || '').toLowerCase();
+  const testType = (a: RankingAttemptRow) =>
+    (testsMap.get(a.test_id ?? '')?.test_type || '').toLowerCase();
   const examTerm = criteria.exam?.toLowerCase().trim();
   const subjectTerm = criteria.subject?.toLowerCase().trim();
 
-  const completedAttempts = rawAttempts.filter((a: any) => {
+  const completedAttempts = rawAttempts.filter((a) => {
     // Only students are ranked: staff (admin/instructor) and unknown accounts are excluded.
-    const p = profilesMap.get(a.user_id);
+    const p = profilesMap.get(a.user_id ?? '');
     if (!p) return false;
     if (p.role && p.role !== 'student') return false;
     if (p.email && isAdminEmail(p.email)) return false;
     if (criteria.since && new Date(a.created_at || a.end_time || 0) < criteria.since) return false;
     if (criteria.testTypes && !criteria.testTypes.includes(testType(a))) return false;
     if (criteria.scopeTypes && !criteria.scopeTypes.includes(testType(a))) return false;
-    const test = testsMap.get(a.test_id);
+    const test = testsMap.get(a.test_id ?? '');
     if (criteria.exam) {
       const examTitle = (test?.exam_id ? examsMap.get(test.exam_id) || '' : '')
         .toLowerCase()
@@ -178,7 +194,8 @@ async function aggregateRankingsInBrowser(criteria: RankingCriteria): Promise<Ra
     if (!att.user_id) continue;
     let row = byUser.get(att.user_id);
     if (!row) {
-      const profile = profilesMap.get(att.user_id);
+      // completedAttempts only keeps attempts whose profile exists.
+      const profile = profilesMap.get(att.user_id)!;
       row = {
         user_id: att.user_id,
         full_name: profile.full_name ?? null,
@@ -199,7 +216,7 @@ async function aggregateRankingsInBrowser(criteria: RankingCriteria): Promise<Ra
       };
       byUser.set(att.user_id, row);
     }
-    const test = testsMap.get(att.test_id);
+    const test = testsMap.get(att.test_id ?? '');
     const sc = Number(att.score || 0);
     const max = Number(att.total_marks || test?.total_marks || 0);
     row.tests_attempted++;
@@ -344,12 +361,15 @@ function buildRankingStudents(rows: RankingAggregate[], search?: string): Rankin
 }
 
 export const attemptsApi = {
-  async getAllAdminTestAttempts(limit?: number, offset?: number): Promise<any[]> {
+  async getAllAdminTestAttempts(limit?: number, offset?: number): Promise<AdminTestAttempt[]> {
     if (!isSupabaseConfigured) {
       return [];
     }
 
-    const fetchPage = async (pageLimit: number, pageOffset: number) => {
+    const fetchPage = async (
+      pageLimit: number,
+      pageOffset: number
+    ): Promise<AdminTestAttempt[]> => {
       const { data, error } = await supabase
         .from('test_attempts')
         .select(
@@ -382,21 +402,26 @@ export const attemptsApi = {
       }
 
       // test_attempts.user_id references auth.users, so profiles are looked up separately.
-      const userIds = [...new Set(data.map((d: any) => d.user_id).filter(Boolean))];
-      const profilesById = new Map<string, any>();
+      // Many-to-one joins (tests, exams) come back as single objects.
+      const rows = data as unknown as AttemptListRow[];
+      const userIds = [
+        ...new Set(rows.map((d) => d.user_id).filter((id): id is string => Boolean(id))),
+      ];
+      const profilesById = new Map<string, AttemptProfileRow>();
       if (userIds.length) {
         const { data: profileRows, error: profileError } = await supabase
           .from('profiles')
           .select('id, full_name, email, avatar_url')
           .in('id', userIds);
         if (profileError) throw profileError;
-        (profileRows || []).forEach((p: any) => profilesById.set(p.id, p));
+        ((profileRows || []) as AttemptProfileRow[]).forEach((p) => profilesById.set(p.id, p));
       }
 
-      return data.map((d: any) => {
-        const profile = profilesById.get(d.user_id) || {};
-        const test = d.tests || {};
-        const exam = test.exams || {};
+      return rows.map((d) => {
+        const profile: Partial<AttemptProfileRow> =
+          (d.user_id && profilesById.get(d.user_id)) || {};
+        const test: Partial<NonNullable<AttemptListRow['tests']>> = d.tests || {};
+        const exam = test.exams || { title: null };
 
         const timeSec = d.time_spent_seconds || 0;
         const timeMin = Math.round(timeSec / 60);
@@ -413,7 +438,7 @@ export const attemptsApi = {
           hour12: true,
         });
 
-        let displayType = 'Full Mock';
+        let displayType: AdminTestAttempt['type'] = 'Full Mock';
         if (
           ['topic_test', 'topic', 'chapter_mock', 'subject_mock'].includes(test.test_type || '')
         ) {
@@ -439,7 +464,7 @@ export const attemptsApi = {
           timeTaken: timeSec ? `${Math.max(1, timeMin)} min` : '—',
           timeTakenSeconds: timeSec,
           status: d.status === 'completed' ? 'Completed' : 'Not Completed',
-          createdAt: d.created_at,
+          createdAt: d.created_at ?? undefined,
           attemptedAtDate: dateStr,
           attemptedAtTime: timeStr,
           startedAt: d.start_time ? new Date(d.start_time).toLocaleString('en-GB') : dateStr,

@@ -28,6 +28,13 @@ import {
   localStudents,
 } from '@/services/domains/localStore';
 
+import type {
+  AnalyticsAnswerRow,
+  AnalyticsAttemptRow,
+  AnalyticsQuestionInfo,
+  AnalyticsStudent,
+} from '@/services/domains/commerce/rows';
+
 /** Dashboard statistics, revenue ranges and platform analytics. */
 
 export const analyticsApi = {
@@ -82,9 +89,16 @@ export const analyticsApi = {
             .eq('role', 'student'),
         ]);
 
-        const tests = Array.isArray(testsRes.data) ? testsRes.data : [];
-        const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
-        const attempts = Array.isArray(attemptsRes.data) ? attemptsRes.data : [];
+        const tests = (Array.isArray(testsRes.data) ? testsRes.data : []) as {
+          status: string | null;
+        }[];
+        const questions = (Array.isArray(questionsRes.data) ? questionsRes.data : []) as {
+          is_active: boolean | null;
+          status: string | null;
+        }[];
+        const attempts = (Array.isArray(attemptsRes.data) ? attemptsRes.data : []) as {
+          status: string | null;
+        }[];
 
         return {
           totalExams: examsRes.count ?? 0,
@@ -93,14 +107,13 @@ export const analyticsApi = {
           totalChapters: chaptersRes.count ?? 0,
           totalTestSeries: testSeriesRes.count ?? 0,
           totalTests: tests.length,
-          publishedTests: tests.filter((t: any) => t.status === 'published').length,
-          draftTests: tests.filter((t: any) => t.status === 'draft').length,
-          archivedTests: tests.filter((t: any) => t.status === 'archived').length,
+          publishedTests: tests.filter((t) => t.status === 'published').length,
+          draftTests: tests.filter((t) => t.status === 'draft').length,
+          archivedTests: tests.filter((t) => t.status === 'archived').length,
           totalQuestions: questions.length,
-          activeQuestions: questions.filter((q: any) => q.is_active && q.status !== 'archived')
-            .length,
+          activeQuestions: questions.filter((q) => q.is_active && q.status !== 'archived').length,
           totalAttempts: attempts.length,
-          completedAttempts: attempts.filter((a: any) => a.status === 'completed').length,
+          completedAttempts: attempts.filter((a) => a.status === 'completed').length,
           totalStudents: profilesRes.count ?? 0,
         };
       } catch (err) {
@@ -226,30 +239,27 @@ export const analyticsApi = {
 
     // Local Fallback ONLY if Supabase not configured
     if (!isSupabaseConfigured && payments.length === 0) {
-      payments = (localPayments as any[])
+      payments = localPayments
         .filter((p) => {
-          const dateVal = p.created_at || p.createdAt;
-          if (!dateVal) return false;
-          const t = new Date(dateVal).getTime();
+          if (!p.createdAt) return false;
+          const t = new Date(p.createdAt).getTime();
           return t >= startTime && t <= endTime && p.status === 'completed';
         })
         .map((p) => ({
           amount: p.amount,
-          created_at: p.created_at || p.createdAt,
+          created_at: p.createdAt,
           status: p.status,
         }));
 
-      const filteredStudents = localStudents.filter((s: any) => {
-        const dateVal = s.created_at || s.createdAt;
-        if (!dateVal) return false;
-        const t = new Date(dateVal).getTime();
+      const filteredStudents = localStudents.filter((s) => {
+        if (!s.createdAt) return false;
+        const t = new Date(s.createdAt).getTime();
         return t >= startTime && t <= endTime;
       });
 
       studentSignupsCount = filteredStudents.length;
-      filteredStudents.forEach((s: any) => {
-        const dateVal = s.created_at || s.createdAt;
-        const d = formatLocalDate(new Date(dateVal));
+      filteredStudents.forEach((s) => {
+        const d = formatLocalDate(new Date(s.createdAt));
         studentSignupsByDate[d] = (studentSignupsByDate[d] || 0) + 1;
       });
     }
@@ -350,9 +360,9 @@ export const analyticsApi = {
     let paidStudents = 0;
     let activeSubscriptions = 0;
 
-    let studentProfiles: any[] = [];
-    const attempts: any[] = [];
-    const answersData: any[] = [];
+    let studentProfiles: AnalyticsStudent[] = [];
+    const attempts: AnalyticsAttemptRow[] = [];
+    const answersData: AnalyticsAnswerRow[] = [];
     const activeSubUserIds = new Set<string>();
 
     // Fallback ONLY if local mode (Supabase not configured)
@@ -534,7 +544,10 @@ export const analyticsApi = {
     const subjectMap = new Map<string, { subjectName: string; total: number; correct: number }>();
 
     if (answersData.length > 0) {
-      const qMap = new Map<string, { qInfo: any; wrong: number; correct: number; total: number }>();
+      const qMap = new Map<
+        string,
+        { qInfo: AnalyticsQuestionInfo; wrong: number; correct: number; total: number }
+      >();
 
       answersData.forEach((row) => {
         const qId = row.question_id;
@@ -585,7 +598,7 @@ export const analyticsApi = {
         mostWrongQuestions.push({
           questionId: qId,
           questionText: data.qInfo.question_text || 'Mock Practice Question',
-          questionBengaliText: data.qInfo.question_bengali_text,
+          questionBengaliText: data.qInfo.question_bengali_text ?? undefined,
           subjectName: data.qInfo.subjects?.name || 'General Subject',
           chapterName: data.qInfo.chapters?.name || 'Core Topic',
           difficulty: data.qInfo.difficulty || 'medium',

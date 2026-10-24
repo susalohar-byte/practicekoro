@@ -11,6 +11,14 @@ import type {
   TestAttempt,
 } from '@/types';
 
+import type {
+  StudentBatchRow,
+  StudentNote,
+  StudentNoteRow,
+  StudentProfileRow,
+  StudentSubscriptionRow,
+} from '@/services/domains/commerce/rows';
+
 /** Student directory, details, internal notes, profile edits and batches. */
 
 export const studentsApi = {
@@ -90,7 +98,7 @@ export const studentsApi = {
         if (!profileError && Array.isArray(profileData) && profileData.length === 0) return [];
         if (!profileError && Array.isArray(profileData) && profileData.length > 0) {
           // Filter out admins
-          const studentProfiles = profileData.filter((d: any) => {
+          const studentProfiles = (profileData as StudentProfileRow[]).filter((d) => {
             const email = (d.email || '').toLowerCase().trim();
             if (isAdminEmail(email)) {
               return false;
@@ -100,8 +108,8 @@ export const studentsApi = {
           });
 
           // Fetch subscriptions separately to avoid ambiguous FK join issues
-          const userIds = studentProfiles.map((p: any) => p.id);
-          const subsMap: Record<string, any> = {};
+          const userIds = studentProfiles.map((p) => p.id);
+          const subsMap: Record<string, StudentSubscriptionRow> = {};
           const attemptsMap: Record<
             string,
             { count: number; lastActive?: string; avgScore?: number | null }
@@ -123,7 +131,7 @@ export const studentsApi = {
               ]);
 
               if (Array.isArray(subsRes.data)) {
-                for (const s of subsRes.data) {
+                for (const s of subsRes.data as unknown as StudentSubscriptionRow[]) {
                   // Keep only the most recent subscription per user
                   if (!subsMap[s.user_id]) {
                     subsMap[s.user_id] = s;
@@ -133,7 +141,13 @@ export const studentsApi = {
 
               if (Array.isArray(attRes.data)) {
                 const userScores: Record<string, number[]> = {};
-                for (const a of attRes.data) {
+                for (const a of attRes.data as {
+                  user_id: string;
+                  created_at: string;
+                  score: number | null;
+                  total_marks: number | null;
+                  status: string | null;
+                }[]) {
                   if (!attemptsMap[a.user_id]) {
                     attemptsMap[a.user_id] = { count: 1, lastActive: a.created_at };
                   } else {
@@ -163,11 +177,11 @@ export const studentsApi = {
           }
 
           return studentProfiles
-            .map((d: any) => {
+            .map((d): AdminStudentRow => {
               const sub = subsMap[d.id];
               const isPro = sub?.status === 'active';
               const planTitle =
-                (sub?.subscription_plans as any)?.title || (isPro ? 'Pro Pass' : 'Free Aspirant');
+                sub?.subscription_plans?.title || (isPro ? 'Pro Pass' : 'Free Aspirant');
 
               return {
                 id: d.id,
@@ -322,9 +336,7 @@ export const studentsApi = {
     };
   },
 
-  async getStudentNotes(
-    studentId: string
-  ): Promise<{ id: string; author: string; text: string; createdAt: string }[]> {
+  async getStudentNotes(studentId: string): Promise<StudentNote[]> {
     if (isSupabaseConfigured) {
       {
         const { data, error } = await supabase
@@ -335,7 +347,7 @@ export const studentsApi = {
 
         if (error) throw error;
         if (Array.isArray(data)) {
-          return data.map((d: any) => ({
+          return (data as StudentNoteRow[]).map((d) => ({
             id: d.id,
             author: d.author_name || 'Staff Admin',
             text: d.note,
@@ -351,7 +363,7 @@ export const studentsApi = {
     studentId: string,
     note: string,
     authorName = 'Admin Staff'
-  ): Promise<{ success: boolean; note?: any; error?: string }> {
+  ): Promise<{ success: boolean; note?: StudentNote; error?: string }> {
     if (!note.trim()) {
       return { success: false, error: 'Note text cannot be empty.' };
     }
@@ -427,7 +439,7 @@ export const studentsApi = {
       .eq('is_active', true)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
-    return (data || []).map((batch: any) => ({
+    return ((data || []) as StudentBatchRow[]).map((batch) => ({
       id: batch.id,
       name: batch.name,
       description: batch.description || undefined,

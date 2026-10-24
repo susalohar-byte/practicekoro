@@ -775,7 +775,13 @@ export function useAdminStudents() {
         return;
       }
 
-      setStudentNotes((prev) => [res.note, ...prev]);
+      const savedNote = res.note as unknown as {
+        id: string;
+        author: string;
+        text: string;
+        createdAt: string;
+      };
+      setStudentNotes((prev) => [savedNote, ...prev]);
       setNewNoteText('');
       showToast('success', `Note saved for ${selectedStudent.fullName}!`);
     } catch (err) {
