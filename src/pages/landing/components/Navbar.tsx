@@ -1,22 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { studentPanelUrl } from '@/lib/studentPanel';
 
-export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 h-10' }) => (
-  <div
-    className={`${className} rounded-xl bg-gradient-to-br from-[#2F7BFF] to-[#1450F0] shadow-md shadow-blue-600/30 flex items-center justify-center p-2 text-white flex-shrink-0`}
-  >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-      <rect x="5" y="4" width="14" height="17" rx="2.5" />
-      <rect x="9" y="2.5" width="6" height="3.5" rx="1" fill="currentColor" />
-      <path d="M8.5 11h1M12 11h3.5M8.5 15h1M12 15h3.5" />
+const CTA_CLASS =
+  'inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg shadow-blue-600/30 ring-1 ring-white/20 transition-all';
+
+/** The Practice Koro logo (checklist sheets on blue), drawn as a full circle. */
+export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 h-10' }) => {
+  const id = useId().replace(/:/g, '');
+  return (
+    <svg viewBox="0 0 100 100" className={`${className} flex-shrink-0 rounded-full shadow-md shadow-blue-600/30`} role="img" aria-label="Practice Koro">
+      <defs>
+        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#00A8FF" />
+          <stop offset="0.45" stopColor="#0A6CFF" />
+          <stop offset="1" stopColor="#0050FF" />
+        </linearGradient>
+        <linearGradient id={`${id}-back`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#9DBEFF" />
+        </linearGradient>
+        <filter id={`${id}-shadow`} x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="#0033AA" floodOpacity="0.35" />
+        </filter>
+      </defs>
+      <circle cx="50" cy="50" r="50" fill={`url(#${id}-bg)`} />
+      {/* Sheet behind, tilted */}
+      <rect x="22" y="27" width="40" height="50" rx="4.5" fill={`url(#${id}-back)`} transform="rotate(-11 42 52)" filter={`url(#${id}-shadow)`} />
+      {/* Front sheet with a folded corner */}
+      <path d="M38 30.5 H64.5 L76 42 V73.5 Q76 79 70.5 79 H38 Q32.5 79 32.5 73.5 V36 Q32.5 30.5 38 30.5 Z" fill="#FFFFFF" filter={`url(#${id}-shadow)`} />
+      <path d="M64.5 30.5 V38.5 Q64.5 42 68 42 H76 Z" fill="#B9D0FF" />
+      <circle cx="42.5" cy="45" r="4.4" fill="none" stroke="#26324A" strokeWidth="2" />
+      <circle cx="42.5" cy="56.5" r="5" fill="#0B5BFF" />
+      <path d="M40.2 56.6 L42 58.4 L45 54.8" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="42.5" cy="68" r="4.4" fill="none" stroke="#26324A" strokeWidth="2" />
+      <path d="M52 45 H67.5" stroke="#8798B3" strokeWidth="3.6" strokeLinecap="round" />
+      <path d="M52 56.5 H67.5" stroke="#0B5BFF" strokeWidth="3.6" strokeLinecap="round" />
+      <path d="M52 68 H67.5" stroke="#8798B3" strokeWidth="3.6" strokeLinecap="round" />
     </svg>
-  </div>
-);
+  );
+};
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isAdmin, loading } = useAuth();
+  const signedIn = !loading && !!user;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -79,13 +110,18 @@ export const Navbar: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg shadow-blue-600/30 ring-1 ring-white/20 transition-all"
-          >
-            <span>Get Started</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {signedIn && !isAdmin ? (
+            // The student panel is a separate app, so this is a full page load
+            <a href={studentPanelUrl('home')} className={CTA_CLASS}>
+              <span>Dashboard</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          ) : (
+            <Link to={signedIn ? '/admin' : '/login'} className={CTA_CLASS}>
+              <span>{signedIn ? 'Dashboard' : 'Get Started'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

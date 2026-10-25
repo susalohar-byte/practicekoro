@@ -8,33 +8,33 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
   return (
-    <section id="hero" className="relative overflow-hidden bg-gradient-to-b from-white via-[#F7F8FE] to-[#EEF1FC]">
-      {/* Study-room scene, fading into the page behind the headline */}
+    <section id="hero" className="relative overflow-x-clip bg-gradient-to-b from-[#0A0F24] via-[#080C1C] to-[#05070F]">
+      {/* Study-room scene, fading into the dark backdrop behind the headline */}
       <div
         className="absolute inset-x-0 top-0 h-[400px] sm:h-[max(39vw,480px)] max-h-[720px] bg-[url('/images/landing/hero_scene.jpg')] bg-cover bg-[center_top]"
         style={{
-          maskImage: 'linear-gradient(to bottom, #000 74%, rgba(0,0,0,0.45) 90%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, #000 74%, rgba(0,0,0,0.45) 90%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, #000 64%, rgba(0,0,0,0.4) 84%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, #000 64%, rgba(0,0,0,0.4) 84%, transparent 100%)',
         }}
         aria-hidden
       />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[350px] sm:pt-[min(calc(39vw-36px),660px)] pb-16 sm:pb-24 text-center">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[300px] sm:pt-[min(calc(39vw-110px),590px)] pb-16 sm:pb-24 text-center">
         <img
-          src="/images/landing/hero_clipboard.png"
+          src="/images/landing/icons/clipboard.png"
           alt=""
           aria-hidden
-          className="hidden sm:block absolute left-6 lg:left-4 top-[min(calc(39vw+40px),760px)] w-20 lg:w-24 animate-float"
+          className="hidden sm:block absolute left-6 lg:left-4 top-[min(calc(39vw-30px),690px)] w-20 lg:w-24 animate-float"
         />
         <img
-          src="/images/landing/hero_star.png"
+          src="/images/landing/icons/glowing_star.png"
           alt=""
           aria-hidden
-          className="hidden sm:block absolute right-10 lg:right-16 top-[min(calc(39vw+50px),770px)] w-14 lg:w-[70px] animate-float"
+          className="hidden sm:block absolute right-10 lg:right-16 top-[min(calc(39vw-20px),700px)] w-14 lg:w-[70px] animate-float"
         />
 
-        <h1 className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-[#0B1650] [text-shadow:0_0_24px_rgba(255,255,255,0.9),0_0_8px_rgba(255,255,255,0.9)]">
-          স্বপ্নের <span className="text-[#1A5CFF]">সরকারি চাকরির</span>
+        <h1 className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
+          স্বপ্নের <span className="text-[#FFD43B]">সরকারি চাকরির</span>
           <br />
           প্রস্তুতি হোক{' '}
           <span className="relative inline-block">
@@ -51,11 +51,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
           </span>
         </h1>
 
-        <p className="mt-5 sm:mt-6 max-w-2xl mx-auto text-[15px] sm:text-xl leading-relaxed text-[#1F2A44] font-medium">
-          West Bengal-এর সরকারি পরীক্ষার জন্য <strong className="font-semibold text-[#0B1650]">Mock Test, Topic Test,</strong>
+        <p className="mt-5 sm:mt-6 max-w-2xl mx-auto text-[15px] sm:text-xl leading-relaxed text-white/80 font-medium [text-shadow:0_1px_12px_rgba(0,0,0,0.8)]">
+          West Bengal-এর সরকারি পরীক্ষার জন্য <strong className="font-semibold text-white">Mock Test, Topic Test,</strong>
           <br className="hidden sm:block" />{' '}
-          <strong className="font-semibold text-[#0B1650]">PYQ</strong> ও{' '}
-          <strong className="font-semibold text-[#0B1650]">Detailed Solutions</strong> — সব এক জায়গায়।
+          <strong className="font-semibold text-white">PYQ</strong> ও{' '}
+          <strong className="font-semibold text-white">Detailed Solutions</strong> — সব এক জায়গায়।
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-5">
@@ -69,7 +69,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
           <button
             type="button"
             onClick={onWatchVideo}
-            className="inline-flex items-center gap-3 px-7 sm:px-9 py-3.5 sm:py-4 bg-white hover:bg-slate-50 active:scale-95 text-[#0B1650] text-sm sm:text-base font-semibold rounded-2xl shadow-lg shadow-slate-900/10 border border-slate-100 transition-all cursor-pointer"
+            className="inline-flex items-center gap-3 px-7 sm:px-9 py-3.5 sm:py-4 bg-white hover:bg-slate-50 active:scale-95 text-[#0B1650] text-sm sm:text-base font-semibold rounded-2xl shadow-lg shadow-black/30 border border-white/20 transition-all cursor-pointer"
           >
             <Play className="w-4 h-4 fill-current" />
             Watch Video
@@ -77,16 +77,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
         </div>
 
         <div className="mt-10 flex items-center justify-center gap-2" aria-hidden>
-          <span className="w-2 h-2 rounded-full bg-[#C9D2EC]" />
-          <span className="w-2 h-2 rounded-full bg-[#1A5CFF]" />
-          <span className="w-2 h-2 rounded-full bg-[#C9D2EC]" />
-          <span className="w-2 h-2 rounded-full bg-[#C9D2EC]" />
+          <span className="w-2 h-2 rounded-full bg-white/30" />
+          <span className="w-2 h-2 rounded-full bg-[#5B95FF]" />
+          <span className="w-2 h-2 rounded-full bg-white/30" />
+          <span className="w-2 h-2 rounded-full bg-white/30" />
         </div>
       </div>
 
       {/* Soft wave into the sections below */}
       <svg
-        className="absolute bottom-0 left-0 w-full h-10 sm:h-16 text-[#F7F8FD]"
+        className="absolute -bottom-0.5 left-0 w-full h-10 sm:h-16 text-[#F7F8FD]"
         viewBox="0 0 1440 80"
         preserveAspectRatio="none"
         fill="currentColor"

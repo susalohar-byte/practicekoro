@@ -12,7 +12,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'wbp-constable',
     name: 'WBP Constable',
     bengaliName: 'ওয়েস্ট বেঙ্গল পুলিশ কনস্টেবল ও লেডি কনস্টেবল',
-    logo: '/images/landing/exam_wbp.png',
+    logo: '/images/popular_exams/logo_wbp.png',
     badge: 'Police Recruitment',
     description:
       'পশ্চিমবঙ্গ পুলিশ রিক্রুটমেন্ট বোর্ডের (PRB) প্রিলিমিনারি ও মেইনস পরীক্ষার জন্য অধ্যায়ভিত্তিক প্রশ্ন ও পূর্ণাঙ্গ মক টেস্ট।',
@@ -34,7 +34,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'wbssc-group-cd',
     name: 'WBSSC Group C & D',
     bengaliName: 'ওয়েস্ট বেঙ্গল স্কুল সার্ভিস কমিশন গ্রুপ C & D',
-    logo: '/images/landing/exam_wbssc.png',
+    logo: '/images/landing/icons/books.png',
     badge: 'School Service',
     description:
       'স্কুল সার্ভিস কমিশনের গ্রুপ সি (করণিক) ও গ্রুপ ডি পদের জন্য নতুন সিলেবাস ভিত্তিক স্পেশাল প্র্যাকটিস সেট ও মক টেস্ট।',
@@ -56,7 +56,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'clerkship',
     name: 'Clerkship',
     bengaliName: 'WBPSC ক্লার্কশিপ রিক্রুটমেন্ট পরীক্ষা',
-    logo: '/images/landing/exam_clerkship.png',
+    logo: '/images/landing/icons/emblem_red.png',
     badge: 'PSC Bengal',
     description:
       'ওয়েস্ট বেঙ্গল পাবলিক সার্ভিস কমিশনের ক্লার্কশিপ পার্ট-১ ও পার্ট-২ পরীক্ষার জন্য সেরা প্রশ্নসংগ্রহ ও পূর্ণাঙ্গ টেস্ট সিরিজ।',
@@ -78,7 +78,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'railway',
     name: 'Railway Exams',
     bengaliName: 'RRB NTPC & Group D (বাংলা ও ইংরেজি)',
-    logo: '/images/landing/exam_railway.png',
+    logo: '/images/landing/icons/train.png',
     badge: 'RRB Eastern',
     description:
       'রেলওয়ে রিক্রুটমেন্ট বোর্ডের NTPC ও গ্রুপ ডি পরীক্ষার জন্য বাংলা ভাষায় প্রশ্নব্যাংক ও প্রিভিয়াস ইয়ার কোয়েশ্চেন।',
@@ -100,7 +100,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'ssc',
     name: 'SSC Exams',
     bengaliName: 'SSC GD Constable, MTS & CHSL',
-    logo: '/images/landing/exam_ssc.png',
+    logo: '/images/popular_exams/logo_ssc.png',
     badge: 'Staff Selection',
     description:
       'স্টাফ সিলেকশন কমিশনের জিডি কনস্টেবল ও এমটিএস বাংলা ভাষায় অনুষ্ঠিত পরীক্ষার জন্য নির্ভরযোগ্য মক টেস্ট সিরিজ।',
@@ -131,7 +131,7 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
     <section id="exams" className="scroll-mt-20 pt-6 sm:pt-8 pb-8 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/ic_trend.png"
+          icon="/images/landing/icons/chart_increasing.png"
           title="Popular Exams"
           subtitle="West Bengal-এর গুরুত্বপূর্ণ সরকারি পরীক্ষার জন্য প্রস্তুতি নিন।"
         />

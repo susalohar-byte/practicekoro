@@ -52,7 +52,7 @@ export const FaqSection: React.FC = () => {
     <section id="faq" className="scroll-mt-20 py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/step_review.png"
+          icon="/images/landing/icons/speech_balloon.png"
           title="Frequently Asked Questions"
           subtitle="Practice Koro প্ল্যাটফর্ম সম্পর্কে শিক্ষার্থীদের সাধারণ কিছু প্রশ্ন ও উত্তর।"
           className="mb-6 sm:mb-8"
