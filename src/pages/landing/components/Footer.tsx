@@ -1,13 +1,9 @@
 import React from 'react';
 import { ArrowUp, Heart } from 'lucide-react';
-import { GooglePlayBadge, AppStoreBadge } from './AppStoreBadges';
+import { GooglePlayBadge } from './AppStoreBadges';
 import { BrandMark } from './Navbar';
 import { motion } from 'motion/react';
 import { RevealGroup, fadeUp } from './Reveal';
-
-interface FooterProps {
-  onIosClick: () => void;
-}
 
 const SOCIALS = [
   {
@@ -52,7 +48,7 @@ const QUICK_LINKS = [
 
 const SUPPORT_LINKS = ['Help Center', 'Contact Us', 'Privacy Policy', 'Terms of Service', 'Refund Policy'];
 
-export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
+export const Footer: React.FC = () => {
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     if (href === '#hero') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -61,16 +57,16 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
 
   return (
     <footer className="relative bg-gradient-to-br from-[#08154A] via-[#0A1D63] to-[#0B2C8C] text-[#C9D3F0]">
-      {/* Wavy top edge: the page colour is drawn over the top of the navy. It starts a few
-          pixels above the footer so no navy hairline shows at fractional scroll offsets. */}
+      {/* Soft wave on top, the same curve as the bottom of the hero, mirrored. The page colour
+          is drawn over the navy and starts a few pixels above the footer so no hairline shows. */}
       <svg
-        className="absolute -top-1 left-0 w-full h-[52px] sm:h-[84px] text-[#F7F8FD] z-10"
-        viewBox="0 0 1440 100"
+        className="absolute -top-1 left-0 w-full h-10 sm:h-16 text-[#F7F8FD] z-10 -scale-y-100"
+        viewBox="0 0 1440 80"
         preserveAspectRatio="none"
         fill="currentColor"
         aria-hidden
       >
-        <path d="M0 0 H1440 V38 C 1260 92, 1080 92, 900 58 C 720 24, 540 22, 360 54 C 220 80, 100 78, 0 52 Z" />
+        <path d="M0 40 C 360 90, 720 0, 1080 30 S 1440 50, 1440 50 V80 H0 Z" />
       </svg>
 
       {/* Soft glowing curves in the background */}
@@ -79,7 +75,7 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
         <div className="absolute -right-32 -top-40 w-[480px] h-[480px] rounded-full bg-[#1C4BD6]/25 blur-3xl" />
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-6">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-6">
         <RevealGroup className="grid grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] gap-8 lg:gap-6 pb-8">
           <motion.div variants={fadeUp} className="col-span-2 lg:col-span-1 lg:pr-8 lg:border-r lg:border-white/10">
             <div className="flex items-center gap-3">
@@ -137,7 +133,6 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
             <h3 className="text-[15px] font-semibold text-white">Get the App</h3>
             <div className="mt-4 flex flex-row lg:flex-col flex-wrap items-start gap-3">
               <GooglePlayBadge size="md" className="min-w-[160px]" />
-              <AppStoreBadge size="md" onIosClick={onIosClick} className="min-w-[160px]" />
             </div>
             <button
               type="button"
