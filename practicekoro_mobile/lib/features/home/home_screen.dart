@@ -311,17 +311,17 @@ class HomeScreen extends ConsumerWidget {
                                 const Text(
                                   'Rank',
                                   style: TextStyle(
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
                                     color: Color(0xFFB45309),
-                                    letterSpacing: 0.4,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
                                 Text(
                                   rankText,
                                   style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
                                     color: Color(0xFF78350F),
                                     letterSpacing: -0.2,
                                   ),
@@ -836,10 +836,10 @@ class _HomeLiveTestCard extends StatelessWidget {
                             Text(
                               'LIVE',
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                letterSpacing: 0.4,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
@@ -867,7 +867,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                             Text(
                               'UPCOMING',
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFFD97706),
                                 letterSpacing: 0.3,
@@ -1383,7 +1383,7 @@ class _SubjectAvatarCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0B1F44),
                   letterSpacing: -0.2,
-                  height: 1.15,
+                  height: 1.25,
                 ),
                 maxLines: 2,
                 textAlign: TextAlign.center,

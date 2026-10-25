@@ -73,48 +73,137 @@ class UI {
     28,
   );
 
-  // Type (Hind Siliguri is applied app-wide through the text theme)
+  // ---------------------------------------------------------------------------
+  // Centralized Typography System
+  // Primary Font: Inter (GoogleFonts / bundled asset)
+  // Fallback Font: Noto Sans Bengali (GoogleFonts / bundled asset)
+  // Proportions: Balanced scale with generous line heights to prevent Bengali
+  // conjunct & vowel-mark clipping, and tuned letter-spacing for crisp Inter glyphs.
+  // ---------------------------------------------------------------------------
+
+  /// Major screen hero title (e.g. Onboarding, Achievement banners)
   static const TextStyle display = TextStyle(
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: FontWeight.w800,
     color: text,
-    height: 1.2,
+    height: 1.3,
+    letterSpacing: -0.3,
   );
+
+  /// Top-level page titles & modal headers
   static const TextStyle title = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w700,
-    color: text,
-    height: 1.25,
-  );
-  static const TextStyle heading = TextStyle(
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: FontWeight.w700,
     color: text,
     height: 1.3,
+    letterSpacing: -0.2,
   );
-  static const TextStyle body = TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w400,
+
+  /// Section headings (e.g. "Exams for You", "Live Tests", "Recent Activity")
+  static const TextStyle heading = TextStyle(
+    fontSize: 16.5,
+    fontWeight: FontWeight.w700,
     color: text,
-    height: 1.45,
+    height: 1.35,
+    letterSpacing: -0.2,
   );
-  static const TextStyle bodyStrong = TextStyle(
+
+  /// Card titles, list headers, and sub-headings
+  static const TextStyle subheading = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     color: text,
     height: 1.35,
+    letterSpacing: -0.1,
   );
+
+  /// Primary body text for descriptions, explanations, solutions
+  static const TextStyle body = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: text,
+    height: 1.48,
+  );
+
+  /// Emphasized body text (semi-bold)
+  static const TextStyle bodyStrong = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: text,
+    height: 1.45,
+  );
+
+  /// Compact body text for secondary descriptions and list items
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: textSoft,
+    height: 1.42,
+  );
+
+  /// Question text across tests and practice (clean, authoritative, comfortable)
+  static const TextStyle question = TextStyle(
+    fontSize: 16.5,
+    fontWeight: FontWeight.w700,
+    color: text,
+    height: 1.5,
+  );
+
+  /// Answer option text in tests and practice
+  static const TextStyle option = TextStyle(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w500,
+    color: text,
+    height: 1.45,
+  );
+
+  /// Circular option letter indicator (A, B, C, D)
+  static const TextStyle optionLetter = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+  );
+
+  /// Numerical score / performance metrics
+  static const TextStyle score = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
+    color: text,
+    height: 1.25,
+    letterSpacing: -0.3,
+  );
+
+  /// Primary & secondary button text
+  static const TextStyle button = TextStyle(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+    letterSpacing: 0.1,
+  );
+
+  /// Secondary metadata, timestamps, item counts
   static const TextStyle caption = TextStyle(
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     color: muted,
     height: 1.35,
   );
+
+  /// Form labels, search field tags, category labels
   static const TextStyle label = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     color: muted,
+    letterSpacing: 0.15,
+    height: 1.3,
+  );
+
+  /// Status badge text (PRO, LIVE, FREE, COMPLETED)
+  static const TextStyle badge = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
+    height: 1.25,
   );
 
   static const List<BoxShadow> shadow = [
@@ -132,11 +221,22 @@ class UI {
     boxShadow: raised && color == Colors.white ? shadow : null,
   );
 
-  static ThemeData theme(TextTheme base) {
-    final textTheme = base.apply(bodyColor: text, displayColor: text);
+  static ThemeData theme(
+    TextTheme base, {
+    String? fontFamily,
+    List<String>? fontFamilyFallback,
+  }) {
+    final textTheme = base.apply(
+      bodyColor: text,
+      displayColor: text,
+      fontFamily: fontFamily,
+      fontFamilyFallback: fontFamilyFallback,
+    );
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: page,
+      fontFamily: fontFamily,
+      fontFamilyFallback: fontFamilyFallback,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primary,
         primary: primary,
@@ -146,17 +246,21 @@ class UI {
       textTheme: textTheme,
       dividerColor: line,
       dividerTheme: const DividerThemeData(color: line, thickness: 1, space: 1),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: page,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        iconTheme: IconThemeData(color: text),
+        iconTheme: const IconThemeData(color: text),
         titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: text,
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
+          letterSpacing: -0.2,
+          height: 1.3,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -171,6 +275,10 @@ class UI {
                 ? FontWeight.w700
                 : FontWeight.w500,
             color: states.contains(WidgetState.selected) ? primary : muted,
+            fontFamily: fontFamily,
+            fontFamilyFallback: fontFamilyFallback,
+            letterSpacing: 0.1,
+            height: 1.25,
           ),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
@@ -179,6 +287,24 @@ class UI {
             size: 24,
           ),
         ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: muted,
+        labelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
+          letterSpacing: 0.1,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
+        ),
+        indicatorColor: primary,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
@@ -643,11 +769,11 @@ class UIShortcut extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            UIIconBadge(icon, color: color, size: 42),
-            const SizedBox(height: 8),
+            UIIconBadge(icon, color: color, size: 40),
+            const SizedBox(height: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: UI.caption.copyWith(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: UI.textSoft,
@@ -784,10 +910,11 @@ class _Chip extends StatelessWidget {
             children: [
               Text(
                 text,
-                style: TextStyle(
+                style: UI.label.copyWith(
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: selected ? Colors.white : UI.textSoft,
+                  height: 1.25,
                 ),
               ),
               if (count != null) ...[
@@ -805,9 +932,7 @@ class _Chip extends StatelessWidget {
                   ),
                   child: Text(
                     '$count',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
+                    style: UI.badge.copyWith(
                       color: selected ? Colors.white : (countColor ?? UI.muted),
                     ),
                   ),
@@ -887,7 +1012,7 @@ class UIButton extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(UI.radius),
     );
-    const textStyle = TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700);
+    const textStyle = UI.button;
     final onTap = loading ? null : onPressed;
     final button = secondary
         ? OutlinedButton(
@@ -945,11 +1070,7 @@ class UITag extends StatelessWidget {
           ],
           Text(
             text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: UI.badge.copyWith(color: color),
           ),
         ],
       ),
@@ -980,9 +1101,8 @@ class UIStats extends StatelessWidget {
                 children: [
                   Text(
                     stats[i].value,
-                    style: TextStyle(
+                    style: UI.score.copyWith(
                       fontSize: 20,
-                      fontWeight: FontWeight.w800,
                       color: stats[i].color,
                     ),
                   ),
@@ -1065,9 +1185,8 @@ class UIInfoTile extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: UI.score.copyWith(
             fontSize: 18,
-            fontWeight: FontWeight.w800,
             color: UI.text,
           ),
         ),
@@ -1165,9 +1284,7 @@ class UIOptionTile extends StatelessWidget {
                   ),
                   child: Text(
                     letter,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                    style: UI.optionLetter.copyWith(
                       color: active ? Colors.white : UI.textSoft,
                     ),
                   ),
@@ -1179,7 +1296,7 @@ class UIOptionTile extends StatelessWidget {
                     children: [
                       Text(
                         text,
-                        style: UI.body.copyWith(fontWeight: FontWeight.w500),
+                        style: UI.option,
                       ),
                       if (secondaryText != null &&
                           secondaryText!.isNotEmpty &&
@@ -1192,11 +1309,7 @@ class UIOptionTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     stateLabel!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                    ),
+                    style: UI.badge.copyWith(color: accent),
                   ),
                 ],
                 if (icon != null) ...[
@@ -1275,12 +1388,7 @@ class UIMessage extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-                letterSpacing: -0.4,
-              ),
+              style: UI.title.copyWith(fontSize: 20, color: const Color(0xFF0F172A)),
               textAlign: TextAlign.center,
             ),
             if (message != null && message!.trim().isNotEmpty) ...[
@@ -1289,12 +1397,7 @@ class UIMessage extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 320),
                 child: Text(
                   message!,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
-                    height: 1.45,
-                  ),
+                  style: UI.bodySmall.copyWith(color: const Color(0xFF64748B)),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -1333,10 +1436,7 @@ class UIMessage extends StatelessWidget {
                           actionLabel!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: UI.button.copyWith(fontSize: 15),
                         ),
                       ),
                     ],
@@ -1504,23 +1604,14 @@ Future<T?> showUICustomDialog<T>(
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.3,
-                ),
+                style: UI.title.copyWith(fontSize: 20, color: const Color(0xFF0F172A)),
               ),
               if (message != null && message.trim().isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
-                    height: 1.45,
-                  ),
+                  style: UI.bodySmall.copyWith(color: const Color(0xFF64748B)),
                 ),
               ],
               if (content != null) ...[
@@ -1549,10 +1640,7 @@ Future<T?> showUICustomDialog<T>(
                   ),
                   child: Text(
                     primaryLabel,
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: UI.button,
                   ),
                 ),
               ),
@@ -1578,7 +1666,7 @@ Future<T?> showUICustomDialog<T>(
                     ),
                     child: Text(
                       secondaryLabel,
-                      style: const TextStyle(
+                      style: UI.button.copyWith(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                       ),

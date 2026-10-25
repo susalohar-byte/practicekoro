@@ -632,7 +632,7 @@ class ProfileHeader extends ConsumerWidget {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFFB45309),
-                                  height: 1.1,
+                                  height: 1.25,
                                 ),
                               ),
                             ],

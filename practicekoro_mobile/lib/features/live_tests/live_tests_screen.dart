@@ -332,10 +332,10 @@ class _LiveTestCard extends StatelessWidget {
                             Text(
                               'LIVE',
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                letterSpacing: 0.4,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
@@ -356,7 +356,7 @@ class _LiveTestCard extends StatelessWidget {
                             Text(
                               'UPCOMING',
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFFD97706),
                                 letterSpacing: 0.3,
