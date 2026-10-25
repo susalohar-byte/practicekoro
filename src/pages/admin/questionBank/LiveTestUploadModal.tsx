@@ -205,7 +205,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
   if (!shouldRender) return null;
 
   const inputClass =
-    'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500';
+    'w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500';
 
   return (
     <div
@@ -217,17 +217,17 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200"
+        className="bg-white dark:bg-[#0A1024] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 p-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
               <Radio className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Add Questions — Live Test</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Add Questions — Live Test</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Questions go into the selected Live Test&apos;s own paper. Students see them only
                 while the Live Test runs.
               </p>
@@ -236,7 +236,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
           <button
             type="button"
             onClick={handleSmoothClose}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="w-5 h-5" />
           </button>
@@ -245,11 +245,11 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
         <div className="p-5 space-y-4">
           {/* Live Test picker */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Live Test <span className="text-rose-500">*</span>
             </label>
             {draftLiveTests.length === 0 ? (
-              <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-800">
+              <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-xs text-amber-800 dark:text-amber-300">
                 No Draft Live Test to add questions to.{' '}
                 <Link to="/admin/live-tests" className="font-semibold underline">
                   Create a Live Test
@@ -273,7 +273,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
               </select>
             )}
             {lockedLiveTests.length > 0 && (
-              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400">
+              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
                 <Lock className="w-3 h-3" />
                 {lockedLiveTests.length} published/ended Live Test
                 {lockedLiveTests.length === 1 ? ' is' : 's are'} locked and not listed.
@@ -282,7 +282,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
             {selected && (
               <Link
                 to={`/admin/live-tests/${selected.id}/questions`}
-                className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:underline"
+                className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline"
               >
                 <ExternalLink className="w-3 h-3" /> Open this Live Test&apos;s question page
                 (reorder, marks, publish)
@@ -291,7 +291,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 p-1 rounded-xl bg-slate-100 w-fit">
+          <div className="flex gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 w-fit">
             {(
               [
                 ['bulk', 'Bulk Upload (TXT)', FileText],
@@ -304,7 +304,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
                 onClick={() => setTab(key)}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5',
-                  tab === key ? 'bg-white text-rose-600 shadow-xs' : 'text-slate-600'
+                  tab === key ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs' : 'text-slate-600 dark:text-slate-400'
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -316,13 +316,13 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
           {tab === 'bulk' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   Upload a .txt file or paste questions in the PracticeKoro TXT format.
                 </span>
                 <button
                   type="button"
                   onClick={() => downloadSampleTxt('live_test_questions_template.txt')}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   <Download className="w-3 h-3" /> Sample TXT
                 </button>
@@ -350,13 +350,13 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
                 className={cn(inputClass, 'font-mono text-xs')}
               />
               {parsed && (
-                <div className="text-xs rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1">
-                  <p className="font-semibold text-slate-800">
+                <div className="text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070D1E] p-3 space-y-1">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">
                     {parsed.valid.length} ready · {parsed.errors.length} with errors (detected{' '}
                     {parsed.totalDetected})
                   </p>
                   {parsed.errors.slice(0, 4).map((e, i) => (
-                    <p key={i} className="text-rose-600">
+                    <p key={i} className="text-rose-600 dark:text-rose-400">
                       Question #{e.questionNumber}: {e.reason}
                     </p>
                   ))}
@@ -391,13 +391,13 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-slate-700">Correct answer</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Correct answer</label>
                 <select
                   value={single.correct}
                   onChange={(e) =>
                     setSingle({ ...single, correct: e.target.value as Question['correctOption'] })
                   }
-                  className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg"
+                  className="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 rounded-lg"
                 >
                   {OPTION_KEYS.map((k) => (
                     <option key={k} value={k}>
@@ -417,7 +417,7 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
           )}
 
           {error && (
-            <div className="flex items-start gap-2 p-3 rounded-xl border border-rose-200 bg-rose-50 text-xs text-rose-700">
+            <div className="flex items-start gap-2 p-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-xs text-rose-700 dark:text-rose-300">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -425,11 +425,11 @@ export function LiveTestUploadModal({ qb }: LiveTestUploadModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 p-5 border-t border-slate-100">
+        <div className="flex justify-end gap-2 p-5 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
             onClick={handleSmoothClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#070D1E] border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             Cancel
           </button>
