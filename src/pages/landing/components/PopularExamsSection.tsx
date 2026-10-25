@@ -148,9 +148,6 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
               <h3 className="mt-3 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug whitespace-pre-line">
                 {CARD_TITLES[exam.id] ?? exam.name}
               </h3>
-              <p className="mt-2 text-xs sm:text-[13px] text-[#6B7489] leading-relaxed max-w-[8rem]">
-                Mock Test, PYQ, Topic Test
-              </p>
               <span className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-[#EAF1FF] text-[#1A5CFF] flex items-center justify-center group-hover:bg-[#1A5CFF] group-hover:text-white transition-colors">
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
