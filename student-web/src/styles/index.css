@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-page font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  /* Bengali conjuncts and vowel marks need generous line height (see UI typography). */
+  :lang(bn),
+  .bn {
+    font-family: 'Noto Sans Bengali', Inter, sans-serif;
+    line-height: 1.6;
+  }
+  :focus-visible {
+    outline: 2px solid #1f48e8;
+    outline-offset: 2px;
+  }
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
