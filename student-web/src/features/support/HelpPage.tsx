@@ -131,7 +131,6 @@ function CreateTicketModal({ open, onClose, onCreated }: { open: boolean; onClos
 
 function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () => void }) {
   const { user } = useAuth();
-  const { data: profile } = useProfile();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [body, setBody] = useState('');
@@ -143,7 +142,7 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
     if (!body.trim() || !user) return;
     setBusy(true);
     try {
-      await sendTicketMessage({ ticketId: ticket.id, userId: user.id, name: profile?.fullName || 'Student', body });
+      await sendTicketMessage({ ticketId: ticket.id, body });
       setBody('');
       await queryClient.invalidateQueries({ queryKey: qk.tickets(user.id) });
     } catch (err) {
@@ -192,7 +191,13 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
         <form onSubmit={send} className="mt-5 flex gap-2">
           <label className="flex-1">
             <span className="sr-only">Message to support</span>
-            <input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Type your message to support..." className="h-11 w-full rounded-xl border border-line bg-white px-3.5 text-[14px] outline-none focus:border-primary" />
+            <input
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              maxLength={2000}
+              placeholder="Type your message to support..."
+              className="h-11 w-full rounded-xl border border-line bg-white px-3.5 text-[14px] outline-none focus:border-primary"
+            />
           </label>
           <Button type="submit" aria-label="Send" loading={busy} disabled={!body.trim()} icon={!busy && <Send className="h-4 w-4" />} />
         </form>

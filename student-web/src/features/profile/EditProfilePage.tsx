@@ -331,7 +331,7 @@ export default function EditProfilePage() {
         </Section>
         </div>
       </div>
-      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:pl-[92px] xl:pl-[272px]">
+      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:pl-[calc(var(--pk-sidebar)+16px)]">
         <div className="mx-auto flex max-w-6xl justify-end">
           <Button type="submit" className="lg:w-auto lg:min-w-[240px]" block size="lg" loading={saving}>
             Save Changes

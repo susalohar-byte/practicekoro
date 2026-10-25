@@ -25,6 +25,30 @@
   select {
     font: inherit;
   }
+  /* Grid items default to min-width: auto, so a long truncated title could push a card
+     past a phone screen. Let every grid child shrink to its track. */
+  .grid > * {
+    min-width: 0;
+  }
+}
+
+/* Width of the navigation sidebar, used by the content area and fixed bottom bars.
+   Phones: none. Tablets: icon rail. Desktop: full sidebar, or the rail when collapsed. */
+:root {
+  --pk-sidebar: 0px;
+}
+@media (min-width: 768px) {
+  :root {
+    --pk-sidebar: 76px;
+  }
+}
+@media (min-width: 1280px) {
+  :root {
+    --pk-sidebar: 256px;
+  }
+  :root[data-sidebar='collapsed'] {
+    --pk-sidebar: 76px;
+  }
 }
 
 @layer utilities {

@@ -148,7 +148,7 @@ export default function RankListPage() {
       )}
 
       {me && (
-        <div className="fixed inset-x-0 bottom-[86px] z-20 border-t-[1.5px] border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3 shadow-[0_-4px_12px_rgba(1,88,252,0.08)] md:bottom-0 md:pl-[92px] xl:pl-[272px]">
+        <div className="fixed inset-x-0 bottom-[86px] z-20 border-t-[1.5px] border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3 shadow-[0_-4px_12px_rgba(1,88,252,0.08)] md:bottom-0 md:pl-[calc(var(--pk-sidebar)+16px)]">
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <span className="rounded-md bg-brand px-2 py-1 text-[12px] font-extrabold text-white">#{me.rank}</span>
             <Avatar url={me.avatarUrl} name={me.name} size={34} />

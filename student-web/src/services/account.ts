@@ -470,18 +470,11 @@ export async function createTicket(input: {
   return toTicket(row);
 }
 
-export async function sendTicketMessage(input: {
-  ticketId: string;
-  userId: string;
-  name: string;
-  body: string;
-}): Promise<void> {
-  const { error } = await supabase.from('support_ticket_messages').insert({
-    ticket_id: input.ticketId,
-    author_id: input.userId,
-    author_name: input.name,
-    author_kind: 'student',
-    body: input.body.trim(),
+/** Student reply on their own ticket (student_reply_support_ticket sets the author server-side). */
+export async function sendTicketMessage(input: { ticketId: string; body: string }): Promise<void> {
+  const { error } = await supabase.rpc('student_reply_support_ticket', {
+    p_ticket_id: input.ticketId,
+    p_body: input.body.trim(),
   });
   if (error) throw error;
 }

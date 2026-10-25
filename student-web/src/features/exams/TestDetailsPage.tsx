@@ -174,7 +174,7 @@ export default function TestDetailsPage() {
       </div>
 
       {/* Sticky start bar on small screens (above the bottom navigation) */}
-      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-[#E2E8F0] bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:pl-[92px] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-[#E2E8F0] bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:pl-[calc(var(--pk-sidebar)+16px)] lg:hidden">
         {cta}
       </div>
       <div className="h-20 lg:hidden" aria-hidden />

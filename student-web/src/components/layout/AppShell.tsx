@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -15,6 +16,8 @@ import {
   Settings,
   Search,
   Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { cn } from '@/lib/cn';
@@ -74,15 +77,49 @@ function SideLink({ item, compact }: { item: Item; compact?: boolean }) {
   );
 }
 
-function Sidebar() {
+const COLLAPSE_KEY = 'pk-sidebar-collapsed';
+
+/** Desktop sidebar collapse state, remembered in this browser. */
+function useSidebarCollapsed(): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.sidebar = collapsed ? 'collapsed' : 'expanded';
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch {
+      /* storage blocked */
+    }
+  }, [collapsed]);
+  return [collapsed, () => setCollapsed((c) => !c)];
+}
+
+function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const isPro = useIsPro();
   return (
     <>
       {/* Desktop: full sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white xl:flex">
-        <Link to="/home" className="flex h-16 items-center px-5" aria-label="PracticeKoro home">
-          <Wordmark className="h-9" />
-        </Link>
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white', !collapsed && 'xl:flex')}>
+        <div className="flex h-16 items-center justify-between pl-5 pr-3">
+          <Link to="/home" aria-label="PracticeKoro home">
+            <Wordmark className="h-9" />
+          </Link>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+            aria-expanded="true"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-ink"
+          >
+            <PanelLeftClose className="h-5 w-5" />
+          </button>
+        </div>
         <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-4">
           <div className="space-y-1">
             {PRIMARY_NAV.map((i) => (
@@ -116,7 +153,7 @@ function Sidebar() {
       </aside>
 
       {/* Tablet / small desktop: icon rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[76px] flex-col items-center border-r border-line bg-white py-3 md:flex xl:hidden">
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden w-[76px] flex-col items-center border-r border-line bg-white py-3 md:flex', !collapsed && 'xl:hidden')}>
         <Link to="/home" aria-label="PracticeKoro home" className="mb-4">
           <LogoIcon className="h-10 w-10" />
         </Link>
@@ -133,6 +170,17 @@ function Sidebar() {
             <SideLink key={i.to} item={i} compact />
           ))}
         </nav>
+        {/* Expanding is a desktop option; tablets always use the rail. */}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="Expand sidebar"
+          title="Expand sidebar"
+          aria-expanded="false"
+          className="mt-2 hidden h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-primary-soft hover:text-primary xl:flex"
+        >
+          <PanelLeftOpen className="h-5 w-5" />
+        </button>
       </aside>
     </>
   );
@@ -200,13 +248,14 @@ function BottomNav() {
 }
 
 export function AppShell() {
+  const [collapsed, toggle] = useSidebarCollapsed();
   return (
     <div className="min-h-screen bg-page">
       <a href="#main" className="sr-only z-50 rounded bg-primary px-3 py-2 text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
         Skip to content
       </a>
-      <Sidebar />
-      <div className="md:pl-[76px] xl:pl-64">
+      <Sidebar collapsed={collapsed} onToggle={toggle} />
+      <div className="transition-[padding] duration-200 md:pl-[var(--pk-sidebar)]">
         <TopBar />
         <main id="main" className="mx-auto max-w-7xl px-4 pb-28 pt-5 sm:px-6 md:pb-12 lg:px-8 lg:pt-7">
           <Outlet />

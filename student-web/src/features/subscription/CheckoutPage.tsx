@@ -257,7 +257,7 @@ export default function CheckoutPage() {
       </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-line bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] md:bottom-0 md:pl-[92px] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[86px] z-20 border-t border-line bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] md:bottom-0 md:pl-[calc(var(--pk-sidebar)+16px)] lg:hidden">
         <div className="mx-auto flex max-w-3xl items-center gap-4">
           <div>
             <p className="text-[11.5px] text-muted">Total to pay</p>

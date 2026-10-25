@@ -66,7 +66,7 @@ export default function ResultsPage() {
         <Stat icon={Trophy} fg="#9333EA" bg="#FAF5FF" value={best ? ordinal(best) : '–'} label="Best Rank" />
       </div>
 
-      <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+      <div className="mt-6">
         <section aria-labelledby="recent-results">
           <div className="mb-3 flex items-center justify-between">
             <h2 id="recent-results" className="text-[17px] font-extrabold text-ink">
@@ -111,7 +111,7 @@ export default function ResultsPage() {
               )}
             </Card>
           ) : (
-            <div className="space-y-2.5">
+            <div className="grid gap-2.5 lg:grid-cols-2">
               {list.map((a) => {
                 const k = kindOf(a);
                 const st = KIND_STYLE[k];
@@ -148,7 +148,7 @@ export default function ResultsPage() {
           )}
         </section>
 
-        <section aria-labelledby="rank-preview" className="mt-8 lg:mt-0">
+        <section aria-labelledby="rank-preview" className="mt-8">
           <div className="mb-3 flex items-center justify-between">
             <h2 id="rank-preview" className="text-[17px] font-extrabold text-ink">
               Student Rank List
@@ -166,7 +166,7 @@ export default function ResultsPage() {
             ) : preview.length === 0 ? (
               <p className="p-4 text-center text-[13px] text-muted">Rankings appear once students finish this test.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="grid gap-1.5 lg:grid-cols-2">
                 {preview.map((r) => (
                   <RankListRow key={`${r.rank}-${r.userId}`} row={r} />
                 ))}
