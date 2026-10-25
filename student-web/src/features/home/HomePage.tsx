@@ -36,9 +36,11 @@ function resolveBannerLink(link: string): { href: string; external: boolean } {
 function BannerSlide({ b, onOpen, eager }: { b: HeroBanner; onOpen: (b: HeroBanner) => void; eager?: boolean }) {
   return (
     <button type="button" onClick={() => onOpen(b)} aria-label={b.title || 'Open banner'} className="absolute inset-0 text-left">
+      {/* Desktop: the full image, centred over a blurred copy of itself, so the wide frame never crops the artwork. */}
+      <img src={b.imageUrl} alt="" aria-hidden className="absolute inset-0 hidden h-full w-full scale-110 object-cover opacity-60 blur-2xl lg:block" />
       <picture>
         {b.mobileImageUrl && <source media="(max-width: 640px)" srcSet={b.mobileImageUrl} />}
-        <img src={b.imageUrl} alt="" className="h-full w-full object-cover" loading={eager ? 'eager' : 'lazy'} />
+        <img src={b.imageUrl} alt="" className="relative h-full w-full object-cover lg:object-contain" loading={eager ? 'eager' : 'lazy'} />
       </picture>
       {b.showTextOverlay && (
         <span className="absolute inset-0 flex flex-col justify-center bg-gradient-to-r from-black/65 via-black/25 to-transparent px-5 text-white sm:px-8">
@@ -72,7 +74,8 @@ function Dots({ count, active, onPick, label }: { count: number; active: number;
   );
 }
 
-const FRAME = 'relative overflow-hidden rounded-[22px] bg-[#F1F5F9] shadow-card';
+// Phones/tablets: the banner's own 896×466 shape. Desktop: full width at a fixed height.
+const FRAME = 'relative aspect-[896/466] overflow-hidden rounded-[22px] bg-[#F1F5F9] shadow-card lg:aspect-auto lg:h-[380px]';
 
 /** One large banner at a time on every screen size, auto-advancing every 5 s (as in the app). */
 function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
@@ -89,8 +92,9 @@ function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   if (!list) {
     // HeroBannerModel.defaultBanner — the brand banner shipped with the app.
     return (
-      <Link to="/exams" className={cn(FRAME, 'block')} style={{ aspectRatio: '896 / 466' }} aria-label="PracticeKoro Exam Preparation — Start Now">
-        <img src={asset('brand/hero_banner.png')} alt="" className="h-full w-full object-cover" />
+      <Link to="/exams" className={cn(FRAME, 'block')} aria-label="PracticeKoro Exam Preparation — Start Now">
+        <img src={asset('brand/hero_banner.png')} alt="" aria-hidden className="absolute inset-0 hidden h-full w-full scale-110 object-cover opacity-60 blur-2xl lg:block" />
+        <img src={asset('brand/hero_banner.png')} alt="" className="relative h-full w-full object-cover lg:object-contain" />
       </Link>
     );
   }
@@ -104,7 +108,7 @@ function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
 
   return (
     <div>
-      <div className={FRAME} style={{ aspectRatio: '896 / 466' }}>
+      <div className={FRAME}>
         {list.map((b, i) => (
           <div
             key={b.id || i}
@@ -208,10 +212,11 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* Desktop keeps the banner at its earlier size instead of stretching across the page. */}
-      <div className="mx-auto w-full lg:max-w-[760px]">
-        {banners.isLoading ? <Skeleton className="aspect-[896/466] w-full rounded-[22px]" /> : <HeroCarousel banners={banners.data ?? []} />}
-      </div>
+      {banners.isLoading ? (
+        <Skeleton className="aspect-[896/466] w-full rounded-[22px] lg:aspect-auto lg:h-[380px]" />
+      ) : (
+        <HeroCarousel banners={banners.data ?? []} />
+      )}
 
       {/* Exams for You */}
       <section aria-labelledby="exams-h">
