@@ -74,7 +74,7 @@ export const LandingPage: React.FC = () => {
           <FaqSection />
 
           {/* 8. Final App Download Banner (Positioned immediately above footer) */}
-          <AppDownloadBanner onIosClick={() => setIosNoticeOpen(true)} />
+          <AppDownloadBanner />
         </main>
 
         {/* 9. Navy Footer */}
