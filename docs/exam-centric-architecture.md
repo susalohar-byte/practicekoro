@@ -162,7 +162,7 @@ pages are unchanged; nothing outside them creates subjects or topics.
 
 ### 7.1 What the migration does to existing data
 
-`20261016090000_exam_centric_test_architecture.sql` runs in one transaction (`BEGIN … COMMIT`).
+Production applied this as `20261024124338_exam_centric_test_architecture_part1.sql` and `20261024124339_exam_centric_test_architecture_part2.sql`; `20261016090000` is now an empty version marker.
 It drops no table, column or row and does not touch attempts, results, answers, questions,
 subscriptions, payments, coupons or access functions. Its only writes are:
 
