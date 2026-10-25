@@ -49,11 +49,11 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
           activeQuestion ? 'lg:col-span-8' : 'lg:col-span-12'
         )}
       >
-        <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs">
+        <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#F8FAFC] border-b border-slate-200/80">
-                <tr className="text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
+              <thead className="bg-[#F8FAFC] dark:bg-[#070D1E] border-b border-slate-200/80 dark:border-slate-800">
+                <tr className="text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-3 w-8">
                     <input
                       type="checkbox"
@@ -63,7 +63,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         paginatedQuestions.every((q) => selectedRowIds.has(q.id))
                       }
                       title={`Select All (${filteredQuestions.length} Questions)`}
-                      className="rounded border-slate-300 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
+                      className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
                     />
                   </th>
                   <th className="py-3 px-2 w-12 text-center">#</th>
@@ -79,10 +79,13 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                 {paginatedQuestions.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="py-12 text-center text-slate-400">
+                    <td
+                      colSpan={11}
+                      className="py-12 text-center text-slate-400 dark:text-slate-500"
+                    >
                       No questions found matching your filter criteria.
                     </td>
                   </tr>
@@ -100,8 +103,8 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         key={q.id}
                         onClick={() => setActiveQuestion(q)}
                         className={cn(
-                          'hover:bg-slate-50/80 transition-colors cursor-pointer',
-                          isActive && 'bg-blue-50/50 font-semibold'
+                          'hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors cursor-pointer',
+                          isActive && 'bg-blue-50/50 dark:bg-blue-950/40 font-semibold'
                         )}
                       >
                         {/* Checkbox */}
@@ -116,13 +119,13 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="rounded border-slate-300 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
+                            className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
                           />
                         </td>
 
                         {/* Sequential Question Number */}
                         <td
-                          className="py-3 px-2 text-slate-500 font-bold text-center"
+                          className="py-3 px-2 text-slate-500 dark:text-slate-400 font-bold text-center"
                           title={`Database ID: ${q.id}`}
                         >
                           {questionNumber}
@@ -130,7 +133,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
 
                         {/* Question Bengali / English Preview */}
                         <td className="py-3 px-4 max-w-[240px]">
-                          <p className="truncate text-slate-900 font-medium">
+                          <p className="truncate text-slate-900 dark:text-slate-100 font-medium">
                             {q.questionBengaliText || q.questionText}
                           </p>
                         </td>
@@ -141,10 +144,10 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                             className={cn(
                               'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-tight',
                               isLiveMode
-                                ? 'bg-rose-100 text-rose-700'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
                                 : isExamMode
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-emerald-100 text-emerald-700'
+                                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                             )}
                           >
                             {isLiveMode ? 'Live Test' : isExamMode ? 'Exam' : 'Subject'}
@@ -152,7 +155,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         </td>
 
                         {/* Exam / Subject */}
-                        <td className="py-3 px-3 text-slate-700">
+                        <td className="py-3 px-3 text-slate-700 dark:text-slate-300">
                           {isLiveMode
                             ? liveTestTitleFor(q.id)
                             : isExamMode
@@ -161,7 +164,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         </td>
 
                         {/* Topic */}
-                        <td className="py-3 px-3 text-slate-600">
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
                           {q.topicName || q.chapterName || '—'}
                         </td>
 
@@ -171,10 +174,10 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                             className={cn(
                               'px-2 py-0.5 rounded text-[10px] font-bold',
                               isLiveMode
-                                ? 'bg-rose-100 text-rose-700'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
                                 : questionBankType(q) === 'PYQ'
-                                  ? 'bg-purple-100 text-purple-700'
-                                  : 'bg-sky-100 text-sky-700'
+                                  ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                                  : 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300'
                             )}
                           >
                             {isLiveMode ? 'Live Test' : questionBankType(q)}
@@ -182,12 +185,12 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         </td>
 
                         {/* Year */}
-                        <td className="py-3 px-2 text-slate-500">
+                        <td className="py-3 px-2 text-slate-500 dark:text-slate-400">
                           {q.sourceYear ? q.sourceYear : '-'}
                         </td>
 
                         {/* Source */}
-                        <td className="py-3 px-3 text-slate-600">
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
                           {q.sourceType === 'pyq' ? 'Official PYQ' : 'Original'}
                         </td>
 
@@ -197,9 +200,11 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                             className={cn(
                               'px-2 py-0.5 rounded-full text-[10px] font-bold inline-block',
                               (q.status === 'published' || q.status === 'active') &&
-                                'bg-emerald-100 text-emerald-700',
-                              q.status === 'under_review' && 'bg-amber-100 text-amber-700',
-                              q.status === 'draft' && 'bg-slate-100 text-slate-600'
+                                'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300',
+                              q.status === 'under_review' &&
+                                'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300',
+                              q.status === 'draft' &&
+                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             )}
                           >
                             {q.status === 'published' || q.status === 'active'
@@ -224,7 +229,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                                 e.stopPropagation();
                                 setActiveActionMenuId(activeActionMenuId === q.id ? null : q.id);
                               }}
-                              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -232,7 +237,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                             {activeActionMenuId === q.id && (
                               <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 text-left animate-in fade-in"
+                                className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 text-left animate-in fade-in"
                               >
                                 <button
                                   type="button"
@@ -240,7 +245,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                                     setActiveQuestion(q);
                                     setActiveActionMenuId(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2 cursor-pointer"
                                 >
                                   <Edit2 className="w-3 h-3 text-blue-500" />
                                   <span>Edit Details</span>
@@ -261,7 +266,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                                       showToast(getErrorMessage(err, 'Duplicate failed'));
                                     }
                                   }}
-                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2 cursor-pointer"
                                 >
                                   <Copy className="w-3 h-3 text-purple-500" />
                                   <span>Duplicate</span>
@@ -275,12 +280,12 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                                     setActiveActionMenuId(null);
                                     showToast('Question text copied to clipboard.');
                                   }}
-                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2 cursor-pointer"
                                 >
                                   <FileText className="w-3 h-3 text-slate-400" />
                                   <span>Copy Text</span>
                                 </button>
-                                <div className="border-t border-slate-100 my-1" />
+                                <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
                                 <button
                                   type="button"
                                   onClick={async () => {
@@ -305,7 +310,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                                       showToast(getErrorMessage(err, 'Delete failed'));
                                     }
                                   }}
-                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                                  className="w-full px-3 py-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
                                 >
                                   <Trash2 className="w-3 h-3 text-rose-500" />
                                   <span>Delete</span>
@@ -323,8 +328,8 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
           </div>
 
           {/* Footer Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-slate-200/80 text-xs gap-3">
-            <span className="font-semibold text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-slate-200/80 dark:border-slate-800 text-xs gap-3">
+            <span className="font-semibold text-slate-500 dark:text-slate-400">
               Showing {filteredQuestions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–
               {Math.min(filteredQuestions.length, currentPage * pageSize)} of{' '}
               {filteredQuestions.length.toLocaleString('en-IN')} questions
@@ -335,7 +340,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40 cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
                 title="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -343,7 +348,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
 
               {getPageNumbers(currentPage, totalPages).map((item, idx) =>
                 item === 'ellipsis' ? (
-                  <span key={`ellipsis-${idx}`} className="text-slate-400 px-1">
+                  <span key={`ellipsis-${idx}`} className="text-slate-400 dark:text-slate-500 px-1">
                     ...
                   </span>
                 ) : (
@@ -355,7 +360,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                       'min-w-7 h-7 px-2 rounded-lg font-bold text-xs transition-colors cursor-pointer',
                       currentPage === item
                         ? 'bg-[#026BFC] text-white shadow-2xs'
-                        : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        : 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     )}
                   >
                     {item.toLocaleString('en-IN')}
@@ -367,7 +372,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40 cursor-pointer"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
                 title="Next page"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -380,7 +385,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="ml-2 bg-[#F8FAFC] border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 cursor-pointer"
+                className="ml-2 bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none"
               >
                 <option value={10}>10 / page</option>
                 <option value={25}>25 / page</option>

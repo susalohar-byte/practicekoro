@@ -83,7 +83,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
   return (
     <>
       {/* 4. SEARCH AND FILTERS TOOLBAR */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-3">
+      <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-2xs space-y-3">
         {/* Row 1: Search, View Mode, Exam, Subject, Topic */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search Input */}
@@ -97,7 +97,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setCurrentPage(1);
               }}
               placeholder="Search questions..."
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl pl-10 pr-7 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#026BFC]"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl pl-10 pr-7 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#026BFC]"
             />
             {searchQuery && (
               <button
@@ -106,7 +106,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                   setSearchQuery('');
                   setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -123,7 +123,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setActiveUploadMode(val);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">View Mode: All Questions</option>
               <option value="exam">View Mode: By Exam</option>
@@ -141,7 +141,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setCurrentPage(1);
               }}
               disabled={viewModeFilter === 'subject'}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] disabled:opacity-40 cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] disabled:opacity-40 cursor-pointer"
             >
               <option value="all">Exam: All Exams</option>
               {exams.map((ex) => (
@@ -168,7 +168,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
               }}
               disabled={subjectTopicLocked}
               title={subjectTopicLocked ? 'Not used in Exam / Live Test mode' : undefined}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="all">Subject: All Subjects</option>
               {availableSubjectOptions.map((name) => (
@@ -192,7 +192,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 (selectedSubjectFilter !== 'all' && filterTopicOptions.length === 0)
               }
               title={subjectTopicLocked ? 'Not used in Exam / Live Test mode' : undefined}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="all">
                 {selectedSubjectFilter === 'all'
@@ -220,7 +220,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedTypeFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Type: All Types</option>
               <option value="pyq">PYQ</option>
@@ -237,7 +237,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Status: All Status</option>
               <option value="published">Published</option>
@@ -257,7 +257,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedYearFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Year: All Years</option>
               <option value="2026">2026</option>
@@ -277,7 +277,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setSelectedSourceFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-[#F8FAFC] border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Source: All Sources</option>
               <option value="official pyq">Official PYQ</option>
@@ -315,7 +315,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
                 setCurrentPage(1);
                 showToast('Filters reset to default.');
               }}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Reset
             </button>
