@@ -1,0 +1,14 @@
+#!/bin/sh
+# Blocks commits that contain files Prettier would reformat (CI runs `npm run format:check`).
+# Installed by `npm install` through the `prepare` script (git config core.hooksPath .githooks).
+# Bypass once with `git commit --no-verify`.
+
+files=$(git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -I{} printf '%s\n' {})
+[ -z "$files" ] && exit 0
+
+echo "$files" | tr '\n' '\0' | xargs -0 npx --no-install prettier --check --ignore-unknown >/dev/null 2>&1 && exit 0
+
+echo "pre-commit: these staged files are not Prettier-formatted:" >&2
+echo "$files" | tr '\n' '\0' | xargs -0 npx --no-install prettier --list-different --ignore-unknown >&2
+echo "Run: npx prettier --write <file>  (or npm run format), then git add and commit again." >&2
+exit 1
