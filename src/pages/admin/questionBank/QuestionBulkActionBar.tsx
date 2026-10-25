@@ -17,12 +17,14 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
     <>
       {/* BULK SELECTION ACTION BAR */}
       {selectedRowIds.size > 0 && (
-        <div className="flex items-center justify-between p-3.5 bg-blue-50 border border-blue-200 rounded-2xl animate-in slide-in-from-top-2">
+        <div className="flex items-center justify-between p-3.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-2xl animate-in slide-in-from-top-2">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-lg bg-[#026BFC] text-white font-bold text-xs flex items-center justify-center">
               {selectedRowIds.size}
             </span>
-            <span className="text-xs font-bold text-blue-900">{selectedRowIds.size} selected</span>
+            <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+              {selectedRowIds.size} selected
+            </span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -36,7 +38,7 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <button
               type="button"
               onClick={() => handleBulkStatusChange('draft')}
-              className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 cursor-pointer"
+              className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer"
             >
               Move to Draft
             </button>
@@ -50,7 +52,7 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <button
               type="button"
               onClick={handleExportSelectedCSV}
-              className="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-50 cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer flex items-center gap-1"
             >
               <Download className="w-3 h-3" />
               <span>Export CSV</span>
@@ -65,7 +67,7 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <button
               type="button"
               onClick={() => setSelectedRowIds(new Set())}
-              className="text-slate-500 hover:text-slate-800 text-xs px-2 cursor-pointer font-medium"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs px-2 cursor-pointer font-medium"
             >
               Clear
             </button>

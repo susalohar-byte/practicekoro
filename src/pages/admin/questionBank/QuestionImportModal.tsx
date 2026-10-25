@@ -51,7 +51,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
           <div
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'relative bg-white border border-slate-300 dark:border-slate-700/90 rounded-3xl w-full max-w-lg p-6 shadow-none transition-all duration-200 ease-out transform space-y-4',
+              'relative bg-white dark:bg-[#0A1024] border border-slate-300 dark:border-slate-700/90 rounded-3xl w-full max-w-lg p-6 shadow-none transition-all duration-200 ease-out transform space-y-4',
               isAnimating
                 ? 'opacity-100 scale-100 translate-y-0'
                 : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
@@ -68,8 +68,8 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               <X className="w-4 h-4 transition-transform group-hover:scale-110" />
             </button>
 
-            <div className="flex items-center justify-between pb-3 pr-10 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <div className="flex items-center justify-between pb-3 pr-10 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Upload className="w-5 h-5 text-[#026BFC]" />
                 Import Questions (Bulk TXT / CSV)
               </h3>
@@ -77,7 +77,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
 
             {/* Step 1: Select Upload Mode */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
                 1. Select Upload Mode:
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -87,12 +87,14 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   className={cn(
                     'p-3 rounded-2xl border text-left transition-all cursor-pointer',
                     importMode === 'exam'
-                      ? 'bg-blue-50 border-[#026BFC] text-[#026BFC] font-bold'
-                      : 'border-slate-200 font-semibold text-slate-700 hover:bg-slate-50'
+                      ? 'bg-blue-50 dark:bg-blue-950/40 border-[#026BFC] text-[#026BFC] font-bold'
+                      : 'border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                   )}
                 >
                   <p className="text-xs">By Exam</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Full Mocks & PYQs</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Full Mocks & PYQs
+                  </p>
                 </button>
 
                 <button
@@ -101,12 +103,14 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   className={cn(
                     'p-3 rounded-2xl border text-left transition-all cursor-pointer',
                     importMode === 'subject'
-                      ? 'bg-purple-50 border-purple-500 text-purple-600 font-bold'
-                      : 'border-slate-200 font-semibold text-slate-700 hover:bg-slate-50'
+                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-600 dark:text-purple-400 font-bold'
+                      : 'border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                   )}
                 >
                   <p className="text-xs">By Subject</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Topic Tests</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Topic Tests
+                  </p>
                 </button>
 
                 <button
@@ -116,10 +120,12 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                     setIsImportModalOpen(false);
                     setIsLiveUploadOpen(true);
                   }}
-                  className="p-3 rounded-2xl border text-left transition-all cursor-pointer border-slate-200 font-semibold text-slate-700 hover:bg-rose-50 hover:border-rose-300"
+                  className="p-3 rounded-2xl border text-left transition-all cursor-pointer border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 dark:hover:border-rose-700"
                 >
                   <p className="text-xs">Live Test</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Live Test paper</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Live Test paper
+                  </p>
                 </button>
               </div>
             </div>
@@ -127,13 +133,13 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             {/* By Exam: which exam the uploaded / pasted questions belong to */}
             {importMode === 'exam' && (
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Exam (for questions that do not name one):
                 </label>
                 <select
                   value={importExam}
                   onChange={(e) => setImportExam(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-[#F8FAFC] text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#026BFC] cursor-pointer"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
                 >
                   <option value="">-- Select exam --</option>
                   {exams.map((ex) => (
@@ -148,7 +154,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             {/* Step 2: File Upload */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   2. Upload Questions File (.txt / .csv):
                 </label>
                 <div className="flex items-center gap-2">
@@ -159,11 +165,11 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   >
                     Download TXT Format
                   </button>
-                  <span className="text-slate-300">|</span>
+                  <span className="text-slate-300 dark:text-slate-700">|</span>
                   <button
                     type="button"
                     onClick={() => downloadTemplate(importMode, 'csv')}
-                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                    className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer"
                   >
                     CSV Template
                   </button>
@@ -185,10 +191,10 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               {/* By Exam: paste questions directly instead of uploading a file */}
               {importMode === 'exam' && (
                 <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase">
-                    <span className="h-px flex-1 bg-slate-200" />
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">
+                    <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                     Or paste questions (TXT format)
-                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                   </div>
                   <textarea
                     value={importPasteText}
@@ -198,14 +204,14 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                     placeholder={
                       '1. Question text\n(a) Option A\n(b) Option B\n(c) Option C\n(d) Option D\n\nসঠিক উত্তর: (a) Option A'
                     }
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-[#F8FAFC] font-mono text-xs text-slate-700 focus:outline-none focus:border-[#026BFC]"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] font-mono text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC]"
                   />
                   <div className="flex justify-end">
                     <button
                       type="button"
                       disabled={!importPasteText.trim() || isImporting}
                       onClick={handlePreviewPastedQuestions}
-                      className="px-4 py-1.5 rounded-xl border border-[#026BFC] text-[#026BFC] text-xs font-bold hover:bg-blue-50 disabled:opacity-40 cursor-pointer"
+                      className="px-4 py-1.5 rounded-xl border border-[#026BFC] text-[#026BFC] text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-40 cursor-pointer"
                     >
                       Preview Pasted Questions
                     </button>
@@ -216,29 +222,31 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
 
             {/* Step 3: Validation Preview */}
             {importPreviewStats && (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-                <p className="font-bold text-slate-900">Validation Preview</p>
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#070D1E] border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+                <p className="font-bold text-slate-900 dark:text-white">Validation Preview</p>
                 <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="p-2 rounded-xl bg-white border">
-                    <p className="text-[10px] text-slate-400">Total Rows</p>
-                    <p className="text-sm font-bold text-slate-800">{importPreviewStats.total}</p>
+                  <div className="p-2 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">Total Rows</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {importPreviewStats.total}
+                    </p>
                   </div>
-                  <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-700">
+                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
                     <p className="text-[10px]">Valid</p>
                     <p className="text-sm font-bold">{importPreviewStats.valid}</p>
                   </div>
-                  <div className="p-2 rounded-xl bg-rose-50 border border-rose-300 text-rose-700">
+                  <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300">
                     <p className="text-[10px]">Errors</p>
                     <p className="text-sm font-bold">{importPreviewStats.errors}</p>
                   </div>
-                  <div className="p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-700">
+                  <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300">
                     <p className="text-[10px]">Duplicates</p>
                     <p className="text-sm font-bold">{importPreviewStats.duplicates}</p>
                   </div>
                 </div>
 
                 {importPreviewStats.errorList.length > 0 && (
-                  <div className="mt-2 text-[11px] text-rose-600 space-y-1">
+                  <div className="mt-2 text-[11px] text-rose-600 dark:text-rose-400 space-y-1">
                     {importPreviewStats.errorList.map((err, i) => (
                       <p key={i}>• {err}</p>
                     ))}
@@ -248,7 +256,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
             )}
 
             {importNeedsExam && (
-              <p className="text-[11px] font-semibold text-amber-700">
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                 Select the exam above — some questions do not name their exam.
               </p>
             )}
@@ -257,7 +265,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               <button
                 type="button"
                 onClick={handleSmoothClose}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer hover:bg-slate-50"
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
