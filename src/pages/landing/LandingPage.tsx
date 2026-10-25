@@ -6,6 +6,7 @@ import { PopularExamsSection } from './components/PopularExamsSection';
 import { WhyPracticeKoroSection } from './components/WhyPracticeKoroSection';
 import { LearningJourneySection } from './components/LearningJourneySection';
 import { TestimonialsSection } from './components/TestimonialsSection';
+import { PricingSection } from './components/PricingSection';
 import { FaqSection } from './components/FaqSection';
 import { AppDownloadBanner } from './components/AppDownloadBanner';
 import { Footer } from './components/Footer';
@@ -52,6 +53,9 @@ export const LandingPage: React.FC = () => {
 
         {/* 5. Learning Journey (4 steps) */}
         <LearningJourneySection />
+
+        {/* Subscription plans, as set up in the admin panel */}
+        <PricingSection />
 
         {/* 6. Student Testimonials */}
         <TestimonialsSection />

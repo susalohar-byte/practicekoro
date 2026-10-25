@@ -43,6 +43,7 @@ const QUICK_LINKS = [
   { name: 'Exams', href: '#exams' },
   { name: 'Features', href: '#why-pk' },
   { name: 'How It Works', href: '#how-it-works' },
+  { name: 'Plans', href: '#pricing' },
   { name: 'Reviews', href: '#reviews' },
   { name: 'FAQ', href: '#faq' },
 ];
