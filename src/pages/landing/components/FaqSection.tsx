@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React from 'react';
+import { FaqAccordion, type FAQItem } from '@/components/ui/faq-chat-accordion';
 import { SectionHeading } from './SectionHeading';
 
 interface FaqItem {
@@ -9,8 +9,6 @@ interface FaqItem {
 }
 
 export const FaqSection: React.FC = () => {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
   const faqs: FaqItem[] = [
     {
       category: 'Exams',
@@ -44,9 +42,17 @@ export const FaqSection: React.FC = () => {
     },
   ];
 
-  const toggleFaq = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
+  // A couple of the question bubbles carry a little emoji, as in a chat
+  const icons: Record<number, Pick<FAQItem, 'icon' | 'iconPosition'>> = {
+    1: { icon: '📚', iconPosition: 'right' },
+    4: { icon: '⭐', iconPosition: 'left' },
   };
+  const items: FAQItem[] = faqs.map((faq, idx) => ({
+    id: idx + 1,
+    question: faq.question,
+    answer: faq.answer,
+    ...icons[idx + 1],
+  }));
 
   return (
     <section id="faq" className="scroll-mt-20 py-8 sm:py-12">
@@ -58,48 +64,12 @@ export const FaqSection: React.FC = () => {
           className="mb-6 sm:mb-8"
         />
 
-        {/* Accordion List */}
-        <div className="space-y-3 sm:space-y-4">
-          {faqs.map((faq, idx) => {
-            const isOpen = openIndex === idx;
-            return (
-              <div
-                key={idx}
-                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-                  isOpen
-                    ? 'border-blue-300 bg-blue-50/20 shadow-sm'
-                    : 'border-[#EDF0F8] bg-white shadow-[0_6px_24px_rgba(30,50,120,0.06)] hover:border-slate-300'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleFaq(idx)}
-                  className="w-full px-5 sm:px-6 py-4 sm:py-4.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
-                  aria-expanded={isOpen}
-                >
-                  <span className="text-sm sm:text-base font-bold text-[#0B1B4F] font-['Hind_Siliguri',sans-serif]">
-                    {faq.question}
-                  </span>
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200 ${
-                      isOpen
-                        ? 'bg-blue-600 text-white rotate-180'
-                        : 'bg-slate-100 text-slate-500'
-                    }`}
-                  >
-                    <ChevronDown className="w-4 h-4" />
-                  </div>
-                </button>
-
-                {isOpen && (
-                  <div className="px-5 sm:px-6 pb-4 sm:pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed font-headline border-t border-blue-100/60 animate-fadeIn">
-                    <p>{faq.answer}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <FaqAccordion
+          data={items}
+          defaultOpenId={1}
+          className="max-w-4xl mx-auto p-0 font-['Hind_Siliguri',sans-serif] text-[15px] sm:text-base"
+          answerClassName="leading-relaxed bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] shadow-md shadow-blue-600/20"
+        />
       </div>
     </section>
   );

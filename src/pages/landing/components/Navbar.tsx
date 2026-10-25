@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/context/AuthContext';
 import { studentPanelUrl } from '@/lib/studentPanel';
 
@@ -56,6 +57,16 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Keep the page from scrolling behind the full-screen mobile menu
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileMenuOpen]);
+
   const navLinks = [
     { name: 'Exams', href: '#exams' },
     { name: 'Features', href: '#why-pk' },
@@ -70,87 +81,154 @@ export const Navbar: React.FC = () => {
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Over the hero scene the bar is transparent with white text, once scrolled it turns white
-  const solid = isScrolled || mobileMenuOpen;
+  const cta = (className: string, onClick?: () => void) =>
+    signedIn && !isAdmin ? (
+      // The student panel is a separate app, so this is a full page load
+      <a href={studentPanelUrl('home')} onClick={onClick} className={className}>
+        <span>Dashboard</span>
+        <ArrowRight className="w-4 h-4" />
+      </a>
+    ) : (
+      <Link to={signedIn ? '/admin' : '/login'} onClick={onClick} className={className}>
+        <span>{signedIn ? 'Dashboard' : 'Get Started'}</span>
+        <ArrowRight className="w-4 h-4" />
+      </Link>
+    );
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        solid ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-2.5' : 'bg-transparent py-3 sm:py-4'
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-        <a
-          href="#hero"
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="flex items-center gap-2.5 group cursor-pointer"
+    <>
+      {/* Floating pill bar, it tightens up a little once the page scrolls */}
+      <header className={`fixed inset-x-0 top-0 z-40 flex justify-center px-3 sm:px-4 transition-all duration-300 ${isScrolled ? 'pt-2.5' : 'pt-4 sm:pt-5'}`}>
+        <motion.div
+          initial={{ y: -24, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className={`flex w-full max-w-5xl items-center justify-between rounded-full bg-white/90 backdrop-blur-xl ring-1 ring-slate-900/5 pl-2 pr-2 sm:pr-2.5 transition-all duration-300 ${
+            isScrolled ? 'py-1.5 shadow-xl shadow-slate-900/10' : 'py-2 shadow-lg shadow-slate-900/20'
+          }`}
         >
-          <BrandMark className="w-10 h-10 sm:w-[46px] sm:h-[46px] transition-transform group-hover:scale-105" />
-          <span className={`text-lg sm:text-xl font-bold tracking-tight ${solid ? 'text-[#0B1B4F]' : 'text-white drop-shadow'}`}>
-            Practice Koro
-          </span>
-        </a>
-
-        <nav className="hidden md:flex items-center gap-8 lg:gap-10">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={(e) => handleNavClick(e, link.href)}
-              className={`text-sm font-semibold transition-colors cursor-pointer ${
-                solid ? 'text-slate-700 hover:text-blue-600' : 'text-white/95 hover:text-white drop-shadow'
-              }`}
-            >
-              {link.name}
-            </a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          {signedIn && !isAdmin ? (
-            // The student panel is a separate app, so this is a full page load
-            <a href={studentPanelUrl('home')} className={CTA_CLASS}>
-              <span>Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
-          ) : (
-            <Link to={signedIn ? '/admin' : '/login'} className={CTA_CLASS}>
-              <span>{signedIn ? 'Dashboard' : 'Get Started'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`md:hidden w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-              solid ? 'bg-slate-100 text-slate-700' : 'bg-white/15 text-white backdrop-blur'
-            }`}
-            aria-label="Toggle menu"
+          <a
+            href="#hero"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2.5 cursor-pointer"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
+            <motion.span
+              className="block"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              whileHover={{ rotate: 10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <BrandMark className="w-9 h-9 sm:w-10 sm:h-10" />
+            </motion.span>
+            <span className="text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
+          </a>
 
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white px-4 pt-3 pb-5 border-b border-slate-200 animate-fadeIn">
-          <div className="flex flex-col space-y-1">
-            {navLinks.map((link) => (
-              <a
+          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+            {navLinks.map((link, i) => (
+              <motion.a
                 key={link.name}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl transition-colors"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.05 * i }}
+                whileHover={{ scale: 1.05 }}
+                className="px-3 lg:px-4 py-2 rounded-full text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
               >
                 {link.name}
-              </a>
+              </motion.a>
             ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <motion.div
+              className="hidden sm:block"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              whileHover={{ scale: 1.05 }}
+            >
+              {cta(CTA_CLASS)}
+            </motion.div>
+            <motion.button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              whileTap={{ scale: 0.9 }}
+              className="md:hidden w-10 h-10 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <Menu className="w-6 h-6" />
+            </motion.button>
           </div>
-        </div>
-      )}
-    </header>
+        </motion.div>
+      </header>
+
+      {/* Full-screen mobile menu sliding in from the right */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-white px-6 pt-6 md:hidden"
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2.5">
+                <BrandMark className="w-9 h-9" />
+                <span className="text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
+              </span>
+              <motion.button
+                type="button"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100"
+                onClick={() => setMobileMenuOpen(false)}
+                whileTap={{ scale: 0.9 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6" />
+              </motion.button>
+            </div>
+
+            <div className="mt-10 flex flex-col space-y-6">
+              {navLinks.map((link, i) => (
+                <motion.a
+                  key={link.name}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ delay: i * 0.08 + 0.1 }}
+                  className="text-lg font-semibold text-[#0B1B4F]"
+                >
+                  {link.name}
+                </motion.a>
+              ))}
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ delay: 0.5 }}
+                className="pt-6"
+              >
+                {cta(`${CTA_CLASS} w-full justify-center !py-3.5 !text-base`, () => setMobileMenuOpen(false))}
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
