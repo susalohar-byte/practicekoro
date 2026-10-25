@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   PlayCircle,
@@ -18,11 +18,14 @@ import {
   Bell,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronsUpDown,
+  LogOut,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { cn } from '@/lib/cn';
 import { Avatar, LogoIcon, Wordmark } from '@/components/ui/Brand';
 import { useIsPro, useProfile } from '@/hooks/queries';
+import { useAuth } from '@/auth/AuthProvider';
 
 type Item = { to: string; label: string; icon: ComponentType<{ className?: string }>; match?: string[] };
 
@@ -99,8 +102,109 @@ function useSidebarCollapsed(): [boolean, () => void] {
   return [collapsed, () => setCollapsed((c) => !c)];
 }
 
-function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+/**
+ * Profile card at the bottom of the sidebar (same pattern as the admin console): avatar, name
+ * and email; it opens a small menu with the account header, profile links and Sign Out.
+ * In the icon rail only the avatar shows and the menu opens to the side.
+ */
+export function SidebarProfile({ compact }: { compact?: boolean }) {
+  const { data: profile } = useProfile();
+  const { user, signOut } = useAuth();
   const isPro = useIsPro();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const name = profile?.fullName || 'Student';
+  const email = profile?.email || user?.email || '';
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const go = (to: string) => {
+    setOpen(false);
+    navigate(to);
+  };
+
+  return (
+    <div ref={ref} className={cn('relative', compact ? 'mt-2' : 'border-t border-line p-3')}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label="Account menu"
+        title={compact ? `${name}${email ? ` (${email})` : ''}` : undefined}
+        className={cn(
+          'flex w-full items-center rounded-xl text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+          compact ? 'justify-center p-1.5 hover:bg-primary-soft' : 'gap-3 border border-line bg-surface p-2 hover:border-primary/30 hover:bg-primary-soft/60'
+        )}
+      >
+        <Avatar url={profile?.avatarUrl} name={name} size={compact ? 36 : 34} />
+        {!compact && (
+          <>
+            <span className="grid min-w-0 flex-1 leading-tight">
+              <span className="truncate text-[13.5px] font-semibold text-ink">{name}</span>
+              {email && <span className="truncate text-[12px] text-muted">{email}</span>}
+            </span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-faint" />
+          </>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className={cn(
+            'absolute z-50 rounded-xl border border-line bg-white p-1.5 text-[13px] shadow-raised',
+            compact ? 'bottom-0 left-[calc(100%+10px)] w-64' : 'bottom-[calc(100%+8px)] left-3 right-3'
+          )}
+        >
+          <div className="mb-1 flex items-center gap-2.5 border-b border-line p-2">
+            <Avatar url={profile?.avatarUrl} name={name} size={32} />
+            <span className="grid min-w-0 flex-1 leading-tight">
+              <span className="truncate font-semibold text-ink">{name}</span>
+              {email && <span className="truncate text-[11px] text-muted">{email}</span>}
+            </span>
+            <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold', isPro ? 'bg-gold-soft text-[#B45309]' : 'bg-primary-soft text-primary')}>
+              {isPro ? 'Pro' : 'Free'}
+            </span>
+          </div>
+          <button type="button" role="menuitem" onClick={() => go('/profile')} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-ink-soft hover:bg-surface hover:text-ink">
+            <User className="h-4 w-4 text-muted" /> My Profile
+          </button>
+          <button type="button" role="menuitem" onClick={() => go('/settings')} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-ink-soft hover:bg-surface hover:text-ink">
+            <Settings className="h-4 w-4 text-muted" /> Settings
+          </button>
+          <div className="my-1 border-t border-line" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={async () => {
+              setOpen(false);
+              await signOut();
+              navigate('/login', { replace: true });
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 font-semibold text-danger hover:bg-danger-soft"
+          >
+            <LogOut className="h-4 w-4" /> Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   return (
     <>
       {/* Desktop: full sidebar */}
@@ -139,17 +243,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             ))}
           </div>
         </nav>
-        {!isPro && (
-          <div className="m-3 rounded-2xl bg-hero p-4 text-white">
-            <p className="flex items-center gap-2 text-[14px] font-extrabold">
-              <Crown className="h-4 w-4 text-gold-bright" /> Unlock PracticeKoro Pro
-            </p>
-            <p className="mt-1 text-[12px] text-indigo-100">All mock tests, PYQs and state rankings.</p>
-            <Link to="/plans" className="mt-3 inline-flex h-8 items-center rounded-full bg-white px-3 text-[12px] font-bold text-primary">
-              View Plans
-            </Link>
-          </div>
-        )}
+        <SidebarProfile />
       </aside>
 
       {/* Tablet / small desktop: icon rail */}
@@ -181,6 +275,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         >
           <PanelLeftOpen className="h-5 w-5" />
         </button>
+        <SidebarProfile compact />
       </aside>
     </>
   );
