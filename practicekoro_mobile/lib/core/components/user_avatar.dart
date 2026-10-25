@@ -192,7 +192,7 @@ class UserAvatar extends ConsumerWidget {
 
   Widget _buildFallback(String initial) {
     return Image.asset(
-      'assets/images/user_avatar_boy.png',
+      'assets/images/logo-circle.png',
       fit: BoxFit.cover,
       width: size,
       height: size,
@@ -339,7 +339,7 @@ Future<void> showAvatarPickerSheet(BuildContext context, WidgetRef ref) async {
                   subtitle: Text(
                     hasGoogle
                         ? 'Revert to your Google profile photo'
-                        : 'Use default avatar illustration',
+                        : 'Use PracticeKoro logo avatar',
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

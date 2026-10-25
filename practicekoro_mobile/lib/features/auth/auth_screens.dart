@@ -42,43 +42,153 @@ class _AuthScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: showBack
-          ? AppBar(backgroundColor: Colors.white, toolbarHeight: 48)
-          : null,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Image.asset(
-                      'assets/images/logo-transparent.png',
-                      height: 52,
-                      errorBuilder: (_, _, _) =>
-                          const Text('PracticeKoro', style: UI.title),
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              toolbarHeight: 52,
+              leading: Padding(
+                padding: const EdgeInsets.only(left: 14),
+                child: Center(
+                  child: Material(
+                    color: const Color(0xFFF1F5F9),
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Color(0xFF1E293B),
+                        size: 18,
+                      ),
+                      tooltip: 'Back',
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          context.go('/login');
+                        }
+                      },
                     ),
                   ),
-                  const SizedBox(height: 28),
-                  Text(title, style: UI.title),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: UI.body.copyWith(color: UI.muted)),
-                  const SizedBox(height: 24),
-                  if (!backendConfigured) ...[
-                    const _Banner(
-                      'This build is not connected to the PracticeKoro server. '
-                      'Build with --dart-define-from-file=config/supabase.json.',
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  ...children,
-                ],
+                ),
+              ),
+            )
+          : null,
+      body: Stack(
+        children: [
+          // Subtle atmospheric brand aura at the top
+          Positioned(
+            top: -90,
+            left: 0,
+            right: 0,
+            height: 260,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.topCenter,
+                    radius: 1.1,
+                    colors: [
+                      const Color(0xFF1F48E8).withValues(alpha: 0.05),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Minimalist Brand Emblem
+                      Center(
+                        child: Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF1F48E8).withValues(alpha: 0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 6),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: const Color(0xFFE2E8F0),
+                              width: 1,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(10),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              'assets/images/logo-circle.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => Image.asset(
+                                'assets/images/logo-transparent.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, _, _) => const Icon(
+                                  Icons.school_rounded,
+                                  color: UI.primary,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF64748B),
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      if (!backendConfigured) ...[
+                        const _Banner(
+                          'This build is not connected to the PracticeKoro server. '
+                          'Build with --dart-define-from-file=config/supabase.json.',
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      ...children,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -92,27 +202,39 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = success ? UI.success : UI.danger;
+    final color = success ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final bgColor = success ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2);
+    final borderColor = success ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+
     return Semantics(
       liveRegion: true,
-      child: UICard(
-        color: success ? UI.successSoft : UI.dangerSoft,
-        border: success ? UI.successSoft : UI.dangerSoft,
-        raised: false,
-        padding: const EdgeInsets.all(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              success
-                  ? Icons.check_circle_rounded
-                  : Icons.error_outline_rounded,
+              success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
               color: color,
-              size: 20,
+              size: 18,
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(text, style: UI.body.copyWith(color: color)),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                  height: 1.4,
+                ),
+              ),
             ),
           ],
         ),
@@ -121,20 +243,62 @@ class _Banner extends StatelessWidget {
   }
 }
 
-InputDecoration _field(String label, IconData icon, {Widget? suffix}) =>
+InputDecoration _field(
+  String label,
+  IconData icon, {
+  Widget? suffix,
+  String? hint,
+}) =>
     InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: UI.muted),
+      hintText: hint,
+      labelStyle: const TextStyle(
+        color: Color(0xFF64748B),
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: UI.primary,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      hintStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 14,
+      ),
+      prefixIcon: Padding(
+        padding: const EdgeInsets.only(left: 14, right: 12),
+        child: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 46, minHeight: 46),
       suffixIcon: suffix,
       filled: true,
-      fillColor: UI.surface,
+      fillColor: const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(UI.radius),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(UI.radius),
-        borderSide: const BorderSide(color: UI.primary, width: 1.4),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: UI.primary, width: 1.8),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.8),
+      ),
+      errorStyle: const TextStyle(
+        color: Color(0xFFEF4444),
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
       ),
     );
 
@@ -171,17 +335,86 @@ class _PasswordFieldState extends State<_PasswordField> {
       autofillHints: widget.autofill,
       validator: widget.validator,
       onFieldSubmitted: (_) => widget.onSubmitted?.call(),
+      style: const TextStyle(
+        fontSize: 15,
+        color: Color(0xFF0F172A),
+        fontWeight: FontWeight.w500,
+      ),
       decoration: _field(
         widget.label,
         Icons.lock_outline_rounded,
         suffix: IconButton(
           tooltip: _hidden ? 'Show password' : 'Hide password',
+          splashRadius: 20,
           icon: Icon(
             _hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-            color: UI.muted,
+            color: const Color(0xFF94A3B8),
+            size: 20,
           ),
           onPressed: () => setState(() => _hidden = !_hidden),
         ),
+      ),
+    );
+  }
+}
+
+/// Minimalist primary CTA button with ambient drop-shadow.
+class _PrimaryAuthButton extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  const _PrimaryAuthButton(
+    this.label, {
+    required this.loading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: (onPressed != null && !loading)
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF1F48E8).withValues(alpha: 0.22),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: ElevatedButton(
+        onPressed: loading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1F48E8),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: const Color(0xFF1F48E8).withValues(alpha: 0.5),
+          disabledForegroundColor: Colors.white70,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(label),
       ),
     );
   }
@@ -274,16 +507,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: 'Welcome back',
-      subtitle: 'Log in to take tests and save your results.',
+      subtitle: 'Sign in to practise mock tests & track your progress.',
       children: [
         if (_error != null) ...[_Banner(_error!), const SizedBox(height: 16)],
         GoogleSignInButton(
           loading: _googleBusy,
           onPressed: (_busy || _googleBusy) ? null : _handleGoogleLogin,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         const AuthOrDivider(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Form(
           key: _form,
           child: AutofillGroup(
@@ -295,7 +528,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
                   validator: _validateEmail,
-                  decoration: _field('Email', Icons.mail_outline_rounded),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: _field('Email address', Icons.mail_outline_rounded, hint: 'name@example.com'),
                 ),
                 const SizedBox(height: 14),
                 _PasswordField(
@@ -309,27 +547,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 6),
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => context.push('/forgot-password'),
-            child: const Text('Forgot password?'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text(
+              'Forgot password?',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F48E8),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        UIButton(
+        const SizedBox(height: 16),
+        _PrimaryAuthButton(
           'Log In',
           loading: _busy,
           onPressed: (_busy || _googleBusy) ? null : _submit,
         ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 22),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
           children: [
-            const Text('New to PracticeKoro?', style: UI.body),
+            const Text(
+              'New to PracticeKoro?',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
             TextButton(
               onPressed: () => context.push('/signup'),
-              child: const Text('Create account'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Create account',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F48E8),
+                ),
+              ),
             ),
           ],
         ),
@@ -447,8 +719,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             'Open it on this phone, then log in.',
             success: true,
           ),
-          const SizedBox(height: 20),
-          UIButton('Go to Log In', onPressed: () => context.go('/login')),
+          const SizedBox(height: 24),
+          _PrimaryAuthButton('Go to Log In', loading: false, onPressed: () => context.go('/login')),
         ],
       );
     }
@@ -463,9 +735,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           loading: _googleBusy,
           onPressed: (_busy || _googleBusy) ? null : _handleGoogleLogin,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         const AuthOrDivider(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Form(
           key: _form,
           child: AutofillGroup(
@@ -479,7 +751,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   validator: (v) => (v?.trim().length ?? 0) < 2
                       ? 'Enter your full name'
                       : null,
-                  decoration: _field('Full name', Icons.person_outline_rounded),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: _field('Full name', Icons.person_outline_rounded, hint: 'Student Name'),
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
@@ -488,7 +765,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.email],
                   validator: _validateEmail,
-                  decoration: _field('Email', Icons.mail_outline_rounded),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: _field('Email address', Icons.mail_outline_rounded, hint: 'name@example.com'),
                 ),
                 const SizedBox(height: 14),
                 _PasswordField(
@@ -511,20 +793,41 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        UIButton(
+        const SizedBox(height: 22),
+        _PrimaryAuthButton(
           'Create Account',
           loading: _busy,
           onPressed: (_busy || _googleBusy) ? null : _submit,
         ),
-        const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 22),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 6,
           children: [
-            const Text('Already have an account?', style: UI.body),
+            const Text(
+              'Already have an account?',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
             TextButton(
               onPressed: () => context.go('/login'),
-              child: const Text('Log in'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Log in',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F48E8),
+                ),
+              ),
             ),
           ],
         ),
@@ -588,8 +891,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             'its way. Open it on this phone to choose a new password.',
             success: true,
           ),
-          const SizedBox(height: 20),
-          UIButton('Back to Log In', onPressed: () => context.go('/login')),
+          const SizedBox(height: 24),
+          _PrimaryAuthButton('Back to Log In', loading: false, onPressed: () => context.go('/login')),
         ] else ...[
           Form(
             key: _form,
@@ -599,11 +902,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               autofillHints: const [AutofillHints.email],
               validator: _validateEmail,
               onFieldSubmitted: (_) => _submit(),
-              decoration: _field('Email', Icons.mail_outline_rounded),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w500,
+              ),
+              decoration: _field('Email address', Icons.mail_outline_rounded, hint: 'name@example.com'),
             ),
           ),
-          const SizedBox(height: 20),
-          UIButton('Send Reset Link', loading: _busy, onPressed: _submit),
+          const SizedBox(height: 22),
+          _PrimaryAuthButton('Send Reset Link', loading: _busy, onPressed: _submit),
         ],
       ],
     );
@@ -683,8 +991,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        UIButton('Update Password', loading: _busy, onPressed: _submit),
+        const SizedBox(height: 22),
+        _PrimaryAuthButton('Update Password', loading: _busy, onPressed: _submit),
       ],
     );
   }

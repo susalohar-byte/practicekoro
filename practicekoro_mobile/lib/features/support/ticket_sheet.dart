@@ -656,7 +656,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                                 Text(
                                   DateFormat('hh:mm a').format(msg.createdAt.toLocal()),
                                   style: const TextStyle(
-                                    fontSize: 9.5,
+                                    fontSize: 11,
                                     color: UI.muted,
                                   ),
                                 ),

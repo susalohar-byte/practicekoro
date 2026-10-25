@@ -123,9 +123,9 @@ class GoogleSignInButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1E293B),
-          side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
           elevation: 0,
-          shadowColor: const Color(0x0A000000),
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

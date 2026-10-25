@@ -17,16 +17,11 @@ class QuestionText extends StatelessWidget {
       children: [
         Text(
           bengali.isNotEmpty ? bengali : english,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: UI.text,
-            height: 1.55,
-          ),
+          style: UI.question,
         ),
         if (bengali.isNotEmpty && english.isNotEmpty && english != bengali) ...[
           const SizedBox(height: 6),
-          Text(english, style: UI.caption.copyWith(fontSize: 14)),
+          Text(english, style: UI.caption.copyWith(fontSize: 13, height: 1.45)),
         ],
       ],
     );
