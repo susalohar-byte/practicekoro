@@ -1,21 +1,22 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Admin-only application entry', () => {
-  test('root redirects guests to admin sign in', async ({ page }) => {
+test.describe('Application entry', () => {
+  test('root shows the landing page, whose Login leads to the shared sign-in', async ({ page }) => {
     await page.goto('/');
+    await page.getByRole('link', { name: /^login$/i }).first().click();
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('heading', { name: /admin sign in/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   test('admin routes redirect anonymous users to sign in', async ({ page }) => {
     await page.goto('/admin');
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('heading', { name: /admin sign in/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   test('unknown routes return to the admin entry', async ({ page }) => {
     await page.goto('/removed-public-page');
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('heading', { name: /admin sign in/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 });

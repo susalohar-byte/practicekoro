@@ -47,6 +47,7 @@ Only public values go here. They are baked into the bundle at build time.
 | `VITE_SUPABASE_URL` | No (defaults to production) | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | No (defaults to production) | Public anon / publishable key |
 | `VITE_BASE_PATH` | No (default `/dashboard/` for builds, `/` in dev) | Path the panel is served from. Must end with `/`. |
+| `VITE_ADMIN_URL` | No (default `/admin`; dev `http://localhost:5174/admin`) | Where admin accounts go after signing in on the panel's own login page. |
 
 Never put the service-role key, the Razorpay key secret or the webhook secret in a `VITE_`
 variable. The Razorpay key id comes from the `create-razorpay-order` Edge Function, or else
@@ -77,7 +78,8 @@ Because the panel is on the same domain, it shares the login with the landing pa
 admin console (one Supabase session). Everyone signs in at `practicekoro.online/login`:
 admins continue to `/admin`, students to `/dashboard`. A signed-in student who opens `/login`
 or `/admin` is sent to `/dashboard`, and new students use the **Create account** link there.
-The panel's own `/dashboard/login` keeps working for direct visits.
+The panel's own `/dashboard/login` keeps working for direct visits; an admin account that signs
+in there is sent to the admin console too.
 
 Before going live:
 

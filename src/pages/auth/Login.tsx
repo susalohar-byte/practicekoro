@@ -1,37 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import { GoogleIcon } from '@/components/common/GoogleIcon';
-import { 
-  Lock, 
-  Mail, 
-  ArrowRight, 
-  Loader2, 
-  GraduationCap, 
-  Smartphone, 
-  Download, 
+import {
+  Lock,
+  Mail,
+  ArrowRight,
   ArrowLeft,
-  CheckCircle2,
-  AlertCircle
+  Loader2,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  FileText,
+  Target,
+  FolderOpen,
+  BarChart3,
 } from 'lucide-react';
 import { mapAuthError } from '@/lib/errors';
 import { openStudentPanel, studentPanelUrl } from '@/lib/studentPanel';
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const FEATURES = [
+  { label: ['Mock', 'Tests'], icon: FileText, color: '#EF4444', bg: '#FEE2E2' },
+  { label: ['Topic-wise', 'Practice'], icon: Target, color: '#2563EB', bg: '#DBEAFE' },
+  { label: ['Previous Year', 'Questions'], icon: FolderOpen, color: '#F59E0B', bg: '#FEF3C7' },
+  { label: ['Track', 'Progress'], icon: BarChart3, color: '#16A34A', bg: '#DCFCE7' },
+];
+
+/** Yellow brush stroke under the headline. */
+const BrushUnderline: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 340 24" className={className} aria-hidden fill="none">
+    <path d="M6 17C70 7 170 4 334 9" stroke="#FACC15" strokeWidth="7" strokeLinecap="round" />
+    <path d="M60 21C130 15 210 14 300 16" stroke="#FACC15" strokeWidth="3.5" strokeLinecap="round" opacity="0.8" />
+  </svg>
+);
+
+/** Three short yellow "spark" strokes beside "Welcome Back!". */
+const Sparks: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 40 40" className={className} aria-hidden fill="none">
+    <path d="M24 4L30 18" stroke="#FACC15" strokeWidth="5" strokeLinecap="round" />
+    <path d="M6 17L19 25" stroke="#FACC15" strokeWidth="5" strokeLinecap="round" />
+  </svg>
+);
+
 export const Login: React.FC = () => {
-  const { login, loginWithGoogle, logout } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Student post-login state when student portal is under construction
-  const [studentNotice, setStudentNotice] = useState<boolean>(false);
+  // A student account signed in: the Student Web Panel is opening.
+  const [openingStudentPanel, setOpeningStudentPanel] = useState(false);
 
   const routeState = location.state as {
     from?: { pathname?: string };
@@ -58,7 +83,6 @@ export const Login: React.FC = () => {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     setError(null);
-    setStudentNotice(false);
 
     const redirectPath = isFromAdmin ? from! : '/admin';
     const redirectDest = `${window.location.origin}${redirectPath}`;
@@ -76,16 +100,25 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const id = email.trim();
+    if (!id || !password) {
       setError('Please enter both email and password.');
+      return;
+    }
+    // Accounts sign in with their email; phone sign-in is not enabled on the server.
+    if (!EMAIL_RE.test(id)) {
+      setError(
+        /^[+\d][\d\s-]{6,}$/.test(id)
+          ? 'Phone number sign-in is not available yet. Please use your email address.'
+          : 'Please enter a valid email address.'
+      );
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setStudentNotice(false);
 
-    const res = await login(email, password);
+    const res = await login(id, password);
     setIsLoading(false);
 
     if (res.error) {
@@ -95,214 +128,200 @@ export const Login: React.FC = () => {
       navigate(adminDest, { replace: true });
     } else {
       // One login for everyone: student accounts continue to the Student Web Panel.
-      setStudentNotice(true);
+      setOpeningStudentPanel(true);
       openStudentPanel('home');
     }
   };
 
-  const handleSwitchAccount = async () => {
-    await logout();
-    setStudentNotice(false);
-    setEmail('');
-    setPassword('');
-  };
+  const inputClass =
+    'h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-10 sm:px-6 lg:px-8 bg-[#F4F6FB] relative">
-      {/* Top Bar Back to Home */}
-      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-blue-600 bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-slate-200 shadow-xs transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Home পেজে ফিরুন</span>
-        </Link>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#C8DEFE] via-[#E4EEFD] to-[#F6F9FD] font-sans">
+      {/* Soft light spots */}
+      <div className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-white/50 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-20 -bottom-24 h-96 w-96 rounded-full bg-white/70 blur-3xl" aria-hidden />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center px-4">
-        {/* Brand Logo linking to Home */}
-        <Link to="/" className="inline-flex items-center justify-center mb-3 group">
-          <img
-            src="/logo-transparent.png"
-            alt="PracticeKoro"
-            className="h-10 sm:h-12 w-auto object-contain group-hover:scale-105 transition-transform"
-          />
-        </Link>
+      {/* Back to the landing page */}
+      <Link
+        to="/"
+        aria-label="Home পেজে ফিরুন"
+        title="Home পেজে ফিরুন"
+        className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:text-blue-600 sm:left-6 sm:top-6"
+      >
+        <ArrowLeft className="h-[18px] w-[18px]" />
+      </Link>
 
-        {/* Heading that satisfies test regex /admin sign in/i while welcoming both Admin & Student */}
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-headline tracking-tight">
-          Admin Sign In & Student Portal
-        </h2>
-        <p className="mt-1 text-xs text-slate-500 font-headline">
-          Practice Koro প্ল্যাটফর্মে আপনার অ্যাকাউন্টে সাইন ইন করুন
-        </p>
-      </div>
+      <div className="relative mx-auto grid min-h-screen max-w-[1320px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-14 lg:px-10 lg:py-10">
+        {/* Left: headline, illustration, features (desktop) */}
+        <section className="hidden flex-col items-center text-center lg:flex">
+          <h1 className="font-headline text-[64px] font-extrabold leading-[1.05] tracking-tight">
+            <span className="block text-[#0B1446]">আবারও</span>
+            <span className="relative inline-block text-[#1F48E8]">
+              প্রস্তুতির পথে?
+              <BrushUnderline className="absolute -bottom-3 left-1/2 w-[78%] -translate-x-1/2" />
+            </span>
+          </h1>
+          <p className="mt-8 font-headline text-[22px] font-medium leading-snug text-slate-600">
+            Practice Koro-র সাথে
+            <br />
+            প্রতিদিন একটু করে এগিয়ে চলুন।
+          </p>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-xl shadow-blue-500/5 rounded-3xl border border-slate-200/80 sm:px-10">
-          
-          {/* If a Student Logs in and Student Web Panel is in Progress */}
-          {studentNotice ? (
-            <div className="space-y-5 animate-fadeIn text-center">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
-                <GraduationCap className="w-7 h-7" />
-              </div>
+          <div className="relative mt-4 w-full max-w-[680px]">
+            <img
+              src="/images/login_student_illustration.webp"
+              alt="A student practising mock tests on PracticeKoro"
+              className="w-full select-none"
+              style={{
+                WebkitMaskImage:
+                  'linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%), linear-gradient(to right, #000 82%, transparent 100%)',
+                WebkitMaskComposite: 'source-in',
+                maskImage:
+                  'linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%), linear-gradient(to right, #000 82%, transparent 100%)',
+                maskComposite: 'intersect',
+              }}
+              draggable={false}
+            />
+            <ul className="relative -mt-3 grid grid-cols-4 rounded-[28px] border border-white/80 bg-white/95 px-3 py-5 shadow-[0_18px_40px_rgba(30,64,175,0.12)] backdrop-blur">
+              {FEATURES.map(({ label, icon: Icon, color, bg }, i) => (
+                <li key={label.join(' ')} className={`flex flex-col items-center px-2 ${i > 0 ? 'border-l border-slate-200' : ''}`}>
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full shadow-sm" style={{ background: bg, color }}>
+                    <Icon className="h-6 w-6" />
+                  </span>
+                  <span className="mt-2 text-[14px] font-bold leading-tight text-slate-900">
+                    {label[0]}
+                    <br />
+                    {label[1]}
+                  </span>
+                  <span className="mt-1.5 h-[3px] w-6 rounded-full" style={{ background: color }} aria-hidden />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full mb-2 border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Student Account Verified</span>
-                </div>
-                <h3 className="text-base font-bold text-slate-900 font-headline">
-                  স্বাগতম শিক্ষার্থী!
-                </h3>
-                <p className="text-xs text-slate-600 mt-2 leading-relaxed font-headline">
-                  এটি অ্যাডমিন কনসোলের লগইন। মক টেস্ট, লাইভ টেস্ট, রেজাল্ট ও সমাধানের জন্য শিক্ষার্থী ওয়েব প্যানেল খুলুন বা অ্যান্ড্রয়েড অ্যাপ ব্যবহার করুন।
-                </p>
-              </div>
+        {/* Right: sign-in card */}
+        <section className="mx-auto w-full max-w-[600px] rounded-[32px] border border-white bg-white px-6 py-9 shadow-[0_24px_60px_rgba(30,64,175,0.12)] sm:px-12 sm:py-12">
+          <Link to="/" className="mx-auto flex w-fit items-center" aria-label="PracticeKoro home">
+            <img src="/logo-transparent.png" alt="PracticeKoro" className="h-10 w-auto object-contain sm:h-11" />
+          </Link>
 
-              <a
-                href={studentPanelUrl('home')}
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all"
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>Open Student Panel</span>
-                <ArrowRight className="w-4 h-4" />
+          <div className="relative mt-8 text-center">
+            <Sparks className="absolute -left-1 -top-5 h-10 w-10 sm:left-1" />
+            <h2 className="font-headline text-[40px] font-extrabold leading-tight tracking-tight sm:text-[50px]">
+              <span className="text-[#0B1446]">Welcome </span>
+              <span className="text-[#1F5BFF]">Back!</span>
+            </h2>
+            <p className="mt-2 font-headline text-[16px] font-medium text-slate-600 sm:text-[19px]">
+              আপনার প্রস্তুতির যাত্রা এখান থেকে আবার শুরু করুন।
+            </p>
+          </div>
+
+          {openingStudentPanel ? (
+            <div className="mt-10 flex flex-col items-center gap-3 py-8 text-center" role="status">
+              <Loader2 className="h-8 w-8 animate-spin text-[#1F5BFF]" />
+              <p className="text-sm font-semibold text-slate-700">Opening your student panel…</p>
+              <a href={studentPanelUrl('home')} className="text-sm font-bold text-[#1F5BFF] hover:underline">
+                Continue to the student panel
               </a>
-
-              <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-2xl flex flex-col gap-2.5 text-left">
-                <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
-                  <Smartphone className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span>Android Mobile App Live</span>
-                </div>
-                <p className="text-[11px] text-blue-700 leading-normal">
-                  অ্যাপে লাইভ টেস্ট, ইনস্ট্যান্ট স্কোর, র‍্যাঙ্কিং ও বিস্তারিত ব্যাখ্যা সাথে সাথেই পেয়ে যাবেন।
-                </p>
-                <a
-                  href="/PracticeKoro.apk"
-                  download="PracticeKoro.apk"
-                  className="mt-1 inline-flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Practice Koro APK (70 MB)</span>
-                </a>
-              </div>
-
-              <div className="pt-2 flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={handleSwitchAccount}
-                  className="flex-1 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  অন্য অ্যাকাউন্টে লগইন
-                </button>
-                <Link
-                  to="/"
-                  className="flex-1 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-xl transition-colors text-center"
-                >
-                  হোম পেজে ফিরুন
-                </Link>
-              </div>
             </div>
           ) : (
             <>
               {error && (
-                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div role="alert" className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-600" />
                   <span>{error}</span>
                 </div>
               )}
 
-              {/* 1-Click Google Sign In */}
               <button
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading || isLoading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl shadow-xs transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                className="mt-8 flex h-16 w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white text-[17px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isGoogleLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
-                ) : (
-                  <GoogleIcon className="w-5 h-5" />
-                )}
+                {isGoogleLoading ? <Loader2 className="h-5 w-5 animate-spin text-slate-500" /> : <GoogleIcon className="h-6 w-6" />}
                 <span>Continue with Google</span>
               </button>
 
-              <div className="relative my-5">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-slate-400 font-medium">
-                    Or continue with email
-                  </span>
-                </div>
+              <div className="my-7 flex items-center gap-8 text-[15px] text-slate-500">
+                <span className="h-px flex-1 bg-slate-200" />
+                OR
+                <span className="h-px flex-1 bg-slate-200" />
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="aspirant@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  leftIcon={<Mail className="w-4 h-4" />}
-                  required
-                />
+              <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+                <div>
+                  <label htmlFor="login-id" className="mb-2 block text-[15px] font-semibold text-slate-800">
+                    Email or Phone Number
+                  </label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                    <input
+                      id="login-id"
+                      type="text"
+                      inputMode="email"
+                      autoComplete="username"
+                      placeholder="Enter your email or phone number"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label
-                      htmlFor="password"
-                      className="text-xs font-semibold uppercase tracking-wider text-slate-600"
+                  <label htmlFor="password" className="mb-2 block text-[15px] font-semibold text-slate-800">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${inputClass} pr-12`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 hover:text-slate-800"
                     >
-                      Password
-                    </label>
-                    <Link
-                      to="/forgot-password"
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      Forgot password?
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  <div className="mt-2 text-right">
+                    <Link to="/forgot-password" className="text-[15px] font-medium text-[#1F5BFF] hover:underline">
+                      Forgot Password?
                     </Link>
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    leftIcon={<Lock className="w-4 h-4" />}
-                    required
-                  />
                 </div>
 
-                <Button
+                <button
                   type="submit"
-                  className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all"
-                  isLoading={isLoading}
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                  disabled={isLoading || isGoogleLoading}
+                  className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#0B5CFF] text-[18px] font-bold text-white shadow-[0_12px_24px_rgba(11,92,255,0.28)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Sign In
-                </Button>
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-label="Signing in" /> : null}
+                  <span>Sign In</span>
+                  {!isLoading && <ArrowRight className="h-5 w-5" />}
+                </button>
               </form>
 
-              {/* Helpful footer notes on Login */}
-              <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-                <p className="text-[11px] text-slate-500">
-                  অ্যাডমিন সাইন ইন করলে <strong>অ্যাডমিন কনসোলে</strong> এবং শিক্ষার্থী সাইন ইন করলে <strong>স্টুডেন্ট প্যানেলে</strong> সরাসরি প্রবেশ করবেন।
-                </p>
-                <p className="mt-3 text-xs text-slate-600">
-                  নতুন শিক্ষার্থী?{' '}
-                  <a href={studentPanelUrl('signup')} className="font-bold text-blue-600 hover:underline">
-                    Create account
-                  </a>
-                </p>
-              </div>
+              <p className="mt-8 text-center text-[15px] text-slate-600">
+                Don&apos;t have an account?{' '}
+                <a href={studentPanelUrl('signup')} className="ml-1 font-bold text-[#1F5BFF] hover:underline">
+                  Create Account
+                </a>
+              </p>
             </>
           )}
-
-        </div>
+        </section>
       </div>
     </div>
   );

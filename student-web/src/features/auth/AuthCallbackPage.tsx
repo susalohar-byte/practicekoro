@@ -14,7 +14,8 @@ export default function AuthCallbackPage() {
   }, []);
 
   if (recovery) return <Navigate to="/reset-password" replace />;
-  if (user) return <Navigate to="/home" replace />;
+  // /login decides where a signed-in account goes (admin console or panel).
+  if (user) return <Navigate to="/login" replace />;
   if (timedOut) return <Navigate to="/login" replace />;
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-page" role="status">

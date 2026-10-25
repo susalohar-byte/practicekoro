@@ -69,7 +69,7 @@ beforeEach(() => {
 describe('Login (auth regression)', () => {
   it('exposes the password field with an accessible label', async () => {
     renderLogin();
-    await screen.findByRole('heading', { name: /admin sign in/i });
+    await screen.findByRole('heading', { name: /welcome back/i });
 
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
   });
@@ -77,8 +77,8 @@ describe('Login (auth regression)', () => {
   it('shows OAuth error text containing a percent sign without crashing', async () => {
     renderLogin('/login?error=%25');
 
-    expect(await screen.findByRole('heading', { name: /admin sign in/i })).toBeVisible();
-    expect(screen.getByText('%')).toBeVisible();
+    expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeVisible();
+    expect(await screen.findByText('%')).toBeVisible();
   });
 
   it('shows the error instead of silently staying put when login() rejects', async () => {
@@ -88,12 +88,12 @@ describe('Login (auth regression)', () => {
     });
 
     renderLogin();
-    await screen.findByRole('heading', { name: /admin sign in/i });
+    await screen.findByRole('heading', { name: /welcome back/i });
 
-    fireEvent.change(screen.getByPlaceholderText('aspirant@gmail.com'), {
+    fireEvent.change(screen.getByPlaceholderText('Enter your email or phone number'), {
       target: { value: 'admin@practicekoro.com' },
     });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
       target: { value: 'wrongpassword123' },
     });
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
@@ -104,12 +104,12 @@ describe('Login (auth regression)', () => {
     const err = await screen.findByText(/Incorrect email or password/);
     expect(err).toBeVisible();
     // …and the form must still be mounted.
-    expect(screen.getByRole('heading', { name: /admin sign in/i })).toBeVisible();
+    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });
 
   it('requires both fields before calling login()', async () => {
     const { container } = renderLogin();
-    await screen.findByRole('heading', { name: /admin sign in/i });
+    await screen.findByRole('heading', { name: /welcome back/i });
 
     // fireEvent.submit bypasses native `required` validation so the
     // JS-level guard inside handleSubmit is exercised directly.
@@ -117,5 +117,28 @@ describe('Login (auth regression)', () => {
 
     expect(await screen.findByText('Please enter both email and password.')).toBeVisible();
     expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+  it('explains that phone sign-in is not available instead of calling login()', async () => {
+    const { container } = renderLogin();
+    await screen.findByRole('heading', { name: /welcome back/i });
+
+    fireEvent.change(screen.getByPlaceholderText('Enter your email or phone number'), {
+      target: { value: '98765 43210' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+      target: { value: 'secret123' },
+    });
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByText(/Phone number sign-in is not available yet/)).toBeVisible();
+    expect(signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('shows a small back arrow to the landing page and the create-account link', async () => {
+    renderLogin();
+    await screen.findByRole('heading', { name: /welcome back/i });
+
+    expect(screen.getByRole('link', { name: 'Home পেজে ফিরুন' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Create Account' }).getAttribute('href')).toMatch(/signup$/);
   });
 });
