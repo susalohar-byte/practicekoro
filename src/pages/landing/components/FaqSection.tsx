@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaqAccordion, type FAQItem } from '@/components/ui/faq-chat-accordion';
+import { Reveal } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
 interface FaqItem {
@@ -64,12 +65,14 @@ export const FaqSection: React.FC = () => {
           className="mb-6 sm:mb-8"
         />
 
-        <FaqAccordion
+        <Reveal>
+          <FaqAccordion
           data={items}
           defaultOpenId={1}
           className="max-w-4xl mx-auto p-0 font-['Hind_Siliguri',sans-serif] text-[15px] sm:text-base"
           answerClassName="leading-relaxed bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] shadow-md shadow-blue-600/20"
-        />
+          />
+        </Reveal>
       </div>
     </section>
   );

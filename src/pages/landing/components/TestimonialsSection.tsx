@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Reveal } from './Reveal';
 import { SectionHeading } from './SectionHeading';
+
+const AUTOPLAY_MS = 5000;
 
 const TESTIMONIALS = [
   {
@@ -52,7 +56,15 @@ const QuoteMark: React.FC = () => (
 export const TestimonialsSection: React.FC = () => {
   // The cards slide one at a time, so a dot is shown for every starting position
   const [start, setStart] = useState(0);
+  const [paused, setPaused] = useState(false);
   const visible = TESTIMONIALS.slice(start, start + PER_VIEW);
+
+  // Moves on by one review every few seconds, holding still while the visitor is reading
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setInterval(() => setStart((s) => (s + 1) % POSITIONS), AUTOPLAY_MS);
+    return () => window.clearInterval(timer);
+  }, [paused]);
 
   return (
     <section id="reviews" className="scroll-mt-20 py-8 sm:py-12">
@@ -63,10 +75,23 @@ export const TestimonialsSection: React.FC = () => {
           subtitle="Practice Koro ব্যবহার করে হাজারো ছাত্রছাত্রী তাদের প্রস্তুতিতে আরও শক্তিশালী করেছে।"
         />
 
-        <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+        <Reveal
+          className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocusCapture={() => setPaused(true)}
+          onBlurCapture={() => setPaused(false)}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
           {visible.map((item, index) => (
-            <article
+            <motion.article
               key={item.name}
+              layout
+              initial={{ opacity: 0, x: 60, scale: 0.96 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -60, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+              whileHover={{ y: -6 }}
               className={`bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] p-5 sm:p-6 ${
                 index > 0 ? 'hidden md:block' : ''
               }`}
@@ -82,9 +107,10 @@ export const TestimonialsSection: React.FC = () => {
               <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Hind_Siliguri',sans-serif]">
                 {item.comment}
               </p>
-            </article>
+            </motion.article>
           ))}
-        </div>
+          </AnimatePresence>
+        </Reveal>
 
         <div className="mt-6 flex items-center justify-center gap-2">
           {Array.from({ length: POSITIONS }, (_, idx) => (
@@ -93,8 +119,8 @@ export const TestimonialsSection: React.FC = () => {
               type="button"
               onClick={() => setStart(idx)}
               aria-label={`Show reviews ${idx + 1}`}
-              className={`w-2.5 h-2.5 rounded-full transition-colors cursor-pointer ${
-                start === idx ? 'bg-[#1A5CFF]' : 'bg-[#C9D2EC] hover:bg-[#A9B5D9]'
+              className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                start === idx ? 'w-7 bg-[#1A5CFF]' : 'w-2.5 bg-[#C9D2EC] hover:bg-[#A9B5D9]'
               }`}
             />
           ))}

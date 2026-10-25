@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'motion/react';
+import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
 const FEATURES = [
@@ -44,13 +46,15 @@ export const WhyPracticeKoroSection: React.FC = () => {
           subtitle="পরীক্ষার প্রস্তুতি এখন আরও গুছানো, আরও কার্যকরী।"
         />
 
-        <div className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
+        <RevealGroup className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
           {FEATURES.map((feature) => (
-            <div
+            <motion.div
               key={feature.title}
-              className="bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] hover:-translate-y-1 transition-transform px-3 sm:px-4 py-5 sm:py-6 flex flex-col items-center text-center"
+              variants={popIn}
+              {...hoverLift}
+              className="bg-white rounded-2xl border border-[#EDF0F8] group shadow-[0_6px_24px_rgba(30,50,120,0.07)] hover:shadow-[0_14px_34px_rgba(30,80,240,0.14)] transition-shadow px-3 sm:px-4 py-5 sm:py-6 flex flex-col items-center text-center"
             >
-              <div className={`w-16 h-16 sm:w-[76px] sm:h-[76px] rounded-full ${feature.tint} flex items-center justify-center`}>
+              <div className={`w-16 h-16 sm:w-[76px] sm:h-[76px] rounded-full ${feature.tint} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}>
                 <img src={feature.icon} alt="" aria-hidden className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
               </div>
               <h3 className="mt-3 sm:mt-4 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug">
@@ -59,9 +63,9 @@ export const WhyPracticeKoroSection: React.FC = () => {
               <p className="mt-2 text-[13px] sm:text-[15px] text-[#5B6478] leading-relaxed font-['Hind_Siliguri',sans-serif]">
                 {feature.description}
               </p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </RevealGroup>
       </div>
     </section>
   );

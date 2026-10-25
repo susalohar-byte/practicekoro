@@ -2,6 +2,8 @@ import React from 'react';
 import { ArrowUp, Heart } from 'lucide-react';
 import { GooglePlayBadge, AppStoreBadge } from './AppStoreBadges';
 import { BrandMark } from './Navbar';
+import { motion } from 'motion/react';
+import { RevealGroup, fadeUp } from './Reveal';
 
 interface FooterProps {
   onIosClick: () => void;
@@ -78,8 +80,8 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-6">
-        <div className="grid grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] gap-8 lg:gap-6 pb-8">
-          <div className="col-span-2 lg:col-span-1 lg:pr-8 lg:border-r lg:border-white/10">
+        <RevealGroup className="grid grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] gap-8 lg:gap-6 pb-8">
+          <motion.div variants={fadeUp} className="col-span-2 lg:col-span-1 lg:pr-8 lg:border-r lg:border-white/10">
             <div className="flex items-center gap-3">
               <BrandMark className="w-12 h-12" />
               <span className="text-xl font-bold text-white">Practice Koro</span>
@@ -105,9 +107,9 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
                 </a>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={fadeUp}>
             <h3 className="text-[15px] font-semibold text-white">Quick Links</h3>
             <ul className="mt-4 space-y-2 text-sm">
               {QUICK_LINKS.map((link) => (
@@ -118,9 +120,9 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={fadeUp}>
             <h3 className="text-[15px] font-semibold text-white">Support</h3>
             <ul className="mt-4 space-y-2 text-sm">
               {SUPPORT_LINKS.map((label) => (
@@ -129,9 +131,9 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
 
-          <div className="col-span-2 lg:col-span-1 relative">
+          <motion.div variants={fadeUp} className="col-span-2 lg:col-span-1 relative">
             <h3 className="text-[15px] font-semibold text-white">Get the App</h3>
             <div className="mt-4 flex flex-row lg:flex-col flex-wrap items-start gap-3">
               <GooglePlayBadge size="md" className="min-w-[160px]" />
@@ -145,8 +147,8 @@ export const Footer: React.FC<FooterProps> = ({ onIosClick }) => {
             >
               <ArrowUp className="w-4 h-4" />
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </RevealGroup>
 
         <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-[13px] text-white/75">
           <p>© 2026 Practice Koro. All rights reserved.</p>

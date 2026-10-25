@@ -1,5 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { ArrowRight } from 'lucide-react';
 import { GooglePlayBadge, AppStoreBadge } from './AppStoreBadges';
+import { GroupStudyScene } from './GroupStudyScene';
+import { Reveal, RevealGroup, fadeUp, popIn } from './Reveal';
 
 interface AppDownloadBannerProps {
   onIosClick: () => void;
@@ -7,27 +12,62 @@ interface AppDownloadBannerProps {
 
 export const AppDownloadBanner: React.FC<AppDownloadBannerProps> = ({ onIosClick }) => {
   return (
-    <section className="pt-4 pb-10 sm:pb-14">
+    <section className="pt-6 pb-12 sm:pb-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl shadow-[0_10px_30px_rgba(30,80,200,0.12)] bg-[#DCEBFB] bg-[url('/images/landing/cta_banner_bg.jpg')] bg-cover bg-[72%_center] md:bg-center md:aspect-[800/190] min-h-[300px] md:min-h-0">
-          {/* On narrow screens the boy sits behind the text, so lighten that side */}
-          <div className="md:hidden absolute inset-0 bg-gradient-to-r from-white/85 via-white/70 to-transparent" aria-hidden />
+        <Reveal
+          variants={popIn}
+          className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#0B1B4F] via-[#0E2A86] to-[#1450F0] shadow-[0_24px_60px_rgba(20,60,200,0.30)]"
+        >
+          {/* Slow drifting light, so the card feels alive behind the scene */}
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute -top-32 -left-24 h-80 w-80 rounded-full bg-[#5B95FF]/40 blur-3xl"
+            animate={{ x: [0, 60, 0], y: [0, 30, 0] }}
+            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-40 right-10 h-96 w-96 rounded-full bg-[#FFD43B]/20 blur-3xl"
+            animate={{ x: [0, -50, 0], y: [0, -30, 0] }}
+            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+          />
 
-          <div className="relative h-full flex flex-col justify-center items-start md:items-center md:w-[71%] pl-5 pr-[36%] sm:px-10 py-8 md:py-0 text-left md:text-center">
-            <h2 className="text-[22px] sm:text-[34px] lg:text-[42px] font-extrabold leading-[1.1] tracking-tight text-[#0B1B4F]">
-              <span className="text-[#1A5CFF]">Start</span> Your Preparation
-              <br />
-              Today
-            </h2>
-            <p className="mt-3 text-sm sm:text-base lg:text-lg text-[#2A3452] font-medium max-w-[22rem]">
-              Practice Koro-এর সাথে প্রস্তুতি হোক আরও সহজ, আরও স্মার্ট!
-            </p>
-            <div className="mt-5 lg:mt-6 flex flex-wrap items-center gap-3 lg:gap-4">
-              <GooglePlayBadge size="md" />
-              <AppStoreBadge size="md" onIosClick={onIosClick} />
-            </div>
+          <div className="relative grid md:grid-cols-[1fr_1.1fr] items-center gap-2 md:gap-6 px-6 sm:px-10 lg:px-14 pt-10 md:py-10">
+            <RevealGroup stagger={0.12} className="text-center md:text-left">
+              <motion.h2
+                variants={fadeUp}
+                className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[34px] sm:text-[44px] lg:text-[52px] leading-[1.15] text-white"
+              >
+                একসাথে প্রস্তুতি,
+                <br />
+                <span className="text-[#FFD43B]">একসাথে সাফল্য।</span>
+              </motion.h2>
+
+              <motion.div variants={fadeUp} className="mt-7 flex justify-center md:justify-start">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
+                  <Link
+                    to="/login"
+                    className="group inline-flex items-center gap-2 rounded-2xl bg-white px-7 py-3.5 text-sm sm:text-base font-semibold text-[#0B1B4F] shadow-lg shadow-black/20"
+                  >
+                    Start Practicing
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </motion.div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="mt-4 flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <motion.div whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.96 }}>
+                  <GooglePlayBadge size="sm" />
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.96 }}>
+                  <AppStoreBadge size="sm" onIosClick={onIosClick} />
+                </motion.div>
+              </motion.div>
+            </RevealGroup>
+
+            <GroupStudyScene className="w-full max-w-[520px] mx-auto md:ml-auto -mb-1 md:mb-0" />
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

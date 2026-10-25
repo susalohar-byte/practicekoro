@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'motion/react';
+import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { ArrowRight } from 'lucide-react';
 import { SectionHeading } from './SectionHeading';
 import { ExamData } from './ExamModal';
@@ -136,24 +138,30 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
           subtitle="West Bengal-এর গুরুত্বপূর্ণ সরকারি পরীক্ষার জন্য প্রস্তুতি নিন।"
         />
 
-        <div className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
+        <RevealGroup className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
           {POPULAR_EXAMS.map((exam) => (
-            <button
+            <motion.button
+              variants={popIn}
+              {...hoverLift}
               key={exam.id}
               type="button"
               onClick={() => onSelectExam(exam)}
-              className="group relative bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] hover:shadow-[0_10px_30px_rgba(30,80,240,0.14)] hover:-translate-y-1 transition-all px-3 pt-5 pb-10 sm:pt-6 sm:pb-12 flex flex-col items-center text-center cursor-pointer"
+              className="group relative bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] hover:shadow-[0_14px_34px_rgba(30,80,240,0.16)] transition-shadow px-3 pt-5 pb-10 sm:pt-6 sm:pb-12 flex flex-col items-center text-center cursor-pointer"
             >
-              <img src={exam.logo} alt={exam.name} className="w-14 h-14 sm:w-[76px] sm:h-[76px] object-contain" />
+              <img
+                src={exam.logo}
+                alt={exam.name}
+                className="w-14 h-14 sm:w-[76px] sm:h-[76px] object-contain transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
+              />
               <h3 className="mt-3 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug whitespace-pre-line">
                 {CARD_TITLES[exam.id] ?? exam.name}
               </h3>
-              <span className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-[#EAF1FF] text-[#1A5CFF] flex items-center justify-center group-hover:bg-[#1A5CFF] group-hover:text-white transition-colors">
+              <span className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-[#EAF1FF] text-[#1A5CFF] flex items-center justify-center group-hover:bg-[#1A5CFF] group-hover:text-white group-hover:translate-x-0.5 transition-all">
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </RevealGroup>
       </div>
     </section>
   );

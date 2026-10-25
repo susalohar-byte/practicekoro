@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'motion/react';
+import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { ArrowRight, Check } from 'lucide-react';
 import { api } from '@/services/api';
 import type { SubscriptionPlan } from '@/types';
@@ -74,7 +76,7 @@ export const PricingSection: React.FC = () => {
             প্ল্যানগুলো এই মুহূর্তে লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।
           </p>
         ) : (
-          <div className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-5 sm:gap-6">
+          <RevealGroup key={isPending ? 'loading' : 'plans'} stagger={0.12} className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-5 sm:gap-6">
             {isPending
               ? [0, 1, 2].map((i) => (
                   <div key={i} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm">
@@ -86,18 +88,32 @@ export const PricingSection: React.FC = () => {
                   const isFree = plan.price === 0;
                   const discount = discountPercent(plan);
                   return (
-                    <article
+                    <motion.article
                       key={plan.id}
-                      className={`relative flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm rounded-3xl p-6 sm:p-7 transition-transform hover:-translate-y-1 ${
+                      variants={popIn}
+                      {...hoverLift}
+                      className={`relative flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm rounded-3xl p-6 sm:p-7 ${
                         highlighted
                           ? 'bg-gradient-to-b from-[#0B1B4F] to-[#13308A] text-white shadow-[0_18px_40px_rgba(20,60,200,0.25)] ring-2 ring-[#2F7BFF]'
                           : 'bg-white text-[#0B1B4F] border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)]'
                       }`}
                     >
                       {highlighted && (
-                        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#FFD43B] px-4 py-1 text-xs font-bold text-[#0B1B4F] shadow-md">
+                        <motion.span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 rounded-3xl ring-2 ring-[#5B95FF]"
+                          animate={{ opacity: [0.2, 0.9, 0.2], scale: [1, 1.025, 1] }}
+                          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
+                      {highlighted && (
+                        <motion.span
+                          animate={{ y: [0, -3, 0] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                          style={{ x: '-50%' }}
+                          className="absolute -top-3.5 left-1/2 whitespace-nowrap rounded-full bg-[#FFD43B] px-4 py-1 text-xs font-bold text-[#0B1B4F] shadow-md">
                           Best Value
-                        </span>
+                        </motion.span>
                       )}
 
                       <div className="flex items-start justify-between gap-3">
@@ -164,10 +180,10 @@ export const PricingSection: React.FC = () => {
                         {isFree ? 'Start for Free' : `Get ${plan.title}`}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
-                    </article>
+                    </motion.article>
                   );
                 })}
-          </div>
+          </RevealGroup>
         )}
       </div>
     </section>
