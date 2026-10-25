@@ -9,6 +9,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FaqSection } from './components/FaqSection';
 import { AppDownloadBanner } from './components/AppDownloadBanner';
 import { Footer } from './components/Footer';
+import { LANDING_FONT } from './components/SectionHeading';
 import { VideoModal } from './components/VideoModal';
 import { ExamModal, ExamData } from './components/ExamModal';
 import { X, Smartphone } from 'lucide-react';
@@ -19,7 +20,7 @@ export const LandingPage: React.FC = () => {
   const [iosNoticeOpen, setIosNoticeOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col">
+    <div className={`min-h-screen bg-[#F7F8FD] text-slate-900 ${LANDING_FONT} selection:bg-blue-600 selection:text-white flex flex-col`}>
       {/* SEO Metadata */}
       <Helmet>
         <title>Practice Koro | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions</title>
@@ -49,20 +50,20 @@ export const LandingPage: React.FC = () => {
         {/* 4. Why Practice Koro? (5 Key Features) */}
         <WhyPracticeKoroSection />
 
-        {/* 5. Learning Journey & App Showcase (Dual Phone Mockup) */}
+        {/* 5. Learning Journey (4 steps) */}
         <LearningJourneySection />
 
-        {/* 6. Student Testimonials (Verified Reviews Carousel) */}
+        {/* 6. Student Testimonials */}
         <TestimonialsSection />
 
-        {/* 7. FAQ Section Accordion */}
+        {/* 7. FAQ (linked from the navbar and footer) */}
         <FaqSection />
 
         {/* 8. Final App Download Banner (Positioned immediately above footer) */}
         <AppDownloadBanner onIosClick={() => setIosNoticeOpen(true)} />
       </main>
 
-      {/* 9. Premium Navy Footer */}
+      {/* 9. Navy Footer */}
       <Footer onIosClick={() => setIosNoticeOpen(true)} />
 
       {/* Video Modal Player */}

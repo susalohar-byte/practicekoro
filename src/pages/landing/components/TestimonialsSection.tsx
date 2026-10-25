@@ -1,195 +1,103 @@
 import React, { useState } from 'react';
-import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
+import { SectionHeading } from './SectionHeading';
+
+const TESTIMONIALS = [
+  {
+    name: 'Rohit Das',
+    role: 'WBP Aspirant',
+    avatar: '/images/landing/avatar_rohit.png',
+    comment: 'Topic-wise test আর detailed solution খুব helpful. এখন প্রস্তুতি অনেক বেশি organised হয়েছে।',
+  },
+  {
+    name: 'Puja Karmakar',
+    role: 'WBSSC Aspirant',
+    avatar: '/images/landing/avatar_puja.png',
+    comment: 'Mock test দিয়ে নিজের প্রস্তুতি অনেকটা বোঝার সহজ হয়েছে। UI টাও খুব সুন্দর এবং সহজ।',
+  },
+  {
+    name: 'Amit Saha',
+    role: 'Clerkship Aspirant',
+    avatar: '/images/landing/avatar_amit.png',
+    comment: 'Previous year questions এবং explanation দেখে খুব ভালো লাগে। Practice Koro সত্যিই দারুণ একটা platform.',
+  },
+  {
+    name: 'Tania Mondal',
+    role: 'Primary TET Aspirant',
+    avatar: '/images/avatar_tania.jpg',
+    comment: 'পরীক্ষার মতো হুবহু টাইমার আর সিলেবাস অনুযায়ী সাজানো টেস্টগুলো আত্মবিশ্বাস অনেক বাড়িয়ে দিয়েছে।',
+  },
+  {
+    name: 'Abhishek Roy',
+    role: 'Railway NTPC Aspirant',
+    avatar: '/images/avatar_abhishek.jpg',
+    comment: 'বাংলায় বিজ্ঞান ও গণিতের এত চমৎকার ব্যাখ্যা আগে কোথাও পাইনি। প্রতিটি প্রশ্নের নোটস অসাধারণ!',
+  },
+  {
+    name: 'Mousumi Paul',
+    role: 'Kolkata Police Aspirant',
+    avatar: '/images/avatar_mousumi.jpg',
+    comment: 'মোবাইল অ্যাপে নিয়মিত লাইভ টেস্ট আর জেলাভিত্তিক র‍্যাঙ্কিং দেখে নিজের উন্নতি স্পষ্ট বুঝতে পারি।',
+  },
+];
+
+const PER_VIEW = 3;
+const POSITIONS = TESTIMONIALS.length - PER_VIEW + 1;
+
+const QuoteMark: React.FC = () => (
+  <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#1A5CFF] flex-shrink-0" fill="currentColor" aria-hidden>
+    <path d="M10 6c-3.3 1-5 3.6-5 7v5h6v-6H8c0-2 1-3.4 2.6-4L10 6zm9 0c-3.3 1-5 3.6-5 7v5h6v-6h-3c0-2 1-3.4 2.6-4L19 6z" />
+  </svg>
+);
 
 export const TestimonialsSection: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const testimonials = [
-    {
-      id: 1,
-      name: 'Rohit Das',
-      role: 'WBP Aspirant',
-      avatar: '/images/avatar_arindam.jpg',
-      rating: 5,
-      comment:
-        'Topic-wise test আর detailed solution খুব helpful. এবার প্রস্তুতি অনেক বেশি organised হয়েছে।',
-    },
-    {
-      id: 2,
-      name: 'Puja Karmakar',
-      role: 'WBSSC Aspirant',
-      avatar: '/images/avatar_sneha.jpg',
-      rating: 5,
-      comment:
-        'Mock test নিয়ে নিজের প্রস্তুতি অনেকটাই বোঝা সহজ হয়েছে। UI টা খুব সুন্দর এবং সহজ।',
-    },
-    {
-      id: 3,
-      name: 'Amit Saha',
-      role: 'Clerkship Aspirant',
-      avatar: '/images/avatar_sayon.jpg',
-      rating: 5,
-      comment:
-        'Previous year questions এবং explanation পেয়ে খুব ভালো লাগে। Practice Koro সত্যিই দারুণ একটা platform!',
-    },
-    {
-      id: 4,
-      name: 'Tania Mondal',
-      role: 'Primary TET Aspirant',
-      avatar: '/images/avatar_tania.jpg',
-      rating: 5,
-      comment:
-        'পরীক্ষার মতো হুবহু টাইমার আর সিলেবাস অনুযায়ী সাজানো টেস্টগুলো আত্মবিশ্বাস অনেক বাড়িয়ে দিয়েছে।',
-    },
-    {
-      id: 5,
-      name: 'Abhishek Roy',
-      role: 'Railway NTPC Aspirant',
-      avatar: '/images/avatar_abhishek.jpg',
-      rating: 5,
-      comment:
-        'বাংলায় বিজ্ঞান ও গণিতের এত চমৎকার ব্যাখ্যা আগে কোথাও পাইনি। প্রতিটি প্রশ্নের নোটস অসাধারণ!',
-    },
-    {
-      id: 6,
-      name: 'Mousumi Paul',
-      role: 'Kolkata Police Aspirant',
-      avatar: '/images/avatar_mousumi.jpg',
-      rating: 5,
-      comment:
-        'মোবাইল অ্যাপে নিয়মিত লাইভ টেস্ট আর জেলাভিত্তিক র‍্যাঙ্কিং দেখে নিজের উন্নতি স্পষ্ট বুঝতে পারি।',
-    },
-  ];
-
-  // We show 3 cards per view on large screens, 1 or 2 on smaller
-  const itemsPerPage = 3;
-  const maxPages = Math.ceil(testimonials.length / itemsPerPage);
-
-  const handlePrev = () => {
-    setCurrentPage((prev) => (prev > 0 ? prev - 1 : maxPages - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentPage((prev) => (prev < maxPages - 1 ? prev + 1 : 0));
-  };
-
-  const visibleTestimonials = testimonials.slice(
-    currentPage * itemsPerPage,
-    currentPage * itemsPerPage + itemsPerPage
-  );
+  // The cards slide one at a time, so a dot is shown for every starting position
+  const [start, setStart] = useState(0);
+  const visible = TESTIMONIALS.slice(start, start + PER_VIEW);
 
   return (
-    <section id="reviews" className="py-14 sm:py-20 bg-[#F8FAFD]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header matching reference */}
-        <div className="text-center mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <span className="text-xl">❤️</span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-headline tracking-tight">
-              What Our Students Say
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm md:text-base text-slate-600 font-medium font-headline">
-            Practice Koro ব্যবহার করে হাজারো ছাত্রছাত্রী তাদের প্রস্তুতিতে আরও আত্মবিশ্বাসী হয়েছে।
-          </p>
+    <section id="reviews" className="scroll-mt-20 py-8 sm:py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <SectionHeading
+          icon="/images/landing/ic_heart.png"
+          title="What Our Students Say"
+          subtitle="Practice Koro ব্যবহার করে হাজারো ছাত্রছাত্রী তাদের প্রস্তুতিতে আরও শক্তিশালী করেছে।"
+        />
+
+        <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {visible.map((item, index) => (
+            <article
+              key={item.name}
+              className={`bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] p-5 sm:p-6 ${
+                index > 0 ? 'hidden md:block' : ''
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <img src={item.avatar} alt={item.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0 pt-1">
+                  <h3 className="text-[15px] font-bold text-[#0B1B4F] leading-tight">{item.name}</h3>
+                  <span className="text-[13px] text-[#6B7489]">{item.role}</span>
+                </div>
+                <QuoteMark />
+              </div>
+              <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Hind_Siliguri',sans-serif]">
+                {item.comment}
+              </p>
+            </article>
+          ))}
         </div>
 
-        {/* Carousel Container */}
-        <div className="relative">
-          {/* Left Arrow Button */}
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous testimonials"
-            className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          {/* Right Arrow Button */}
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next testimonials"
-            className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow-md border border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-
-          {/* Testimonial Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {visibleTestimonials.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between relative group"
-              >
-                {/* Top User Info & Quote Icon */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full bg-blue-100 overflow-hidden ring-2 ring-blue-500/20 flex-shrink-0">
-                        <img
-                          src={item.avatar}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '/default-avatar.png';
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 font-headline leading-tight">
-                          {item.name}
-                        </h4>
-                        <span className="text-[11px] text-slate-500 font-medium">
-                          {item.role}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Blue quote mark */}
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <Quote className="w-4 h-4" />
-                    </div>
-                  </div>
-
-                  {/* Rating Stars */}
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(item.rating)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-
-                  {/* Comment */}
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed font-headline">
-                    "{item.comment}"
-                  </p>
-                </div>
-
-                {/* Verified Aspirant tag */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                  <span className="font-semibold text-emerald-600">✓ Verified Aspirant</span>
-                  <span>Practice Koro Student</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination Dots */}
-          <div className="mt-8 flex items-center justify-center gap-2">
-            {[...Array(maxPages)].map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentPage(idx)}
-                aria-label={`Go to page ${idx + 1}`}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  currentPage === idx
-                    ? 'w-6 h-2 bg-blue-600'
-                    : 'w-2 h-2 bg-slate-300 hover:bg-slate-400'
-                }`}
-              />
-            ))}
-          </div>
+        <div className="mt-6 flex items-center justify-center gap-2">
+          {Array.from({ length: POSITIONS }, (_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setStart(idx)}
+              aria-label={`Show reviews ${idx + 1}`}
+              className={`w-2.5 h-2.5 rounded-full transition-colors cursor-pointer ${
+                start === idx ? 'bg-[#1A5CFF]' : 'bg-[#C9D2EC] hover:bg-[#A9B5D9]'
+              }`}
+            />
+          ))}
         </div>
       </div>
     </section>

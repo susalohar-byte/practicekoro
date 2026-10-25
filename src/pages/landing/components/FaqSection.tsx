@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { SectionHeading } from './SectionHeading';
 
 interface FaqItem {
   question: string;
@@ -54,20 +55,14 @@ export const FaqSection: React.FC = () => {
   };
 
   return (
-    <section id="faq" className="py-14 sm:py-20 bg-white border-t border-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <span className="text-xl">💬</span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-headline tracking-tight">
-              Frequently Asked Questions
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm md:text-base text-slate-600 font-medium font-headline">
-            Practice Koro প্ল্যাটফর্ম সম্পর্কে শিক্ষার্থীদের সাধারণ কিছু প্রশ্ন ও উত্তর।
-          </p>
-        </div>
+    <section id="faq" className="scroll-mt-20 py-8 sm:py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <SectionHeading
+          icon="/images/landing/step_review.png"
+          title="Frequently Asked Questions"
+          subtitle="Practice Koro প্ল্যাটফর্ম সম্পর্কে শিক্ষার্থীদের সাধারণ কিছু প্রশ্ন ও উত্তর।"
+          className="mb-6 sm:mb-8"
+        />
 
         {/* Accordion List */}
         <div className="space-y-3 sm:space-y-4">
@@ -79,7 +74,7 @@ export const FaqSection: React.FC = () => {
                 className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                   isOpen
                     ? 'border-blue-300 bg-blue-50/20 shadow-sm'
-                    : 'border-slate-200/80 bg-white hover:border-slate-300'
+                    : 'border-[#EDF0F8] bg-white shadow-[0_6px_24px_rgba(30,50,120,0.06)] hover:border-slate-300'
                 }`}
               >
                 <button
@@ -88,7 +83,7 @@ export const FaqSection: React.FC = () => {
                   className="w-full px-5 sm:px-6 py-4 sm:py-4.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-sm sm:text-base font-bold text-slate-900 font-headline">
+                  <span className="text-sm sm:text-base font-bold text-[#0B1B4F] font-['Hind_Siliguri',sans-serif]">
                     {faq.question}
                   </span>
                   <div

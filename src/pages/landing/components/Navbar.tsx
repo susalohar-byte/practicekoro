@@ -2,18 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 
+export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 h-10' }) => (
+  <div
+    className={`${className} rounded-xl bg-gradient-to-br from-[#2F7BFF] to-[#1450F0] shadow-md shadow-blue-600/30 flex items-center justify-center p-2 text-white flex-shrink-0`}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
+      <rect x="5" y="4" width="14" height="17" rx="2.5" />
+      <rect x="9" y="2.5" width="6" height="3.5" rx="1" fill="currentColor" />
+      <path d="M8.5 11h1M12 11h3.5M8.5 15h1M12 15h3.5" />
+    </svg>
+  </div>
+);
+
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -29,22 +36,19 @@ export const Navbar: React.FC = () => {
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     setMobileMenuOpen(false);
-    const target = document.querySelector(href);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Over the hero scene the bar is transparent with white text, once scrolled it turns white
+  const solid = isScrolled || mobileMenuOpen;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-100 py-3'
-          : 'bg-transparent py-4 sm:py-5'
+        solid ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100 py-2.5' : 'bg-transparent py-3 sm:py-4'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Brand Logo matching reference */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
         <a
           href="#hero"
           onClick={(e) => {
@@ -53,71 +57,41 @@ export const Navbar: React.FC = () => {
           }}
           className="flex items-center gap-2.5 group cursor-pointer"
         >
-          {/* Logo Icon Box with checklist */}
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-500/25 flex items-center justify-center p-2 text-white transition-transform group-hover:scale-105">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-full h-full text-white"
-            >
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-              <path d="m9 14 2 2 4-4" />
-            </svg>
-          </div>
-          <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-headline">
-            Practice <span className="text-blue-600">Koro</span>
+          <BrandMark className="w-10 h-10 sm:w-[46px] sm:h-[46px] transition-transform group-hover:scale-105" />
+          <span className={`text-lg sm:text-xl font-bold tracking-tight ${solid ? 'text-[#0B1B4F]' : 'text-white drop-shadow'}`}>
+            Practice Koro
           </span>
         </a>
 
-        {/* Center Navigation Links matching reference */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+        <nav className="hidden md:flex items-center gap-8 lg:gap-10">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
-              className="text-xs lg:text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors cursor-pointer"
+              className={`text-sm font-semibold transition-colors cursor-pointer ${
+                solid ? 'text-slate-700 hover:text-blue-600' : 'text-white/95 hover:text-white drop-shadow'
+              }`}
             >
               {link.name}
             </a>
           ))}
         </nav>
 
-        {/* Right Action: Login link + Get Started Pill Button */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             to="/login"
-            className="text-xs lg:text-sm font-bold text-slate-700 hover:text-blue-600 px-3 py-2 rounded-xl hover:bg-slate-100/60 transition-colors"
-          >
-            Login
-          </Link>
-
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-full shadow-md shadow-blue-600/25 hover:shadow-lg transition-all"
+            className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg shadow-blue-600/30 ring-1 ring-white/20 transition-all"
           >
             <span>Get Started</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
-
-        {/* Mobile Hamburger Toggle */}
-        <div className="flex sm:hidden items-center gap-2">
-          <Link
-            to="/login"
-            className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-full shadow-sm"
-          >
-            Get Started
-          </Link>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors"
+            className={`md:hidden w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+              solid ? 'bg-slate-100 text-slate-700' : 'bg-white/15 text-white backdrop-blur'
+            }`}
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -125,9 +99,8 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="sm:hidden bg-white/95 backdrop-blur-lg border-b border-slate-200 px-4 pt-3 pb-6 space-y-3 animate-fadeIn">
+        <div className="md:hidden bg-white px-4 pt-3 pb-5 border-b border-slate-200 animate-fadeIn">
           <div className="flex flex-col space-y-1">
             {navLinks.map((link) => (
               <a
@@ -139,17 +112,6 @@ export const Navbar: React.FC = () => {
                 {link.name}
               </a>
             ))}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-md"
-            >
-              <span>Login / Get Started</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       )}
