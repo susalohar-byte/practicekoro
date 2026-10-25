@@ -2,12 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-// The student panel is deployed separately from the admin console. Set VITE_BASE_PATH
-// (e.g. "/app/") when it is served from a sub-folder instead of its own domain.
-const base = process.env.VITE_BASE_PATH || '/';
-
-export default defineConfig({
-  base,
+// Production builds are served from practicekoro.online/dashboard/ (next to the landing page and the
+// admin console, which share its login). Override with VITE_BASE_PATH, e.g. "/" for its own domain.
+export default defineConfig(({ command }) => ({
+  base: process.env.VITE_BASE_PATH || (command === 'build' ? '/dashboard/' : '/'),
   plugins: [react()],
   resolve: {
     alias: {
@@ -34,4 +32,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

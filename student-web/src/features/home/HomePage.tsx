@@ -208,7 +208,10 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {banners.isLoading ? <Skeleton className="aspect-[896/466] w-full rounded-[22px]" /> : <HeroCarousel banners={banners.data ?? []} />}
+      {/* Desktop keeps the banner at its earlier size instead of stretching across the page. */}
+      <div className="mx-auto w-full lg:max-w-[760px]">
+        {banners.isLoading ? <Skeleton className="aspect-[896/466] w-full rounded-[22px]" /> : <HeroCarousel banners={banners.data ?? []} />}
+      </div>
 
       {/* Exams for You */}
       <section aria-labelledby="exams-h">

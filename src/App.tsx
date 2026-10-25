@@ -150,13 +150,16 @@ const AdminBlog = lazyWithRetry(() =>
     default: module.AdminBlog,
   }))
 );
+const LandingPage = lazyWithRetry(() =>
+  import('@/pages/landing/LandingPage').then((module) => ({ default: module.LandingPage }))
+);
 
 export const App: React.FC = () => {
   return (
     <React.Suspense fallback={<AppRouteLoadingFallback />}>
       <Routes>
-        {/* The admin console is the only application surface. */}
-        <Route path="/" element={<Navigate to="/admin" replace />} />
+        {/* Practice Koro Official Landing Page */}
+        <Route path="/" element={<LandingPage />} />
 
         {/* Auth Public-Only Routes */}
         <Route

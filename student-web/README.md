@@ -22,7 +22,7 @@ You need Node.js 22 or newer.
 ```bash
 cd student-web
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:5173 (served at /, not /dashboard/)
 ```
 
 Without a `.env`, the app talks to the production Supabase project with its public anon key.
@@ -46,7 +46,7 @@ Only public values go here. They are baked into the bundle at build time.
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | No (defaults to production) | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | No (defaults to production) | Public anon / publishable key |
-| `VITE_BASE_PATH` | No (default `/`) | Sub-folder to serve from, e.g. `/app/`. Must end with `/`. |
+| `VITE_BASE_PATH` | No (default `/dashboard/` for builds, `/` in dev) | Path the panel is served from. Must end with `/`. |
 
 Never put the service-role key, the Razorpay key secret or the webhook secret in a `VITE_`
 variable. The Razorpay key id comes from the `create-razorpay-order` Edge Function, or else
@@ -54,29 +54,44 @@ from `app_settings.payment_gateway_razorpay_key_id`.
 
 ## Production build and deployment
 
+The site is laid out as:
+
+| URL | App |
+| --- | --- |
+| `practicekoro.online/` | Landing page (admin app, `src/pages/landing`) |
+| `practicekoro.online/admin` | Admin console |
+| `practicekoro.online/dashboard` | Student Web Panel (this app) |
+
 ```bash
 cd student-web
 npm ci
-npm run check
+npm run check            # type-check, lint, test, build → dist/ with base /dashboard/
 ```
 
-Publish `student-web/dist`. `public/.htaccess` is copied into it; it is the admin console's
-Apache config, adapted so every client route falls back to `index.html`. That keeps refreshes
-and deep links such as `/result/<id>` working.
+Upload the contents of `student-web/dist` to `public_html/dashboard/` (next to the admin
+console's files in `public_html/`). `public/.htaccess` is copied into it with
+`RewriteBase /dashboard/`, so refreshes and deep links such as `/dashboard/result/<id>` load the
+panel. The root `.htaccess` is not involved: Apache uses the one in `dashboard/`.
 
-Before going live, configure the backend for the panel's origin:
+Because the panel is on the same domain, it shares the login with the landing page and the
+admin console (one Supabase session). Everyone signs in at `practicekoro.online/login`:
+admins continue to `/admin`, students to `/dashboard`. A signed-in student who opens `/login`
+or `/admin` is sent to `/dashboard`, and new students use the **Create account** link there.
+The panel's own `/dashboard/login` keeps working for direct visits.
 
-1. **Supabase Auth → URL Configuration:** add `https://<panel-origin>/login-callback` to
+Before going live:
+
+1. **Supabase Auth → URL Configuration:** add
+   `https://practicekoro.online/dashboard/login-callback` (and the `www.` variant if used) to
    *Redirect URLs*. Google sign-in, email confirmation and password-reset links return there.
-2. **Edge Function CORS:** `create-razorpay-order` and `verify-payment` accept only the origins
-   in the `ALLOWED_ORIGINS` secret. When that secret is unset, they allow only
-   `practicekoro.online` and `www.practicekoro.online`. If the panel runs on another origin
-   (for example `app.practicekoro.online`), add it:
-   `supabase secrets set ALLOWED_ORIGINS=https://practicekoro.online,https://www.practicekoro.online,https://app.practicekoro.online`.
-   Serving the panel from a sub-folder of `practicekoro.online` (`VITE_BASE_PATH=/app/`) needs
-   no CORS change.
-3. **Content-Security-Policy:** if you deploy under the admin console's `.htaccess`, its CSP
-   already allows Supabase, Razorpay and Google Fonts.
+2. **Payments** need no CORS change: `create-razorpay-order` and `verify-payment` already allow
+   `practicekoro.online` and `www.practicekoro.online`.
+3. **Content-Security-Policy:** the `.htaccess` keeps the admin console's CSP, which allows
+   Supabase, Razorpay and Google Fonts.
+
+To serve the panel from its own domain instead, build with `VITE_BASE_PATH=/`, change
+`RewriteBase` in `public/.htaccess` to `/`, set `VITE_STUDENT_PANEL_URL` for the landing page,
+and add that origin to the payment functions' `ALLOWED_ORIGINS` secret.
 
 ## Architecture
 

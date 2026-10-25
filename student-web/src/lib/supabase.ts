@@ -19,7 +19,7 @@ export const supabase = createClient(url, anonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    // Separate from the admin console's session so the two apps never share a login.
-    storageKey: 'pk-student-auth',
+    // Default storage key on purpose: served at practicekoro.online/dashboard/, the panel shares the
+    // session with the landing page and admin console, so one sign-in works across the site.
   },
 });
