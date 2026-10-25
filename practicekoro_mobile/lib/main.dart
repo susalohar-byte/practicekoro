@@ -47,9 +47,27 @@ class PracticeKoroApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Hind Siliguri supports English & Bengali Unicode with high typographic quality
-    final textTheme = GoogleFonts.hindSiliguriTextTheme(
+    // Bilingual typography system:
+    // Inter provides contemporary, premium, and highly legible typography for English & numerals.
+    // Noto Sans Bengali provides authentic, pristine rendering for Bengali text & conjuncts.
+    final englishFontFamily = GoogleFonts.inter().fontFamily;
+    final bengaliFontFamily = GoogleFonts.notoSansBengali().fontFamily;
+    final fallbackFonts = [
+      ?bengaliFontFamily,
+      'Noto Sans Bengali',
+      'NotoSansBengali',
+      'NotoSansBengali_regular',
+      'Hind Siliguri',
+      'HindSiliguri',
+      'Inter',
+      'sans-serif',
+    ];
+
+    final textTheme = GoogleFonts.interTextTheme(
       Theme.of(context).textTheme,
+    ).apply(
+      fontFamily: englishFontFamily,
+      fontFamilyFallback: fallbackFonts,
     );
 
     return MaterialApp.router(
@@ -91,7 +109,11 @@ class PracticeKoroApp extends StatelessWidget {
           ),
         );
       },
-      theme: UI.theme(textTheme),
+      theme: UI.theme(
+        textTheme,
+        fontFamily: englishFontFamily,
+        fontFamilyFallback: fallbackFonts,
+      ),
     );
   }
 }
