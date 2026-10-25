@@ -9,30 +9,23 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
   return (
     <section id="hero" className="relative overflow-x-clip bg-gradient-to-b from-[#0A0F24] via-[#080C1C] to-[#05070F]">
-      {/* Study-room scene, fading into the dark backdrop behind the headline */}
+      {/* Student studying at his desk, fading into the dark backdrop behind the headline.
+          Phones get a smaller copy of the photo. */}
       <div
-        className="absolute inset-x-0 top-0 h-[400px] sm:h-[max(39vw,480px)] max-h-[720px] bg-[url('/images/landing/hero_scene.jpg')] bg-cover bg-[center_top]"
+        className="absolute inset-x-0 top-0 h-[420px] sm:h-[max(46vw,520px)] max-h-[760px] bg-[url('/images/landing/hero_student_room_sm.webp')] sm:bg-[url('/images/landing/hero_student_room.webp')] bg-cover bg-[34%_30%] sm:bg-[center_35%]"
         style={{
-          maskImage: 'linear-gradient(to bottom, #000 64%, rgba(0,0,0,0.4) 84%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, #000 64%, rgba(0,0,0,0.4) 84%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, #000 60%, rgba(0,0,0,0.45) 82%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, #000 60%, rgba(0,0,0,0.45) 82%, transparent 100%)',
         }}
         aria-hidden
       />
+      {/* Darken the photo a little so the white headline stays readable */}
+      <div
+        className="absolute inset-x-0 top-0 h-[420px] sm:h-[max(46vw,520px)] max-h-[760px] bg-gradient-to-b from-black/35 via-black/10 to-transparent"
+        aria-hidden
+      />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[300px] sm:pt-[min(calc(39vw-110px),590px)] pb-16 sm:pb-24 text-center">
-        <img
-          src="/images/landing/icons/clipboard.png"
-          alt=""
-          aria-hidden
-          className="hidden sm:block absolute left-6 lg:left-4 top-[min(calc(39vw-30px),690px)] w-20 lg:w-24 animate-float"
-        />
-        <img
-          src="/images/landing/icons/glowing_star.png"
-          alt=""
-          aria-hidden
-          className="hidden sm:block absolute right-10 lg:right-16 top-[min(calc(39vw-20px),700px)] w-14 lg:w-[70px] animate-float"
-        />
-
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[340px] sm:pt-[min(calc(max(46vw,520px)-110px),650px)] pb-16 sm:pb-24 text-center">
         <h1 className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
           স্বপ্নের <span className="text-[#FFD43B]">সরকারি চাকরির</span>
           <br />
