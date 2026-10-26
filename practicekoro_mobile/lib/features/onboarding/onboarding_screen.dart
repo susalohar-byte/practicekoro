@@ -100,164 +100,77 @@ class _SplashScreenState extends State<SplashScreen>
             opacity: _fadeAnim,
             child: ScaleTransition(
               scale: _scaleAnim,
-              child: Stack(
-                children: [
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // App Icon Logo: high-res squircle with ambient glow
-                        Container(
-                          width: 108,
-                          height: 108,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(26),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF0158FC).withValues(alpha: 0.24),
-                                blurRadius: 36,
-                                offset: const Offset(0, 12),
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App Icon Logo: high-res squircle with ambient glow
+                    Container(
+                      width: 108,
+                      height: 108,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0158FC).withValues(alpha: 0.22),
+                            blurRadius: 36,
+                            offset: const Offset(0, 12),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(26),
-                            child: Image.asset(
-                              'assets/images/logo-icon.png',
-                              fit: BoxFit.cover,
-                              filterQuality: FilterQuality.high,
-                              errorBuilder: (_, _, _) => Container(
-                                color: UI.brand,
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.school_rounded,
-                                  color: Colors.white,
-                                  size: 54,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Official Brand Typography: PracticeKoro Wordmark
-                        Image.asset(
-                          'assets/images/logo-text.png',
-                          height: 38,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (_, _, _) => RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.6,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: 'Practice',
-                                  style: TextStyle(color: Color(0xFF0F172A)),
-                                ),
-                                TextSpan(
-                                  text: 'Koro',
-                                  style: TextStyle(color: Color(0xFF0158FC)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Bengali Subtitle
-                        const Text(
-                          'পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-
-                        // English Tagline
-                        const Text(
-                          'Practice Today, Progress Tomorrow',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Exam Focus Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFFBFDBFE),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Text(
-                            'WBCS  •  WBP  •  WBPSC  •  SSC  •  RAILWAY',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0158FC),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Bottom loading indicator & platform tagline
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.4,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFF0158FC),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Version 2.0.0',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF94A3B8),
-                              letterSpacing: 0.5,
-                            ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(26),
+                        child: Image.asset(
+                          'assets/images/logo-icon.png',
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, _, _) => Container(
+                            color: UI.brand,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.school_rounded,
+                              color: Colors.white,
+                              size: 54,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+
+                    // Official Brand Typography: PracticeKoro Wordmark
+                    Image.asset(
+                      'assets/images/logo-text.png',
+                      height: 38,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, _, _) => RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.6,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Practice',
+                              style: TextStyle(color: Color(0xFF0F172A)),
+                            ),
+                            TextSpan(
+                              text: 'Koro',
+                              style: TextStyle(color: Color(0xFF0158FC)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

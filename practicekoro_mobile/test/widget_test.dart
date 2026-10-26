@@ -167,10 +167,12 @@ void main() {
     // Initial frame
     await tester.pump();
 
-    // Verify brand logo image is present
+    // Verify brand logo images are present (logo-icon and logo-text)
     expect(find.byType(Image), findsAtLeastNWidgets(1));
-    expect(find.text('পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি'), findsOneWidget);
-    expect(find.text('Practice Today, Progress Tomorrow'), findsOneWidget);
-    expect(find.text('Version 2.0.0'), findsOneWidget);
+
+    // Verify secondary subtitles, tags, and version are removed for clean minimal look
+    expect(find.text('পশ্চিমবঙ্গের বিশ্বস্ত পরীক্ষার প্রস্তুতি'), findsNothing);
+    expect(find.text('Practice Today, Progress Tomorrow'), findsNothing);
+    expect(find.text('Version 2.0.0'), findsNothing);
   });
 }
