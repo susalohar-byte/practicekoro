@@ -6,9 +6,9 @@ import { isLiveNow } from '@/services/catalog';
 import type { LiveTest } from '@/types/models';
 
 const PALETTES = [
-  { keys: ['wbp', 'police', 'kp'], border: '#93C5FD', accent: '#2563EB', thumb: '#EFF6FF', time: '#2563EB', icon: 'exams/live_icon_wbp.png' },
-  { keys: ['tet', 'wbssc', 'teach'], border: '#FCA5A5', accent: '#F43F5E', thumb: '#FFF1F2', time: '#E11D48', icon: 'exams/live_icon_wbssc.png' },
-  { keys: ['railway', 'ntpc', 'rrb', 'ssc'], border: '#6EE7B7', accent: '#0D9488', thumb: '#ECFDF5', time: '#0D9488', icon: 'exams/live_icon_railway.png' },
+  { keys: ['wbp', 'police', 'kp'], border: '#93C5FD', accent: '#2563EB', thumb: '#EFF6FF', time: '#2563EB', icon: 'exam-art/live_icon_wbp.png' },
+  { keys: ['tet', 'wbssc', 'teach'], border: '#FCA5A5', accent: '#F43F5E', thumb: '#FFF1F2', time: '#E11D48', icon: 'exam-art/live_icon_wbssc.png' },
+  { keys: ['railway', 'ntpc', 'rrb', 'ssc'], border: '#6EE7B7', accent: '#0D9488', thumb: '#ECFDF5', time: '#0D9488', icon: 'exam-art/live_icon_railway.png' },
 ];
 
 export function livePalette(t: LiveTest, index: number) {

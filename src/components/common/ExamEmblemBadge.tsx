@@ -41,9 +41,7 @@ export function getOfficialExamLogoUrl(
       iconName.endsWith('.svg') ||
       iconName.endsWith('.webp'))
   ) {
-    return iconName.startsWith('/') || iconName.startsWith('http')
-      ? iconName
-      : `/${iconName}`;
+    return iconName.startsWith('/') || iconName.startsWith('http') ? iconName : `/${iconName}`;
   }
 
   const norm = (title + ' ' + slug + ' ' + (iconName || '')).toLowerCase();
@@ -89,11 +87,7 @@ export function getOfficialExamLogoUrl(
   }
 
   // 5. WBSSC Group C & D
-  if (
-    norm.includes('wbssc') ||
-    norm.includes('school service') ||
-    iconName === 'wbssc'
-  ) {
+  if (norm.includes('wbssc') || norm.includes('school service') || iconName === 'wbssc') {
     return '/images/exams/emblem_wbssc.png';
   }
 
