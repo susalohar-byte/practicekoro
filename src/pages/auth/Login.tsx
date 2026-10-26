@@ -132,12 +132,14 @@ export const Login: React.FC = () => {
       <div className="relative grid min-h-screen items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,485px)] lg:gap-12 lg:pl-[6%] lg:pr-[8.5%]">
         {/* Left: headline (desktop) */}
         <section className="hidden self-start pt-[14.5vh] text-center lg:block lg:w-[62%]">
-          <h1 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[clamp(48px,4.4vw,74px)] leading-[1.08] [text-shadow:0_4px_24px_rgba(0,0,0,0.6)]">
-            <span className="block text-white [-webkit-text-stroke:2px_#FFFFFF]">আবারও</span>
-            <span className="relative inline-block bg-gradient-to-r from-[#3FD0FF] via-[#2FA8FF] to-[#3C78FF] bg-clip-text text-transparent [-webkit-text-stroke:2px_#33B4FF] [text-shadow:none]">
-              প্রস্তুতির পথে?
-              <BrushUnderline className="absolute -bottom-4 left-[8%] w-[92%]" />
-              <Sparks className="absolute -right-11 -top-4 h-11 w-11" />
+          <h1 className="font-['Anek_Bangla',sans-serif] text-[clamp(50px,4.6vw,78px)] font-extrabold leading-[1.12] tracking-[-0.01em]">
+            <span className="block text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.6)]">আবারও</span>
+            <span className="relative inline-block pb-5">
+              <span className="bg-gradient-to-r from-[#3FD0FF] via-[#2FA8FF] to-[#3C78FF] bg-clip-text text-transparent [filter:drop-shadow(0_4px_16px_rgba(0,0,0,0.55))]">
+                প্রস্তুতির পথে?
+              </span>
+              <BrushUnderline className="absolute bottom-0 left-[6%] w-[92%]" />
+              <Sparks className="absolute -right-11 -top-3 h-11 w-11" />
             </span>
           </h1>
           <p className="mt-9 text-[clamp(18px,1.45vw,24px)] font-medium leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.7)]">
