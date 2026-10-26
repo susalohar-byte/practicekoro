@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaqAccordion, type FAQItem } from '@/components/ui/faq-chat-accordion';
+import { FaqSearchAccordion, type FAQItem } from '@/components/ui/faq-search-accordion';
 import { Reveal } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
@@ -43,17 +43,7 @@ export const FaqSection: React.FC = () => {
     },
   ];
 
-  // A couple of the question bubbles carry a little emoji, as in a chat
-  const icons: Record<number, Pick<FAQItem, 'icon' | 'iconPosition'>> = {
-    1: { icon: '📚', iconPosition: 'right' },
-    4: { icon: '⭐', iconPosition: 'left' },
-  };
-  const items: FAQItem[] = faqs.map((faq, idx) => ({
-    id: idx + 1,
-    question: faq.question,
-    answer: faq.answer,
-    ...icons[idx + 1],
-  }));
+  const items: FAQItem[] = faqs.map((faq, idx) => ({ id: idx + 1, question: faq.question, answer: faq.answer }));
 
   return (
     <section id="faq" className="scroll-mt-20 py-8 sm:py-12">
@@ -66,11 +56,12 @@ export const FaqSection: React.FC = () => {
         />
 
         <Reveal>
-          <FaqAccordion
-          data={items}
-          defaultOpenId={1}
-          className="max-w-4xl mx-auto p-0 font-['Hind_Siliguri',sans-serif] text-[15px] sm:text-base"
-          answerClassName="leading-relaxed bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] shadow-md shadow-blue-600/20"
+          <FaqSearchAccordion
+            data={items}
+            defaultOpenId={1}
+            searchPlaceholder="Search FAQs..."
+            emptyText="কোনো প্রশ্ন পাওয়া যায়নি।"
+            className="max-w-4xl mx-auto font-['Hind_Siliguri',sans-serif]"
           />
         </Reveal>
       </div>
