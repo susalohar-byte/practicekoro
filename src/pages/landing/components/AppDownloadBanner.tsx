@@ -111,7 +111,7 @@ export const AppDownloadBanner: React.FC = () => {
 
             <motion.ul
               variants={fadeUp}
-              className="mt-9 flex items-start justify-center divide-x divide-white/25 font-['Hind_Siliguri',sans-serif]"
+              className="mt-9 flex items-start justify-center divide-x divide-white/25 font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif]"
             >
               {FEATURES.map(({ icon: Icon, lines }) => (
                 <li key={lines.join(' ')} className="flex items-center gap-2 lg:gap-2.5 px-2.5 sm:px-4 md:px-2.5 lg:px-4 first:pl-0 last:pr-0 text-left">

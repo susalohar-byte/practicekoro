@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { SectionHeading } from './SectionHeading';
@@ -41,7 +42,8 @@ export const WhyPracticeKoroSection: React.FC = () => {
     <section id="why-pk" className="scroll-mt-20 py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/icons/light_bulb.png"
+          icon={Sparkles}
+          tone="amber"
           title="Why Practice Koro?"
           subtitle="পরীক্ষার প্রস্তুতি এখন আরও গুছানো, আরও কার্যকরী।"
         />

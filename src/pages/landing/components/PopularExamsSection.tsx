@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, GraduationCap } from 'lucide-react';
 import { SectionHeading } from './SectionHeading';
 import { ExamData } from './ExamModal';
 
@@ -133,7 +133,8 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
     <section id="exams" className="scroll-mt-20 pt-6 sm:pt-8 pb-8 sm:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/icons/chart_increasing.png"
+          icon={GraduationCap}
+          tone="blue"
           title="Popular Exams"
           subtitle="West Bengal-এর গুরুত্বপূর্ণ সরকারি পরীক্ষার জন্য প্রস্তুতি নিন।"
         />

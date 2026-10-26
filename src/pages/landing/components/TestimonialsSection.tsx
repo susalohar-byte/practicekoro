@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { MessageSquareHeart } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Reveal } from './Reveal';
 import { SectionHeading } from './SectionHeading';
@@ -70,7 +71,8 @@ export const TestimonialsSection: React.FC = () => {
     <section id="reviews" className="scroll-mt-20 py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/icons/red_heart.png"
+          icon={MessageSquareHeart}
+          tone="rose"
           title="What Our Students Say"
           subtitle="Practice Koro ব্যবহার করে হাজারো ছাত্রছাত্রী তাদের প্রস্তুতিতে আরও শক্তিশালী করেছে।"
         />

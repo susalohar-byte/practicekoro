@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Route } from 'lucide-react';
 import { Reveal, RevealGroup, fadeUp } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
@@ -37,7 +37,8 @@ export const LearningJourneySection: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <Reveal className="bg-white rounded-3xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.06)] px-5 sm:px-8 pt-6 sm:pt-8 pb-8 sm:pb-10">
           <SectionHeading
-            icon="/images/landing/icons/rocket.png"
+            icon={Route}
+            tone="violet"
             title="Your Learning Journey"
             subtitle="সহজ ৪ ধাপে এগিয়ে চলুন আপনার স্বপ্নের দিকে।"
           />

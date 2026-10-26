@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Crown } from 'lucide-react';
 import { api } from '@/services/api';
 import type { SubscriptionPlan } from '@/types';
 import { SectionHeading } from './SectionHeading';
@@ -66,7 +66,8 @@ export const PricingSection: React.FC = () => {
     <section id="pricing" className="scroll-mt-24 py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
-          icon="/images/landing/icons/crown.png"
+          icon={Crown}
+          tone="orange"
           title="Choose Your Plan"
           subtitle="আপনার প্রস্তুতির জন্য সঠিক প্ল্যান বেছে নিন।"
         />

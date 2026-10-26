@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { studentPanelUrl } from '@/lib/studentPanel';
 
 const CTA_CLASS =
-  'inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg shadow-blue-600/30 ring-1 ring-white/20 transition-all';
+  'inline-flex items-center gap-2 whitespace-nowrap px-4 sm:px-6 md:px-4 lg:px-6 py-2 sm:py-3 bg-gradient-to-b from-[#2F7BFF] to-[#1450F0] hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-semibold rounded-full shadow-lg shadow-blue-600/30 ring-1 ring-white/20 transition-all';
 
 /** The Practice Koro logo (checklist sheets on blue), drawn as a full circle. */
 export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 h-10' }) => {
@@ -125,10 +125,10 @@ export const Navbar: React.FC = () => {
             >
               <BrandMark className="w-9 h-9 sm:w-10 sm:h-10" />
             </motion.span>
-            <span className="text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
+            <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+          <nav className="hidden md:flex items-center gap-0 lg:gap-2">
             {navLinks.map((link, i) => (
               <motion.a
                 key={link.name}
@@ -138,7 +138,7 @@ export const Navbar: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.05 * i }}
                 whileHover={{ scale: 1.05 }}
-                className="px-3 lg:px-4 py-2 rounded-full text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                className="whitespace-nowrap px-2 lg:px-4 py-2 rounded-full text-[13px] lg:text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
               >
                 {link.name}
               </motion.a>
