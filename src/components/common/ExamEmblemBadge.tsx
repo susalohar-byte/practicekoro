@@ -14,196 +14,131 @@ export const PoliceShieldBadge: React.FC<{ className?: string }> = ({ className 
       alt="WBP Police Logo"
       className="w-full h-full object-contain rounded-lg"
       loading="lazy"
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).src = '/images/popular_exams/logo_wbp.png';
+      }}
     />
   </div>
 );
 
-// High-fidelity exam emblem generator matching reference screenshot
-export const ExamEmblemBadge: React.FC<{
-  title?: string;
-  slug?: string;
-  iconName?: string;
-  className?: string;
-}> = ({ title = '', slug = '', iconName, className = 'w-8 h-8' }) => {
-  // 1. If custom uploaded logo or URL is set, ALWAYS display it
+/**
+ * Resolves the official government/board emblem URL based on exam title, slug, or icon identifier.
+ * Guarantees a authentic official logo is returned without falling back to demo placeholder icons.
+ */
+export function getOfficialExamLogoUrl(
+  title: string = '',
+  slug: string = '',
+  iconName?: string
+): string {
+  // If iconName is already an image path or URL, use it directly
   if (
     iconName &&
-    (iconName.startsWith('data:') ||
-      iconName.startsWith('/') ||
+    (iconName.startsWith('/') ||
       iconName.startsWith('http') ||
-      iconName.startsWith('blob:'))
+      iconName.startsWith('data:') ||
+      iconName.startsWith('blob:') ||
+      iconName.endsWith('.png') ||
+      iconName.endsWith('.svg') ||
+      iconName.endsWith('.webp'))
   ) {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src={iconName}
-          alt={title || 'Exam Logo'}
-          className="w-full h-full object-contain rounded-lg"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            if (target.src.includes('logo_wbp.png')) {
-              target.style.display = 'none';
-            } else {
-              target.src = '/images/exams/logo_wbp.png';
-            }
-          }}
-        />
-      </div>
-    );
+    return iconName.startsWith('/') || iconName.startsWith('http')
+      ? iconName
+      : `/${iconName}`;
   }
 
   const norm = (title + ' ' + slug + ' ' + (iconName || '')).toLowerCase();
 
-  // 1. Kolkata Police -> Real KP emblem
+  // 1. Kolkata Police
   if (norm.includes('kolkata') || norm.includes('kp') || iconName === 'kolkata') {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_kp.png"
-          alt={title || 'Kolkata Police'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+    return '/images/exams/logo_kp.png';
   }
 
-  // 2. West Bengal Police -> Real WBP Shield
-  if (norm.includes('wbp') || norm.includes('police') || iconName === 'Shield') {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_wbp.png"
-          alt={title || 'West Bengal Police'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+  // 2. Primary TET / Upper Primary TET / Teaching / SLST / CTET
+  if (
+    norm.includes('tet') ||
+    norm.includes('primary') ||
+    norm.includes('slst') ||
+    norm.includes('ctet') ||
+    norm.includes('teacher') ||
+    iconName === 'tet'
+  ) {
+    return '/images/exams/logo_wbtet.png';
   }
 
-  // 3. SSC MTS / SSC GD -> Real SSC official logo
-  if (norm.includes('ssc') || iconName === 'ssc') {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_ssc.png"
-          alt={title || 'SSC'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+  // 3. Indian Railways (RRB / NTPC / Group D / ALP)
+  if (
+    norm.includes('railway') ||
+    norm.includes('rrb') ||
+    norm.includes('ntpc') ||
+    norm.includes('group d') ||
+    iconName === 'railway'
+  ) {
+    return '/images/exams/logo_railway.png';
   }
 
-  // 4. Railway Group D / RRB -> Real Indian Railways official logo
-  if (norm.includes('railway') || norm.includes('rrb') || iconName === 'railway') {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_railway.png"
-          alt={title || 'Indian Railways'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+  // 4. SSC (Staff Selection Commission, GD, MTS, CGL, CHSL)
+  if (
+    norm.includes('ssc') ||
+    norm.includes('cgl') ||
+    norm.includes('chsl') ||
+    norm.includes('mts') ||
+    norm.includes('gd') ||
+    iconName === 'ssc'
+  ) {
+    return '/images/exams/logo_ssc.png';
   }
 
-  // 5. Primary TET / TET -> Real WBBPE official logo
-  if (norm.includes('tet') || norm.includes('primary') || iconName === 'tet') {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_wbtet.png"
-          alt={title || 'Primary TET'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+  // 5. WBSSC Group C & D
+  if (
+    norm.includes('wbssc') ||
+    norm.includes('school service') ||
+    iconName === 'wbssc'
+  ) {
+    return '/images/exams/emblem_wbssc.png';
   }
 
-  // 6. WBPSC / Clerkship / WBCS / Food SI / ICDS -> Real WBPSC official emblem
+  // 6. WBPSC / Clerkship / WBCS / Food SI / ICDS / Civil Services
+  // (Evaluated BEFORE general 'Shield' check so Food SI gets the official WBPSC emblem)
   if (
     norm.includes('wbpsc') ||
     norm.includes('clerkship') ||
     norm.includes('wbcs') ||
     norm.includes('food') ||
     norm.includes('icds') ||
-    norm.includes('wbssc') ||
+    norm.includes('civil') ||
+    norm.includes('psc') ||
     iconName === 'wbpsc' ||
-    iconName === 'wbssc' ||
     iconName === 'food' ||
     iconName === 'icds'
   ) {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_wbpsc.png"
-          alt={title || 'WBPSC'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+    return '/images/exams/logo_wbpsc.png';
   }
 
-  // 7. General Knowledge or Other WB Exams -> Real WBPSC official emblem
-  if (norm.includes('knowledge') || norm.includes('general')) {
-    return (
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 p-0.5 shadow-2xs',
-          className
-        )}
-      >
-        <img
-          src="/images/exams/logo_wbpsc.png"
-          alt={title || 'General Knowledge'}
-          className="w-full h-full object-contain rounded-lg"
-          loading="lazy"
-        />
-      </div>
-    );
+  // 7. West Bengal Police (WBP Constable, SI, Police)
+  if (
+    norm.includes('wbp') ||
+    norm.includes('police') ||
+    norm.includes('constable') ||
+    norm.includes('sub-inspector') ||
+    norm.includes('sergeant') ||
+    iconName === 'Shield'
+  ) {
+    return '/images/exams/logo_wbp.png';
   }
 
-  // 8. Default fallback -> PracticeKoro official circular badge or WBP logo
+  // 8. General Knowledge / State Govt / Default fallback: Official WBPSC Ashoka Pillar emblem
+  return '/images/exams/logo_wbpsc.png';
+}
+
+// High-fidelity exam emblem badge matching official government boards
+export const ExamEmblemBadge: React.FC<{
+  title?: string;
+  slug?: string;
+  iconName?: string;
+  className?: string;
+}> = ({ title = '', slug = '', iconName, className = 'w-8 h-8' }) => {
+  const resolvedUrl = getOfficialExamLogoUrl(title, slug, iconName);
+
   return (
     <div
       className={cn(
@@ -212,12 +147,19 @@ export const ExamEmblemBadge: React.FC<{
       )}
     >
       <img
-        src="/logo-icon-circle.png"
-        alt={title || 'Exam Logo'}
+        src={resolvedUrl}
+        alt={title || 'Exam Emblem'}
         className="w-full h-full object-contain rounded-lg"
         loading="lazy"
         onError={(e) => {
-          (e.target as HTMLImageElement).src = '/images/exams/logo_wbp.png';
+          const target = e.currentTarget as HTMLImageElement;
+          if (target.src.includes('/popular_exams/')) {
+            target.src = target.src.replace('/popular_exams/', '/exams/');
+          } else if (target.src.includes('/exams/')) {
+            target.src = target.src.replace('/exams/', '/popular_exams/');
+          } else if (!target.src.includes('logo_wbpsc.png')) {
+            target.src = '/images/exams/logo_wbpsc.png';
+          }
         }}
       />
     </div>

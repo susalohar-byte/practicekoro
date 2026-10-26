@@ -88,8 +88,7 @@ if [ "$UPLOAD" = true ]; then
     set ftp:ssl-force true;
     open -u '$HOSTINGER_FTP_USER','$HOSTINGER_FTP_PASS' '$HOSTINGER_FTP_HOST';
     cd '$FTP_DIR';
-    rm -rf assets index.html;
-    mput -d dist/*;
+    mirror -R dist/ ./;
     bye
   " || {
     echo "FTP mirror failed — upload $ZIP_PATH manually via hPanel File Manager." >&2

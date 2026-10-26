@@ -18,21 +18,23 @@ export function LogoIcon({ className }: { className?: string }) {
 export function examLogoPath(title: string | null | undefined): string {
   const n = (title ?? '').toLowerCase().trim();
   const has = (...k: string[]) => k.some((x) => n.includes(x));
-  if (has('wbpsc', 'psc', 'civil service', 'wbcs')) return 'exams/logo_wbpsc.png';
+  if (has('wbpsc', 'psc', 'civil service', 'wbcs', 'food', 'icds', 'clerkship')) return 'exams/logo_wbpsc.png';
   if (has('wbp', 'police', 'constable')) return 'exams/logo_wbp.png';
   if (has('kp', 'kolkata police')) return 'exams/logo_kp.png';
   if (has('wbssc', 'group c', 'group d', 'clerk')) return 'exams/emblem_wbssc.png';
   if (has('railway', 'rrb', 'ntpc', 'alp')) return 'exams/logo_railway.png';
   if (has('ssc', 'cgl', 'chsl', 'mts', 'gd')) return 'exams/logo_ssc.png';
-  if (has('tet', 'primary', 'teacher')) return 'exams/logo_wbtet.png';
-  if (has('food', 'icds')) return 'exams/header_icon_wb.png';
-  if (has('bank', 'ibps', 'sbi')) return 'exams/header_icon_central.png';
-  return 'exams/logo_wbp.png';
+  if (has('tet', 'primary', 'teacher', 'slst')) return 'exams/logo_wbtet.png';
+  if (has('bank', 'ibps', 'sbi')) return 'exams/logo_ssc.png';
+  return 'exams/logo_wbpsc.png';
 }
 
 export function ExamLogo({ title, iconUrl, size = 48, className }: { title: string; iconUrl?: string | null; size?: number; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const src = iconUrl && /^https?:\/\//.test(iconUrl) ? iconUrl : asset(examLogoPath(title));
+  const src =
+    iconUrl && (iconUrl.startsWith('/') || /^https?:\/\//.test(iconUrl) || iconUrl.startsWith('data:'))
+      ? iconUrl
+      : asset(examLogoPath(title));
   if (failed) {
     return (
       <span
