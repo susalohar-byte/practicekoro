@@ -132,9 +132,11 @@ export const Login: React.FC = () => {
       <div className="relative grid min-h-screen items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,485px)] lg:gap-12 lg:pl-[6%] lg:pr-[8.5%]">
         {/* Left: headline (desktop) */}
         <section className="hidden self-start pt-[14.5vh] text-center lg:block lg:w-[62%]">
-          <h1 className="font-['Anek_Bangla',sans-serif] text-[clamp(50px,4.6vw,78px)] font-extrabold leading-[1.12] tracking-[-0.01em]">
-            <span className="block text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.6)]">আবারও</span>
-            <span className="relative inline-block pb-5">
+          <h1 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[clamp(50px,4.6vw,78px)] leading-[1.15]">
+            <span className="block text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
+              আবারও
+            </span>
+            <span className="relative inline-block pb-7">
               <span className="bg-gradient-to-r from-[#3FD0FF] via-[#2FA8FF] to-[#3C78FF] bg-clip-text text-transparent [filter:drop-shadow(0_4px_16px_rgba(0,0,0,0.55))]">
                 প্রস্তুতির পথে?
               </span>
