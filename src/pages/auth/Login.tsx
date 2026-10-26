@@ -2,31 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { GoogleIcon } from '@/components/common/GoogleIcon';
-import {
-  Lock,
-  Mail,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  FileText,
-  Target,
-  FolderOpen,
-  BarChart3,
-} from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { mapAuthError } from '@/lib/errors';
 import { openStudentPanel, studentPanelUrl } from '@/lib/studentPanel';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
-const FEATURES = [
-  { label: ['Mock', 'Tests'], icon: FileText, color: '#EF4444', bg: '#FEE2E2' },
-  { label: ['Topic-wise', 'Practice'], icon: Target, color: '#2563EB', bg: '#DBEAFE' },
-  { label: ['Previous Year', 'Questions'], icon: FolderOpen, color: '#F59E0B', bg: '#FEF3C7' },
-  { label: ['Track', 'Progress'], icon: BarChart3, color: '#16A34A', bg: '#DCFCE7' },
-];
 
 /** Yellow brush stroke under the headline. */
 const BrushUnderline: React.FC<{ className?: string }> = ({ className }) => (
@@ -42,11 +22,11 @@ const BrushUnderline: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-/** Three short yellow "spark" strokes beside "Welcome Back!". */
+/** Two short yellow "spark" strokes beside the headline's question mark. */
 const Sparks: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 40 40" className={className} aria-hidden fill="none">
-    <path d="M24 4L30 18" stroke="#FACC15" strokeWidth="5" strokeLinecap="round" />
-    <path d="M6 17L19 25" stroke="#FACC15" strokeWidth="5" strokeLinecap="round" />
+    <path d="M10 26L16 8" stroke="#FACC15" strokeWidth="4.5" strokeLinecap="round" />
+    <path d="M18 32L34 25" stroke="#FACC15" strokeWidth="4.5" strokeLinecap="round" />
   </svg>
 );
 
@@ -131,85 +111,62 @@ export const Login: React.FC = () => {
   };
 
   const inputClass =
-    'h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
+    'h-[54px] w-full rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] pl-12 text-[15px] text-[#0F172A] placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0B1027] font-sans">
-      {/* The landing page's hero photo fills the screen; a dark wash keeps the text readable */}
+    <div className="relative min-h-screen overflow-hidden bg-[#0B0F1E] font-sans">
+      {/* The landing page's hero photo, with a soft dark blur on the left behind the headline */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[url('/images/landing/hero_student_room_sm.webp')] bg-cover bg-[34%_30%] sm:bg-[url('/images/landing/hero_student_room.webp')] sm:bg-[center_35%]"
+        className="absolute inset-0 bg-[url('/images/landing/hero_student_room_sm.webp')] bg-cover bg-[30%_center] sm:bg-[url('/images/landing/hero_student_room.webp')] lg:bg-[center_40%]"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-[#0B1027]/55 lg:bg-gradient-to-r lg:from-[#0B1027]/85 lg:via-[#0B1027]/45 lg:to-[#0B1027]/30"
+        className="absolute inset-0 backdrop-blur-[3px] [mask-image:radial-gradient(ellipse_at_16%_24%,#000_0%,#000_25%,transparent_50%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[#060914]/45 lg:bg-transparent lg:bg-[radial-gradient(ellipse_at_16%_24%,rgba(3,5,14,0.95)_0%,rgba(3,5,14,0.72)_26%,rgba(3,5,14,0.18)_52%,rgba(3,5,14,0.05)_75%)]"
       />
 
-      {/* Back to the landing page */}
-      <Link
-        to="/"
-        aria-label="Home পেজে ফিরুন"
-        title="Home পেজে ফিরুন"
-        className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:text-blue-600 sm:left-6 sm:top-6"
-      >
-        <ArrowLeft className="h-[18px] w-[18px]" />
-      </Link>
-
-      <div className="relative mx-auto grid min-h-screen max-w-[1240px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16 lg:px-10 lg:py-8">
-        {/* Left: headline and features (desktop) */}
-        <section className="hidden flex-col items-start text-left lg:flex">
-          <h1 className="font-headline text-[64px] font-extrabold leading-[1.05] tracking-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.45)]">
-            <span className="block text-white">আবারও</span>
-            <span className="relative inline-block text-[#7FA6FF]">
+      <div className="relative grid min-h-screen items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,485px)] lg:gap-12 lg:pl-[6%] lg:pr-[8.5%]">
+        {/* Left: headline (desktop) */}
+        <section className="hidden self-start pt-[14.5vh] text-center lg:block lg:w-[62%]">
+          <h1 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[clamp(48px,4.4vw,74px)] leading-[1.08] [text-shadow:0_4px_24px_rgba(0,0,0,0.6)]">
+            <span className="block text-white [-webkit-text-stroke:2px_#FFFFFF]">আবারও</span>
+            <span className="relative inline-block bg-gradient-to-r from-[#3FD0FF] via-[#2FA8FF] to-[#3C78FF] bg-clip-text text-transparent [-webkit-text-stroke:2px_#33B4FF] [text-shadow:none]">
               প্রস্তুতির পথে?
-              <BrushUnderline className="absolute -bottom-3 left-1/2 w-[78%] -translate-x-1/2" />
+              <BrushUnderline className="absolute -bottom-4 left-[8%] w-[92%]" />
+              <Sparks className="absolute -right-11 -top-4 h-11 w-11" />
             </span>
           </h1>
-          <p className="mt-8 font-headline text-[22px] font-medium leading-snug text-white/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+          <p className="mt-9 text-[clamp(18px,1.45vw,24px)] font-medium leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.7)]">
             Practice Koro-র সাথে
             <br />
             প্রতিদিন একটু করে এগিয়ে চলুন।
           </p>
-
-          <ul className="mt-10 grid w-full max-w-[560px] grid-cols-4 rounded-[24px] border border-white/60 bg-white/90 px-3 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.25)] backdrop-blur">
-            {FEATURES.map(({ label, icon: Icon, color, bg }, i) => (
-              <li
-                key={label.join(' ')}
-                className={`flex flex-col items-center px-2 text-center ${i > 0 ? 'border-l border-slate-200' : ''}`}
-              >
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
-                  style={{ background: bg, color }}
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="mt-2 text-[13px] font-bold leading-tight text-slate-900">
-                  {label[0]}
-                  <br />
-                  {label[1]}
-                </span>
-              </li>
-            ))}
-          </ul>
         </section>
 
         {/* Right: sign-in card */}
-        <section className="mx-auto w-full max-w-[420px] rounded-[24px] border border-white/70 bg-white px-6 py-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:px-8 sm:py-8">
-          <Link to="/" className="mx-auto flex w-fit items-center" aria-label="PracticeKoro home">
-            <img
-              src="/logo-transparent.png"
-              alt="PracticeKoro"
-              className="h-11 w-auto object-contain"
-            />
+        <section className="mx-auto w-full max-w-[485px] rounded-[28px] bg-[#FFFFFF] px-6 py-8 lg:mt-20 shadow-[0_30px_80px_rgba(0,0,0,0.45)] sm:px-10 sm:pb-7 sm:pt-8">
+          <Link
+            to="/"
+            className="mx-auto flex w-fit items-center gap-2.5"
+            aria-label="PracticeKoro home"
+          >
+            <img src="/logo-icon.png" alt="" className="h-10 w-10 rounded-xl object-cover" />
+            <span className="text-[24px] font-bold tracking-tight">
+              <span className="text-[#0B1446]">Practice</span>
+              <span className="text-[#1F5BFF]">Koro</span>
+            </span>
           </Link>
 
-          <div className="relative mt-5 text-center">
-            <Sparks className="absolute -left-1 -top-4 h-8 w-8" />
-            <h2 className="font-headline text-[32px] font-extrabold leading-tight tracking-tight sm:text-[36px]">
+          <div className="mt-5 text-center">
+            <h2 className="text-[34px] font-extrabold leading-tight tracking-tight sm:text-[40px]">
               <span className="text-[#0B1446]">Welcome </span>
               <span className="text-[#1F5BFF]">Back!</span>
             </h2>
-            <p className="mt-1.5 font-headline text-[15px] font-medium text-slate-600">
+            <p className="mt-2 font-headline text-[15px] font-medium text-[#475569]">
               আপনার প্রস্তুতির যাত্রা এখান থেকে আবার শুরু করুন।
             </p>
           </div>
@@ -217,7 +174,7 @@ export const Login: React.FC = () => {
           {openingStudentPanel ? (
             <div className="mt-8 flex flex-col items-center gap-3 py-6 text-center" role="status">
               <Loader2 className="h-8 w-8 animate-spin text-[#1F5BFF]" />
-              <p className="text-sm font-semibold text-slate-700">Opening your student panel…</p>
+              <p className="text-sm font-semibold text-[#334155]">Opening your student panel…</p>
               <a
                 href={studentPanelUrl('home')}
                 className="text-sm font-bold text-[#1F5BFF] hover:underline"
@@ -241,59 +198,51 @@ export const Login: React.FC = () => {
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading || isLoading}
-                className="mt-6 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white text-[15px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-7 flex h-[56px] w-full items-center justify-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] text-[16px] font-semibold text-[#1E293B] shadow-[0_2px_8px_rgba(15,23,42,0.06)] transition hover:border-[#CBD5E1] hover:bg-[#F8FAFC] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isGoogleLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-[#64748B]" />
                 ) : (
-                  <GoogleIcon className="h-5 w-5" />
+                  <GoogleIcon className="h-6 w-6" />
                 )}
                 <span>Continue with Google</span>
               </button>
 
-              <div className="my-5 flex items-center gap-6 text-[13px] text-slate-500">
-                <span className="h-px flex-1 bg-slate-200" />
+              <div className="my-[18px] flex items-center gap-6 text-[13px] font-medium text-[#64748B]">
+                <span className="h-px flex-1 bg-[#E2E8F0]" />
                 OR
-                <span className="h-px flex-1 bg-slate-200" />
+                <span className="h-px flex-1 bg-[#E2E8F0]" />
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-                <div>
-                  <label
-                    htmlFor="login-id"
-                    className="mb-1.5 block text-[14px] font-semibold text-slate-800"
-                  >
+              <form className="space-y-3" onSubmit={handleSubmit} noValidate>
+                <div className="relative">
+                  <label htmlFor="login-id" className="sr-only">
                     Email or Phone Number
                   </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" />
-                    <input
-                      id="login-id"
-                      type="text"
-                      inputMode="email"
-                      autoComplete="username"
-                      placeholder="Enter your email or phone number"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={inputClass}
-                    />
-                  </div>
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B]" />
+                  <input
+                    id="login-id"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="username"
+                    placeholder="Email or Phone Number"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                  />
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-[14px] font-semibold text-slate-800"
-                  >
-                    Password
-                  </label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" />
+                    <label htmlFor="password" className="sr-only">
+                      Password
+                    </label>
+                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B]" />
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"
-                      placeholder="Enter your password"
+                      placeholder="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className={`${inputClass} pr-12`}
@@ -302,15 +251,15 @@ export const Login: React.FC = () => {
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 hover:text-slate-800"
+                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[#64748B] hover:text-[#1E293B]"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
-                  <div className="mt-1.5 text-right">
+                  <div className="mt-4 text-right">
                     <Link
                       to="/forgot-password"
-                      className="text-[13px] font-medium text-[#1F5BFF] hover:underline"
+                      className="text-[14px] font-semibold text-[#1F5BFF] hover:underline"
                     >
                       Forgot Password?
                     </Link>
@@ -320,7 +269,7 @@ export const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading || isGoogleLoading}
-                  className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-[#0B5CFF] text-[16px] font-bold text-white shadow-[0_12px_24px_rgba(11,92,255,0.28)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="!mt-4 flex h-[60px] w-full items-center justify-center gap-2.5 rounded-xl bg-[#0B5CFF] text-[17px] font-semibold text-white shadow-[0_12px_28px_rgba(11,92,255,0.35)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" aria-label="Signing in" />
@@ -330,13 +279,13 @@ export const Login: React.FC = () => {
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-[14px] text-slate-600">
+              <p className="mt-5 text-center text-[14px] text-[#475569]">
                 Don&apos;t have an account?{' '}
                 <a
                   href={studentPanelUrl('signup')}
                   className="ml-1 font-bold text-[#1F5BFF] hover:underline"
                 >
-                  Create Account
+                  Sign Up
                 </a>
               </p>
             </>
