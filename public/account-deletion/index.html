@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account & Data Deletion — PracticeKoro</title>
+  <meta name="description" content="Request permanent account and personal data deletion for PracticeKoro in compliance with Google Play Store Data Safety policies.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1F48E8;
+      --primary-dark: #1736C4;
+      --primary-soft: #EEF2FF;
+      --danger: #DC2626;
+      --danger-soft: #FEF2F2;
+      --danger-border: #FEE2E2;
+      --success: #16A34A;
+      --success-soft: #F0FDF4;
+      --text-main: #0F172A;
+      --text-muted: #475569;
+      --text-faint: #94A3B8;
+      --border-color: #E2E8F0;
+      --surface: #F8FAFC;
+      --card-bg: #FFFFFF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F8FAFC;
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .brand-logo img {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+    }
+
+    .nav-tag {
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--primary-soft);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 860px;
+      margin: 40px auto 80px;
+      padding: 0 20px;
+    }
+
+    .hero-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-border);
+      border-radius: 999px;
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 16px;
+    }
+
+    .hero-header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+
+    .hero-header p {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* Steps list */
+    .steps-list {
+      list-style: none;
+      counter-reset: step-counter;
+      margin: 16px 0 8px;
+    }
+
+    .steps-list li {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 44px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+
+    .steps-list li strong {
+      color: var(--text-main);
+    }
+
+    .steps-list li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Data Table */
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .data-col {
+      padding: 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+    }
+
+    .data-col.deleted {
+      background: #FEF2F2;
+      border-color: #FEE2E2;
+    }
+
+    .data-col.retained {
+      background: #F8FAFC;
+      border-color: #E2E8F0;
+    }
+
+    .data-col h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .data-col.deleted h3 {
+      color: var(--danger);
+    }
+
+    .data-col.retained h3 {
+      color: var(--text-main);
+    }
+
+    .data-col ul {
+      padding-left: 18px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    .data-col ul li {
+      margin-bottom: 6px;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      height: 48px;
+      background: var(--surface);
+      border: 1.2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 14.5px;
+      font-family: inherit;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      background: #FFFFFF;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 72, 232, 0.12);
+    }
+
+    textarea.form-control {
+      height: 100px;
+      padding: 12px 16px;
+      resize: vertical;
+    }
+
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 48px;
+      padding: 0 24px;
+      background: var(--danger);
+      color: #FFFFFF;
+      font-size: 14.5px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .submit-btn:hover {
+      background: #B91C1C;
+      transform: translateY(-1px);
+    }
+
+    /* Notice banner */
+    .notice-box {
+      background: #FFFBEB;
+      border: 1px solid #FEF3C7;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13.5px;
+      color: #92400E;
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-faint);
+      padding: 24px 0 40px;
+    }
+
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand-logo">
+        <img src="/images/logo-circle.png" onerror="this.src='/images/logo.png'" alt="PracticeKoro Logo">
+        <span>PracticeKoro</span>
+      </a>
+      <span class="nav-tag">Google Play Policy Compliance</span>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <main class="container">
+    <div class="hero-header">
+      <div class="badge-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        Data Safety & Privacy
+      </div>
+      <h1>Account & Data Deletion Request</h1>
+      <p>
+        At PracticeKoro, you own your personal data. You have the right to permanently delete your account and all associated test records at any time.
+      </p>
+    </div>
+
+    <!-- Section 1: In-App Deletion -->
+    <section class="card">
+      <h2>
+        <span class="card-icon">📱</span>
+        Method 1: Instant In-App Account Deletion (Recommended)
+      </h2>
+      <p style="color: var(--text-muted); font-size: 14.5px;">
+        If you have the PracticeKoro Android app installed on your phone, you can permanently delete your account instantly from within the app:
+      </p>
+
+      <ol class="steps-list">
+        <li>Open the <strong>PracticeKoro</strong> app and ensure you are logged in.</li>
+        <li>Tap the <strong>Profile</strong> tab in the bottom navigation menu.</li>
+        <li>Tap the <strong>Settings (Gear) icon</strong> located at the top-right corner.</li>
+        <li>Scroll down to the <strong>Account & Security</strong> section.</li>
+        <li>Tap <strong>Delete Account</strong> (marked in red).</li>
+        <li>Review the confirmation dialog and tap <strong>Permanently Delete</strong>.</li>
+      </ol>
+
+      <div class="notice-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M3.6 15h16.8L12 3z"/></svg>
+        <span>
+          <strong>Real-Time Execution:</strong> In-app deletion takes effect <strong>immediately</strong>. Your session is terminated and your data is erased from the server without recovery options.
+        </span>
+      </div>
+    </section>
+
+    <!-- Section 2: Web Deletion Request Form -->
+    <section class="card">
+      <h2>
+        <span class="card-icon">🌐</span>
+        Method 2: Web Deletion Request (If App is Uninstalled)
+      </h2>
+      <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px;">
+        If you have uninstalled the app or cannot sign in, email us <strong>from your registered email address</strong> with the subject "Delete my account". We confirm the request came from you and delete the account within <strong>7 working days</strong>, then reply to tell you it is done.
+      </p>
+
+      <a href="mailto:support@practicekoro.online?subject=Delete%20my%20Practice%20Koro%20account&body=Please%20delete%20my%20Practice%20Koro%20account.%0A%0ARegistered%20email%3A%20%0AName%3A%20" class="submit-btn" style="display: inline-flex; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        Email a Deletion Request
+      </a>
+      <p style="color: var(--text-muted); font-size: 13.5px; margin-top: 12px;">
+        Or write to <a href="mailto:support@practicekoro.online">support@practicekoro.online</a> from your registered email.
+      </p>
+    </section>
+
+    <!-- Section 3: Data Deletion & Retention Breakdown -->
+    <section class="card">
+      <h2>
+        <span class="card-icon">📋</span>
+        Data Retention and Deletion Disclosure (Google Play Standards)
+      </h2>
+      <p style="color: var(--text-muted); font-size: 14px;">
+        In accordance with Google Play's User Data & Account Deletion Policy, below is the transparent breakdown of data handling upon deletion:
+      </p>
+
+      <div class="data-grid">
+        <div class="data-col deleted">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Data Permanently Deleted
+          </h3>
+          <ul>
+            <li><strong>User Profile:</strong> Name, email address, phone number, avatar picture, district, and category.</li>
+            <li><strong>Academic History:</strong> All mock test attempts, question choices, time records, and scorecards.</li>
+            <li><strong>Personal Progress:</strong> Saved question bookmarks, study notes, and rank histories.</li>
+            <li><strong>Authentication Credentials:</strong> Password hashes, login tokens, Google OAuth associations.</li>
+            <li><strong>Subscriptions:</strong> Active Pro Pass status and feature access privileges.</li>
+          </ul>
+        </div>
+
+        <div class="data-col retained">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Data Retained (Legal Compliance Only)
+          </h3>
+          <ul>
+            <li><strong>Financial Invoices & Payment IDs:</strong> Razorpay transaction IDs and GST tax records are retained exclusively to comply with statutory accounting and tax regulations under applicable Indian laws.</li>
+            <li><strong>No Academic or Personal Data:</strong> No personal study history or identifying profile details are retained once deletion is executed.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Support Contact -->
+    <section class="card" style="text-align: center;">
+      <h2 style="justify-content: center;">Need Immediate Help?</h2>
+      <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 14px;">
+        You can also email our Data Privacy Officer directly from your registered email address:
+      </p>
+      <a href="mailto:support@practicekoro.online?subject=Account%20Deletion%20Request" style="display: inline-block; font-weight: 700; color: var(--primary); font-size: 16px; text-decoration: underline;">
+        support@practicekoro.online
+      </a>
+    </section>
+
+    <footer class="footer">
+      <p>© 2026 PracticeKoro Platform. All rights reserved.</p>
+      <p style="margin-top: 6px;">
+        <a href="https://practicekoro.online/privacy">Privacy Policy</a> · 
+        <a href="https://practicekoro.online">Home</a>
+      </p>
+    </footer>
+  </main>
+
+</body>
+</html>

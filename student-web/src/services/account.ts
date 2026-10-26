@@ -124,6 +124,29 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 // Leaderboard — get_test_leaderboard
 // ---------------------------------------------------------------------------
 
+/**
+ * Permanently deletes the signed-in student's account (the `delete_own_account` RPC).
+ * Avatar files are removed first because the database cascade cannot reach storage.
+ * Throws an AppError with a readable message if the server refuses.
+ */
+export async function deleteOwnAccount(userId: string): Promise<void> {
+  const { data: files } = await supabase.storage.from('avatars').list(userId);
+  if (files?.length) {
+    const { error: removeError } = await supabase.storage
+      .from('avatars')
+      .remove(files.map((f) => `${userId}/${f.name}`));
+    if (removeError) console.warn('Avatar cleanup before account deletion failed', removeError);
+  }
+  const { error } = await supabase.rpc('delete_own_account');
+  if (error) {
+    throw new AppError(
+      error.code === '42501'
+        ? error.message
+        : 'Your account could not be deleted. Please try again, or email support@practicekoro.online.'
+    );
+  }
+}
+
 export async function fetchLeaderboard(params: {
   testId: string | null;
   scope: LeaderboardScope;
