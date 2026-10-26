@@ -91,10 +91,10 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
               <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/20 text-blue-100 backdrop-blur-sm mb-1">
                 {exam.badge}
               </span>
-              <h3 id="exam-modal-title" className="text-xl font-bold font-headline tracking-tight">
+              <h3 id="exam-modal-title" className="text-xl font-bold tracking-tight">
                 {exam.name}
               </h3>
-              <p className="text-xs text-blue-100/90 font-medium font-headline">
+              <p className="text-xs text-blue-100/90 font-medium">
                 {exam.bengaliName}
               </p>
             </div>
@@ -103,7 +103,7 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
 
         {/* Scrollable Content */}
         <div className="p-6 overflow-y-auto space-y-5 text-slate-700">
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-headline">
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
             {exam.description}
           </p>
 

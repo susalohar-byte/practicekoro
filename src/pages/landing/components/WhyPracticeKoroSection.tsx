@@ -3,6 +3,7 @@ import { Heart } from 'lucide-react';
 import { motion } from 'motion/react';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { SectionHeading } from './SectionHeading';
+import { AppShowcase } from './AppShowcase';
 
 const FEATURES = [
   {
@@ -62,12 +63,15 @@ export const WhyPracticeKoroSection: React.FC = () => {
               <h3 className="mt-3 sm:mt-4 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug">
                 {feature.title}
               </h3>
-              <p className="mt-2 text-[13px] sm:text-[15px] text-[#5B6478] leading-relaxed font-['Hind_Siliguri',sans-serif]">
+              <p className="mt-2 text-[13px] sm:text-[15px] text-[#5B6478] leading-relaxed font-['Poppins','Anek_Bangla',sans-serif]">
                 {feature.description}
               </p>
             </motion.div>
           ))}
         </RevealGroup>
+
+        {/* The app itself: a mock test question and its solution */}
+        <AppShowcase />
       </div>
     </section>
   );

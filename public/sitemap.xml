@@ -4,6 +4,7 @@
   <url><loc>https://practicekoro.online/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://practicekoro.online/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://practicekoro.online/refund</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://practicekoro.online/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://practicekoro.online/contact</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url><loc>https://practicekoro.online/account-deletion/</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

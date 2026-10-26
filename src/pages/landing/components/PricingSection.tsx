@@ -73,7 +73,7 @@ export const PricingSection: React.FC = () => {
         />
 
         {isError ? (
-          <p className="mt-8 text-center text-sm text-[#5B6478] font-['Hind_Siliguri',sans-serif]">
+          <p className="mt-8 text-center text-sm text-[#5B6478] font-['Poppins','Anek_Bangla',sans-serif]">
             প্ল্যানগুলো এই মুহূর্তে লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।
           </p>
         ) : (
@@ -131,7 +131,7 @@ export const PricingSection: React.FC = () => {
                       </div>
                       {plan.description && (
                         <p
-                          className={`mt-2 text-sm leading-relaxed line-clamp-2 font-['Hind_Siliguri',sans-serif] ${
+                          className={`mt-2 text-sm leading-relaxed line-clamp-2 font-['Poppins','Anek_Bangla',sans-serif] ${
                             highlighted ? 'text-white/75' : 'text-[#5B6478]'
                           }`}
                         >
@@ -156,7 +156,7 @@ export const PricingSection: React.FC = () => {
                       {plan.features.length > 0 && (
                         <ul className="mt-6 space-y-3 flex-1">
                           {plan.features.map((feature) => (
-                            <li key={feature} className="flex items-start gap-2.5 text-sm font-['Hind_Siliguri',sans-serif]">
+                            <li key={feature} className="flex items-start gap-2.5 text-sm font-['Poppins','Anek_Bangla',sans-serif]">
                               <span
                                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${
                                   highlighted ? 'bg-[#2F7BFF] text-white' : 'bg-[#EAF1FF] text-[#1A5CFF]'

@@ -67,7 +67,7 @@ export const LearningJourneySection: React.FC = () => {
                     </motion.div>
                   </div>
                   <h3 className="mt-4 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F]">{step.title}</h3>
-                  <p className="mt-1.5 text-[13px] sm:text-[15px] text-[#5B6478] leading-relaxed max-w-[11rem] font-['Hind_Siliguri',sans-serif]">
+                  <p className="mt-1.5 text-[13px] sm:text-[15px] text-[#5B6478] leading-relaxed max-w-[11rem] font-['Poppins','Anek_Bangla',sans-serif]">
                     {step.description}
                   </p>
                 </motion.li>

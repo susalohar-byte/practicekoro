@@ -61,7 +61,7 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 id="portal-modal-title" className="text-lg font-bold font-headline tracking-tight">
+              <h3 id="portal-modal-title" className="text-lg font-bold tracking-tight">
                 প্ল্যাটফর্ম লগইন ও অ্যাক্সেস
               </h3>
               <p className="text-xs text-blue-100">Practice Koro এ স্বাগতম</p>
@@ -90,7 +90,7 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-base font-bold text-slate-900 font-headline group-hover:text-blue-600 transition-colors">
+                  <h4 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                     অ্যাডমিন প্যানেল (Admin Console)
                   </h4>
                   <span className="text-[10px] font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
@@ -124,7 +124,7 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-base font-bold text-slate-900 font-headline">
+                  <h4 className="text-base font-bold text-slate-900">
                     শিক্ষার্থী পোর্টাল (Student Access)
                   </h4>
                   <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">

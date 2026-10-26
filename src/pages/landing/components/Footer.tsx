@@ -45,6 +45,7 @@ const QUICK_LINKS = [
   { name: 'Plans', href: '#pricing' },
   { name: 'Reviews', href: '#reviews' },
   { name: 'FAQ', href: '#faq' },
+  { name: 'Blog', href: '/blog' },
 ];
 
 const SUPPORT_LINKS = [
@@ -62,6 +63,10 @@ export const Footer: React.FC = () => {
   // On the landing page the quick links scroll; on other pages (the policies) they go home first
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    if (href.startsWith('/')) {
+      navigate(href);
+      return;
+    }
     const target = href === '#hero' ? document.body : document.querySelector(href);
     if (!target || !document.querySelector('#hero')) {
       navigate(`/${href === '#hero' ? '' : href}`);
@@ -98,7 +103,7 @@ export const Footer: React.FC = () => {
               <BrandMark className="w-12 h-12" />
               <span className="text-xl font-bold text-white">Practice Koro</span>
             </div>
-            <p className="mt-4 text-[15px] leading-relaxed text-white/90 font-['Hind_Siliguri',sans-serif]">
+            <p className="mt-4 text-[15px] leading-relaxed text-white/90 font-['Poppins','Anek_Bangla',sans-serif]">
               স্বপ্নের সরকারি চাকরির প্রস্তুতি
               <br />
               এখন আরও সহজ, আরও স্মার্ট।

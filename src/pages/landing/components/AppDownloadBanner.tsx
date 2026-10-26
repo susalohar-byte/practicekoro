@@ -82,7 +82,7 @@ export const AppDownloadBanner: React.FC = () => {
             <motion.div variants={fadeUp} className="relative">
               <Shine className="absolute -right-8 -top-5 w-8 h-8 sm:w-10 sm:h-10" />
               <Sparkle className="absolute -left-7 top-[52%] w-5 h-5 sm:w-6 sm:h-6" delay={0.6} />
-              <h2 className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[34px] sm:text-[44px] lg:text-[52px] leading-[1.15] text-white">
+              <h2 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[34px] sm:text-[44px] lg:text-[52px] leading-[1.15] text-white">
                 একসাথে প্রস্তুতি,
                 <br />
                 <span className="relative inline-block text-[#FFD43B]">
@@ -111,7 +111,7 @@ export const AppDownloadBanner: React.FC = () => {
 
             <motion.ul
               variants={fadeUp}
-              className="mt-9 flex items-start justify-center divide-x divide-white/25 font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif]"
+              className="mt-9 flex items-start justify-center divide-x divide-white/25 font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif]"
             >
               {FEATURES.map(({ icon: Icon, lines }) => (
                 <li key={lines.join(' ')} className="flex items-center gap-2 lg:gap-2.5 px-2.5 sm:px-4 md:px-2.5 lg:px-4 first:pl-0 last:pr-0 text-left">

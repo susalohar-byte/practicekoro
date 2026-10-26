@@ -51,7 +51,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
         animate="show"
         className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[340px] sm:pt-[min(calc(max(46vw,520px)-110px),650px)] pb-16 sm:pb-24 text-center"
       >
-        <h1 className="font-['Li_Subha_Letterpress_Unicode','Hind_Siliguri',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
+        <h1 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
           <motion.span variants={heroItem} className="block">
             স্বপ্নের{' '}
             <motion.span

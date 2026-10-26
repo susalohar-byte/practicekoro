@@ -63,7 +63,7 @@ export const FaqSection: React.FC = () => {
             defaultOpenId={1}
             searchPlaceholder="Search FAQs..."
             emptyText="কোনো প্রশ্ন পাওয়া যায়নি।"
-            className="max-w-4xl mx-auto font-['Hind_Siliguri',sans-serif]"
+            className="max-w-4xl mx-auto font-['Poppins','Anek_Bangla',sans-serif]"
           />
         </Reveal>
       </div>

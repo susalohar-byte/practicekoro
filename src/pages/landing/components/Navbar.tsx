@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/context/AuthContext';
@@ -74,13 +74,19 @@ export const Navbar: React.FC = () => {
     { name: 'Plans', href: '#pricing' },
     { name: 'Reviews', href: '#reviews' },
     { name: 'FAQ', href: '#faq' },
+    { name: 'Blog', href: '/blog' },
   ];
+  const navigate = useNavigate();
 
+  // Section links scroll on the landing page; elsewhere (blog, policies) they go home first
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     setMobileMenuOpen(false);
-    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+    const section = href.startsWith('#') ? document.querySelector(href) : null;
+    if (section) section.scrollIntoView({ behavior: 'smooth' });
+    else navigate(href.startsWith('#') ? `/${href}` : href);
   };
+  const linkHref = (href: string) => (href.startsWith('#') ? `/${href}` : href);
 
   const cta = (className: string, onClick?: () => void) =>
     signedIn && !isAdmin ? (
@@ -109,10 +115,11 @@ export const Navbar: React.FC = () => {
           }`}
         >
           <a
-            href="#hero"
+            href="/"
             onClick={(e) => {
               e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (document.querySelector('#hero')) window.scrollTo({ top: 0, behavior: 'smooth' });
+              else navigate('/');
             }}
             className="flex items-center gap-2.5 cursor-pointer"
           >
@@ -128,17 +135,17 @@ export const Navbar: React.FC = () => {
             <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-0 lg:gap-2">
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
             {navLinks.map((link, i) => (
               <motion.a
                 key={link.name}
-                href={link.href}
+                href={linkHref(link.href)}
                 onClick={(e) => handleNavClick(e, link.href)}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.05 * i }}
                 whileHover={{ scale: 1.05 }}
-                className="whitespace-nowrap px-2 lg:px-4 py-2 rounded-full text-[13px] lg:text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                className="whitespace-nowrap px-3 xl:px-4 py-2 rounded-full text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
               >
                 {link.name}
               </motion.a>
@@ -159,7 +166,7 @@ export const Navbar: React.FC = () => {
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               whileTap={{ scale: 0.9 }}
-              className="md:hidden w-10 h-10 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
+              className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 transition-colors"
               aria-label="Open menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -173,7 +180,7 @@ export const Navbar: React.FC = () => {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-white px-6 pt-6 md:hidden"
+            className="fixed inset-0 z-50 bg-white px-6 pt-6 lg:hidden"
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
@@ -205,7 +212,7 @@ export const Navbar: React.FC = () => {
               {navLinks.map((link, i) => (
                 <motion.a
                   key={link.name}
-                  href={link.href}
+                  href={linkHref(link.href)}
                   onClick={(e) => handleNavClick(e, link.href)}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}

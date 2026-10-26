@@ -157,6 +157,12 @@ const LandingPage = lazyWithRetry(() =>
 const LegalPage = lazyWithRetry(() =>
   import('@/pages/legal/LegalPage').then((module) => ({ default: module.LegalPage }))
 );
+const BlogListPage = lazyWithRetry(() =>
+  import('@/pages/blog/BlogPages').then((module) => ({ default: module.BlogListPage }))
+);
+const BlogPostPage = lazyWithRetry(() =>
+  import('@/pages/blog/BlogPages').then((module) => ({ default: module.BlogPostPage }))
+);
 
 export const App: React.FC = () => {
   return (
@@ -169,6 +175,10 @@ export const App: React.FC = () => {
         {LEGAL_DOCUMENTS.map((doc) => (
           <Route key={doc.slug} path={`/${doc.slug}`} element={<LegalPage document={doc} />} />
         ))}
+
+        {/* Public blog: articles written in Admin → Blog */}
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
 
         {/* Auth Public-Only Routes */}
         <Route

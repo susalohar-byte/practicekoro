@@ -3,8 +3,8 @@ import { motion } from 'motion/react';
 import type { LucideIcon } from 'lucide-react';
 import { Reveal } from './Reveal';
 
-/** Poppins for Latin text, Hind Siliguri picks up the Bengali glyphs. */
-export const LANDING_FONT = "font-['Poppins','Hind_Siliguri',sans-serif]";
+/** Poppins for Latin text, Anek Bangla picks up the Bengali glyphs. */
+export const LANDING_FONT = "font-['Poppins','Anek_Bangla',sans-serif]";
 
 /** Colour of the icon tile beside a heading; each section has its own. */
 const TONES = {
@@ -41,7 +41,7 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({ icon: Icon, tone
       </motion.span>
       <h2 className="text-[22px] sm:text-[30px] font-bold text-[#0B1B4F] tracking-tight leading-tight">{title}</h2>
     </div>
-    <p className="mt-1.5 text-sm sm:text-[17px] text-[#3A4462] font-['Hind_Siliguri',sans-serif] font-medium">
+    <p className="mt-1.5 text-sm sm:text-[17px] text-[#3A4462] font-['Poppins','Anek_Bangla',sans-serif] font-medium">
       {subtitle}
     </p>
   </Reveal>

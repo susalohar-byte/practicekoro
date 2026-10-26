@@ -11,6 +11,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { PricingSection } from './components/PricingSection';
 import { FaqSection } from './components/FaqSection';
 import { AppDownloadBanner } from './components/AppDownloadBanner';
+import { BlogSection } from './components/BlogSection';
 import { Footer } from './components/Footer';
 import { LANDING_FONT } from './components/SectionHeading';
 import { VideoModal } from './components/VideoModal';
@@ -35,24 +36,12 @@ export const LandingPage: React.FC = () => {
         className={`min-h-screen bg-[#F7F8FD] text-slate-900 ${LANDING_FONT} selection:bg-blue-600 selection:text-white flex flex-col`}
       >
         {/* SEO Metadata */}
+        {/* Title and description come from Admin → Settings → SEO (PlatformRuntimeSettings),
+            so the homepage stays editable there; this page only adds its share image. */}
         <Helmet>
-          <title>
-            Practice Koro | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions
-          </title>
-          <meta
-            name="description"
-            content="পশ্চিমবঙ্গের সরকারি চাকরির (WBP Constable, WBSSC, Clerkship, Railway, SSC) সেরা মক টেস্ট, বিষয়ভিত্তিক অনুশীলন, বিগত বছরের প্রশ্নপত্র ও সমাধান।"
-          />
-          <meta
-            property="og:title"
-            content="Practice Koro — স্বপ্নের সরকারি চাকরির প্রস্তুতি হোক সহজ"
-          />
-          <meta
-            property="og:description"
-            content="WBP Constable, WBPSC Clerkship, School Service, Railway এবং SSC পরীক্ষার জন্য সেরা অনলাইন মক টেস্ট প্ল্যাটফর্ম।"
-          />
-          <meta property="og:image" content="/images/hero_student_desk_hd.png" />
+          <meta property="og:image" content="https://practicekoro.online/images/landing/hero_student_room.webp" />
           <meta property="og:type" content="website" />
+          <link rel="canonical" href="https://practicekoro.online/" />
         </Helmet>
 
         {/* 1. Header & Navigation matching reference */}
@@ -80,11 +69,14 @@ export const LandingPage: React.FC = () => {
           {/* 7. FAQ (linked from the navbar and footer) */}
           <FaqSection />
 
-          {/* 8. Final App Download Banner (Positioned immediately above footer) */}
+          {/* 8. App Download Banner */}
           <AppDownloadBanner />
+
+          {/* 9. Latest articles from Admin → Blog, right above the footer */}
+          <BlogSection />
         </main>
 
-        {/* 9. Navy Footer */}
+        {/* 10. Navy Footer */}
         <Footer />
 
         {/* Video Modal Player */}

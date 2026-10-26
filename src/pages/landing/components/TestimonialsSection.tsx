@@ -68,7 +68,7 @@ export const TestimonialsSection: React.FC = () => {
   }, [paused]);
 
   return (
-    <section id="reviews" className="scroll-mt-20 py-8 sm:py-12">
+    <section id="reviews" className="scroll-mt-20 overflow-x-clip py-8 sm:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
           icon={MessageSquareHeart}
@@ -106,7 +106,7 @@ export const TestimonialsSection: React.FC = () => {
                 </div>
                 <QuoteMark />
               </div>
-              <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Hind_Siliguri',sans-serif]">
+              <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Poppins','Anek_Bangla',sans-serif]">
                 {item.comment}
               </p>
             </motion.article>
