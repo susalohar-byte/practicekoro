@@ -131,18 +131,18 @@ export const Login: React.FC = () => {
   };
 
   const inputClass =
-    'h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
+    'h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#C8DEFE] via-[#E4EEFD] to-[#F6F9FD] font-sans">
-      {/* Soft light spots */}
+    <div className="relative min-h-screen overflow-hidden bg-[#0B1027] font-sans">
+      {/* The landing page's hero photo fills the screen; a dark wash keeps the text readable */}
       <div
-        className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-white/50 blur-3xl"
         aria-hidden
+        className="absolute inset-0 bg-[url('/images/landing/hero_student_room_sm.webp')] bg-cover bg-[34%_30%] sm:bg-[url('/images/landing/hero_student_room.webp')] sm:bg-[center_35%]"
       />
       <div
-        className="pointer-events-none absolute -right-20 -bottom-24 h-96 w-96 rounded-full bg-white/70 blur-3xl"
         aria-hidden
+        className="absolute inset-0 bg-[#0B1027]/55 lg:bg-gradient-to-r lg:from-[#0B1027]/85 lg:via-[#0B1027]/45 lg:to-[#0B1027]/30"
       />
 
       {/* Back to the landing page */}
@@ -150,93 +150,72 @@ export const Login: React.FC = () => {
         to="/"
         aria-label="Home পেজে ফিরুন"
         title="Home পেজে ফিরুন"
-        className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:text-blue-600 sm:left-6 sm:top-6"
+        className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:text-blue-600 sm:left-6 sm:top-6"
       >
         <ArrowLeft className="h-[18px] w-[18px]" />
       </Link>
 
-      <div className="relative mx-auto grid min-h-screen max-w-[1320px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-14 lg:px-10 lg:py-10">
-        {/* Left: headline, illustration, features (desktop) */}
-        <section className="hidden flex-col items-center text-center lg:flex">
-          <h1 className="font-headline text-[64px] font-extrabold leading-[1.05] tracking-tight">
-            <span className="block text-[#0B1446]">আবারও</span>
-            <span className="relative inline-block text-[#1F48E8]">
+      <div className="relative mx-auto grid min-h-screen max-w-[1240px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16 lg:px-10 lg:py-8">
+        {/* Left: headline and features (desktop) */}
+        <section className="hidden flex-col items-start text-left lg:flex">
+          <h1 className="font-headline text-[64px] font-extrabold leading-[1.05] tracking-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.45)]">
+            <span className="block text-white">আবারও</span>
+            <span className="relative inline-block text-[#7FA6FF]">
               প্রস্তুতির পথে?
               <BrushUnderline className="absolute -bottom-3 left-1/2 w-[78%] -translate-x-1/2" />
             </span>
           </h1>
-          <p className="mt-8 font-headline text-[22px] font-medium leading-snug text-slate-600">
+          <p className="mt-8 font-headline text-[22px] font-medium leading-snug text-white/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             Practice Koro-র সাথে
             <br />
             প্রতিদিন একটু করে এগিয়ে চলুন।
           </p>
 
-          <div className="relative mt-4 w-full max-w-[680px]">
-            <img
-              src="/images/login_student_illustration.webp"
-              alt="A student practising mock tests on PracticeKoro"
-              className="w-full select-none"
-              style={{
-                WebkitMaskImage:
-                  'linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%), linear-gradient(to right, #000 82%, transparent 100%)',
-                WebkitMaskComposite: 'source-in',
-                maskImage:
-                  'linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%), linear-gradient(to right, #000 82%, transparent 100%)',
-                maskComposite: 'intersect',
-              }}
-              draggable={false}
-            />
-            <ul className="relative -mt-3 grid grid-cols-4 rounded-[28px] border border-white/80 bg-white/95 px-3 py-5 shadow-[0_18px_40px_rgba(30,64,175,0.12)] backdrop-blur">
-              {FEATURES.map(({ label, icon: Icon, color, bg }, i) => (
-                <li
-                  key={label.join(' ')}
-                  className={`flex flex-col items-center px-2 ${i > 0 ? 'border-l border-slate-200' : ''}`}
+          <ul className="mt-10 grid w-full max-w-[560px] grid-cols-4 rounded-[24px] border border-white/60 bg-white/90 px-3 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.25)] backdrop-blur">
+            {FEATURES.map(({ label, icon: Icon, color, bg }, i) => (
+              <li
+                key={label.join(' ')}
+                className={`flex flex-col items-center px-2 text-center ${i > 0 ? 'border-l border-slate-200' : ''}`}
+              >
+                <span
+                  className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
+                  style={{ background: bg, color }}
                 >
-                  <span
-                    className="flex h-12 w-12 items-center justify-center rounded-full shadow-sm"
-                    style={{ background: bg, color }}
-                  >
-                    <Icon className="h-6 w-6" />
-                  </span>
-                  <span className="mt-2 text-[14px] font-bold leading-tight text-slate-900">
-                    {label[0]}
-                    <br />
-                    {label[1]}
-                  </span>
-                  <span
-                    className="mt-1.5 h-[3px] w-6 rounded-full"
-                    style={{ background: color }}
-                    aria-hidden
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="mt-2 text-[13px] font-bold leading-tight text-slate-900">
+                  {label[0]}
+                  <br />
+                  {label[1]}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         {/* Right: sign-in card */}
-        <section className="mx-auto w-full max-w-[600px] rounded-[32px] border border-white bg-white px-6 py-9 shadow-[0_24px_60px_rgba(30,64,175,0.12)] sm:px-12 sm:py-12">
+        <section className="mx-auto w-full max-w-[420px] rounded-[24px] border border-white/70 bg-white px-6 py-7 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:px-8 sm:py-8">
           <Link to="/" className="mx-auto flex w-fit items-center" aria-label="PracticeKoro home">
             <img
               src="/logo-transparent.png"
               alt="PracticeKoro"
-              className="h-10 w-auto object-contain sm:h-11"
+              className="h-11 w-auto object-contain"
             />
           </Link>
 
-          <div className="relative mt-8 text-center">
-            <Sparks className="absolute -left-1 -top-5 h-10 w-10 sm:left-1" />
-            <h2 className="font-headline text-[40px] font-extrabold leading-tight tracking-tight sm:text-[50px]">
+          <div className="relative mt-5 text-center">
+            <Sparks className="absolute -left-1 -top-4 h-8 w-8" />
+            <h2 className="font-headline text-[32px] font-extrabold leading-tight tracking-tight sm:text-[36px]">
               <span className="text-[#0B1446]">Welcome </span>
               <span className="text-[#1F5BFF]">Back!</span>
             </h2>
-            <p className="mt-2 font-headline text-[16px] font-medium text-slate-600 sm:text-[19px]">
+            <p className="mt-1.5 font-headline text-[15px] font-medium text-slate-600">
               আপনার প্রস্তুতির যাত্রা এখান থেকে আবার শুরু করুন।
             </p>
           </div>
 
           {openingStudentPanel ? (
-            <div className="mt-10 flex flex-col items-center gap-3 py-8 text-center" role="status">
+            <div className="mt-8 flex flex-col items-center gap-3 py-6 text-center" role="status">
               <Loader2 className="h-8 w-8 animate-spin text-[#1F5BFF]" />
               <p className="text-sm font-semibold text-slate-700">Opening your student panel…</p>
               <a
@@ -251,7 +230,7 @@ export const Login: React.FC = () => {
               {error && (
                 <div
                   role="alert"
-                  className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+                  className="mt-5 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
                 >
                   <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-600" />
                   <span>{error}</span>
@@ -262,32 +241,32 @@ export const Login: React.FC = () => {
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoading || isLoading}
-                className="mt-8 flex h-16 w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white text-[17px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white text-[15px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isGoogleLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
                 ) : (
-                  <GoogleIcon className="h-6 w-6" />
+                  <GoogleIcon className="h-5 w-5" />
                 )}
                 <span>Continue with Google</span>
               </button>
 
-              <div className="my-7 flex items-center gap-8 text-[15px] text-slate-500">
+              <div className="my-5 flex items-center gap-6 text-[13px] text-slate-500">
                 <span className="h-px flex-1 bg-slate-200" />
                 OR
                 <span className="h-px flex-1 bg-slate-200" />
               </div>
 
-              <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+              <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                 <div>
                   <label
                     htmlFor="login-id"
-                    className="mb-2 block text-[15px] font-semibold text-slate-800"
+                    className="mb-1.5 block text-[14px] font-semibold text-slate-800"
                   >
                     Email or Phone Number
                   </label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" />
                     <input
                       id="login-id"
                       type="text"
@@ -304,12 +283,12 @@ export const Login: React.FC = () => {
                 <div>
                   <label
                     htmlFor="password"
-                    className="mb-2 block text-[15px] font-semibold text-slate-800"
+                    className="mb-1.5 block text-[14px] font-semibold text-slate-800"
                   >
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-500" />
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -328,10 +307,10 @@ export const Login: React.FC = () => {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
-                  <div className="mt-2 text-right">
+                  <div className="mt-1.5 text-right">
                     <Link
                       to="/forgot-password"
-                      className="text-[15px] font-medium text-[#1F5BFF] hover:underline"
+                      className="text-[13px] font-medium text-[#1F5BFF] hover:underline"
                     >
                       Forgot Password?
                     </Link>
@@ -341,7 +320,7 @@ export const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading || isGoogleLoading}
-                  className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#0B5CFF] text-[18px] font-bold text-white shadow-[0_12px_24px_rgba(11,92,255,0.28)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-[#0B5CFF] text-[16px] font-bold text-white shadow-[0_12px_24px_rgba(11,92,255,0.28)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" aria-label="Signing in" />
@@ -351,7 +330,7 @@ export const Login: React.FC = () => {
                 </button>
               </form>
 
-              <p className="mt-8 text-center text-[15px] text-slate-600">
+              <p className="mt-6 text-center text-[14px] text-slate-600">
                 Don&apos;t have an account?{' '}
                 <a
                   href={studentPanelUrl('signup')}
