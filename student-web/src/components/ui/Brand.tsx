@@ -18,16 +18,16 @@ export function LogoIcon({ className }: { className?: string }) {
 export function examLogoPath(title: string | null | undefined): string {
   const n = (title ?? '').toLowerCase().trim();
   const has = (...k: string[]) => k.some((x) => n.includes(x));
-  if (has('wbpsc', 'psc', 'civil service', 'wbcs')) return 'exams/logo_wbpsc.png';
-  if (has('wbp', 'police', 'constable')) return 'exams/logo_wbp.png';
-  if (has('kp', 'kolkata police')) return 'exams/logo_kp.png';
-  if (has('wbssc', 'group c', 'group d', 'clerk')) return 'exams/emblem_wbssc.png';
-  if (has('railway', 'rrb', 'ntpc', 'alp')) return 'exams/logo_railway.png';
-  if (has('ssc', 'cgl', 'chsl', 'mts', 'gd')) return 'exams/logo_ssc.png';
-  if (has('tet', 'primary', 'teacher')) return 'exams/logo_wbtet.png';
-  if (has('food', 'icds')) return 'exams/header_icon_wb.png';
-  if (has('bank', 'ibps', 'sbi')) return 'exams/header_icon_central.png';
-  return 'exams/logo_wbp.png';
+  if (has('wbpsc', 'psc', 'civil service', 'wbcs')) return 'exam-art/logo_wbpsc.png';
+  if (has('wbp', 'police', 'constable')) return 'exam-art/logo_wbp.png';
+  if (has('kp', 'kolkata police')) return 'exam-art/logo_kp.png';
+  if (has('wbssc', 'group c', 'group d', 'clerk')) return 'exam-art/emblem_wbssc.png';
+  if (has('railway', 'rrb', 'ntpc', 'alp')) return 'exam-art/logo_railway.png';
+  if (has('ssc', 'cgl', 'chsl', 'mts', 'gd')) return 'exam-art/logo_ssc.png';
+  if (has('tet', 'primary', 'teacher')) return 'exam-art/logo_wbtet.png';
+  if (has('food', 'icds')) return 'exam-art/header_icon_wb.png';
+  if (has('bank', 'ibps', 'sbi')) return 'exam-art/header_icon_central.png';
+  return 'exam-art/logo_wbp.png';
 }
 
 export function ExamLogo({ title, iconUrl, size = 48, className }: { title: string; iconUrl?: string | null; size?: number; className?: string }) {

@@ -72,7 +72,7 @@ export default function ResultsPage() {
             <h2 id="recent-results" className="text-[17px] font-extrabold text-ink">
               Recent Results
             </h2>
-            <Link to="/test-history" className="text-[13.5px] font-bold text-brand hover:underline">
+            <Link to="/test-history" className="-my-2 py-2 text-[13.5px] font-bold text-brand hover:underline">
               View All →
             </Link>
           </div>
@@ -153,7 +153,7 @@ export default function ResultsPage() {
             <h2 id="rank-preview" className="text-[17px] font-extrabold text-ink">
               Student Rank List
             </h2>
-            <Link to={latest ? `/results/rankings?testId=${encodeURIComponent(latest.testId)}&title=${encodeURIComponent(latest.testTitle)}` : '/results/rankings'} className="text-[13.5px] font-bold text-brand hover:underline">
+            <Link to={latest ? `/results/rankings?testId=${encodeURIComponent(latest.testId)}&title=${encodeURIComponent(latest.testTitle)}` : '/results/rankings'} className="-my-2 py-2 text-[13.5px] font-bold text-brand hover:underline">
               View All →
             </Link>
           </div>

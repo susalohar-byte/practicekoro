@@ -251,7 +251,7 @@ export default function PlansPage() {
         <BadgeCheck className="h-4 w-4 text-success" /> 100% Safe & Secure Checkout · UPI • Debit/Credit Cards • Net Banking
       </p>
       <p className="mt-2 text-center text-[12px] text-faint">
-        Need help? <Link to="/help" className="font-semibold text-primary hover:underline">Contact support</Link>
+        Need help? <Link to="/help" className="-my-3 inline-block py-3 font-semibold text-primary hover:underline">Contact support</Link>
       </p>
     </div>
   );
