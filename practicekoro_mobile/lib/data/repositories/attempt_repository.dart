@@ -245,6 +245,9 @@ class AttemptRepository {
       explanationBengali: r['explanationBengali']?.toString(),
       marks: _num(r['marks']) ?? 1,
       negativeMarks: _num(r['negativeMarks']) ?? 0,
+      subjectName: r['subjectName']?.toString() ??
+          r['subject_name']?.toString() ??
+          r['subject']?.toString(),
     );
   }
 
