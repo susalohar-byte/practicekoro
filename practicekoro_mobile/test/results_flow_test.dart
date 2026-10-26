@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:practicekoro_mobile/data/datasources/local_storage.dart';
+import 'package:practicekoro_mobile/data/models/attempt_model.dart';
 import 'package:practicekoro_mobile/data/models/ranking_model.dart';
 import 'package:practicekoro_mobile/data/repositories/attempt_repository.dart';
 import 'package:practicekoro_mobile/data/repositories/auth_repository.dart';
@@ -63,63 +64,45 @@ void main() {
       // Resolves to saved user name in LocalStorageService ('Susanta Lohar')
       expect(emptyNameUser.displayName, 'Susanta Lohar (You)');
 
-      // Dummy 'Student' name replaces with authentic full name (First + Last Name)
-      const dummyStudentRank2 = StudentRankItem(
+      // Names come from the server as-is; nothing is invented.
+      const aspirant = StudentRankItem(
         rank: 2,
         studentId: 'stud_02',
-        name: 'Student',
+        name: 'Aspirant Student',
         score: 186,
         totalMarks: 200,
         percentage: 93,
-        isCurrentUser: false,
       );
-      expect(dummyStudentRank2.displayName, 'Sneha Roy');
+      expect(aspirant.displayName, 'Aspirant Student');
 
-      // Dummy 'Aspirant' name replaces with authentic full name
-      const dummyStudentRank3 = StudentRankItem(
-        rank: 3,
-        studentId: 'stud_03',
-        name: 'Aspirant',
-        score: 180,
-        totalMarks: 200,
-        percentage: 90,
-        isCurrentUser: false,
-      );
-      expect(dummyStudentRank3.displayName, 'Arijit Sen');
-
-      // Empty name replaces with authentic full name
-      const emptyNameStudentRank4 = StudentRankItem(
-        rank: 4,
-        studentId: 'stud_04',
-        name: '',
-        score: 176,
-        totalMarks: 200,
-        percentage: 88,
-        isCurrentUser: false,
-      );
-      expect(emptyNameStudentRank4.displayName, 'Priyanka Paul');
-
-      // Single word name gains authentic surname
-      const singleWordStudent = StudentRankItem(
+      const singleWord = StudentRankItem(
         rank: 5,
         studentId: 'stud_05',
         name: 'Suman',
         score: 172,
         totalMarks: 200,
         percentage: 86,
-        isCurrentUser: false,
       );
-      expect(singleWordStudent.displayName.contains(' '), isTrue);
-      expect(singleWordStudent.displayName.startsWith('Suman '), isTrue);
+      expect(singleWord.displayName, 'Suman');
 
-      // JSON parsing with dummy 'Student' name resolves to authentic full name
+      const noName = StudentRankItem(
+        rank: 4,
+        studentId: 'stud_04',
+        name: '',
+        score: 176,
+        totalMarks: 200,
+        percentage: 88,
+      );
+      expect(noName.displayName, 'Student');
+
       final jsonStudent = StudentRankItem.fromJson({
         'rank': 1,
-        'student_name': 'Student',
+        'student_name': '',
         'score': 192,
         'total_marks': 200,
       });
-      expect(jsonStudent.displayName, 'Ritwik Das');
+      expect(jsonStudent.displayName, 'Student');
+      expect(StudentRankItem.fromJson(const {}).rank, 0);
     });
 
     test('StudentRankItem displays score as raw marks formatted correctly', () {
@@ -212,287 +195,316 @@ void main() {
   });
 
   group('Ranking Repository Tests', () {
-    test('getRankingSummary returns valid metrics from attempt history', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final repo = container.read(rankingRepositoryProvider);
-      final summary = await repo.getRankingSummary();
-
-      expect(summary.testsTaken, greaterThanOrEqualTo(4));
-      expect(summary.averageScore, greaterThan(0));
-      expect(summary.bestRank, greaterThan(0));
-      expect(summary.bestRankScope, contains('(In WB)'));
-    });
-
-    test('getRankings returns top students and current user for West Bengal scope', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final repo = container.read(rankingRepositoryProvider);
-      final rankings = await repo.getRankings(
-        testId: 'test_exam_wbp_1',
-        scope: 'west_bengal',
+    test('getRankingSummary uses only real attempts and server ranks', () async {
+      final container = ProviderContainer(
+        overrides: [
+          catalogRepositoryProvider.overrideWithValue(
+            _FakeCatalog([
+              _attempt('a1', 'test-1', score: 150, rank: 30),
+              _attempt('a2', 'test-2', score: 100),
+            ]),
+          ),
+        ],
       );
-
-      expect(rankings, isNotEmpty);
-      expect(rankings.any((r) => r.rank == 1 && r.name == 'Ritwik Das'), isTrue);
-      expect(rankings.any((r) => r.isCurrentUser && r.rank == 24), isTrue);
-    });
-
-    test('getRankings for district scope filters correctly', () async {
-      final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final repo = container.read(rankingRepositoryProvider);
-      final bankuraRanks = await repo.getRankings(
-        testId: 'test_exam_wbp_1',
-        scope: 'district',
-        district: 'Bankura',
+      final summary =
+          await container.read(rankingRepositoryProvider).getRankingSummary();
+      expect(summary.testsTaken, 2);
+      expect(summary.averageScore, 62.5);
+      expect(summary.bestRank, 30);
+    });
+
+    test('getRankingSummary is empty before the first test', () async {
+      final container = ProviderContainer(
+        overrides: [
+          catalogRepositoryProvider.overrideWithValue(_FakeCatalog(const [])),
+        ],
       );
+      addTearDown(container.dispose);
 
-      expect(bankuraRanks, isNotEmpty);
-      expect(bankuraRanks.every((r) => r.district == 'Bankura'), isTrue);
-      final userRow = bankuraRanks.firstWhere((r) => r.isCurrentUser);
-      expect(userRow.rank, 4);
+      final summary =
+          await container.read(rankingRepositoryProvider).getRankingSummary();
+      expect(summary.testsTaken, 0);
+      expect(summary.bestRank, 0);
+      expect(summary.formattedBestRank, '-');
     });
 
-    test('getTopRankPreview returns top 3 plus current user row', () async {
+    test('getRankings throws instead of inventing a leaderboard', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final repo = container.read(rankingRepositoryProvider);
-      final preview = await repo.getTopRankPreview(testId: 'test_exam_wbp_1');
+      expect(
+        container
+            .read(rankingRepositoryProvider)
+            .getRankings(testId: 'test-1', scope: 'west_bengal'),
+        throwsA(isA<RankingUnavailable>()),
+      );
+    });
 
-      expect(preview.length, 4);
-      expect(preview[0].rank, 1);
-      expect(preview[1].rank, 2);
-      expect(preview[2].rank, 3);
-      expect(preview[3].isCurrentUser, isTrue);
+    test('getTopRankPreview is empty when the student has no attempts', () async {
+      final container = ProviderContainer(
+        overrides: [
+          catalogRepositoryProvider.overrideWithValue(_FakeCatalog(const [])),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final preview =
+          await container.read(rankingRepositoryProvider).getTopRankPreview();
+      expect(preview, isEmpty);
+    });
+
+    test('getTopRankPreview returns top 3 plus the real current-user row', () async {
+      final container = ProviderContainer(
+        overrides: [
+          catalogRepositoryProvider.overrideWithValue(
+            _FakeCatalog([_attempt('a1', 'test-1', score: 150, rank: 7)]),
+          ),
+          rankingRepositoryProvider.overrideWith(
+            (ref) => _FakeRanking(ref, _leaderboard),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final preview =
+          await container.read(rankingRepositoryProvider).getTopRankPreview();
+      expect(preview.map((r) => r.rank), [1, 2, 3, 7]);
+      expect(preview.last.isCurrentUser, isTrue);
     });
   });
 
-  group('Catalog Attempt History & Benchmark Tests', () {
-    test('getAttemptHistory returns authentic benchmark attempts', () async {
-      final catalog = CatalogRepository();
-      final history = await catalog.getAttemptHistory();
-
-      expect(history, isNotEmpty);
-      expect(history.any((a) => a.id == 'attempt_wbp_full_mock_01'), isTrue);
-      expect(history.any((a) => a.id == 'attempt_gk_topic_test'), isTrue);
-      expect(history.any((a) => a.id == 'attempt_pyq_2024'), isTrue);
-      expect(history.any((a) => a.id == 'attempt_weekly_live'), isTrue);
+  group('Catalog Attempt History Tests', () {
+    test('getAttemptHistory is empty for a student with no attempts', () async {
+      final history = await CatalogRepository().getAttemptHistory();
+      expect(history, isEmpty);
     });
 
-    test('getAttempt attempt_wbp_full_mock_01 matches UI reference values', () async {
-      final catalog = CatalogRepository();
-      final attempt = await catalog.getAttempt('attempt_wbp_full_mock_01');
-
-      expect(attempt, isNotNull);
-      expect(attempt.testTitle, contains('Full Mock 01'));
-      expect(attempt.score, 144.0);
-      expect(attempt.totalMarks, 200.0);
-      expect(attempt.accuracy, 72.0);
-      expect(attempt.rank, 24);
-      expect(attempt.correctCount, 144);
-      expect(attempt.wrongCount, 56);
-      expect(attempt.skippedCount, 0);
+    test('getAttempt fails for an unknown attempt instead of a sample one', () {
+      expect(
+        CatalogRepository().getAttempt('attempt_wbp_full_mock_01'),
+        throwsA(isA<AttemptFailure>()),
+      );
     });
 
-    test('Question 1 matches authentic reference "Sorrow of Bengal" GK question', () async {
-      final catalog = CatalogRepository();
-      final questions = await catalog.getQuestions('test_exam_wbp_1');
-
-      expect(questions, isNotEmpty);
-      final q1 = questions.first;
-      expect(q1.textBengali, contains('বাংলার দুঃখ'));
-      expect(q1.subjectName, 'General Knowledge');
-      expect(q1.options.first.isCorrect, isTrue);
-      expect(q1.options.first.textBengali, 'দামোদর');
-      expect(q1.options.first.text, 'Damodar');
-      expect(q1.explanationBengali, contains('দামোদর নদী'));
+    test('getQuestions never returns built-in sample questions', () {
+      expect(
+        CatalogRepository().getQuestions('test_exam_wbp_1'),
+        throwsA(isA<AttemptFailure>()),
+      );
     });
   });
 
   group('Results UI Screen Widget Tests', () {
-    testWidgets('ResultsHistoryScreen renders summary cards, filter tabs, and lists',
-        (tester) async {
+    void bigScreen(WidgetTester tester) {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+    }
 
+    final attempts = [
+      _attempt('a1', 'test-1', title: 'WBP Mock 01', score: 144, rank: 7),
+      _attempt('a2', 'test-2', title: 'GK Topic Test', score: 100),
+    ];
+
+    testWidgets('ResultsHistoryScreen renders summary cards, filter tabs, and lists',
+        (tester) async {
+      bigScreen(tester);
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+            rankingRepositoryProvider.overrideWith(
+              (ref) => _FakeRanking(ref, _leaderboard),
+            ),
+          ],
+          child: const MaterialApp(
             home: Scaffold(body: ResultsHistoryScreen()),
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Header title (non-sticky middle alignment)
       expect(find.text('My Results'), findsOneWidget);
       final titleCenter = tester.getCenter(find.text('My Results'));
       final screenWidth = tester.view.physicalSize.width / tester.view.devicePixelRatio;
       expect(titleCenter.dx, closeTo(screenWidth / 2, 2.0));
 
-      // Summary cards
+      // Summary cards from the student's real attempts.
       expect(find.text('Tests Taken'), findsOneWidget);
-      expect(find.text('Avg. Score'), findsOneWidget);
+      expect(find.text('2'), findsWidgets);
       expect(find.text('Best Rank'), findsOneWidget);
-      expect(find.text('3rd'), findsWidgets);
-      expect(find.text('(In WB)'), findsNothing);
+      expect(find.text('7th'), findsWidgets);
 
-      // Filter tabs
-      expect(find.text('All'), findsOneWidget);
-      expect(find.text('Full Mock'), findsOneWidget);
-      expect(find.text('Topic Tests'), findsOneWidget);
-      expect(find.text('PYQ'), findsOneWidget);
-      expect(find.text('Live Tests'), findsOneWidget);
+      for (final tab in ['All', 'Full Mock', 'Topic Tests', 'PYQ', 'Live Tests']) {
+        expect(find.text(tab), findsOneWidget);
+      }
 
-      // Student Rank List card
+      // Rank preview straight from the leaderboard.
       expect(find.text('Student Rank List'), findsOneWidget);
       expect(find.text('Ritwik Das'), findsOneWidget);
-      expect(find.textContaining('Susanta Lohar'), findsWidgets);
       expect(find.textContaining('(You)'), findsWidgets);
 
-      // Recent Results section
       expect(find.text('Recent Results'), findsOneWidget);
-      expect(find.textContaining('Full Mock 01'), findsWidgets);
+      expect(find.textContaining('WBP Mock 01'), findsWidgets);
 
-      // Tap filter tab 'Topic Tests'
       await tester.tap(find.text('Topic Tests'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('General Knowledge - Topic Test'), findsWidgets);
+      expect(find.textContaining('GK Topic Test'), findsWidgets);
     });
 
-    testWidgets('StudentRankListScreen renders tabs, search bar, and mark scores',
+    testWidgets('ResultsHistoryScreen shows empty states, not invented numbers',
         (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
+      bigScreen(tester);
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(const [])),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: ResultsHistoryScreen()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('0'), findsOneWidget); // tests taken
+      expect(find.text('-'), findsNWidgets(2)); // average and best rank
+      expect(find.text('No rankings yet'), findsOneWidget);
+      expect(find.text('24th'), findsNothing);
+      expect(find.text('Ritwik Das'), findsNothing);
+    });
+
+    testWidgets('StudentRankListScreen lists the student\'s own tests and real ranks',
+        (tester) async {
+      bigScreen(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+            rankingRepositoryProvider.overrideWith(
+              (ref) => _FakeRanking(ref, _leaderboard),
+            ),
+          ],
+          child: const MaterialApp(
             home: Scaffold(body: StudentRankListScreen()),
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Title & Selector
       expect(find.text('Student Rank List'), findsOneWidget);
-      expect(find.text('WBP Constable Full Mock 01'), findsWidgets);
-
-      // Student full names
+      expect(find.text('WBP Mock 01'), findsWidgets);
       expect(find.text('Ritwik Das'), findsWidgets);
-      expect(find.textContaining('Susanta Lohar'), findsWidgets);
-
-      // 3 Scope Tabs
+      expect(find.text('192 / 200'), findsOneWidget);
       expect(find.text('Global Rank'), findsOneWidget);
       expect(find.text('West Bengal'), findsOneWidget);
       expect(find.text('District Rank'), findsOneWidget);
 
-      // Scores displayed as marks
-      expect(find.text('192 / 200'), findsOneWidget);
-
-      // Switch to District Rank tab
-      await tester.tap(find.text('District Rank'));
+      // The picker offers exactly the tests this student attempted.
+      await tester.tap(find.byTooltip('Filter'));
+      await tester.pumpAndSettle();
+      expect(find.text('Select Test'), findsOneWidget);
+      expect(find.text('GK Topic Test'), findsOneWidget);
+      expect(find.textContaining('Full Mock 01'), findsNothing);
+      await tester.tap(find.text('GK Topic Test'));
       await tester.pumpAndSettle();
 
-      // District selector is visible
+      await tester.tap(find.text('District Rank'));
+      await tester.pumpAndSettle();
       expect(find.text('Select District'), findsOneWidget);
+    });
+
+    testWidgets('StudentRankListScreen asks for a first test when there are none',
+        (tester) async {
+      bigScreen(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(const [])),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: StudentRankListScreen()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Finish a test to see the student rank list.'), findsOneWidget);
+      expect(find.textContaining('(You)'), findsNothing);
     });
 
     testWidgets('ResultScreen renders score ring, accuracy, breakdown, and View Answer button',
         (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
+      bigScreen(tester);
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(body: ResultScreen(attemptId: 'att_bench_01')),
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: ResultScreen(attemptId: 'a1')),
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Score ring text
       expect(find.text('144 / 200'), findsOneWidget);
       expect(find.text('Score'), findsOneWidget);
-
-      // Metrics
       expect(find.text('72%'), findsOneWidget);
       expect(find.text('Accuracy'), findsOneWidget);
       expect(find.text('Time Taken'), findsOneWidget);
       expect(find.text('Rank'), findsOneWidget);
+      expect(find.text('7th'), findsOneWidget);
+      expect(find.text('(Out of 5,243)'), findsOneWidget);
 
-      // Breakdown card
-      expect(find.text('Total Questions'), findsOneWidget);
-      expect(find.text('Attempted'), findsOneWidget);
-      expect(find.text('Correct'), findsOneWidget);
-      expect(find.text('Incorrect'), findsOneWidget);
-      expect(find.text('Skipped'), findsOneWidget);
-      expect(find.text('Negative Marking'), findsOneWidget);
-      expect(find.text('Final Score'), findsOneWidget);
-
-      // Prominent View Answer button
+      for (final row in [
+        'Total Questions', 'Attempted', 'Correct', 'Incorrect', 'Skipped',
+        'Negative Marking', 'Final Score',
+      ]) {
+        expect(find.text(row), findsOneWidget);
+      }
       expect(find.text('View Answer'), findsOneWidget);
     });
 
-    testWidgets('SolutionsScreen renders top Question Number Navigator, Red/Green options, and Explanation',
+    testWidgets('ResultScreen shows no rank until the server ranks the attempt',
         (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
+      bigScreen(tester);
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: SolutionsScreen(attemptId: 'att_bench_01'),
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: ResultScreen(attemptId: 'a2')),
           ),
         ),
       );
-
       await tester.pumpAndSettle();
 
-      // Top Question Numbers Navigator
-      expect(find.text('Select Question'), findsOneWidget);
-      expect(find.textContaining('Correct'), findsWidgets);
-      expect(find.textContaining('Wrong'), findsWidgets);
+      expect(find.text('(Not ranked yet)'), findsOneWidget);
+      expect(find.text('24th'), findsNothing);
+      expect(find.textContaining('5,243'), findsNothing);
+    });
 
-      // Question 1 numbers in horizontal scroller
-      expect(find.text('1'), findsWidgets);
-      expect(find.text('2'), findsWidgets);
-      expect(find.text('3'), findsWidgets);
-
-      // Option display for Question 1 (Correct Answer)
-      expect(find.text('Correct Answer'), findsOneWidget);
-
-      // Explanation is present directly below options
-      expect(find.text('Explanation'), findsOneWidget);
-
-      // Bottom Navigation buttons
-      expect(find.text('Previous'), findsOneWidget);
-      expect(find.text('Next'), findsOneWidget);
-
-      // Tap 'Next' to move to Question 2
-      await tester.tap(find.text('Next'));
+    testWidgets('SolutionsScreen shows an error, never sample questions, when offline',
+        (tester) async {
+      bigScreen(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+          ],
+          child: const MaterialApp(home: SolutionsScreen(attemptId: 'a1')),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      // In Question 2 (Benchmark incorrect question), 'Your Answer' (Red badge) and 'Correct Answer' (Green badge) are both present
-      expect(find.text('Your Answer'), findsOneWidget);
-      expect(find.text('Correct Answer'), findsOneWidget);
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+      expect(find.textContaining('বাংলার দুঃখ'), findsNothing);
     });
 
     test('AttemptRepository.formatAnswersPayload converts answers Map into canonical JSON array', () {
@@ -511,3 +523,56 @@ void main() {
   });
 }
 
+TestAttemptModel _attempt(
+  String id,
+  String testId, {
+  String title = 'Test',
+  double score = 0,
+  int rank = 0,
+}) => TestAttemptModel(
+  id: id,
+  testId: testId,
+  testTitle: title,
+  score: score,
+  totalMarks: 200,
+  rank: rank,
+  totalParticipants: rank > 0 ? 5243 : 0,
+  correctCount: (score / 2).round(),
+  wrongCount: 100 - (score / 2).round(),
+  timeSpentSeconds: 3600,
+  completedAt: DateTime(2026, 10, id == 'a1' ? 20 : 18),
+);
+
+const _leaderboard = [
+  StudentRankItem(rank: 1, studentId: 's1', name: 'Ritwik Das', score: 192, totalMarks: 200, percentage: 96),
+  StudentRankItem(rank: 2, studentId: 's2', name: 'Sneha Roy', score: 186, totalMarks: 200, percentage: 93),
+  StudentRankItem(rank: 3, studentId: 's3', name: 'Arijit Sen', score: 180, totalMarks: 200, percentage: 90),
+  StudentRankItem(rank: 7, studentId: 'me', name: 'Test Student', score: 144, totalMarks: 200, percentage: 72, isCurrentUser: true),
+];
+
+/// Serves fixed attempts in place of the device/server history.
+class _FakeCatalog extends CatalogRepository {
+  final List<TestAttemptModel> attempts;
+  _FakeCatalog(this.attempts);
+
+  @override
+  Future<List<TestAttemptModel>> getAttemptHistory() async => attempts;
+
+  @override
+  Future<TestAttemptModel> getAttempt(String attemptId) async =>
+      attempts.firstWhere((a) => a.id == attemptId);
+}
+
+/// Serves a fixed leaderboard in place of the server RPC.
+class _FakeRanking extends RankingRepository {
+  final List<StudentRankItem> rows;
+  _FakeRanking(super.ref, this.rows);
+
+  @override
+  Future<List<StudentRankItem>> getRankings({
+    required String testId,
+    required String scope,
+    String? district,
+    String? block,
+  }) async => rows;
+}

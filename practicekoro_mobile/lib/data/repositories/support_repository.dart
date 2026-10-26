@@ -143,7 +143,10 @@ class SupportRepository {
       }
     }
 
-    final cached = LocalStorageService.getSavedTickets();
+    // Older app versions kept unsent tickets ("pkt_" ids) on the phone only;
+    // they never reached support, so do not list them as open tickets.
+    final cached = LocalStorageService.getSavedTickets()
+        .where((e) => !(e['id']?.toString() ?? '').startsWith('pkt_'));
     return cached.map((e) => SupportTicketModel.fromJson(e)).toList();
   }
 
@@ -222,22 +225,9 @@ class SupportRepository {
       }
     }
 
-    // 3. Fallback when offline or backend unreachable
-    final fallback = SupportTicketModel(
-      id: 'pkt_${DateTime.now().millisecondsSinceEpoch}',
-      userId: currentUser?.id,
-      studentName: name,
-      studentEmail: email,
-      subject: subject.trim(),
-      issue: issue.trim(),
-      category: category,
-      priority: priority,
-      status: 'open',
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    await LocalStorageService.saveTicketLocally(fallback.toJson());
-    return fallback;
+    // Not saved on the server: say so, so the student can retry. A ticket kept
+    // only on this phone would never reach the support team.
+    throw const SupportTicketFailure();
   }
 
   /// Sends a reply on an existing ticket from the student.
@@ -286,4 +276,12 @@ class SupportRepository {
     }
     return value;
   }
+}
+
+/// The ticket could not be saved on the server.
+class SupportTicketFailure implements Exception {
+  const SupportTicketFailure();
+  @override
+  String toString() =>
+      'Your ticket was not sent. Check your internet and try again.';
 }

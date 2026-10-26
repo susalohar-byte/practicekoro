@@ -11,7 +11,8 @@ const TESTIMONIALS = [
     name: 'Rohit Das',
     role: 'WBP Aspirant',
     avatar: '/images/landing/avatar_rohit.png',
-    comment: 'Topic-wise test আর detailed solution খুব helpful. এখন প্রস্তুতি অনেক বেশি organised হয়েছে।',
+    comment:
+      'Topic-wise test আর detailed solution খুব helpful. এখন প্রস্তুতি অনেক বেশি organised হয়েছে।',
   },
   {
     name: 'Puja Karmakar',
@@ -23,25 +24,29 @@ const TESTIMONIALS = [
     name: 'Amit Saha',
     role: 'Clerkship Aspirant',
     avatar: '/images/landing/avatar_amit.png',
-    comment: 'Previous year questions এবং explanation দেখে খুব ভালো লাগে। Practice Koro সত্যিই দারুণ একটা platform.',
+    comment:
+      'Previous year questions এবং explanation দেখে খুব ভালো লাগে। Practice Koro সত্যিই দারুণ একটা platform.',
   },
   {
     name: 'Tania Mondal',
     role: 'Primary TET Aspirant',
     avatar: '/images/avatar_tania.jpg',
-    comment: 'পরীক্ষার মতো হুবহু টাইমার আর সিলেবাস অনুযায়ী সাজানো টেস্টগুলো আত্মবিশ্বাস অনেক বাড়িয়ে দিয়েছে।',
+    comment:
+      'পরীক্ষার মতো হুবহু টাইমার আর সিলেবাস অনুযায়ী সাজানো টেস্টগুলো আত্মবিশ্বাস অনেক বাড়িয়ে দিয়েছে।',
   },
   {
     name: 'Abhishek Roy',
     role: 'Railway NTPC Aspirant',
     avatar: '/images/avatar_abhishek.jpg',
-    comment: 'বাংলায় বিজ্ঞান ও গণিতের এত চমৎকার ব্যাখ্যা আগে কোথাও পাইনি। প্রতিটি প্রশ্নের নোটস অসাধারণ!',
+    comment:
+      'বাংলায় বিজ্ঞান ও গণিতের এত চমৎকার ব্যাখ্যা আগে কোথাও পাইনি। প্রতিটি প্রশ্নের নোটস অসাধারণ!',
   },
   {
     name: 'Mousumi Paul',
     role: 'Kolkata Police Aspirant',
     avatar: '/images/avatar_mousumi.jpg',
-    comment: 'মোবাইল অ্যাপে নিয়মিত লাইভ টেস্ট আর জেলাভিত্তিক র‍্যাঙ্কিং দেখে নিজের উন্নতি স্পষ্ট বুঝতে পারি।',
+    comment:
+      'মোবাইল অ্যাপে নিয়মিত লাইভ টেস্ট আর জেলাভিত্তিক র‍্যাঙ্কিং দেখে নিজের উন্নতি স্পষ্ট বুঝতে পারি।',
   },
 ];
 
@@ -49,7 +54,12 @@ const PER_VIEW = 3;
 const POSITIONS = TESTIMONIALS.length - PER_VIEW + 1;
 
 const QuoteMark: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#1A5CFF] flex-shrink-0" fill="currentColor" aria-hidden>
+  <svg
+    viewBox="0 0 24 24"
+    className="w-6 h-6 text-[#1A5CFF] flex-shrink-0"
+    fill="currentColor"
+    aria-hidden
+  >
     <path d="M10 6c-3.3 1-5 3.6-5 7v5h6v-6H8c0-2 1-3.4 2.6-4L10 6zm9 0c-3.3 1-5 3.6-5 7v5h6v-6h-3c0-2 1-3.4 2.6-4L19 6z" />
   </svg>
 );
@@ -85,32 +95,38 @@ export const TestimonialsSection: React.FC = () => {
           onBlurCapture={() => setPaused(false)}
         >
           <AnimatePresence mode="popLayout" initial={false}>
-          {visible.map((item, index) => (
-            <motion.article
-              key={item.name}
-              layout
-              initial={{ opacity: 0, x: 60, scale: 0.96 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -60, scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-              whileHover={{ y: -6 }}
-              className={`bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] p-5 sm:p-6 ${
-                index > 0 ? 'hidden md:block' : ''
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <img src={item.avatar} alt={item.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0 pt-1">
-                  <h3 className="text-[15px] font-bold text-[#0B1B4F] leading-tight">{item.name}</h3>
-                  <span className="text-[13px] text-[#6B7489]">{item.role}</span>
+            {visible.map((item, index) => (
+              <motion.article
+                key={item.name}
+                layout
+                initial={{ opacity: 0, x: 60, scale: 0.96 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -60, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+                whileHover={{ y: -6 }}
+                className={`bg-white rounded-2xl border border-[#EDF0F8] shadow-[0_6px_24px_rgba(30,50,120,0.07)] p-5 sm:p-6 ${
+                  index > 0 ? 'hidden md:block' : ''
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <img
+                    src={item.avatar}
+                    alt={item.name}
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0 pt-1">
+                    <h3 className="text-[15px] font-bold text-[#0B1B4F] leading-tight">
+                      {item.name}
+                    </h3>
+                    <span className="text-[13px] text-[#6B7489]">{item.role}</span>
+                  </div>
+                  <QuoteMark />
                 </div>
-                <QuoteMark />
-              </div>
-              <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Poppins','Anek_Bangla',sans-serif]">
-                {item.comment}
-              </p>
-            </motion.article>
-          ))}
+                <p className="mt-4 text-[15px] sm:text-base text-[#4A5470] leading-relaxed font-['Poppins','Anek_Bangla',sans-serif]">
+                  {item.comment}
+                </p>
+              </motion.article>
+            ))}
           </AnimatePresence>
         </Reveal>
 

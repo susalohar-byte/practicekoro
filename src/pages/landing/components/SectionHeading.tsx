@@ -24,7 +24,13 @@ interface SectionHeadingProps {
   className?: string;
 }
 
-export const SectionHeading: React.FC<SectionHeadingProps> = ({ icon: Icon, tone, title, subtitle, className = '' }) => (
+export const SectionHeading: React.FC<SectionHeadingProps> = ({
+  icon: Icon,
+  tone,
+  title,
+  subtitle,
+  className = '',
+}) => (
   <Reveal className={`text-center ${className}`}>
     <div className="flex items-center justify-center gap-3">
       {/* The tile pops in after the heading and gives a little wiggle on hover */}
@@ -33,13 +39,19 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({ icon: Icon, tone
         className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${TONES[tone]} text-white shadow-lg ring-1 ring-inset ring-white/30`}
         variants={{
           hidden: { scale: 0, rotate: -30 },
-          show: { scale: 1, rotate: 0, transition: { type: 'spring', stiffness: 260, damping: 14, delay: 0.15 } },
+          show: {
+            scale: 1,
+            rotate: 0,
+            transition: { type: 'spring', stiffness: 260, damping: 14, delay: 0.15 },
+          },
         }}
         whileHover={{ rotate: [0, -12, 12, -6, 0], transition: { duration: 0.5 } }}
       >
         <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.2} />
       </motion.span>
-      <h2 className="text-[22px] sm:text-[30px] font-bold text-[#0B1B4F] tracking-tight leading-tight">{title}</h2>
+      <h2 className="text-[22px] sm:text-[30px] font-bold text-[#0B1B4F] tracking-tight leading-tight">
+        {title}
+      </h2>
     </div>
     <p className="mt-1.5 text-sm sm:text-[17px] text-[#3A4462] font-['Poppins','Anek_Bangla',sans-serif] font-medium">
       {subtitle}

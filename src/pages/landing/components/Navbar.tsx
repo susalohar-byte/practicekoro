@@ -12,7 +12,12 @@ const CTA_CLASS =
 export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 h-10' }) => {
   const id = useId().replace(/:/g, '');
   return (
-    <svg viewBox="0 0 100 100" className={`${className} flex-shrink-0 rounded-full shadow-md shadow-blue-600/30`} role="img" aria-label="Practice Koro">
+    <svg
+      viewBox="0 0 100 100"
+      className={`${className} flex-shrink-0 rounded-full shadow-md shadow-blue-600/30`}
+      role="img"
+      aria-label="Practice Koro"
+    >
       <defs>
         <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#00A8FF" />
@@ -29,13 +34,33 @@ export const BrandMark: React.FC<{ className?: string }> = ({ className = 'w-10 
       </defs>
       <circle cx="50" cy="50" r="50" fill={`url(#${id}-bg)`} />
       {/* Sheet behind, tilted */}
-      <rect x="22" y="27" width="40" height="50" rx="4.5" fill={`url(#${id}-back)`} transform="rotate(-11 42 52)" filter={`url(#${id}-shadow)`} />
+      <rect
+        x="22"
+        y="27"
+        width="40"
+        height="50"
+        rx="4.5"
+        fill={`url(#${id}-back)`}
+        transform="rotate(-11 42 52)"
+        filter={`url(#${id}-shadow)`}
+      />
       {/* Front sheet with a folded corner */}
-      <path d="M38 30.5 H64.5 L76 42 V73.5 Q76 79 70.5 79 H38 Q32.5 79 32.5 73.5 V36 Q32.5 30.5 38 30.5 Z" fill="#FFFFFF" filter={`url(#${id}-shadow)`} />
+      <path
+        d="M38 30.5 H64.5 L76 42 V73.5 Q76 79 70.5 79 H38 Q32.5 79 32.5 73.5 V36 Q32.5 30.5 38 30.5 Z"
+        fill="#FFFFFF"
+        filter={`url(#${id}-shadow)`}
+      />
       <path d="M64.5 30.5 V38.5 Q64.5 42 68 42 H76 Z" fill="#B9D0FF" />
       <circle cx="42.5" cy="45" r="4.4" fill="none" stroke="#26324A" strokeWidth="2" />
       <circle cx="42.5" cy="56.5" r="5" fill="#0B5BFF" />
-      <path d="M40.2 56.6 L42 58.4 L45 54.8" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M40.2 56.6 L42 58.4 L45 54.8"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="42.5" cy="68" r="4.4" fill="none" stroke="#26324A" strokeWidth="2" />
       <path d="M52 45 H67.5" stroke="#8798B3" strokeWidth="3.6" strokeLinecap="round" />
       <path d="M52 56.5 H67.5" stroke="#0B5BFF" strokeWidth="3.6" strokeLinecap="round" />
@@ -105,13 +130,17 @@ export const Navbar: React.FC = () => {
   return (
     <>
       {/* Floating pill bar, it tightens up a little once the page scrolls */}
-      <header className={`fixed inset-x-0 top-0 z-40 flex justify-center px-3 sm:px-4 transition-all duration-300 ${isScrolled ? 'pt-2.5' : 'pt-4 sm:pt-5'}`}>
+      <header
+        className={`fixed inset-x-0 top-0 z-40 flex justify-center px-3 sm:px-4 transition-all duration-300 ${isScrolled ? 'pt-2.5' : 'pt-4 sm:pt-5'}`}
+      >
         <motion.div
           initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
           className={`flex w-full max-w-5xl items-center justify-between rounded-full bg-white/90 backdrop-blur-xl ring-1 ring-slate-900/5 pl-2 pr-2 sm:pr-2.5 transition-all duration-300 ${
-            isScrolled ? 'py-1.5 shadow-xl shadow-slate-900/10' : 'py-2 shadow-lg shadow-slate-900/20'
+            isScrolled
+              ? 'py-1.5 shadow-xl shadow-slate-900/10'
+              : 'py-2 shadow-lg shadow-slate-900/20'
           }`}
         >
           <a
@@ -132,7 +161,9 @@ export const Navbar: React.FC = () => {
             >
               <BrandMark className="w-9 h-9 sm:w-10 sm:h-10" />
             </motion.span>
-            <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
+            <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight text-[#0B1B4F]">
+              Practice Koro
+            </span>
           </a>
 
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
@@ -192,7 +223,9 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2.5">
                 <BrandMark className="w-9 h-9" />
-                <span className="text-lg font-bold tracking-tight text-[#0B1B4F]">Practice Koro</span>
+                <span className="text-lg font-bold tracking-tight text-[#0B1B4F]">
+                  Practice Koro
+                </span>
               </span>
               <motion.button
                 type="button"
@@ -231,7 +264,9 @@ export const Navbar: React.FC = () => {
                 transition={{ delay: 0.5 }}
                 className="pt-6"
               >
-                {cta(`${CTA_CLASS} w-full justify-center !py-3.5 !text-base`, () => setMobileMenuOpen(false))}
+                {cta(`${CTA_CLASS} w-full justify-center !py-3.5 !text-base`, () =>
+                  setMobileMenuOpen(false)
+                )}
               </motion.div>
             </div>
           </motion.div>

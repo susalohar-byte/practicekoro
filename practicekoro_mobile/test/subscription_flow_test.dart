@@ -9,6 +9,8 @@ import 'package:practicekoro_mobile/features/subscription/plans_screen.dart';
 import 'package:practicekoro_mobile/features/subscription/checkout_screen.dart';
 import 'package:practicekoro_mobile/features/settings/settings_screen.dart';
 
+import 'plan_fixtures.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -148,13 +150,17 @@ void main() {
   });
 
   group('Subscription Repository', () {
-    test('getSubscriptionPlans returns plans with fallback when Supabase uninitialized', () async {
+    test('getSubscriptionPlans never invents plans when offline with no cache', () {
+      const repo = SubscriptionRepository();
+      expect(repo.getSubscriptionPlans(), throwsA(isA<PlansUnavailable>()));
+    });
+
+    test('getSubscriptionPlans serves plans cached from the server when offline', () async {
+      await seedCachedPlans();
       const repo = SubscriptionRepository();
       final plans = await repo.getSubscriptionPlans();
 
-      expect(plans, isNotEmpty);
-      expect(plans.any((p) => p.id == 'pro_1_year'), isTrue);
-      expect(plans.any((p) => p.id == 'plan_6_month'), isTrue);
+      expect(plans.map((p) => p.id), ['plan_free', 'plan_6_month', 'pro_1_year']);
     });
 
     test('getStudentSubscriptionDetails returns inactive state when not signed in', () async {
@@ -215,6 +221,25 @@ void main() {
   });
 
   group('Widget & UI Flow Tests', () {
+    setUp(seedCachedPlans);
+
+    testWidgets('PlansScreen offers a retry, not made-up prices, when plans are unavailable', (tester) async {
+      await LocalStorageService.clearAccountData();
+      await tester.pumpWidget(
+        // No automatic retries, so the error state shows straight away.
+        ProviderScope(
+          retry: (_, _) => null,
+          child: const MaterialApp(home: PlansScreen()),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Plans unavailable'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.textContaining('₹'), findsNothing);
+    });
+
     testWidgets('PlansScreen renders available subscription packages', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(

@@ -424,42 +424,11 @@ export function BlogPostDetailsDrawer({ blogState }: BlogPostDetailsDrawerProps)
                     {selectedPost.views.toLocaleString('en-IN')}
                   </span>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5">
-                  <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '85%' }} />
-                </div>
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="font-medium text-slate-600">Mobile Readers</span>
-                  <span className="font-bold text-slate-900">82%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5">
-                  <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: '82%' }} />
-                </div>
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="font-medium text-slate-600">Desktop Readers</span>
-                  <span className="font-bold text-slate-900">18%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5">
-                  <div className="bg-purple-600 h-1.5 rounded-full" style={{ width: '18%' }} />
-                </div>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-2 text-xs">
-                <p className="font-semibold text-slate-800">Traffic Acquisition</p>
-                <div className="flex justify-between text-slate-600">
-                  <span>Organic Search (Google)</span>
-                  <span className="font-medium text-slate-900">64%</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Direct / Bookmark</span>
-                  <span className="font-medium text-slate-900">24%</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Social Media & Telegram</span>
-                  <span className="font-medium text-slate-900">12%</span>
-                </div>
-              </div>
+              <p className="text-[11px] text-slate-400">
+                Device and traffic-source breakdowns are not tracked for blog posts yet.
+              </p>
             </div>
           )}
         </div>

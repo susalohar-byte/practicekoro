@@ -98,7 +98,10 @@ export const Footer: React.FC = () => {
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-6">
         <RevealGroup className="grid grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.1fr] gap-8 lg:gap-6 pb-8">
-          <motion.div variants={fadeUp} className="col-span-2 lg:col-span-1 lg:pr-8 lg:border-r lg:border-white/10">
+          <motion.div
+            variants={fadeUp}
+            className="col-span-2 lg:col-span-1 lg:pr-8 lg:border-r lg:border-white/10"
+          >
             <div className="flex items-center gap-3">
               <BrandMark className="w-12 h-12" />
               <span className="text-xl font-bold text-white">Practice Koro</span>
@@ -131,7 +134,11 @@ export const Footer: React.FC = () => {
             <ul className="mt-4 space-y-2 text-sm">
               {QUICK_LINKS.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} onClick={(e) => scrollTo(e, link.href)} className="hover:text-white transition-colors">
+                  <a
+                    href={link.href}
+                    onClick={(e) => scrollTo(e, link.href)}
+                    className="hover:text-white transition-colors"
+                  >
                     {link.name}
                   </a>
                 </li>
@@ -178,7 +185,8 @@ export const Footer: React.FC = () => {
         <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-[13px] text-white/75">
           <p>© 2026 Practice Koro. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
-            Made with <Heart className="w-3.5 h-3.5 text-[#FF3B4E] fill-current" /> for every aspirant in West Bengal.
+            Made with <Heart className="w-3.5 h-3.5 text-[#FF3B4E] fill-current" /> for every
+            aspirant in West Bengal.
           </p>
         </div>
       </div>

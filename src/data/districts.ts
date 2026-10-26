@@ -156,15 +156,7 @@ export const WEST_BENGAL_BLOCKS: Record<WestBengalDistrict, readonly string[]> =
     'Shyampur I',
     'Shyampur II',
   ],
-  Jalpaiguri: [
-    'Jalpaiguri',
-    'Maynaguri',
-    'Dhupguri',
-    'Mal',
-    'Matiali',
-    'Nagrakata',
-    'Kranti',
-  ],
+  Jalpaiguri: ['Jalpaiguri', 'Maynaguri', 'Dhupguri', 'Mal', 'Matiali', 'Nagrakata', 'Kranti'],
   Jhargram: [
     'Jhargram',
     'Binpur I',
@@ -175,12 +167,7 @@ export const WEST_BENGAL_BLOCKS: Record<WestBengalDistrict, readonly string[]> =
     'Sankrail',
     'Nayagram',
   ],
-  Kalimpong: [
-    'Kalimpong I',
-    'Kalimpong II',
-    'Gorubathan',
-    'Lava',
-  ],
+  Kalimpong: ['Kalimpong I', 'Kalimpong II', 'Gorubathan', 'Lava'],
   Kolkata: [
     'Kolkata North',
     'Kolkata South',

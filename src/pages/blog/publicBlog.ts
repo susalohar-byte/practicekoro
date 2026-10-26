@@ -12,15 +12,21 @@ const HOMEPAGE_POSTS = 3;
 /** Published posts, plus scheduled ones whose time has come. Drafts and archived posts stay hidden. */
 function isVisible(post: BlogPost, now: number): boolean {
   if (post.status === 'published') return true;
-  if (post.status === 'scheduled' && post.scheduledAt) return new Date(post.scheduledAt).getTime() <= now;
+  if (post.status === 'scheduled' && post.scheduledAt)
+    return new Date(post.scheduledAt).getTime() <= now;
   return false;
 }
 
-const postTime = (post: BlogPost) => new Date(post.publishedAt || post.scheduledAt || post.createdAt).getTime();
+const postTime = (post: BlogPost) =>
+  new Date(post.publishedAt || post.scheduledAt || post.createdAt).getTime();
 
 export async function fetchPublishedPosts(): Promise<BlogPost[]> {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await supabase.from('app_settings').select('value').eq('id', 'blog_posts_list').maybeSingle();
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('id', 'blog_posts_list')
+    .maybeSingle();
   if (error) throw new Error(error.message);
   const value: unknown = typeof data?.value === 'string' ? JSON.parse(data.value) : data?.value;
   if (!Array.isArray(value)) return [];
@@ -47,7 +53,11 @@ export function usePublishedPosts() {
 
 export function formatPostDate(post: BlogPost): string {
   const date = post.publishedAt || post.scheduledAt || post.createdAt;
-  return new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /** "4m 12s" from the admin panel reads better to visitors as "4 min read". */

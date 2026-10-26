@@ -24,9 +24,6 @@ const AdminExams = lazyWithRetry(() =>
 const AdminBanners = lazyWithRetry(() =>
   import('@/pages/admin/AdminBanners').then((module) => ({ default: module.AdminBanners }))
 );
-const AdminTestSeries = lazyWithRetry(() =>
-  import('@/pages/admin/AdminTestSeries').then((module) => ({ default: module.AdminTestSeries }))
-);
 const AdminTests = lazyWithRetry(() =>
   import('@/pages/admin/AdminTests').then((module) => ({ default: module.AdminTests }))
 );
@@ -210,14 +207,6 @@ export const App: React.FC = () => {
             element={
               <AdminRoute requiredPermission="canManageQuestions">
                 <AdminQuestionBank />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="test-series"
-            element={
-              <AdminRoute requiredPermission="canManageTests">
-                <AdminTestSeries />
               </AdminRoute>
             }
           />

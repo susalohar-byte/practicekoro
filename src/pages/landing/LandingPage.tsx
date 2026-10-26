@@ -39,7 +39,10 @@ export const LandingPage: React.FC = () => {
         {/* Title and description come from Admin → Settings → SEO (PlatformRuntimeSettings),
             so the homepage stays editable there; this page only adds its share image. */}
         <Helmet>
-          <meta property="og:image" content="https://practicekoro.online/images/landing/hero_student_room.webp" />
+          <meta
+            property="og:image"
+            content="https://practicekoro.online/images/landing/hero_student_room.webp"
+          />
           <meta property="og:type" content="website" />
           <link rel="canonical" href="https://practicekoro.online/" />
         </Helmet>

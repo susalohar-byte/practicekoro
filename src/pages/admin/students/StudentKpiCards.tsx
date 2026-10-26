@@ -29,11 +29,8 @@ export function StudentKpiCards({ studentsState }: StudentKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 leading-tight">
                 {totalStudentsCount.toLocaleString('en-IN')}
               </span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                ↑ 26%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5">vs last month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5">all registered</span>
           </div>
         </div>
 
@@ -48,11 +45,10 @@ export function StudentKpiCards({ studentsState }: StudentKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 leading-tight">
                 {activeStudentsCount.toLocaleString('en-IN')}
               </span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                ↑ 18%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0">vs last month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0" aria-hidden="true">
+              &nbsp;
+            </span>
           </div>
         </div>
 
@@ -67,11 +63,10 @@ export function StudentKpiCards({ studentsState }: StudentKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 leading-tight">
                 {paidStudentsCount.toLocaleString('en-IN')}
               </span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                ↑ 32%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0">vs last month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0" aria-hidden="true">
+              &nbsp;
+            </span>
           </div>
         </div>
 
@@ -85,9 +80,6 @@ export function StudentKpiCards({ studentsState }: StudentKpiCardsProps) {
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 leading-tight">
                 {newStudentsCount.toLocaleString('en-IN')}
-              </span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                ↑ 12%
               </span>
             </div>
             <span className="text-[11px] text-slate-400 block mt-0.5">this month</span>
@@ -105,11 +97,10 @@ export function StudentKpiCards({ studentsState }: StudentKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 leading-tight">
                 {avgTestScoreFormatted}
               </span>
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                ↑ 6%
-              </span>
             </div>
-            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0">vs last month</span>
+            <span className="text-[11px] text-slate-400 block mt-0.5 opacity-0" aria-hidden="true">
+              &nbsp;
+            </span>
           </div>
         </div>
       </div>

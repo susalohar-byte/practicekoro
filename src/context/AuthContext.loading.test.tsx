@@ -104,5 +104,4 @@ describe('AuthContext global loading (regression)', () => {
     // Nothing after bootstrap may flip loading back to true.
     expect(samples.slice(baseline)).toEqual(expect.not.arrayContaining([true]));
   });
-
 });

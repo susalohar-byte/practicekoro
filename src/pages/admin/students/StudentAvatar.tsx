@@ -78,9 +78,7 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
       title={fullName}
     >
       {/* Fallback initials underneath */}
-      <span className={cn('select-none', isLoaded ? 'sr-only' : '')}>
-        {displayInitials}
-      </span>
+      <span className={cn('select-none', isLoaded ? 'sr-only' : '')}>{displayInitials}</span>
 
       <img
         src={cleanUrl}

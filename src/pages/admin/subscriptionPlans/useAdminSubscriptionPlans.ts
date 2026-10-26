@@ -2,7 +2,11 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { api } from '@/services/api';
 import type { AdminSubscriptionRow, AdminDashboardV2Stats } from '@/types';
-import type { PlanFeature, SubscriptionPlanItem, RecentSubscriptionItem } from './subscriptionPlanTypes';
+import type {
+  PlanFeature,
+  SubscriptionPlanItem,
+  RecentSubscriptionItem,
+} from './subscriptionPlanTypes';
 import { INITIAL_PLANS } from './subscriptionPlanData';
 
 export function useAdminSubscriptionPlans() {
@@ -119,7 +123,9 @@ export function useAdminSubscriptionPlans() {
       } else {
         // The plans are the page itself, so tell the admin instead of failing silently
         const reason = plansSettled.reason;
-        showToast(reason instanceof Error ? reason.message : 'Subscription plans could not be loaded.');
+        showToast(
+          reason instanceof Error ? reason.message : 'Subscription plans could not be loaded.'
+        );
       }
 
       if (subsSettled.status === 'fulfilled' && Array.isArray(subsSettled.value)) {
@@ -353,7 +359,8 @@ export function useAdminSubscriptionPlans() {
       return dashboardStats.activeSubscriptions;
     }
     const activeRows = subscriptionsList.filter(
-      (s) => s.status?.toLowerCase() === 'active' || (s.daysRemaining != null && s.daysRemaining > 0)
+      (s) =>
+        s.status?.toLowerCase() === 'active' || (s.daysRemaining != null && s.daysRemaining > 0)
     );
     return activeRows.length;
   }, [dashboardStats, subscriptionsList]);

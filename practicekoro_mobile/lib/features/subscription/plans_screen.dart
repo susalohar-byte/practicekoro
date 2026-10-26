@@ -219,7 +219,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Failed to load dynamic plans',
+                          'Plans unavailable',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,

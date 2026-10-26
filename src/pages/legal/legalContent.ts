@@ -52,11 +52,15 @@ export const PRIVACY_POLICY: LegalDocument = {
         'To answer your support requests and send you important notices about your account or tests.',
         'To keep the service safe, prevent misuse and fix problems.',
       ],
-      paragraphs: ['We do not sell your personal information and we do not use it for third-party advertising.'],
+      paragraphs: [
+        'We do not sell your personal information and we do not use it for third-party advertising.',
+      ],
     },
     {
       heading: 'Who we share it with',
-      paragraphs: ['We share information only with the services that help us run Practice Koro, and only what they need:'],
+      paragraphs: [
+        'We share information only with the services that help us run Practice Koro, and only what they need:',
+      ],
       bullets: [
         'Supabase, which hosts our database, sign-in and file storage.',
         'Razorpay, which processes payments.',
@@ -115,7 +119,8 @@ export const PRIVACY_POLICY: LegalDocument = {
 export const TERMS_OF_SERVICE: LegalDocument = {
   slug: 'terms',
   title: 'Terms of Service',
-  summary: 'The rules for using Practice Koro. By creating an account or buying a plan you agree to these terms.',
+  summary:
+    'The rules for using Practice Koro. By creating an account or buying a plan you agree to these terms.',
   sections: [
     {
       heading: 'The service',

@@ -777,8 +777,14 @@ html:not(.dark) .admin-scope header .text-slate-500:not(.admin-dark-card *):not(
 }
 
 /* Form Inputs, Selects, & Textareas in Both Modes */
-html:not(.dark) .admin-scope input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
-html:not(.dark) .admin-scope select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
+html:not(.dark)
+  .admin-scope
+  input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not(
+    [class*='bg-transparent']
+  ),
+html:not(.dark)
+  .admin-scope
+  select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
 html:not(.dark)
   .admin-scope
   textarea:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']) {
@@ -861,9 +867,17 @@ html:not(.dark) .admin-scope .admin-dark-card textarea::placeholder {
 }
 
 /* Form Inputs in Dark Mode */
-.dark .admin-scope input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
-.dark .admin-scope select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
-.dark .admin-scope textarea:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']) {
+.dark
+  .admin-scope
+  input:not(.admin-drawer-option-input):not(.admin-transparent-input):not(.bg-transparent):not(
+    [class*='bg-transparent']
+  ),
+.dark
+  .admin-scope
+  select:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']),
+.dark
+  .admin-scope
+  textarea:not(.admin-transparent-input):not(.bg-transparent):not([class*='bg-transparent']) {
   color: #f8fafc !important;
   background-color: #0b1329 !important;
   border-color: #1e293b !important;

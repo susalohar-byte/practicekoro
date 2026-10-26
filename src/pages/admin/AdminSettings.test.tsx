@@ -297,5 +297,4 @@ describe('AdminSettings & Maintenance Mode System', () => {
       expect(screen.getByText(/জরুরি হেল্পলাইন/i)).toBeInTheDocument();
     });
   });
-
 });

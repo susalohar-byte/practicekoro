@@ -41,7 +41,8 @@ class SubscriptionRepository {
   const SubscriptionRepository();
 
   /// Fetches active subscription packages from Supabase `subscription_plans` table.
-  /// Falls back to local cache if offline, ensuring high reliability.
+  /// Falls back to the plans cached on the last successful load; with none,
+  /// throws [PlansUnavailable].
   Future<List<SubscriptionPlanModel>> getSubscriptionPlans({
     bool forceRefresh = false,
   }) async {
@@ -52,19 +53,18 @@ class SubscriptionRepository {
             .from('subscription_plans')
             .select('*')
             .eq('is_active', true)
-            .order('order_index', ascending: true);
+            .order('order_index', ascending: true)
+            .timeout(const Duration(seconds: 10));
 
-        if (response.isNotEmpty) {
-          final plans = response
-              .map((row) => SubscriptionPlanModel.fromJson(row))
-              .toList();
+        final plans = response
+            .map((row) => SubscriptionPlanModel.fromJson(row))
+            .toList();
 
-          // Cache locally for offline access
-          await LocalStorageService.saveCachedPlans(
-            plans.map((p) => p.toJson()).toList(),
-          );
-          return plans;
-        }
+        // Cache locally for offline access
+        await LocalStorageService.saveCachedPlans(
+          plans.map((p) => p.toJson()).toList(),
+        );
+        return plans;
       } catch (err) {
         debugPrint('Failed to fetch subscription plans from Supabase: $err');
       }
@@ -76,68 +76,8 @@ class SubscriptionRepository {
       return cached.map((p) => SubscriptionPlanModel.fromJson(p)).toList();
     }
 
-    // Default offline fallback matching Supabase live plans
-    return const [
-      SubscriptionPlanModel(
-        id: 'plan_free',
-        name: 'Free Starter',
-        title: 'Free Plan',
-        description:
-            'Basic access to free practice content. Topic-wise practice tests and limited mock tests available for all aspirants.',
-        durationDays: 365,
-        price: 0.0,
-        originalPrice: 0.0,
-        currency: 'INR',
-        features: [
-          'Topic-wise Practice Tests (Free)',
-          'Limited Free Mock Tests',
-          'Basic Performance Summary',
-          'Mistakes Notebook (Last 5 Tests)',
-          'Bengali & English Questions',
-        ],
-        isActive: true,
-        orderIndex: 0,
-      ),
-      SubscriptionPlanModel(
-        id: 'plan_6_month',
-        name: '6 Months Pass',
-        title: '6-Months Pro Pass',
-        description:
-            'Comprehensive exam preparation pass across all West Bengal state exams for 180 days.',
-        durationDays: 180,
-        price: 199.0,
-        originalPrice: 499.0,
-        currency: 'INR',
-        features: [
-          'All Full Mock Tests & PYQs',
-          'Mistakes Notebook & Smart Revision',
-          'Subject-wise Analytics',
-          'Priority Support',
-        ],
-        isActive: true,
-        orderIndex: 2,
-      ),
-      SubscriptionPlanModel(
-        id: 'pro_1_year',
-        name: 'PracticeKoro Pro Pass',
-        title: '1-Year All-Access Pro Pass',
-        description:
-            'Complete universal access to ALL Premium Mock Tests and Test Series across all exams for 365 days.',
-        durationDays: 365,
-        price: 299.0,
-        originalPrice: 999.0,
-        currency: 'INR',
-        features: [
-          'Universal access to ALL Premium Mock Tests',
-          'Detailed Solutions & Bengali Explanations',
-          'Automated Mistakes Notebook & Smart Revision',
-          'State-Level Rank & Percentile Analytics',
-          'All-Access Pass across WBP, KP SI, WBCS & WBPSC',
-        ],
-        isActive: true,
-        orderIndex: 3,
-      ),
-    ];
+    // Never show made-up plans or prices: the screen offers a retry instead.
+    throw const PlansUnavailable();
   }
 
   /// Gets the current student's subscription details. The server is the source of
@@ -437,4 +377,12 @@ class SubscriptionRepository {
       return const StudentSubscriptionModel();
     }
   }
+}
+
+/// Plans could not be loaded and none were cached from an earlier visit.
+class PlansUnavailable implements Exception {
+  const PlansUnavailable();
+  @override
+  String toString() =>
+      'Plans are unavailable right now. Check your internet and try again.';
 }

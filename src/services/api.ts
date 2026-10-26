@@ -37,7 +37,6 @@ export type {
   MockTest,
   Question,
   PopularExamCard,
-  PopularTestSeriesCard,
   BlogPost,
 } from '@/types';
 export type { LiveTest } from '@/services/domains/liveRevision';

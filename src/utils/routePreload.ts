@@ -9,7 +9,6 @@ const routeLoaders: Record<string, () => Promise<any>> = {
   '/admin': () => import('@/pages/admin/AdminDashboard'),
   '/admin/question-bank': () => import('@/pages/admin/AdminQuestionBank'),
   '/admin/questions': () => import('@/pages/admin/AdminQuestionBank'),
-  '/admin/test-series': () => import('@/pages/admin/AdminTestSeries'),
   '/admin/mock-tests': () => import('@/pages/admin/AdminTests'),
   '/admin/tests': () => import('@/pages/admin/AdminTests'),
   '/admin/test-questions': () => import('@/pages/admin/AdminTestQuestions'),

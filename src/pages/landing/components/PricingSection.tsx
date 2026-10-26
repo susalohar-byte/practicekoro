@@ -36,7 +36,10 @@ function pickHighlighted(plans: SubscriptionPlan[]): string | null {
 }
 
 const PlanCardSkeleton: React.FC = () => (
-  <div className="bg-white rounded-3xl border border-[#EDF0F8] p-6 sm:p-7 animate-pulse" aria-hidden>
+  <div
+    className="bg-white rounded-3xl border border-[#EDF0F8] p-6 sm:p-7 animate-pulse"
+    aria-hidden
+  >
     <div className="h-5 w-24 rounded bg-slate-100" />
     <div className="mt-3 h-4 w-40 rounded bg-slate-100" />
     <div className="mt-6 h-9 w-32 rounded bg-slate-100" />
@@ -51,7 +54,11 @@ const PlanCardSkeleton: React.FC = () => (
 
 export const PricingSection: React.FC = () => {
   // Active plans as the admin panel set them up; visitors read them without signing in
-  const { data: plans, isPending, isError } = useQuery({
+  const {
+    data: plans,
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: ['landing', 'subscription-plans'],
     queryFn: () => api.getSubscriptionPlans(false),
     staleTime: 5 * 60 * 1000,
@@ -77,10 +84,17 @@ export const PricingSection: React.FC = () => {
             প্ল্যানগুলো এই মুহূর্তে লোড করা যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।
           </p>
         ) : (
-          <RevealGroup key={isPending ? 'loading' : 'plans'} stagger={0.12} className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-5 sm:gap-6">
+          <RevealGroup
+            key={isPending ? 'loading' : 'plans'}
+            stagger={0.12}
+            className="mt-8 sm:mt-10 flex flex-wrap justify-center gap-5 sm:gap-6"
+          >
             {isPending
               ? [0, 1, 2].map((i) => (
-                  <div key={i} className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm">
+                  <div
+                    key={i}
+                    className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm"
+                  >
                     <PlanCardSkeleton />
                   </div>
                 ))
@@ -112,7 +126,8 @@ export const PricingSection: React.FC = () => {
                           animate={{ y: [0, -3, 0] }}
                           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                           style={{ x: '-50%' }}
-                          className="absolute -top-3.5 left-1/2 whitespace-nowrap rounded-full bg-[#FFD43B] px-4 py-1 text-xs font-bold text-[#0B1B4F] shadow-md">
+                          className="absolute -top-3.5 left-1/2 whitespace-nowrap rounded-full bg-[#FFD43B] px-4 py-1 text-xs font-bold text-[#0B1B4F] shadow-md"
+                        >
                           Best Value
                         </motion.span>
                       )}
@@ -122,7 +137,9 @@ export const PricingSection: React.FC = () => {
                         {discount > 0 && (
                           <span
                             className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                              highlighted ? 'bg-white/15 text-[#FFD43B]' : 'bg-[#E6F8EC] text-[#15803D]'
+                              highlighted
+                                ? 'bg-white/15 text-[#FFD43B]'
+                                : 'bg-[#E6F8EC] text-[#15803D]'
                             }`}
                           >
                             {discount}% OFF
@@ -144,27 +161,38 @@ export const PricingSection: React.FC = () => {
                           {isFree ? 'Free' : formatPrice(plan.price)}
                         </span>
                         {!isFree && discount > 0 && (
-                          <span className={`mb-1 text-base line-through ${highlighted ? 'text-white/50' : 'text-slate-400'}`}>
+                          <span
+                            className={`mb-1 text-base line-through ${highlighted ? 'text-white/50' : 'text-slate-400'}`}
+                          >
                             {formatPrice(plan.originalPrice!)}
                           </span>
                         )}
                       </div>
-                      <p className={`mt-1 text-sm ${highlighted ? 'text-white/70' : 'text-[#6B7489]'}`}>
+                      <p
+                        className={`mt-1 text-sm ${highlighted ? 'text-white/70' : 'text-[#6B7489]'}`}
+                      >
                         {isFree ? 'Always free' : `${durationLabel(plan.durationDays)} access`}
                       </p>
 
                       {plan.features.length > 0 && (
                         <ul className="mt-6 space-y-3 flex-1">
                           {plan.features.map((feature) => (
-                            <li key={feature} className="flex items-start gap-2.5 text-sm font-['Poppins','Anek_Bangla',sans-serif]">
+                            <li
+                              key={feature}
+                              className="flex items-start gap-2.5 text-sm font-['Poppins','Anek_Bangla',sans-serif]"
+                            >
                               <span
                                 className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${
-                                  highlighted ? 'bg-[#2F7BFF] text-white' : 'bg-[#EAF1FF] text-[#1A5CFF]'
+                                  highlighted
+                                    ? 'bg-[#2F7BFF] text-white'
+                                    : 'bg-[#EAF1FF] text-[#1A5CFF]'
                                 }`}
                               >
                                 <Check className="h-3 w-3" strokeWidth={3} />
                               </span>
-                              <span className={highlighted ? 'text-white/90' : 'text-[#3A4462]'}>{feature}</span>
+                              <span className={highlighted ? 'text-white/90' : 'text-[#3A4462]'}>
+                                {feature}
+                              </span>
                             </li>
                           ))}
                         </ul>

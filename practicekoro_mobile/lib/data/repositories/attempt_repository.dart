@@ -8,14 +8,9 @@ import 'auth_repository.dart';
 class AttemptRepository {
   const AttemptRepository();
 
-  /// Server attempts apply to real tests; topic/chapter practice is local.
+  /// Every real test is taken on the server; there is no offline question set.
   static bool usesServer(String testId) =>
-      !testId.startsWith('topic_') &&
-      !testId.startsWith('test_top_') &&
-      !testId.contains('top_') &&
-      !testId.contains('chapter') &&
-      supabaseClient != null &&
-      const AuthRepository().session != null;
+      supabaseClient != null && const AuthRepository().session != null;
 
   SupabaseClient get _db {
     final c = supabaseClient;

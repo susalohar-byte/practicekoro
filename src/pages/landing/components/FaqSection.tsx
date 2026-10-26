@@ -44,7 +44,11 @@ export const FaqSection: React.FC = () => {
     },
   ];
 
-  const items: FAQItem[] = faqs.map((faq, idx) => ({ id: idx + 1, question: faq.question, answer: faq.answer }));
+  const items: FAQItem[] = faqs.map((faq, idx) => ({
+    id: idx + 1,
+    question: faq.question,
+    answer: faq.answer,
+  }));
 
   return (
     <section id="faq" className="scroll-mt-20 py-8 sm:py-12">

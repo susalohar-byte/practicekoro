@@ -57,9 +57,7 @@ export function ActiveSubscriptionsModal({ plansState }: ActiveSubscriptionsModa
                 </div>
                 {paidPlans.map((p) => {
                   const count =
-                    planSubscriberCounts[p.id] ??
-                    planSubscriberCounts[p.name.toLowerCase()] ??
-                    0;
+                    planSubscriberCounts[p.id] ?? planSubscriberCounts[p.name.toLowerCase()] ?? 0;
                   return (
                     <div
                       key={p.id}
@@ -80,8 +78,9 @@ export function ActiveSubscriptionsModal({ plansState }: ActiveSubscriptionsModa
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>
-                    {activeSubscriptionsCount.toLocaleString('en-IN')} active subscriptions recorded out of{' '}
-                    {totalStudentsCount.toLocaleString('en-IN')} total registered learners ({activePercent}% active paid rate).
+                    {activeSubscriptionsCount.toLocaleString('en-IN')} active subscriptions recorded
+                    out of {totalStudentsCount.toLocaleString('en-IN')} total registered learners (
+                    {activePercent}% active paid rate).
                   </span>
                 </div>
               </div>

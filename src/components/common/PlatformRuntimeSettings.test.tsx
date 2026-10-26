@@ -1,7 +1,11 @@
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-const m = vi.hoisted(() => ({ settings: [] as { id: string; value: unknown }[], apply: vi.fn(), loaded: true }));
+const m = vi.hoisted(() => ({
+  settings: [] as { id: string; value: unknown }[],
+  apply: vi.fn(),
+  loaded: true,
+}));
 vi.mock('@/context/MaintenanceContext', () => ({
   useMaintenance: () => ({
     appSettings: m.settings,
@@ -106,7 +110,10 @@ it('keeps a page title and description when the platform defaults load after the
   r.rerender(page());
   // Wait until the platform defaults are in the head, then check the page still wins
   await waitFor(() =>
-    expect(document.head.querySelector('meta[property="og:site_name"]')).toHaveAttribute('content', 'Fixture Platform')
+    expect(document.head.querySelector('meta[property="og:site_name"]')).toHaveAttribute(
+      'content',
+      'Fixture Platform'
+    )
   );
   expect(document.title).toBe('Article Title');
   expect(document.head.querySelector('meta[name="description"]')).toHaveAttribute(

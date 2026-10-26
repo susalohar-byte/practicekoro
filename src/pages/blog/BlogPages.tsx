@@ -26,7 +26,11 @@ const BlogShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const CardSkeletons: React.FC = () => (
   <>
     {[0, 1, 2].map((i) => (
-      <div key={i} className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#EDF0F8] animate-pulse" aria-hidden>
+      <div
+        key={i}
+        className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#EDF0F8] animate-pulse"
+        aria-hidden
+      >
         <div className="aspect-[16/9] bg-slate-100" />
         <div className="space-y-3 p-5">
           <div className="h-5 w-4/5 rounded bg-slate-100" />
@@ -61,7 +65,9 @@ export const BlogListPage: React.FC = () => {
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FCD34D] to-[#F59E0B] text-white shadow-lg shadow-amber-500/30">
             <Newspaper className="h-6 w-6" strokeWidth={2.2} />
           </span>
-          <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-[#0B1B4F]">Practice Koro Blog</h1>
+          <h1 className="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-[#0B1B4F]">
+            Practice Koro Blog
+          </h1>
           <p className="mt-2 text-base sm:text-lg text-[#3A4462] font-['Poppins','Anek_Bangla',sans-serif]">
             পরীক্ষার প্রস্তুতির টিপস, সিলেবাস আর গাইড।
           </p>
@@ -170,12 +176,19 @@ export const BlogPostPage: React.FC = () => {
       </Helmet>
 
       <article className="max-w-3xl mx-auto px-4 sm:px-6">
-        <Link to="/blog" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-[#1A5CFF]">
+        <Link
+          to="/blog"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-[#1A5CFF]"
+        >
           <ArrowLeft className="h-4 w-4" />
           All articles
         </Link>
 
-        <motion.header initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <motion.header
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           {post.category && (
             <span className="mt-6 inline-block rounded-full bg-[#EAF1FF] px-3 py-1 text-xs font-semibold text-[#1A5CFF]">
               {post.category}
@@ -209,7 +222,9 @@ export const BlogPostPage: React.FC = () => {
 
         {/* After reading, nudge towards practice */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl bg-gradient-to-br from-[#0B1B4F] to-[#1450F0] px-6 py-6 sm:px-8 text-white">
-          <p className="text-lg font-semibold font-['Poppins','Anek_Bangla',sans-serif]">পড়া শেষ? এবার একটা মক টেস্ট দিয়ে দেখুন।</p>
+          <p className="text-lg font-semibold font-['Poppins','Anek_Bangla',sans-serif]">
+            পড়া শেষ? এবার একটা মক টেস্ট দিয়ে দেখুন।
+          </p>
           <Link
             to="/login"
             className="group inline-flex flex-shrink-0 items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-[#0B1B4F]"
@@ -223,7 +238,10 @@ export const BlogPostPage: React.FC = () => {
       {more.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-14">
           <h2 className="text-xl sm:text-2xl font-bold text-[#0B1B4F]">More articles</h2>
-          <RevealGroup stagger={0.1} className="mt-5 grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <RevealGroup
+            stagger={0.1}
+            className="mt-5 grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {more.map((p) => (
               <motion.div key={p.id} variants={popIn} {...hoverLift}>
                 <BlogPostCard post={p} />

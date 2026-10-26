@@ -24,11 +24,8 @@ export function TestKpiCards({ testsState }: TestKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.total}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 18%
-              </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">vs last month</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">all time</p>
           </div>
         </div>
 
@@ -44,9 +41,6 @@ export function TestKpiCards({ testsState }: TestKpiCardsProps) {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.fullMock}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 12%
               </span>
             </div>
           </div>
@@ -65,9 +59,6 @@ export function TestKpiCards({ testsState }: TestKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.topic}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 26%
-              </span>
             </div>
           </div>
         </div>
@@ -85,9 +76,6 @@ export function TestKpiCards({ testsState }: TestKpiCardsProps) {
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.pyq}
               </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 15%
-              </span>
             </div>
           </div>
         </div>
@@ -104,9 +92,6 @@ export function TestKpiCards({ testsState }: TestKpiCardsProps) {
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                 {counts.attempts}
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center">
-                ↑ 32%
               </span>
             </div>
           </div>

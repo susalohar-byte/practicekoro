@@ -37,7 +37,9 @@ export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Question Bank</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Question Bank
+            </h1>
             {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-[#026BFC]" />}
           </div>
           <p className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-1">

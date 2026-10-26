@@ -94,10 +94,15 @@ export function FaqSearchAccordion({
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ height: { duration: 0.32, ease: EASE }, opacity: { duration: 0.25, ease: EASE } }}
+                      transition={{
+                        height: { duration: 0.32, ease: EASE },
+                        opacity: { duration: 0.25, ease: EASE },
+                      }}
                       className="overflow-hidden"
                     >
-                      <p className="px-6 pb-6 text-[15px] sm:text-base leading-relaxed text-slate-500">{item.answer}</p>
+                      <p className="px-6 pb-6 text-[15px] sm:text-base leading-relaxed text-slate-500">
+                        {item.answer}
+                      </p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -106,7 +111,9 @@ export function FaqSearchAccordion({
           })}
         </AnimatePresence>
 
-        {items.length === 0 && <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>}
+        {items.length === 0 && (
+          <p className="py-6 text-center text-sm text-slate-500">{emptyText}</p>
+        )}
       </motion.div>
     </div>
   );

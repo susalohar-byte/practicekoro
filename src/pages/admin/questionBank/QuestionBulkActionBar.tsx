@@ -22,7 +22,9 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <span className="w-6 h-6 rounded-lg bg-[#026BFC] text-white font-bold text-xs flex items-center justify-center">
               {selectedRowIds.size}
             </span>
-            <span className="text-xs font-bold text-blue-900 dark:text-blue-200">{selectedRowIds.size} selected</span>
+            <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+              {selectedRowIds.size} selected
+            </span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">

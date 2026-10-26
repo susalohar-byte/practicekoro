@@ -92,7 +92,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   )}
                 >
                   <p className="text-xs">By Exam</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Full Mocks & PYQs</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Full Mocks & PYQs
+                  </p>
                 </button>
 
                 <button
@@ -106,7 +108,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   )}
                 >
                   <p className="text-xs">By Subject</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Topic Tests</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Topic Tests
+                  </p>
                 </button>
 
                 <button
@@ -119,7 +123,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   className="p-3 rounded-2xl border text-left transition-all cursor-pointer border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 dark:hover:border-rose-700"
                 >
                   <p className="text-xs">Live Test</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Live Test paper</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Live Test paper
+                  </p>
                 </button>
               </div>
             </div>
@@ -221,7 +227,9 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div className="p-2 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800">
                     <p className="text-[10px] text-slate-400 dark:text-slate-500">Total Rows</p>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{importPreviewStats.total}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {importPreviewStats.total}
+                    </p>
                   </div>
                   <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
                     <p className="text-[10px]">Valid</p>

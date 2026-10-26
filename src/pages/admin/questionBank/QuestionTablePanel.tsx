@@ -82,7 +82,10 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium">
                 {paginatedQuestions.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="py-12 text-center text-slate-400 dark:text-slate-500">
+                    <td
+                      colSpan={11}
+                      className="py-12 text-center text-slate-400 dark:text-slate-500"
+                    >
                       No questions found matching your filter criteria.
                     </td>
                   </tr>
@@ -198,8 +201,10 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                               'px-2 py-0.5 rounded-full text-[10px] font-bold inline-block',
                               (q.status === 'published' || q.status === 'active') &&
                                 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300',
-                              q.status === 'under_review' && 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300',
-                              q.status === 'draft' && 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              q.status === 'under_review' &&
+                                'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300',
+                              q.status === 'draft' &&
+                                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             )}
                           >
                             {q.status === 'published' || q.status === 'active'

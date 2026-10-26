@@ -15,7 +15,8 @@ class ResultsHistoryScreen extends ConsumerStatefulWidget {
   const ResultsHistoryScreen({super.key});
 
   @override
-  ConsumerState<ResultsHistoryScreen> createState() => _ResultsHistoryScreenState();
+  ConsumerState<ResultsHistoryScreen> createState() =>
+      _ResultsHistoryScreenState();
 }
 
 class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
@@ -23,9 +24,14 @@ class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
 
   bool _matchesFilter(TestAttemptModel attempt, ResultFilter filter) {
     final lowerTitle = attempt.testTitle.toLowerCase();
-    final isLive = attempt.testId.startsWith('live') || lowerTitle.contains('live');
-    final isTopic = attempt.testId.startsWith('topic_') || lowerTitle.contains('topic');
-    final isPyq = attempt.testId.contains('pyq') || lowerTitle.contains('pyq') || lowerTitle.contains('official pyq');
+    final isLive =
+        attempt.testId.startsWith('live') || lowerTitle.contains('live');
+    final isTopic =
+        attempt.testId.startsWith('topic_') || lowerTitle.contains('topic');
+    final isPyq =
+        attempt.testId.contains('pyq') ||
+        lowerTitle.contains('pyq') ||
+        lowerTitle.contains('official pyq');
     final isMock = !isTopic && !isPyq && !isLive;
 
     switch (filter) {
@@ -101,15 +107,26 @@ class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
               ),
               const SizedBox(height: 12),
               previewAsync.when(
-                loading: () => const Center(child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )),
-                error: (_, _) => const SizedBox.shrink(),
-                data: (rankItems) => _RankPreviewCard(
-                  items: rankItems,
-                  onTap: () => context.push('/results/rankings'),
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
+                error: (_, _) => UIMessage.error(
+                  message: 'Could not load the rank list.',
+                  onAction: () => ref.invalidate(rankPreviewProvider),
+                ),
+                data: (rankItems) => rankItems.isEmpty
+                    ? const _EmptyCard(
+                        title: 'No rankings yet',
+                        message:
+                            'Finish a test to see where you stand among other students.',
+                      )
+                    : _RankPreviewCard(
+                        items: rankItems,
+                        onTap: () => context.push('/results/rankings'),
+                      ),
               ),
               const SizedBox(height: 24),
 
@@ -136,34 +153,10 @@ class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
                       .toList();
 
                   if (filtered.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.assignment_outlined, size: 40, color: Colors.blueGrey[300]),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No results for this category',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Complete a test in this section to view your detailed result.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
+                    return const _EmptyCard(
+                      title: 'No results for this category',
+                      message:
+                          'Complete a test in this section to view your detailed result.',
                     );
                   }
 
@@ -172,10 +165,10 @@ class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
                       for (var i = 0; i < filtered.length; i++) ...[
                         _RecentResultCard(
                           attempt: filtered[i],
-                          onTap: () => context.push('/results/detail/${filtered[i].id}'),
+                          onTap: () =>
+                              context.push('/results/detail/${filtered[i].id}'),
                         ),
-                        if (i < filtered.length - 1)
-                          const SizedBox(height: 10),
+                        if (i < filtered.length - 1) const SizedBox(height: 10),
                       ],
                     ],
                   );
@@ -184,6 +177,50 @@ class _ResultsHistoryScreenState extends ConsumerState<ResultsHistoryScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _EmptyCard({required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.assignment_outlined,
+            size: 40,
+            color: Colors.blueGrey[300],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          ),
+        ],
       ),
     );
   }
@@ -225,7 +262,11 @@ class _SectionHeader extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 4),
-                Icon(Icons.arrow_forward_rounded, size: 15, color: Color(0xFF0158FC)),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 15,
+                  color: Color(0xFF0158FC),
+                ),
               ],
             ),
           ),
@@ -236,12 +277,16 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _SummaryCardsRow extends StatelessWidget {
-  final RankingSummary summary;
+  /// Null while loading or unavailable: every card shows a dash.
+  final RankingSummary? summary;
 
   const _SummaryCardsRow({required this.summary});
 
   @override
   Widget build(BuildContext context) {
+    final summary = this.summary;
+    final hasTests = summary != null && summary.testsTaken > 0;
+    final avg = summary?.averageScore ?? 0;
     return Row(
       children: [
         Expanded(
@@ -249,7 +294,7 @@ class _SummaryCardsRow extends StatelessWidget {
             icon: Icons.description_outlined,
             iconColor: const Color(0xFF0158FC),
             iconBg: const Color(0xFFEFF6FF),
-            value: summary.testsTaken.toString(),
+            value: summary?.testsTaken.toString() ?? '-',
             label: 'Tests Taken',
           ),
         ),
@@ -259,9 +304,11 @@ class _SummaryCardsRow extends StatelessWidget {
             icon: Icons.bar_chart_rounded,
             iconColor: const Color(0xFF16A34A),
             iconBg: const Color(0xFFF0FDF4),
-            value: summary.averageScore == summary.averageScore.roundToDouble()
-                ? summary.averageScore.toInt().toString()
-                : summary.averageScore.toStringAsFixed(1),
+            value: !hasTests
+                ? '-'
+                : (avg == avg.roundToDouble()
+                      ? avg.toInt().toString()
+                      : avg.toStringAsFixed(1)),
             label: 'Avg. Score',
           ),
         ),
@@ -271,7 +318,7 @@ class _SummaryCardsRow extends StatelessWidget {
             icon: Icons.emoji_events_rounded,
             iconColor: const Color(0xFF9333EA),
             iconBg: const Color(0xFFFAF5FF),
-            value: summary.formattedBestRank,
+            value: summary?.formattedBestRank ?? '-',
             label: 'Best Rank',
           ),
         ),
@@ -354,14 +401,7 @@ class _SummaryCardsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _SummaryCardsRow(
-      summary: RankingSummary(
-        testsTaken: 12,
-        averageScore: 68.5,
-        bestRank: 24,
-        bestRankScope: '(In WB)',
-      ),
-    );
+    return const _SummaryCardsRow(summary: null);
   }
 }
 
@@ -369,10 +409,7 @@ class _FilterPillsRow extends StatelessWidget {
   final ResultFilter selectedFilter;
   final ValueChanged<ResultFilter> onSelect;
 
-  const _FilterPillsRow({
-    required this.selectedFilter,
-    required this.onSelect,
-  });
+  const _FilterPillsRow({required this.selectedFilter, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +462,9 @@ class _PillButton extends StatelessWidget {
           color: isSelected ? const Color(0xFF0158FC) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0158FC) : const Color(0xFFE2E8F0),
+            color: isSelected
+                ? const Color(0xFF0158FC)
+                : const Color(0xFFE2E8F0),
             width: 1,
           ),
           boxShadow: isSelected
@@ -481,7 +520,11 @@ class _RankPreviewCard extends StatelessWidget {
             for (var i = 0; i < items.length; i++) ...[
               _RankPreviewRow(item: items[i]),
               if (i < items.length - 1)
-                const Divider(height: 1, thickness: 0.8, color: Color(0xFFF1F5F9)),
+                const Divider(
+                  height: 1,
+                  thickness: 0.8,
+                  color: Color(0xFFF1F5F9),
+                ),
             ],
           ],
         ),
@@ -524,7 +567,9 @@ class _RankPreviewRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isMe ? FontWeight.w800 : FontWeight.w700,
-                    color: isMe ? const Color(0xFF0158FC) : const Color(0xFF0F172A),
+                    color: isMe
+                        ? const Color(0xFF0158FC)
+                        : const Color(0xFF0F172A),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -563,7 +608,9 @@ class _RankPreviewRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: isMe ? const Color(0xFF0158FC) : const Color(0xFF64748B),
+                  color: isMe
+                      ? const Color(0xFF0158FC)
+                      : const Color(0xFF64748B),
                 ),
               ),
             ],
@@ -658,28 +705,52 @@ class _RecentResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lowerTitle = attempt.testTitle.toLowerCase();
-    final isLive = attempt.testId.startsWith('live') || lowerTitle.contains('live');
-    final isTopic = attempt.testId.startsWith('topic_') || lowerTitle.contains('topic');
-    final isPyq = attempt.testId.contains('pyq') || lowerTitle.contains('pyq') || lowerTitle.contains('official pyq');
+    final isLive =
+        attempt.testId.startsWith('live') || lowerTitle.contains('live');
+    final isTopic =
+        attempt.testId.startsWith('topic_') || lowerTitle.contains('topic');
+    final isPyq =
+        attempt.testId.contains('pyq') ||
+        lowerTitle.contains('pyq') ||
+        lowerTitle.contains('official pyq');
 
     final (icon, iconColor, iconBg) = isLive
-        ? (Icons.sensors_rounded, const Color(0xFF0158FC), const Color(0xFFEFF6FF))
+        ? (
+            Icons.sensors_rounded,
+            const Color(0xFF0158FC),
+            const Color(0xFFEFF6FF),
+          )
         : (isTopic
-            ? (Icons.menu_book_rounded, const Color(0xFFEA580C), const Color(0xFFFFF7ED))
-            : (isPyq
-                ? (Icons.history_edu_rounded, const Color(0xFF9333EA), const Color(0xFFFAF5FF))
-                : (Icons.assignment_turned_in_rounded, const Color(0xFFDC2626), const Color(0xFFFEF2F2))));
+              ? (
+                  Icons.menu_book_rounded,
+                  const Color(0xFFEA580C),
+                  const Color(0xFFFFF7ED),
+                )
+              : (isPyq
+                    ? (
+                        Icons.history_edu_rounded,
+                        const Color(0xFF9333EA),
+                        const Color(0xFFFAF5FF),
+                      )
+                    : (
+                        Icons.assignment_turned_in_rounded,
+                        const Color(0xFFDC2626),
+                        const Color(0xFFFEF2F2),
+                      )));
 
     final scoreStr = attempt.score == attempt.score.roundToDouble()
         ? attempt.score.toInt().toString()
         : attempt.score.toStringAsFixed(1);
-    final totalMarksStr = attempt.totalMarks == attempt.totalMarks.roundToDouble()
+    final totalMarksStr =
+        attempt.totalMarks == attempt.totalMarks.roundToDouble()
         ? attempt.totalMarks.toInt().toString()
         : attempt.totalMarks.toStringAsFixed(0);
 
     final attemptedCount = attempt.correctCount + attempt.wrongCount;
     final totalQuestions = attemptedCount + attempt.skippedCount;
-    final qCountDisplay = totalQuestions > 0 ? '$attemptedCount / $totalQuestions Questions' : '5 / 5 Questions';
+    final qCountDisplay = totalQuestions > 0
+        ? '$attemptedCount / $totalQuestions Questions'
+        : '5 / 5 Questions';
 
     return InkWell(
       onTap: onTap,
@@ -719,7 +790,10 @@ class _RecentResultCard extends StatelessWidget {
                     left: 2,
                     right: 2,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF0158FC),
                         borderRadius: BorderRadius.circular(4),
@@ -778,8 +852,14 @@ class _RecentResultCard extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreBadge(TestAttemptModel attempt, String scoreStr, String totalMarksStr) {
-    final pct = attempt.totalMarks > 0 ? (attempt.score / attempt.totalMarks * 100) : 0.0;
+  Widget _buildScoreBadge(
+    TestAttemptModel attempt,
+    String scoreStr,
+    String totalMarksStr,
+  ) {
+    final pct = attempt.totalMarks > 0
+        ? (attempt.score / attempt.totalMarks * 100)
+        : 0.0;
     final isLow = pct < 35.0;
 
     return Container(
@@ -809,7 +889,9 @@ class _RecentResultCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: isLow ? const Color(0xFFB91C1C).withValues(alpha: 0.7) : const Color(0xFF15803D).withValues(alpha: 0.7),
+              color: isLow
+                  ? const Color(0xFFB91C1C).withValues(alpha: 0.7)
+                  : const Color(0xFF15803D).withValues(alpha: 0.7),
             ),
           ),
         ],

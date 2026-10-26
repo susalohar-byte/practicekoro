@@ -39,7 +39,9 @@ export const GooglePlayBadge: React.FC<AppBadgeProps> = ({ className = '', size 
         />
       </svg>
       <div className="flex flex-col text-left leading-none">
-        <span className="text-[10px] uppercase tracking-wider text-slate-300 font-normal">GET IT ON</span>
+        <span className="text-[10px] uppercase tracking-wider text-slate-300 font-normal">
+          GET IT ON
+        </span>
         <span className="text-sm font-semibold tracking-tight text-white mt-0.5">Google Play</span>
       </div>
     </a>

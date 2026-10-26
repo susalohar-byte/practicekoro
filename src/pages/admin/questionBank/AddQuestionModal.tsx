@@ -162,7 +162,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
               {modalUploadMode === 'exam' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-blue-50/50 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/50">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Exam *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Exam *
+                    </label>
                     <select
                       value={addExam}
                       onChange={(e) => setAddExam(e.target.value)}
@@ -178,7 +180,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Question Type *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Question Type *
+                    </label>
                     <select
                       value={addExamQuestionType}
                       onChange={(e) =>
@@ -194,7 +198,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   {addExamQuestionType === 'Official PYQ' && (
                     <>
                       <div>
-                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Year</label>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Year
+                        </label>
                         <select
                           value={addYear}
                           onChange={(e) => setAddYear(e.target.value)}
@@ -209,7 +215,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                       </div>
 
                       <div>
-                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Paper / Set</label>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Paper / Set
+                        </label>
                         <input
                           type="text"
                           value={addPaper}
@@ -238,7 +246,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                 /* BY SUBJECT FIELDS */
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-purple-50/50 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/50">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Subject *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Subject *
+                    </label>
                     <select
                       value={addSubject}
                       onChange={(e) => setAddSubject(e.target.value)}
@@ -254,7 +264,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Topic *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Topic *
+                    </label>
                     <input
                       type="text"
                       value={addTopic}
@@ -344,7 +356,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
 
               {/* Comprehensive Explanation */}
               <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Explanation</label>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Explanation
+                </label>
                 <textarea
                   rows={3}
                   value={addExplanation}
@@ -357,7 +371,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
               {/* Marks, Negative Marks & Source */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Marks (+ve)</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Marks (+ve)
+                  </label>
                   <input
                     type="number"
                     step="0.25"
@@ -381,7 +397,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Source</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Source
+                  </label>
                   <select
                     value={addSource}
                     onChange={(e) => setAddSource(e.target.value)}
@@ -437,7 +455,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Status
+                  </label>
                   <select
                     value={addStatus}
                     onChange={(e) => setAddStatus(e.target.value as QuestionBankStatus)}

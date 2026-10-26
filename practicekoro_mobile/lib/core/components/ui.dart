@@ -1431,9 +1431,13 @@ class UIMessage extends StatelessWidget {
                         const Icon(Icons.refresh_rounded, size: 18),
                         const SizedBox(width: 8),
                       ],
-                      Text(
-                        actionLabel!,
-                        style: UI.button.copyWith(fontSize: 15),
+                      Flexible(
+                        child: Text(
+                          actionLabel!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: UI.button.copyWith(fontSize: 15),
+                        ),
                       ),
                     ],
                   ),

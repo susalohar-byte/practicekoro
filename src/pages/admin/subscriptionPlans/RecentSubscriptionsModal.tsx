@@ -57,7 +57,8 @@ export function RecentSubscriptionsModal({ plansState }: RecentSubscriptionsModa
                           alt={item.studentName}
                           className="w-8 h-8 rounded-full object-cover shrink-0"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentName)}&background=0284c7&color=fff`;
+                            (e.target as HTMLImageElement).src =
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentName)}&background=0284c7&color=fff`;
                           }}
                         />
                         <div>

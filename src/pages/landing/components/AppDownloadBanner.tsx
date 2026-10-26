@@ -32,7 +32,12 @@ const Shine: React.FC<{ className: string }> = ({ className }) => (
     animate={{ opacity: [0.4, 1, 0.4] }}
     transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
   >
-    <path d="M6 22 L2 30 M16 14 L18 4 M26 22 L36 18" stroke="#FFD43B" strokeWidth="3.5" strokeLinecap="round" />
+    <path
+      d="M6 22 L2 30 M16 14 L18 4 M26 22 L36 18"
+      stroke="#FFD43B"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+    />
   </motion.svg>
 );
 
@@ -40,10 +45,7 @@ export const AppDownloadBanner: React.FC = () => {
   return (
     <section className="pt-6 pb-12 sm:pb-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <Reveal
-          variants={popIn}
-          className="relative overflow-hidden rounded-[32px] bg-[#001A70]"
-        >
+        <Reveal variants={popIn} className="relative overflow-hidden rounded-[32px] bg-[#001A70]">
           {/* Friends studying together. On wide screens the photo fills the whole card and,
               towards the right, slowly blurs and darkens into navy behind the text. */}
           <div className="relative h-60 sm:h-80 md:absolute md:inset-0 md:h-auto overflow-hidden">
@@ -114,7 +116,10 @@ export const AppDownloadBanner: React.FC = () => {
               className="mt-9 flex items-start justify-center divide-x divide-white/25 font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif]"
             >
               {FEATURES.map(({ icon: Icon, lines }) => (
-                <li key={lines.join(' ')} className="flex items-center gap-2 lg:gap-2.5 px-2.5 sm:px-4 md:px-2.5 lg:px-4 first:pl-0 last:pr-0 text-left">
+                <li
+                  key={lines.join(' ')}
+                  className="flex items-center gap-2 lg:gap-2.5 px-2.5 sm:px-4 md:px-2.5 lg:px-4 first:pl-0 last:pr-0 text-left"
+                >
                   <motion.span
                     whileHover={{ scale: 1.1, rotate: -6 }}
                     className="flex h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-10 lg:h-12 lg:w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#1E5BFF] text-white shadow-lg shadow-blue-900/40"
@@ -142,7 +147,12 @@ export const AppDownloadBanner: React.FC = () => {
               </motion.div>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-4" whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.96 }}>
+            <motion.div
+              variants={fadeUp}
+              className="mt-4"
+              whileHover={{ scale: 1.06, y: -2 }}
+              whileTap={{ scale: 0.96 }}
+            >
               <GooglePlayBadge size="lg" />
             </motion.div>
           </RevealGroup>

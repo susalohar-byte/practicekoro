@@ -266,7 +266,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
 
                 {drawerUploadMode === 'exam' ? (
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Exam</label>
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                      Exam
+                    </label>
                     <select
                       value={drawerExam}
                       onChange={(e) => setDrawerExam(e.target.value)}
@@ -332,7 +334,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Topic</label>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                    Topic
+                  </label>
                   <select
                     value={drawerTopic}
                     onChange={(e) => setDrawerTopic(e.target.value)}
@@ -369,7 +373,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Year</label>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                    Year
+                  </label>
                   <select
                     value={drawerYear}
                     onChange={(e) => setDrawerYear(e.target.value)}
@@ -388,7 +394,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Source</label>
+                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                    Source
+                  </label>
                   <select
                     value={drawerSource}
                     onChange={(e) => setDrawerSource(e.target.value)}
@@ -404,7 +412,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
 
               {/* Status Dropdown */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Status</label>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                  Status
+                </label>
                 <select
                   value={drawerStatus}
                   onChange={(e) => setDrawerStatus(e.target.value as QuestionBankStatus)}
@@ -419,7 +429,9 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
 
               {/* Tags Section */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">Tags</label>
+                <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                  Tags
+                </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {drawerTags.map((t) => (
                     <span
@@ -543,11 +555,16 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-800 space-y-1.5">
                 <p className="font-bold text-slate-900 dark:text-white">Author & Audit Trail</p>
                 <p className="text-slate-500 dark:text-slate-400">
-                  Created By: <span className="font-semibold text-slate-800 dark:text-slate-200">Super Admin</span>
+                  Created By:{' '}
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    Super Admin
+                  </span>
                 </p>
                 <p className="text-slate-500 dark:text-slate-400">
                   Last Updated:{' '}
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">2026-09-15 11:05</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    2026-09-15 11:05
+                  </span>
                 </p>
               </div>
 
@@ -572,10 +589,16 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-[#026BFC]">Version {vh.version}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500">{vh.editedAt}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                          {vh.editedAt}
+                        </span>
                       </div>
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">{vh.changes}</p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">By {vh.editedBy}</p>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1">
+                        {vh.changes}
+                      </p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        By {vh.editedBy}
+                      </p>
                     </div>
                   ))}
                 </div>

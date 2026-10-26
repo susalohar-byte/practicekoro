@@ -1,7 +1,7 @@
 # PracticeKoro 2.0
 
-[![CI](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/ci.yml)
-[![DB Security Assertions](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/db-security.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro-2.0/actions/workflows/db-security.yml)
+[![CI](https://github.com/susalohar-byte/practicekoro/actions/workflows/ci.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro/actions/workflows/ci.yml)
+[![DB Security Assertions](https://github.com/susalohar-byte/practicekoro/actions/workflows/db-security.yml/badge.svg)](https://github.com/susalohar-byte/practicekoro/actions/workflows/db-security.yml)
 [![Live App](https://img.shields.io/badge/Live_App-practicekoro.online-2563eb)](https://practicekoro.online)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -34,16 +34,16 @@ React + TypeScript admin console ── Supabase Auth + PostgreSQL + RLS
 
 ## Repository layout
 
-| Path                   | Purpose                                        |
-| ---------------------- | ---------------------------------------------- |
-| `src/`                 | Admin console, services and unit tests         |
-| `student-web/`         | Student Web Panel (see its README)             |
-| `practicekoro_mobile/` | Flutter student app                            |
-| `supabase/migrations/` | Ordered database migrations                    |
-| `supabase/functions/`  | Server-side Edge Functions                     |
-| `supabase/tests/`      | Database and RLS security assertions           |
-| `tests/e2e/`           | Playwright end-to-end tests                    |
-| `docs/`                | Deployment and operational documentation       |
+| Path                   | Purpose                                  |
+| ---------------------- | ---------------------------------------- |
+| `src/`                 | Admin console, services and unit tests   |
+| `student-web/`         | Student Web Panel (see its README)       |
+| `practicekoro_mobile/` | Flutter student app                      |
+| `supabase/migrations/` | Ordered database migrations              |
+| `supabase/functions/`  | Server-side Edge Functions               |
+| `supabase/tests/`      | Database and RLS security assertions     |
+| `tests/e2e/`           | Playwright end-to-end tests              |
+| `docs/`                | Deployment and operational documentation |
 
 ## Local setup
 

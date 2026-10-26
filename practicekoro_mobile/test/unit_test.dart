@@ -171,33 +171,18 @@ void main() {
   });
 
   group('CatalogRepository Tests', () {
-    test('Default catalog returns valid exams and subjects', () async {
+    test('exams and subjects are never invented when offline', () {
       final repo = CatalogRepository();
-      final exams = await repo.getExams();
-      expect(exams.isNotEmpty, isTrue);
-      expect(exams.any((e) => e.title.contains('WBP Constable')), isTrue);
-      expect(exams.any((e) => e.title.contains('WBPSC')), isTrue);
-
-      final subjects = await repo.getSubjects();
-      expect(subjects.isNotEmpty, isTrue);
-      expect(subjects.any((s) => s.nameEnglish.contains('General Knowledge')), isTrue);
-      expect(subjects.any((s) => s.nameEnglish.contains('History')), isTrue);
+      expect(repo.getExams(), throwsA(isA<CatalogUnavailable>()));
+      expect(repo.getSubjects(), throwsA(isA<CatalogUnavailable>()));
     });
 
-    test('getMockTests returns Full Test, Topic Test, and PYQ categories', () async {
+    test('getMockTests never generates tests when offline', () {
       final repo = CatalogRepository();
-      final tests = await repo.getMockTests('exam_wbp');
-      expect(tests.isNotEmpty, isTrue);
+      expect(repo.getMockTests('exam_wbp'), throwsA(isA<CatalogUnavailable>()));
+    });
 
-      final fullTests = tests.where((t) => t.normalizedCategory == 'Full Test').toList();
-      final topicTests = tests.where((t) => t.normalizedCategory == 'Topic Test').toList();
-      final pyqs = tests.where((t) => t.normalizedCategory == 'PYQ').toList();
-
-      expect(fullTests.isNotEmpty, isTrue);
-      expect(topicTests.isNotEmpty, isTrue);
-      expect(pyqs.isNotEmpty, isTrue);
-
-      // Verify category normalization
+    test('MockTestModel normalizes categories', () {
       expect(MockTestModel.normalizeCategory('Mock Test'), equals('Full Test'));
       expect(MockTestModel.normalizeCategory('full_mock'), equals('Full Test'));
       expect(MockTestModel.normalizeCategory('topic'), equals('Topic Test'));

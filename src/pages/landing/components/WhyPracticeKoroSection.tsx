@@ -57,8 +57,15 @@ export const WhyPracticeKoroSection: React.FC = () => {
               {...hoverLift}
               className="bg-white rounded-2xl border border-[#EDF0F8] group shadow-[0_6px_24px_rgba(30,50,120,0.07)] hover:shadow-[0_14px_34px_rgba(30,80,240,0.14)] transition-shadow px-3 sm:px-4 py-5 sm:py-6 flex flex-col items-center text-center"
             >
-              <div className={`w-16 h-16 sm:w-[76px] sm:h-[76px] rounded-full ${feature.tint} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}>
-                <img src={feature.icon} alt="" aria-hidden className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+              <div
+                className={`w-16 h-16 sm:w-[76px] sm:h-[76px] rounded-full ${feature.tint} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+              >
+                <img
+                  src={feature.icon}
+                  alt=""
+                  aria-hidden
+                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                />
               </div>
               <h3 className="mt-3 sm:mt-4 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug">
                 {feature.title}

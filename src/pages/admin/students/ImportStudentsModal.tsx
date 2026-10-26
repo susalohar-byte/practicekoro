@@ -7,8 +7,13 @@ export interface ImportStudentsModalProps {
 }
 
 export function ImportStudentsModal({ studentsState }: ImportStudentsModalProps) {
-  const { isImportModalOpen, setIsImportModalOpen, handleDownloadSampleCSV, handleCSVImport, isWorking } =
-    studentsState;
+  const {
+    isImportModalOpen,
+    setIsImportModalOpen,
+    handleDownloadSampleCSV,
+    handleCSVImport,
+    isWorking,
+  } = studentsState;
 
   return (
     <>

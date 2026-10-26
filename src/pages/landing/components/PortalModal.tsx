@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { studentPanelUrl } from '@/lib/studentPanel';
-import { 
-  X, 
-  ShieldCheck, 
-  GraduationCap, 
-  Download, 
-  ArrowRight, 
-  Sparkles, 
+import {
+  X,
+  ShieldCheck,
+  GraduationCap,
+  Download,
+  ArrowRight,
+  Sparkles,
   Smartphone,
-  Lock
+  Lock,
 } from 'lucide-react';
 
 interface PortalModalProps {
@@ -41,14 +41,14 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal Dialog */}
-      <div 
+      <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="portal-modal-title"
@@ -79,7 +79,8 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
         {/* Modal Body */}
         <div className="p-6 space-y-4">
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            আপনি কি প্রশাসক হিসেবে লগইন করতে চান, নাকি শিক্ষার্থী হিসেবে মক টেস্ট প্র্যাকটিস করতে চান?
+            আপনি কি প্রশাসক হিসেবে লগইন করতে চান, নাকি শিক্ষার্থী হিসেবে মক টেস্ট প্র্যাকটিস করতে
+            চান?
           </p>
 
           {/* Option 1: Admin Panel */}
@@ -98,7 +99,8 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  মক টেস্ট তৈরি, প্রশ্নব্যাংক, শিক্ষার্থী বিশ্লেষণ ও রেজাল্ট পরিচালনার পূর্ণাঙ্গ ব্যাকএন্ড কনসোল।
+                  মক টেস্ট তৈরি, প্রশ্নব্যাংক, শিক্ষার্থী বিশ্লেষণ ও রেজাল্ট পরিচালনার পূর্ণাঙ্গ
+                  ব্যাকএন্ড কনসোল।
                 </p>
                 <button
                   type="button"
@@ -132,7 +134,8 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  মক টেস্ট, লাইভ টেস্ট, বিষয়ভিত্তিক অনুশীলন ও বিস্তারিত সমাধান — ওয়েব পোর্টালে বা অ্যান্ড্রয়েড অ্যাপে। একই অ্যাকাউন্ট দুই জায়গাতেই চলবে।
+                  মক টেস্ট, লাইভ টেস্ট, বিষয়ভিত্তিক অনুশীলন ও বিস্তারিত সমাধান — ওয়েব পোর্টালে বা
+                  অ্যান্ড্রয়েড অ্যাপে। একই অ্যাকাউন্ট দুই জায়গাতেই চলবে।
                 </p>
                 <div className="mt-3.5 flex flex-wrap items-center gap-2">
                   <a

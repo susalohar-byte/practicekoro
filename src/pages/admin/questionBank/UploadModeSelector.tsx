@@ -94,7 +94,9 @@ export function UploadModeSelector({ qb }: UploadModeSelectorProps) {
             <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
               Upload subject-wise questions
             </p>
-            <p className="text-[11px] font-normal text-slate-400 dark:text-slate-500">(Used for Topic Tests)</p>
+            <p className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+              (Used for Topic Tests)
+            </p>
           </div>
         </div>
 
@@ -141,7 +143,9 @@ export function UploadModeSelector({ qb }: UploadModeSelectorProps) {
 
       {activeUploadMode === 'live' && (
         <div className="flex flex-wrap items-center gap-2 -mt-2">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Live Test:</label>
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+            Live Test:
+          </label>
           <select
             value={selectedLiveTestFilter}
             onChange={(e) => {

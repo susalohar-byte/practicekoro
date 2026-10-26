@@ -178,25 +178,6 @@ export interface PopularExamCard {
   isActive?: boolean;
 }
 
-export interface PopularTestSeriesCard {
-  id: string;
-  testSeriesId?: string;
-  title: string;
-  subtitle?: string; // e.g. "Complete Test Series"
-  cardGradientStart: string;
-  cardGradientEnd: string;
-  cardArrowColor?: string;
-  cardBgImage?: string;
-  cardLogoUrl?: string;
-  orderIndex: number;
-  route?: string;
-  isActive?: boolean;
-  fullMockCount?: number;
-  topicTestCount?: number;
-  pyqTestCount?: number;
-  badgeText?: string;
-}
-
 export interface ExamCategory {
   id: string;
   name: string;

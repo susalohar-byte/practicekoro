@@ -3,7 +3,10 @@ import { expect, test } from '@playwright/test';
 test.describe('Application entry', () => {
   test('root shows the landing page, whose Login leads to the shared sign-in', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: /^login$/i }).first().click();
+    await page
+      .getByRole('link', { name: /^login$/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
   });

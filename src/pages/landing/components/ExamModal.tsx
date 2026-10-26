@@ -1,13 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  X, 
-  CheckCircle2, 
-  BookOpen, 
-  FileCheck, 
-  Clock, 
-  ArrowRight
-} from 'lucide-react';
+import { X, CheckCircle2, BookOpen, FileCheck, Clock, ArrowRight } from 'lucide-react';
 
 export interface ExamData {
   id: string;
@@ -83,7 +76,8 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
                 alt={exam.name}
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/images/popular_exams/logo_wbpsc.png';
+                  (e.currentTarget as HTMLImageElement).src =
+                    '/images/popular_exams/logo_wbpsc.png';
                 }}
               />
             </div>
@@ -94,18 +88,14 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
               <h3 id="exam-modal-title" className="text-xl font-bold tracking-tight">
                 {exam.name}
               </h3>
-              <p className="text-xs text-blue-100/90 font-medium">
-                {exam.bengaliName}
-              </p>
+              <p className="text-xs text-blue-100/90 font-medium">{exam.bengaliName}</p>
             </div>
           </div>
         </div>
 
         {/* Scrollable Content */}
         <div className="p-6 overflow-y-auto space-y-5 text-slate-700">
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            {exam.description}
-          </p>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{exam.description}</p>
 
           {/* Exam Pattern Grid */}
           <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
@@ -128,7 +118,9 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
               </div>
               <div className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs">
                 <span className="block text-[11px] text-slate-400">নেগেটিভ মার্কিং</span>
-                <span className="text-xs font-bold text-rose-600">{exam.pattern.negativeMarking}</span>
+                <span className="text-xs font-bold text-rose-600">
+                  {exam.pattern.negativeMarking}
+                </span>
               </div>
             </div>
           </div>

@@ -17,7 +17,9 @@ export function RecentSubscriptionsCard({ plansState }: RecentSubscriptionsCardP
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Subscriptions</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Recent Subscriptions
+              </h3>
               <p className="text-[11px] text-slate-400">Live student transactions</p>
             </div>
             {recentSubscriptions.length > 0 && (
@@ -66,7 +68,8 @@ export function RecentSubscriptionsCard({ plansState }: RecentSubscriptionsCardP
                             alt={sub.studentName}
                             className="w-6 h-6 rounded-full object-cover shrink-0"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.studentName)}&background=0284c7&color=fff`;
+                              (e.target as HTMLImageElement).src =
+                                `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.studentName)}&background=0284c7&color=fff`;
                             }}
                           />
                           <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[90px]">

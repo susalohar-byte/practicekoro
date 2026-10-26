@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, Newspaper } from 'lucide-react';
 import type { BlogPost } from '@/types';
-import { formatPostDate, formatReadTime, pickHomepagePosts, usePublishedPosts } from '@/pages/blog/publicBlog';
+import {
+  formatPostDate,
+  formatReadTime,
+  pickHomepagePosts,
+  usePublishedPosts,
+} from '@/pages/blog/publicBlog';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
@@ -79,7 +84,11 @@ export const BlogSection: React.FC = () => {
         >
           {isPending
             ? [0, 1, 2].map((i) => (
-                <div key={i} className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#EDF0F8] animate-pulse" aria-hidden>
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-2xl bg-white ring-1 ring-[#EDF0F8] animate-pulse"
+                  aria-hidden
+                >
                   <div className="aspect-[16/9] bg-slate-100" />
                   <div className="space-y-3 p-5">
                     <div className="h-5 w-4/5 rounded bg-slate-100" />

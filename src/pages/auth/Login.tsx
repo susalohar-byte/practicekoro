@@ -32,7 +32,13 @@ const FEATURES = [
 const BrushUnderline: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 340 24" className={className} aria-hidden fill="none">
     <path d="M6 17C70 7 170 4 334 9" stroke="#FACC15" strokeWidth="7" strokeLinecap="round" />
-    <path d="M60 21C130 15 210 14 300 16" stroke="#FACC15" strokeWidth="3.5" strokeLinecap="round" opacity="0.8" />
+    <path
+      d="M60 21C130 15 210 14 300 16"
+      stroke="#FACC15"
+      strokeWidth="3.5"
+      strokeLinecap="round"
+      opacity="0.8"
+    />
   </svg>
 );
 
@@ -139,8 +145,14 @@ export const Login: React.FC = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#C8DEFE] via-[#E4EEFD] to-[#F6F9FD] font-sans">
       {/* Soft light spots */}
-      <div className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-white/50 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-20 -bottom-24 h-96 w-96 rounded-full bg-white/70 blur-3xl" aria-hidden />
+      <div
+        className="pointer-events-none absolute -left-24 top-1/3 h-96 w-96 rounded-full bg-white/50 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-20 -bottom-24 h-96 w-96 rounded-full bg-white/70 blur-3xl"
+        aria-hidden
+      />
 
       {/* Back to the landing page */}
       <Link
@@ -185,8 +197,14 @@ export const Login: React.FC = () => {
             />
             <ul className="relative -mt-3 grid grid-cols-4 rounded-[28px] border border-white/80 bg-white/95 px-3 py-5 shadow-[0_18px_40px_rgba(30,64,175,0.12)] backdrop-blur">
               {FEATURES.map(({ label, icon: Icon, color, bg }, i) => (
-                <li key={label.join(' ')} className={`flex flex-col items-center px-2 ${i > 0 ? 'border-l border-slate-200' : ''}`}>
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full shadow-sm" style={{ background: bg, color }}>
+                <li
+                  key={label.join(' ')}
+                  className={`flex flex-col items-center px-2 ${i > 0 ? 'border-l border-slate-200' : ''}`}
+                >
+                  <span
+                    className="flex h-12 w-12 items-center justify-center rounded-full shadow-sm"
+                    style={{ background: bg, color }}
+                  >
                     <Icon className="h-6 w-6" />
                   </span>
                   <span className="mt-2 text-[14px] font-bold leading-tight text-slate-900">
@@ -194,7 +212,11 @@ export const Login: React.FC = () => {
                     <br />
                     {label[1]}
                   </span>
-                  <span className="mt-1.5 h-[3px] w-6 rounded-full" style={{ background: color }} aria-hidden />
+                  <span
+                    className="mt-1.5 h-[3px] w-6 rounded-full"
+                    style={{ background: color }}
+                    aria-hidden
+                  />
                 </li>
               ))}
             </ul>
@@ -204,7 +226,11 @@ export const Login: React.FC = () => {
         {/* Right: sign-in card */}
         <section className="mx-auto w-full max-w-[600px] rounded-[32px] border border-white bg-white px-6 py-9 shadow-[0_24px_60px_rgba(30,64,175,0.12)] sm:px-12 sm:py-12">
           <Link to="/" className="mx-auto flex w-fit items-center" aria-label="PracticeKoro home">
-            <img src="/logo-transparent.png" alt="PracticeKoro" className="h-10 w-auto object-contain sm:h-11" />
+            <img
+              src="/logo-transparent.png"
+              alt="PracticeKoro"
+              className="h-10 w-auto object-contain sm:h-11"
+            />
           </Link>
 
           <div className="relative mt-8 text-center">
@@ -222,14 +248,20 @@ export const Login: React.FC = () => {
             <div className="mt-10 flex flex-col items-center gap-3 py-8 text-center" role="status">
               <Loader2 className="h-8 w-8 animate-spin text-[#1F5BFF]" />
               <p className="text-sm font-semibold text-slate-700">Opening your student panel…</p>
-              <a href={studentPanelUrl('home')} className="text-sm font-bold text-[#1F5BFF] hover:underline">
+              <a
+                href={studentPanelUrl('home')}
+                className="text-sm font-bold text-[#1F5BFF] hover:underline"
+              >
                 Continue to the student panel
               </a>
             </div>
           ) : (
             <>
               {error && (
-                <div role="alert" className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                <div
+                  role="alert"
+                  className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+                >
                   <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-600" />
                   <span>{error}</span>
                 </div>
@@ -241,7 +273,11 @@ export const Login: React.FC = () => {
                 disabled={isGoogleLoading || isLoading}
                 className="mt-8 flex h-16 w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white text-[17px] font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isGoogleLoading ? <Loader2 className="h-5 w-5 animate-spin text-slate-500" /> : <GoogleIcon className="h-6 w-6" />}
+                {isGoogleLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+                ) : (
+                  <GoogleIcon className="h-6 w-6" />
+                )}
                 <span>Continue with Google</span>
               </button>
 
@@ -253,7 +289,10 @@ export const Login: React.FC = () => {
 
               <form className="space-y-5" onSubmit={handleSubmit} noValidate>
                 <div>
-                  <label htmlFor="login-id" className="mb-2 block text-[15px] font-semibold text-slate-800">
+                  <label
+                    htmlFor="login-id"
+                    className="mb-2 block text-[15px] font-semibold text-slate-800"
+                  >
                     Email or Phone Number
                   </label>
                   <div className="relative">
@@ -272,7 +311,10 @@ export const Login: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="mb-2 block text-[15px] font-semibold text-slate-800">
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-[15px] font-semibold text-slate-800"
+                  >
                     Password
                   </label>
                   <div className="relative">
@@ -296,7 +338,10 @@ export const Login: React.FC = () => {
                     </button>
                   </div>
                   <div className="mt-2 text-right">
-                    <Link to="/forgot-password" className="text-[15px] font-medium text-[#1F5BFF] hover:underline">
+                    <Link
+                      to="/forgot-password"
+                      className="text-[15px] font-medium text-[#1F5BFF] hover:underline"
+                    >
                       Forgot Password?
                     </Link>
                   </div>
@@ -307,7 +352,9 @@ export const Login: React.FC = () => {
                   disabled={isLoading || isGoogleLoading}
                   className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl bg-[#0B5CFF] text-[18px] font-bold text-white shadow-[0_12px_24px_rgba(11,92,255,0.28)] transition hover:bg-[#0A4FDB] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-label="Signing in" /> : null}
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" aria-label="Signing in" />
+                  ) : null}
                   <span>Sign In</span>
                   {!isLoading && <ArrowRight className="h-5 w-5" />}
                 </button>
@@ -315,7 +362,10 @@ export const Login: React.FC = () => {
 
               <p className="mt-8 text-center text-[15px] text-slate-600">
                 Don&apos;t have an account?{' '}
-                <a href={studentPanelUrl('signup')} className="ml-1 font-bold text-[#1F5BFF] hover:underline">
+                <a
+                  href={studentPanelUrl('signup')}
+                  className="ml-1 font-bold text-[#1F5BFF] hover:underline"
+                >
                   Create Account
                 </a>
               </p>
