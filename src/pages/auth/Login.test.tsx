@@ -139,8 +139,6 @@ describe('Login (auth regression)', () => {
     await screen.findByRole('heading', { name: /welcome back/i });
 
     expect(screen.getByRole('link', { name: 'PracticeKoro home' })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: 'Sign Up' }).getAttribute('href')).toMatch(
-      /signup$/
-    );
+    expect(screen.getByRole('link', { name: 'Sign Up' }).getAttribute('href')).toMatch(/signup$/);
   });
 });
