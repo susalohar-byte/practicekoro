@@ -14,7 +14,9 @@ npm run check
 npm run build
 ```
 
-Publish the generated `dist` directory.
+Publish the generated `dist` directory. `npm run build` also builds the Student Web Panel into
+`dist/dashboard/`, so one upload of `dist` to `public_html/` ships the site, `/admin` and
+`/dashboard` together.
 
 ## Required public variables
 

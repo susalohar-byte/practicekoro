@@ -69,14 +69,17 @@ npm ci
 npm run check            # type-check, lint, test, build → dist/ with base /dashboard/
 ```
 
-Upload the contents of `student-web/dist` to `public_html/dashboard/` (next to the admin
-console's files in `public_html/`). `public/.htaccess` is copied into it with
+The root `npm run build` also builds this panel into `dist/dashboard/` (see
+`scripts/build-student-panel.mjs`), so uploading the root `dist/` to `public_html/` deploys the
+site, the admin console and the panel together. Building only the panel works too: upload the
+contents of `student-web/dist` to `public_html/dashboard/`. `public/.htaccess` is copied into it with
 `RewriteBase /dashboard/`, so refreshes and deep links such as `/dashboard/result/<id>` load the
 panel. The root `.htaccess` is not involved: Apache uses the one in `dashboard/`.
 
 Because the panel is on the same domain, it shares the login with the landing page and the
 admin console (one Supabase session). Everyone signs in at `practicekoro.online/login`:
-admins continue to `/admin`, students to `/dashboard`. A signed-in student who opens `/login`
+admins continue to `/admin`, students to `/dashboard`. The panel's own login page is only used in
+local development; on the live site it sends visitors to `/login` (`VITE_SHARED_LOGIN_URL`). A signed-in student who opens `/login`
 or `/admin` is sent to `/dashboard`, and new students use the **Create account** link there.
 The panel's own `/dashboard/login` keeps working for direct visits; an admin account that signs
 in there is sent to the admin console too.

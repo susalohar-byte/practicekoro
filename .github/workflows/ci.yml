@@ -50,6 +50,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      # npm run build also builds the Student Web Panel into dist/dashboard
+      - run: npm ci --prefix student-web
       - run: npm run build
 
   notify:
