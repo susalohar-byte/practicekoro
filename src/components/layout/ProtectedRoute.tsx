@@ -1,8 +1,9 @@
 import { AdminPageSkeleton } from '@/components/admin/AdminSkeleton';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
+import { openStudentPanel } from '@/lib/studentPanel';
 
 import type { AdminPermissions } from '@/types';
 
@@ -92,7 +93,22 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
   return <>{children}</>;
 };
 
-/** Redirect admins to the console while allowing other accounts to switch to an admin login. */
+/** Sends a signed-in student to the Student Web Panel (a separate app, so a full page load). */
+const StudentPanelRedirect: React.FC = () => {
+  useEffect(() => {
+    openStudentPanel('home');
+  }, []);
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
+    </div>
+  );
+};
+
+/**
+ * The shared login page: admins go to the console and students to the Student Web Panel,
+ * so practicekoro.online/login works for every account.
+ */
 export const PublicOnlyRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isAdmin, loading } = useAuth();
 
@@ -105,6 +121,7 @@ export const PublicOnlyRoute: React.FC<ProtectedRouteProps> = ({ children }) => 
   }
 
   if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user) return <StudentPanelRedirect />;
 
   return <>{children}</>;
 };

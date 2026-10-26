@@ -1,2 +1,10 @@
+# Public pages: the landing page and the policy pages
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /dashboard/
+
+Sitemap: https://practicekoro.online/sitemap.xml

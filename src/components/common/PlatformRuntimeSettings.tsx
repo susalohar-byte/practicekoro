@@ -35,7 +35,10 @@ export function PlatformRuntimeSettings() {
       originals.forEach((node) => document.head.appendChild(node));
     };
   }, [hasLoadedSettings]);
-  if (!hasLoadedSettings) return null;
+  // Mount an (empty) Helmet from the first render so it registers before any page's Helmet.
+  // react-helmet-async lets the last-registered instance win, so page titles and descriptions
+  // (landing, blog articles, policies) then override these defaults instead of the reverse.
+  if (!hasLoadedSettings) return <Helmet />;
   const title = values.title || `${appName} | Mock Test & Practice Platform`;
   const description =
     values.description ||

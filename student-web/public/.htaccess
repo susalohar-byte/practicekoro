@@ -1,0 +1,91 @@
+# ==============================================================================
+# PracticeKoro Student Web Panel - served from practicekoro.online/dashboard/ (.htaccess)
+# Supports Single Page Application (SPA) Client-Side Routing & Static Asset Caching
+# ==============================================================================
+
+# Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # The panel lives in public_html/dashboard/. Change this if VITE_BASE_PATH changes.
+  RewriteBase /dashboard/
+
+  # 1. Force HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 2. Prevent rewrite loop for index.html
+  RewriteRule ^index\.html$ - [L]
+
+  # 3. Serve existing static files, directories, and symlinks directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d [OR]
+  RewriteCond %{REQUEST_FILENAME} -l
+  RewriteRule ^ - [L]
+
+  # 4. Never rewrite missing static assets (scripts, stylesheets, fonts, media) to index.html
+  # Returning index.html (200 OK) for missing JS chunks causes dynamic import MIME-type errors.
+  # Returning 404 allows Vite preload error listeners to detect stale chunks and auto-reload immediately.
+  RewriteCond %{REQUEST_URI} ^/dashboard/assets/ [OR]
+  RewriteCond %{REQUEST_URI} \.(js|mjs|css|png|jpg|jpeg|gif|svg|webp|woff2?|ttf|eot|ico|json|map|apk)$ [NC]
+  RewriteRule ^ - [R=404,L]
+
+  # 5. Fallback every client route to /dashboard/index.html.
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+# ==============================================================================
+# MIME TYPES & ENCODING
+# ==============================================================================
+<IfModule mod_mime.c>
+  AddType application/javascript        .js .mjs
+  AddType text/css                      .css
+  AddType image/svg+xml                 .svg
+  AddType application/json              .json
+  AddType application/manifest+json     .webmanifest
+  AddType font/woff2                    .woff2
+  AddType font/woff                     .woff
+  AddType image/webp                    .webp
+</IfModule>
+
+# ==============================================================================
+# BROWSER CACHE CONTROL
+# ==============================================================================
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # Vite hashed assets are immutable: cache for 1 year
+  ExpiresByType text/css                "access plus 1 year"
+  ExpiresByType application/javascript  "access plus 1 year"
+  ExpiresByType image/png               "access plus 1 month"
+  ExpiresByType image/jpeg              "access plus 1 month"
+  ExpiresByType image/svg+xml           "access plus 1 month"
+  ExpiresByType font/woff2              "access plus 1 year"
+
+  # HTML entry point must not be aggressively cached (ensure updates take effect)
+  ExpiresByType text/html               "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Cache header for hashed assets
+  <FilesMatch "\.(js|css|woff2|woff|webp)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+  </FilesMatch>
+
+  # Prevent caching of index.html so updates are immediate
+  <FilesMatch "(index\.html|theme-init\.js)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
+
+  # Tested HTTPS apex/www coverage. Start with one day; no includeSubDomains/preload.
+  Header always set Strict-Transport-Security "max-age=86400"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://prycanbnxuihxhskallw.supabase.co wss://prycanbnxuihxhskallw.supabase.co https://*.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self' https://api.razorpay.com https://checkout.razorpay.com; upgrade-insecure-requests; frame-ancestors 'self'"
+
+  # Security Headers
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

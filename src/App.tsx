@@ -1,4 +1,5 @@
 import { AppRouteLoadingFallback } from '@/components/admin/AdminSkeleton';
+import { LEGAL_DOCUMENTS } from '@/pages/legal/legalContent';
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/layout/AdminLayout';
@@ -147,13 +148,34 @@ const AdminBlog = lazyWithRetry(() =>
     default: module.AdminBlog,
   }))
 );
+const LandingPage = lazyWithRetry(() =>
+  import('@/pages/landing/LandingPage').then((module) => ({ default: module.LandingPage }))
+);
+const LegalPage = lazyWithRetry(() =>
+  import('@/pages/legal/LegalPage').then((module) => ({ default: module.LegalPage }))
+);
+const BlogListPage = lazyWithRetry(() =>
+  import('@/pages/blog/BlogPages').then((module) => ({ default: module.BlogListPage }))
+);
+const BlogPostPage = lazyWithRetry(() =>
+  import('@/pages/blog/BlogPages').then((module) => ({ default: module.BlogPostPage }))
+);
 
 export const App: React.FC = () => {
   return (
     <React.Suspense fallback={<AppRouteLoadingFallback />}>
       <Routes>
-        {/* The admin console is the only application surface. */}
-        <Route path="/" element={<Navigate to="/admin" replace />} />
+        {/* Practice Koro Official Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Public policy pages (linked from the footer, the apps and the Play Store listing) */}
+        {LEGAL_DOCUMENTS.map((doc) => (
+          <Route key={doc.slug} path={`/${doc.slug}`} element={<LegalPage document={doc} />} />
+        ))}
+
+        {/* Public blog: articles written in Admin → Blog */}
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
 
         {/* Auth Public-Only Routes */}
         <Route

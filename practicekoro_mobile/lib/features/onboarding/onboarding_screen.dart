@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/components/ui.dart';
+import 'widgets/onboarding_illustrations.dart';
+import 'widgets/practicekoro_wordmark.dart';
 
 /// Set once the student has seen (or skipped) onboarding.
 const onboardingDoneKey = 'onboarding_done';
@@ -271,136 +275,330 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pages = PageController();
-  int _index = 0;
-
-  static const _slides = [
-    (
-      Icons.assignment_rounded,
-      UI.primary,
-      'Mock tests in the real exam pattern',
-      'Full mock tests, topic tests and official previous year papers for WBP, WBPSC, SSC, Railway and more.',
-    ),
-    (
-      Icons.topic_rounded,
-      UI.purple,
-      'Practise topic by topic',
-      'Pick a subject, choose a topic and practise in Bengali or English, at your own pace.',
-    ),
-    (
-      Icons.insights_rounded,
-      UI.success,
-      'Learn from every answer',
-      'See your score, accuracy and detailed solutions after each test, and track your progress over time.',
-    ),
-  ];
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
   @override
   void dispose() {
-    _pages.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   Future<void> _finish() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(onboardingDoneKey, true);
-    if (mounted) context.go('/home');
+    if (mounted) {
+      context.go('/home');
+    }
+  }
+
+  void _onArrowPressed() {
+    if (_currentPage < 2) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeInOutCubic,
+      );
+    } else {
+      _finish();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final last = _index == _slides.length - 1;
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(UI.gutter, 8, 4, 0),
-              child: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/logo-transparent.png',
-                    height: 44,
-                    errorBuilder: (_, _, _) =>
-                        const Text('PracticeKoro', style: UI.heading),
-                  ),
-                  const Spacer(),
-                  if (!last)
-                    TextButton(onPressed: _finish, child: const Text('Skip')),
-                ],
-              ),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pages,
-                onPageChanged: (i) => setState(() => _index = i),
-                children: [
-                  for (final (icon, color, title, body) in _slides)
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 48),
-                          Container(
-                            width: 132,
-                            height: 132,
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Optional Mock Status Bar for web/desktop previews or zero-inset screens
+              if (kIsWeb || MediaQuery.of(context).padding.top == 0)
+                const _MockStatusBar(),
+
+              // Top Bar: Centered PracticeKoro wordmark & Right-aligned Skip button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 6, 16, 2),
+                child: SizedBox(
+                  height: 48,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Centered PracticeKoro wordmark with golden rays
+                      const PracticeKoroWordmark(fontSize: 22),
+
+                      // Right-aligned Skip button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _finish,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: const Size(48, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Skip',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF334155),
                             ),
-                            child: Icon(icon, size: 60, color: color),
                           ),
-                          const SizedBox(height: 32),
-                          Text(
-                            title,
-                            style: UI.title,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            body,
-                            style: UI.body.copyWith(color: UI.muted),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < _slides.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: i == _index ? 22 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: i == _index ? UI.primary : UI.line,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                    ],
                   ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(UI.gutter, 24, UI.gutter, 16),
-              child: UIButton(
-                last ? 'Get Started' : 'Next',
-                trailingIcon: last ? null : Icons.arrow_forward_rounded,
-                onPressed: last
-                    ? _finish
-                    : () => _pages.nextPage(
-                        duration: const Duration(milliseconds: 280),
-                        curve: Curves.easeOut,
-                      ),
+                ),
               ),
-            ),
-          ],
+
+              // 3-Screen PageView Content
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  children: const [
+                    _OnboardingPage(
+                      screenIndex: 0,
+                      illustration: PrepareBetterIllustration(),
+                    ),
+                    _OnboardingPage(
+                      screenIndex: 1,
+                      illustration: PracticeSmarterIllustration(),
+                    ),
+                    _OnboardingPage(
+                      screenIndex: 2,
+                      illustration: TrackProgressIllustration(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Bottom Navigation: 3 Pagination Dots on Left, Circular Blue Action Button on Right
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 10, 28, 28),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 3 Pagination Dots
+                    Row(
+                      children: List.generate(3, (index) {
+                        final isActive = index == _currentPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeInOutCubic,
+                          margin: const EdgeInsets.only(right: 6),
+                          width: isActive ? 24 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? const Color(0xFF0158FC) // Vibrant Brand Blue
+                                : const Color(0xFFCBD5E1), // Inactive Grey
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      }),
+                    ),
+
+                    // Circular Blue Action Button
+                    Material(
+                      color: Colors.transparent,
+                      child: Ink(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0158FC),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0158FC).withValues(alpha: 0.38),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: InkWell(
+                          onTap: _onArrowPressed,
+                          customBorder: const CircleBorder(),
+                          splashColor: Colors.white.withValues(alpha: 0.25),
+                          highlightColor: Colors.white.withValues(alpha: 0.15),
+                          child: const Center(
+                            child: Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _OnboardingPage extends StatelessWidget {
+  final int screenIndex;
+  final Widget illustration;
+
+  const _OnboardingPage({
+    required this.screenIndex,
+    required this.illustration,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+
+          // Headline with respective brush underline and radiating accents
+          OnboardingHeadline(screenIndex: screenIndex),
+
+          const SizedBox(height: 16),
+
+          // Responsive, scalable illustration
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: illustration,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+}
+
+/// A clean, minimalist status bar indicator displayed on Web preview or standalone
+/// views to match the reference mockup screenshot.
+class _MockStatusBar extends StatelessWidget {
+  const _MockStatusBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 10, 28, 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            '9:41',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+              letterSpacing: -0.2,
+            ),
+          ),
+          Row(
+            children: [
+              // Cellular Signal
+              CustomPaint(
+                size: const Size(18, 12),
+                painter: _SignalBarsPainter(),
+              ),
+              const SizedBox(width: 5),
+              // Wi-Fi
+              const Icon(
+                Icons.wifi_rounded,
+                size: 16,
+                color: Color(0xFF0F172A),
+              ),
+              const SizedBox(width: 5),
+              // Battery
+              CustomPaint(
+                size: const Size(22, 11),
+                painter: _BatteryPainter(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SignalBarsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.fill;
+    final barW = size.width / 7;
+    for (var i = 0; i < 4; i++) {
+      final h = size.height * (0.35 + i * 0.21);
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(i * (barW * 1.8), size.height - h, barW, h),
+        const Radius.circular(1.5),
+      );
+      canvas.drawRRect(rrect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BatteryPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final borderPaint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..strokeWidth = 1.6
+      ..style = PaintingStyle.stroke;
+
+    final bodyRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width - 3.5, size.height),
+      const Radius.circular(3.5),
+    );
+    canvas.drawRRect(bodyRect, borderPaint);
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.fill;
+    final fillRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(2.2, 2.2, size.width - 7.5, size.height - 4.4),
+      const Radius.circular(1.8),
+    );
+    canvas.drawRRect(fillRect, fillPaint);
+
+    // Battery terminal nub
+    final terminalPaint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width - 2.5, size.height * 0.32, 2.2, size.height * 0.36),
+        const Radius.circular(1.0),
+      ),
+      terminalPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

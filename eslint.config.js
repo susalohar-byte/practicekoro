@@ -13,6 +13,7 @@ export default tseslint.config(
       'public',
       'supabase/functions',
       'practicekoro_mobile/**',
+      'student-web/**',
     ],
   },
   js.configs.recommended,

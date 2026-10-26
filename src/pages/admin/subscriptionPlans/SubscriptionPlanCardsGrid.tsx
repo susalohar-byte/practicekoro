@@ -1,4 +1,4 @@
-import { Check, X, Crown, Pencil, Sparkles, Clock, Zap } from 'lucide-react';
+import { Check, X, Crown, Pencil, Sparkles, Clock, Zap, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { renderPlanIcon } from './planIcon';
 import type { AdminSubscriptionPlansState } from './useAdminSubscriptionPlans';
@@ -8,7 +8,14 @@ export interface SubscriptionPlanCardsGridProps {
 }
 
 export function SubscriptionPlanCardsGrid({ plansState }: SubscriptionPlanCardsGridProps) {
-  const { plans, handleOpenEditModal, showToast, setSelectedPlanForPurchase } = plansState;
+  const {
+    plans,
+    handleOpenEditModal,
+    showToast,
+    setSelectedPlanForPurchase,
+    planSubscriberCounts,
+    freeStudentsCount,
+  } = plansState;
   return (
     <>
       {/* ==================================================================== */}
@@ -114,6 +121,14 @@ export function SubscriptionPlanCardsGrid({ plansState }: SubscriptionPlanCardsG
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 min-h-[36px]">
                     {plan.subtitle}
                   </p>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    <span>
+                      {isFreePlan
+                        ? `${freeStudentsCount.toLocaleString('en-IN')} Enrolled Learners`
+                        : `${(planSubscriberCounts[plan.id] ?? planSubscriberCounts[plan.name.toLowerCase()] ?? 0).toLocaleString('en-IN')} Active Subscribers`}
+                    </span>
+                  </div>
                 </div>
 
                 {/* High-Impact Price & Validity Container */}

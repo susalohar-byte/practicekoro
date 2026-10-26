@@ -1,15 +1,18 @@
 import { isSupabaseConfigured } from '@/lib/supabase';
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { api } from '@/services/api';
+import type { AdminSubscriptionRow, AdminDashboardV2Stats } from '@/types';
 import type {
   PlanFeature,
   SubscriptionPlanItem,
-  SubscriptionPlanMetrics,
+  RecentSubscriptionItem,
 } from './subscriptionPlanTypes';
 import { INITIAL_PLANS } from './subscriptionPlanData';
 
 export function useAdminSubscriptionPlans() {
   const [pageLoading, setPageLoading] = useState(true);
+  const [subscriptionsList, setSubscriptionsList] = useState<AdminSubscriptionRow[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<AdminDashboardV2Stats | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlanItem[]>(() => {
     if (isSupabaseConfigured) return [];
     try {
@@ -73,42 +76,68 @@ export function useAdminSubscriptionPlans() {
   const loadPlans = useCallback(async () => {
     setPageLoading(true);
     try {
-      const remote = await api.getSubscriptionPlans(true);
-      if (isSupabaseConfigured && (!remote || !remote.length)) setPlans([]);
-      if (remote && remote.length > 0) {
-        const mapped: SubscriptionPlanItem[] = remote.map((p) => {
-          let icon: 'free' | 'basic' | 'pro' | 'ultimate' = 'basic';
-          const titleLower = (p.title || '').toLowerCase();
-          if (titleLower.includes('free')) icon = 'free';
-          else if (titleLower.includes('ultimate')) icon = 'ultimate';
-          else if (titleLower.includes('pro')) icon = 'pro';
+      const [plansSettled, subsSettled, statsSettled] = await Promise.allSettled([
+        api.getSubscriptionPlans(true),
+        api.getAllAdminSubscriptions(),
+        api.getAdminDashboardV2Stats(),
+      ]);
 
-          return {
-            id: p.id,
-            name: p.title,
-            subtitle: p.description || 'Complete PracticeKoro test preparation access',
-            price: p.price,
-            originalPrice: p.originalPrice ?? p.price,
-            durationDays: p.durationDays || 30,
-            renewalWindowDays: p.renewalWindowDays ?? null,
-            badge: p.id === 'pro_1_year' ? 'Best Value' : undefined,
-            badgeColor: 'bg-[#F43F5E] text-white',
-            buttonText: p.price === 0 ? 'Current Plan' : `Get ${p.title}`,
-            buttonClass:
-              p.price === 0
-                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-default'
-                : 'bg-[#2563EB] hover:bg-blue-700 text-white shadow-2xs',
-            themeColor: p.price === 0 ? '#16A34A' : '#0284C7',
-            borderClass: 'border-slate-200/80',
-            bgClass: 'bg-white',
-            iconType: icon,
-            features:
-              Array.isArray(p.features) && p.features.length > 0
-                ? p.features.map((f) => ({ text: f, included: true }))
-                : [],
-          };
-        });
-        setPlans(mapped);
+      if (plansSettled.status === 'fulfilled') {
+        const remote = plansSettled.value;
+        if (isSupabaseConfigured && (!remote || !remote.length)) setPlans([]);
+        if (remote && remote.length > 0) {
+          const mapped: SubscriptionPlanItem[] = remote.map((p) => {
+            let icon: 'free' | 'basic' | 'pro' | 'ultimate' = 'basic';
+            const titleLower = (p.title || '').toLowerCase();
+            if (titleLower.includes('free')) icon = 'free';
+            else if (titleLower.includes('ultimate')) icon = 'ultimate';
+            else if (titleLower.includes('pro')) icon = 'pro';
+
+            return {
+              id: p.id,
+              name: p.title,
+              subtitle: p.description || 'Complete PracticeKoro test preparation access',
+              price: p.price,
+              originalPrice: p.originalPrice ?? p.price,
+              durationDays: p.durationDays || 30,
+              renewalWindowDays: p.renewalWindowDays ?? null,
+              badge: p.id === 'pro_1_year' ? 'Best Value' : undefined,
+              badgeColor: 'bg-[#F43F5E] text-white',
+              buttonText: p.price === 0 ? 'Current Plan' : `Get ${p.title}`,
+              buttonClass:
+                p.price === 0
+                  ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-default'
+                  : 'bg-[#2563EB] hover:bg-blue-700 text-white shadow-2xs',
+              themeColor: p.price === 0 ? '#16A34A' : '#0284C7',
+              borderClass: 'border-slate-200/80',
+              bgClass: 'bg-white',
+              iconType: icon,
+              features:
+                Array.isArray(p.features) && p.features.length > 0
+                  ? p.features.map((f) => ({ text: f, included: true }))
+                  : [],
+            };
+          });
+          setPlans(mapped);
+        }
+      } else {
+        // The plans are the page itself, so tell the admin instead of failing silently
+        const reason = plansSettled.reason;
+        showToast(
+          reason instanceof Error ? reason.message : 'Subscription plans could not be loaded.'
+        );
+      }
+
+      if (subsSettled.status === 'fulfilled' && Array.isArray(subsSettled.value)) {
+        setSubscriptionsList(subsSettled.value);
+      } else if (subsSettled.status === 'rejected') {
+        console.warn('Failed to load admin subscriptions:', subsSettled.reason);
+      }
+
+      if (statsSettled.status === 'fulfilled' && statsSettled.value) {
+        setDashboardStats(statsSettled.value);
+      } else if (statsSettled.status === 'rejected') {
+        console.warn('Failed to load dashboard stats for subscriptions:', statsSettled.reason);
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Subscription plans could not be loaded.');
@@ -116,31 +145,6 @@ export function useAdminSubscriptionPlans() {
       setPageLoading(false);
     }
   }, [showToast]);
-
-  // Real subscriber/revenue figures; null means unavailable and renders as "—".
-  const [planMetrics, setPlanMetrics] = useState<SubscriptionPlanMetrics | null>(null);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    let cancelled = false;
-    Promise.all([api.getAdminDashboardV2Stats(), api.getActiveSubscriptionCountsByPlan()])
-      .then(([stats, activeByPlan]) => {
-        if (cancelled) return;
-        setPlanMetrics({
-          subscribers: stats.proStudents,
-          freeStudents: stats.freeStudents,
-          activeSubscriptions: stats.activeSubscriptions,
-          monthRevenue: stats.monthRevenue,
-          activeByPlan,
-        });
-      })
-      .catch((err) => {
-        console.warn('Subscription plan metrics could not be loaded:', err);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Load live subscription plans from database on mount
   useEffect(() => {
@@ -321,10 +325,148 @@ export function useAdminSubscriptionPlans() {
     }
   };
 
+  // Dynamic KPI and breakdown metrics computed from live database
+  const totalSubscribersCount = useMemo(() => {
+    if (dashboardStats?.proStudents != null && dashboardStats.proStudents > 0) {
+      return Math.max(
+        dashboardStats.proStudents,
+        new Set(subscriptionsList.map((s) => s.userId)).size
+      );
+    }
+    const uniqueUserIds = new Set(subscriptionsList.map((s) => s.userId).filter(Boolean));
+    return uniqueUserIds.size > 0 ? uniqueUserIds.size : subscriptionsList.length;
+  }, [dashboardStats, subscriptionsList]);
+
+  const monthlyRevenue = useMemo(() => {
+    if (dashboardStats?.monthRevenue != null && dashboardStats.monthRevenue > 0) {
+      return dashboardStats.monthRevenue;
+    }
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const sum = subscriptionsList
+      .filter((s) => {
+        if (!s.createdAt && !s.startsAt) return false;
+        const d = new Date(s.createdAt || s.startsAt || '');
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      })
+      .reduce((acc, s) => acc + (s.paymentAmount || 0), 0);
+    return sum > 0 ? sum : dashboardStats?.totalRevenue || 0;
+  }, [dashboardStats, subscriptionsList]);
+
+  const activeSubscriptionsCount = useMemo(() => {
+    if (dashboardStats?.activeSubscriptions != null && dashboardStats.activeSubscriptions > 0) {
+      return dashboardStats.activeSubscriptions;
+    }
+    const activeRows = subscriptionsList.filter(
+      (s) =>
+        s.status?.toLowerCase() === 'active' || (s.daysRemaining != null && s.daysRemaining > 0)
+    );
+    return activeRows.length;
+  }, [dashboardStats, subscriptionsList]);
+
+  const convertedThisMonthCount = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const count = subscriptionsList.filter((s) => {
+      if (!s.createdAt) return false;
+      const d = new Date(s.createdAt);
+      return (
+        d.getFullYear() === currentYear &&
+        d.getMonth() === currentMonth &&
+        (s.status?.toLowerCase() === 'active' || s.paymentStatus === 'completed')
+      );
+    }).length;
+    return count > 0 ? count : dashboardStats?.newStudents || activeSubscriptionsCount;
+  }, [subscriptionsList, dashboardStats, activeSubscriptionsCount]);
+
+  const totalStudentsCount =
+    dashboardStats?.totalStudents ?? Math.max(totalSubscribersCount, subscriptionsList.length);
+  const freeStudentsCount =
+    dashboardStats?.freeStudents ?? Math.max(0, totalStudentsCount - totalSubscribersCount);
+
+  const planSubscriberCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const sub of subscriptionsList) {
+      const isActive =
+        sub.status?.toLowerCase() === 'active' ||
+        (sub.daysRemaining != null && sub.daysRemaining > 0);
+      if (isActive) {
+        if (sub.planId) {
+          counts[sub.planId] = (counts[sub.planId] || 0) + 1;
+        }
+        if (sub.planTitle) {
+          counts[sub.planTitle.toLowerCase()] = (counts[sub.planTitle.toLowerCase()] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [subscriptionsList]);
+
+  const recentSubscriptions: RecentSubscriptionItem[] = useMemo(() => {
+    if (!subscriptionsList.length) return [];
+    const sorted = [...subscriptionsList].sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.startsAt || 0).getTime();
+      const timeB = new Date(b.createdAt || b.startsAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    return sorted.map((row, idx) => {
+      const planName = row.planTitle || 'Pro Pass';
+      const planLower = planName.toLowerCase();
+      let badgeClass = 'bg-[#DBEAFE] text-[#1E40AF]';
+      if (planLower.includes('pro')) badgeClass = 'bg-[#FEF3C7] text-[#B45309]';
+      else if (planLower.includes('ultimate')) badgeClass = 'bg-[#EDE9FE] text-[#6D28D9]';
+      else if (planLower.includes('free')) badgeClass = 'bg-[#DCFCE7] text-[#15803D]';
+
+      const dateStr =
+        row.createdAt || row.startsAt
+          ? new Date(row.createdAt || row.startsAt!).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
+          : 'Recent';
+
+      const isSuccess =
+        row.status?.toLowerCase() === 'active' ||
+        row.paymentStatus === 'completed' ||
+        row.status?.toLowerCase() === 'completed';
+
+      return {
+        id: row.id || idx + 1,
+        studentName: row.studentName || 'Student Aspirant',
+        studentAvatar:
+          row.avatarUrl ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(row.studentName || 'Student')}&background=0284c7&color=fff`,
+        studentEmail: row.studentEmail || undefined,
+        plan: planName,
+        planBadgeClass: badgeClass,
+        amount: row.paymentAmount ?? 0,
+        date: dateStr,
+        status: isSuccess
+          ? 'Success'
+          : row.status
+            ? row.status.charAt(0).toUpperCase() + row.status.slice(1)
+            : 'Active',
+      };
+    });
+  }, [subscriptionsList]);
+
   return {
     pageLoading,
-    planMetrics,
     setPageLoading,
+    subscriptionsList,
+    dashboardStats,
+    totalSubscribersCount,
+    monthlyRevenue,
+    activeSubscriptionsCount,
+    convertedThisMonthCount,
+    totalStudentsCount,
+    freeStudentsCount,
+    planSubscriberCounts,
+    recentSubscriptions,
     plans,
     setPlans,
     billingCycle,

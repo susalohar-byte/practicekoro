@@ -37,6 +37,8 @@ React + TypeScript admin console ── Supabase Auth + PostgreSQL + RLS
 | Path                   | Purpose                                  |
 | ---------------------- | ---------------------------------------- |
 | `src/`                 | Admin console, services and unit tests   |
+| `student-web/`         | Student Web Panel (see its README)       |
+| `practicekoro_mobile/` | Flutter student app                      |
 | `supabase/migrations/` | Ordered database migrations              |
 | `supabase/functions/`  | Server-side Edge Functions               |
 | `supabase/tests/`      | Database and RLS security assertions     |

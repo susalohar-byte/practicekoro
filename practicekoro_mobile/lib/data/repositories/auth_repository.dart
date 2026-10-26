@@ -127,6 +127,41 @@ class AuthRepository {
     }
   }
 
+  /// Permanently deletes the signed-in student's account through the `delete_own_account`
+  /// RPC, then signs out. Practice data is deleted with the account; payment records stay
+  /// on the server without a link to the student. Throws when the server refuses, so the
+  /// student is never told the account is gone while it still exists.
+  Future<void> deleteAccount() async {
+    final client = supabaseClient;
+    final uid = client?.auth.currentUser?.id;
+    if (client == null || uid == null) {
+      throw const AccountDeletionException('Please sign in again, then try deleting your account.');
+    }
+
+    // Profile pictures live in storage under {uid}/, which the database cascade cannot reach
+    try {
+      final files = await client.storage.from('avatars').list(path: uid);
+      if (files.isNotEmpty) {
+        await client.storage.from('avatars').remove([for (final f in files) '$uid/${f.name}']);
+      }
+    } catch (e) {
+      debugPrint('Avatar cleanup before account deletion failed: $e');
+    }
+
+    try {
+      await client.rpc('delete_own_account');
+    } on PostgrestException catch (e) {
+      debugPrint('delete_own_account failed: ${e.message}');
+      throw AccountDeletionException(
+        e.code == '42501'
+            ? e.message
+            : 'Your account could not be deleted. Please try again, or email support@practicekoro.online.',
+      );
+    }
+
+    await signOut();
+  }
+
   /// Copies the student's `profiles` row & auth metadata into the on-device profile.
   Future<void> syncProfileFromServer() async {
     final client = supabaseClient;
@@ -373,3 +408,12 @@ class AuthChangeNotifier extends ChangeNotifier {
 /// App-wide auth listener used by the router (created on first use, after
 /// Supabase has been initialised in main()).
 final authChanges = AuthChangeNotifier(const AuthRepository());
+
+/// Shown to the student when account deletion did not go through.
+class AccountDeletionException implements Exception {
+  const AccountDeletionException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}

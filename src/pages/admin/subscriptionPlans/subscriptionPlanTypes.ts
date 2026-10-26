@@ -33,9 +33,10 @@ export interface SubscriptionPlanMetrics {
 }
 
 export interface RecentSubscriptionItem {
-  id: number;
+  id: number | string;
   studentName: string;
-  studentAvatar: string;
+  studentAvatar?: string;
+  studentEmail?: string;
   plan: string;
   planBadgeClass: string;
   amount: number;
