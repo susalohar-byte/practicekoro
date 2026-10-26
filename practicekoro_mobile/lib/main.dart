@@ -49,11 +49,13 @@ class PracticeKoroApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Bilingual typography system:
     // Inter provides contemporary, premium, and highly legible typography for English & numerals.
-    // Noto Sans Bengali provides authentic, pristine rendering for Bengali text & conjuncts.
+    // Tiro Bangla provides authentic, pristine Bengali typography for questions & exam content.
     final englishFontFamily = GoogleFonts.inter().fontFamily;
-    final bengaliFontFamily = GoogleFonts.notoSansBengali().fontFamily;
+    final bengaliFontFamily = GoogleFonts.tiroBangla().fontFamily;
     final fallbackFonts = [
       ?bengaliFontFamily,
+      'Tiro Bangla',
+      'TiroBangla',
       'Noto Sans Bengali',
       'NotoSansBengali',
       'NotoSansBengali_regular',

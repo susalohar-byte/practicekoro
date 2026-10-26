@@ -41,7 +41,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'wbssc-group-cd',
     name: 'WBSSC Group C & D',
     bengaliName: 'ওয়েস্ট বেঙ্গল স্কুল সার্ভিস কমিশন গ্রুপ C & D',
-    logo: '/images/landing/icons/books.png',
+    logo: '/images/exams/emblem_wbssc.png',
     badge: 'School Service',
     description:
       'স্কুল সার্ভিস কমিশনের গ্রুপ সি (করণিক) ও গ্রুপ ডি পদের জন্য নতুন সিলেবাস ভিত্তিক স্পেশাল প্র্যাকটিস সেট ও মক টেস্ট।',
@@ -63,7 +63,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'clerkship',
     name: 'Clerkship',
     bengaliName: 'WBPSC ক্লার্কশিপ রিক্রুটমেন্ট পরীক্ষা',
-    logo: '/images/landing/icons/emblem_red.png',
+    logo: '/images/popular_exams/logo_wbpsc.png',
     badge: 'PSC Bengal',
     description:
       'ওয়েস্ট বেঙ্গল পাবলিক সার্ভিস কমিশনের ক্লার্কশিপ পার্ট-১ ও পার্ট-২ পরীক্ষার জন্য সেরা প্রশ্নসংগ্রহ ও পূর্ণাঙ্গ টেস্ট সিরিজ।',
@@ -85,7 +85,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'railway',
     name: 'Railway Exams',
     bengaliName: 'RRB NTPC & Group D (বাংলা ও ইংরেজি)',
-    logo: '/images/landing/icons/train.png',
+    logo: '/images/popular_exams/logo_railway.png',
     badge: 'RRB Eastern',
     description:
       'রেলওয়ে রিক্রুটমেন্ট বোর্ডের NTPC ও গ্রুপ ডি পরীক্ষার জন্য বাংলা ভাষায় প্রশ্নব্যাংক ও প্রিভিয়াস ইয়ার কোয়েশ্চেন।',
@@ -141,6 +141,9 @@ export const POPULAR_EXAMS: ExamData[] = [
 const CARD_TITLES: Record<string, string> = {
   'wbp-constable': 'WBP\nConstable',
   'wbssc-group-cd': 'WBSSC\nGroup C & D',
+  clerkship: 'WBPSC\nClerkship',
+  railway: 'Railway\nExams',
+  ssc: 'SSC\nExams',
 };
 
 export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSelectExam }) => {
@@ -168,6 +171,15 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
                 src={exam.logo}
                 alt={exam.name}
                 className="w-14 h-14 sm:w-[76px] sm:h-[76px] object-contain transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src.includes('/popular_exams/')) {
+                    target.src = target.src.replace('/popular_exams/', '/exams/');
+                  } else if (target.src.includes('/exams/')) {
+                    target.src = target.src.replace('/exams/', '/popular_exams/');
+                  }
+                }}
               />
               <h3 className="mt-3 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug whitespace-pre-line">
                 {CARD_TITLES[exam.id] ?? exam.name}

@@ -32,7 +32,7 @@ export function examLogoSrc(title: string | null | undefined, iconName?: string 
   if (has('wbp', 'police') || icon === 'Shield') return asset('exam-art/logo_wbp.png');
   if (has('ssc')) return asset('exam-art/logo_ssc.png');
   if (has('railway', 'rrb')) return asset('exam-art/logo_railway.png');
-  if (has('tet', 'primary')) return asset('exam-art/logo_wbtet.png');
+  if (has('tet', 'primary', 'teacher', 'slst')) return asset('exam-art/logo_wbtet.png');
   if (has('wbpsc', 'clerkship', 'wbcs', 'food', 'icds', 'wbssc', 'knowledge', 'general')) return asset('exam-art/logo_wbpsc.png');
   return asset('brand/logo-icon.png');
 }

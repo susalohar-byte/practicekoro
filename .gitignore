@@ -48,6 +48,8 @@ test-results/
 # Scratch and build binaries
 scratch_*
 *.apk
+*.aab
+public/env.txt
 /Hero video.mp4
 
 # Release bundles (kept outside the repo in ~/Documents/PracticeKoro-artifacts)

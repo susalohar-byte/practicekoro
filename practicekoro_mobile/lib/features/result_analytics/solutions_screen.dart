@@ -510,11 +510,11 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                             q.textBengali.isNotEmpty
                                 ? q.textBengali
                                 : q.textEnglish,
-                            style: const TextStyle(
+                            style: UI.question.copyWith(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                              height: 1.45,
+                              color: const Color(0xFF0F172A),
+                              height: 1.5,
                             ),
                           ),
                           if (q.textEnglish.isNotEmpty &&
@@ -1076,11 +1076,11 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                   opt.textBengali?.isNotEmpty == true
                       ? opt.textBengali!
                       : (opt.text.isNotEmpty ? opt.text : opt.label),
-                  style: const TextStyle(
+                  style: UI.option.copyWith(
                     fontSize: 15.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                    height: 1.35,
+                    color: const Color(0xFF0F172A),
+                    height: 1.4,
                   ),
                 ),
                 if (opt.textBengali?.isNotEmpty == true &&
@@ -1265,11 +1265,11 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                               line.startsWith('•') || line.startsWith('-')
                                   ? line.substring(1).trim()
                                   : line,
-                              style: const TextStyle(
+                              style: UI.explanation.copyWith(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF0F172A),
-                                height: 1.5,
+                                color: const Color(0xFF0F172A),
+                                height: 1.55,
                               ),
                             ),
                           ),

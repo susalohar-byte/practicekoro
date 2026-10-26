@@ -93,6 +93,16 @@ flutter:
     - family: NotoSansBengali
       fonts:
         - asset: assets/fonts/NotoSansBengali.ttf
+    - family: Tiro Bangla
+      fonts:
+        - asset: assets/fonts/TiroBangla-Regular.ttf
+        - asset: assets/fonts/TiroBangla-Italic.ttf
+          style: italic
+    - family: TiroBangla
+      fonts:
+        - asset: assets/fonts/TiroBangla-Regular.ttf
+        - asset: assets/fonts/TiroBangla-Italic.ttf
+          style: italic
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

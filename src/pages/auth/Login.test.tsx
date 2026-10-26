@@ -90,10 +90,10 @@ describe('Login (auth regression)', () => {
     renderLogin();
     await screen.findByRole('heading', { name: /welcome back/i });
 
-    fireEvent.change(screen.getByPlaceholderText('Enter your email or phone number'), {
+    fireEvent.change(screen.getByPlaceholderText('Email or Phone Number'), {
       target: { value: 'admin@practicekoro.com' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'wrongpassword123' },
     });
     fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
@@ -122,10 +122,10 @@ describe('Login (auth regression)', () => {
     const { container } = renderLogin();
     await screen.findByRole('heading', { name: /welcome back/i });
 
-    fireEvent.change(screen.getByPlaceholderText('Enter your email or phone number'), {
+    fireEvent.change(screen.getByPlaceholderText('Email or Phone Number'), {
       target: { value: '98765 43210' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'secret123' },
     });
     fireEvent.submit(container.querySelector('form')!);
@@ -134,13 +134,11 @@ describe('Login (auth regression)', () => {
     expect(signInWithPassword).not.toHaveBeenCalled();
   });
 
-  it('shows a small back arrow to the landing page and the create-account link', async () => {
+  it('links the logo to the landing page and offers sign-up', async () => {
     renderLogin();
     await screen.findByRole('heading', { name: /welcome back/i });
 
-    expect(screen.getByRole('link', { name: 'Home পেজে ফিরুন' })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: 'Create Account' }).getAttribute('href')).toMatch(
-      /signup$/
-    );
+    expect(screen.getByRole('link', { name: 'PracticeKoro home' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Sign Up' }).getAttribute('href')).toMatch(/signup$/);
   });
 });
