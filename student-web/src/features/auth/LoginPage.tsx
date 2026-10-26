@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -6,6 +6,8 @@ import { friendlyAuthError } from '@/lib/errors';
 import { AuthLayout, Banner, Field, GoogleButton, OrDivider, PasswordField, SubmitButton, validateEmail } from './AuthLayout';
 import { useGoogleSignIn } from './useGoogleSignIn';
 import { onboardingDone } from '@/features/onboarding/OnboardingPage';
+import { FullPageLoader } from '@/components/ui/Feedback';
+import { goToSharedLogin, shouldUseSharedLogin } from '@/lib/sharedLogin';
 
 export default function LoginPage() {
   const [params] = useSearchParams();
@@ -15,7 +17,14 @@ export default function LoginPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const google = useGoogleSignIn(setBanner);
+  // On the live site everyone signs in on practicekoro.online/login (one page for admins and students)
+  const [useShared] = useState(shouldUseSharedLogin);
 
+  useEffect(() => {
+    if (useShared) goToSharedLogin();
+  }, [useShared]);
+
+  if (useShared) return <FullPageLoader />;
   if (!onboardingDone()) return <Navigate to={`/onboarding${params.toString() ? `?${params}` : ''}`} replace />;
 
   const submit = async (e: FormEvent) => {

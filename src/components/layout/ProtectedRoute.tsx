@@ -15,6 +15,18 @@ interface AdminRouteProps extends ProtectedRouteProps {
   requiredPermission?: keyof AdminPermissions;
 }
 
+/** Sends a signed-in student to the Student Web Panel (a separate app, so a full page load). */
+const StudentPanelRedirect: React.FC = () => {
+  useEffect(() => {
+    openStudentPanel('home');
+  }, []);
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
+    </div>
+  );
+};
+
 /** Requires authenticated user with admin role (verified from database) & optional sub-role permission. */
 export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermission }) => {
   const { user, isAdmin, adminRole, hasPermission, loading } = useAuth();
@@ -27,9 +39,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/login" state={{ adminRequired: true }} replace />;
-  }
+  // A student here (say, back from Google sign-in, which returns to /admin) belongs in the panel
+  if (!isAdmin) return <StudentPanelRedirect />;
 
   // Check sub-role permission if requested
   if (requiredPermission && !hasPermission(requiredPermission)) {
@@ -91,18 +102,6 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children, requiredPermis
   }
 
   return <>{children}</>;
-};
-
-/** Sends a signed-in student to the Student Web Panel (a separate app, so a full page load). */
-const StudentPanelRedirect: React.FC = () => {
-  useEffect(() => {
-    openStudentPanel('home');
-  }, []);
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
-    </div>
-  );
 };
 
 /**

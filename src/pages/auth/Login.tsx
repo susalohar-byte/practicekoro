@@ -64,18 +64,9 @@ export const Login: React.FC = () => {
   // A student account signed in: the Student Web Panel is opening.
   const [openingStudentPanel, setOpeningStudentPanel] = useState(false);
 
-  const routeState = location.state as {
-    from?: { pathname?: string };
-    adminRequired?: boolean;
-  } | null;
+  const routeState = location.state as { from?: { pathname?: string } } | null;
   const from = routeState?.from?.pathname;
   const isFromAdmin = Boolean(from && from.startsWith('/admin'));
-
-  useEffect(() => {
-    if (routeState?.adminRequired) {
-      setError('This account does not have access to the admin panel.');
-    }
-  }, [routeState?.adminRequired]);
 
   // Catch any OAuth redirect error parameters
   useEffect(() => {
