@@ -214,11 +214,11 @@ class _SavedQuestionCard extends StatelessWidget {
                 if (question.textBengali.isNotEmpty)
                   Text(
                     question.textBengali,
-                    style: const TextStyle(
-                      fontSize: 15.5,
+                    style: UI.question.copyWith(
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
-                      height: 1.4,
+                      color: const Color(0xFF0F172A),
+                      height: 1.45,
                     ),
                   ),
                 if (question.textEnglish.isNotEmpty) ...[
@@ -297,8 +297,8 @@ class _SavedQuestionCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           opt.textBengali ?? opt.text,
-                          style: TextStyle(
-                            fontSize: 13.5,
+                          style: UI.option.copyWith(
+                            fontSize: 14.5,
                             fontWeight: isCorrect
                                 ? FontWeight.w700
                                 : FontWeight.w500,
@@ -371,10 +371,10 @@ class _SavedQuestionCard extends StatelessWidget {
                           question.explanationBengali ??
                               question.explanationEnglish ??
                               '',
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            color: Color(0xFF14532D),
-                            height: 1.4,
+                          style: UI.explanation.copyWith(
+                            fontSize: 13.5,
+                            color: const Color(0xFF14532D),
+                            height: 1.45,
                           ),
                         ),
                       ],

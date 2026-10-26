@@ -141,20 +141,46 @@ class UI {
     height: 1.42,
   );
 
-  /// Question text across tests and practice (clean, authoritative, comfortable)
+  // Bengali Typography Configuration: Tiro Bangla as primary font for authentic,
+  // beautiful, and highly legible Bengali rendering in questions, options & explanations.
+  static const String bengaliFontFamily = 'Tiro Bangla';
+  static const List<String> bengaliFontFallback = [
+    'Tiro Bangla',
+    'TiroBangla',
+    'Noto Sans Bengali',
+    'NotoSansBengali',
+    'Hind Siliguri',
+    'HindSiliguri',
+  ];
+
+  /// Question text across tests and practice (clean, authoritative, comfortable in Tiro Bangla)
   static const TextStyle question = TextStyle(
     fontSize: 16.5,
     fontWeight: FontWeight.w700,
     color: text,
     height: 1.5,
+    fontFamily: bengaliFontFamily,
+    fontFamilyFallback: bengaliFontFallback,
   );
 
-  /// Answer option text in tests and practice
+  /// Answer option text in tests and practice (styled with Tiro Bangla)
   static const TextStyle option = TextStyle(
     fontSize: 14.5,
     fontWeight: FontWeight.w500,
     color: text,
     height: 1.45,
+    fontFamily: bengaliFontFamily,
+    fontFamilyFallback: bengaliFontFallback,
+  );
+
+  /// Question explanation & solution text (styled with Tiro Bangla)
+  static const TextStyle explanation = TextStyle(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w500,
+    color: text,
+    height: 1.55,
+    fontFamily: bengaliFontFamily,
+    fontFamilyFallback: bengaliFontFallback,
   );
 
   /// Circular option letter indicator (A, B, C, D)
