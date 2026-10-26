@@ -1,4 +1,5 @@
 import { AppRouteLoadingFallback } from '@/components/admin/AdminSkeleton';
+import { LEGAL_DOCUMENTS } from '@/pages/legal/legalContent';
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/layout/AdminLayout';
@@ -153,6 +154,9 @@ const AdminBlog = lazyWithRetry(() =>
 const LandingPage = lazyWithRetry(() =>
   import('@/pages/landing/LandingPage').then((module) => ({ default: module.LandingPage }))
 );
+const LegalPage = lazyWithRetry(() =>
+  import('@/pages/legal/LegalPage').then((module) => ({ default: module.LegalPage }))
+);
 
 export const App: React.FC = () => {
   return (
@@ -160,6 +164,11 @@ export const App: React.FC = () => {
       <Routes>
         {/* Practice Koro Official Landing Page */}
         <Route path="/" element={<LandingPage />} />
+
+        {/* Public policy pages (linked from the footer, the apps and the Play Store listing) */}
+        {LEGAL_DOCUMENTS.map((doc) => (
+          <Route key={doc.slug} path={`/${doc.slug}`} element={<LegalPage document={doc} />} />
+        ))}
 
         {/* Auth Public-Only Routes */}
         <Route

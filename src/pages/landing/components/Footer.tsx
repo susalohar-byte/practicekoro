@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUp, Heart } from 'lucide-react';
 import { GooglePlayBadge } from './AppStoreBadges';
 import { BrandMark } from './Navbar';
@@ -46,13 +47,28 @@ const QUICK_LINKS = [
   { name: 'FAQ', href: '#faq' },
 ];
 
-const SUPPORT_LINKS = ['Help Center', 'Contact Us', 'Privacy Policy', 'Terms of Service', 'Refund Policy'];
+const SUPPORT_LINKS = [
+  { name: 'Help Center', to: '/contact' },
+  { name: 'Contact Us', to: '/contact' },
+  { name: 'Privacy Policy', to: '/privacy' },
+  { name: 'Terms of Service', to: '/terms' },
+  { name: 'Refund Policy', to: '/refund' },
+  { name: 'Delete Account', to: '/account-deletion/', external: true },
+];
 
 export const Footer: React.FC = () => {
+  const navigate = useNavigate();
+
+  // On the landing page the quick links scroll; on other pages (the policies) they go home first
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    const target = href === '#hero' ? document.body : document.querySelector(href);
+    if (!target || !document.querySelector('#hero')) {
+      navigate(`/${href === '#hero' ? '' : href}`);
+      return;
+    }
     if (href === '#hero') window.scrollTo({ top: 0, behavior: 'smooth' });
-    else document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+    else target.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -121,9 +137,18 @@ export const Footer: React.FC = () => {
           <motion.div variants={fadeUp}>
             <h3 className="text-[15px] font-semibold text-white">Support</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              {SUPPORT_LINKS.map((label) => (
-                <li key={label}>
-                  <span className="hover:text-white cursor-pointer transition-colors">{label}</span>
+              {SUPPORT_LINKS.map((link) => (
+                <li key={link.name}>
+                  {/* The deletion page is a static file, so it needs a full page load */}
+                  {link.external ? (
+                    <a href={link.to} className="hover:text-white transition-colors">
+                      {link.name}
+                    </a>
+                  ) : (
+                    <Link to={link.to} className="hover:text-white transition-colors">
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

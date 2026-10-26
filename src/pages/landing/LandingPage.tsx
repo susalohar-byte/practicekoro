@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { MotionConfig } from 'motion/react';
 import { Navbar } from './components/Navbar';
@@ -18,6 +19,14 @@ import { ExamModal, ExamData } from './components/ExamModal';
 export const LandingPage: React.FC = () => {
   const [videoOpen, setVideoOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<ExamData | null>(null);
+  const { hash } = useLocation();
+
+  // Links like /#faq from the policy pages land on the right section
+  useEffect(() => {
+    if (!hash) return;
+    const timer = window.setTimeout(() => document.querySelector(hash)?.scrollIntoView(), 300);
+    return () => window.clearTimeout(timer);
+  }, [hash]);
 
   return (
     // Visitors who turn on Reduce Motion in their OS get the page without the movement
