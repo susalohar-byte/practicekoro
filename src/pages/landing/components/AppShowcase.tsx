@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Reveal, fadeUp } from './Reveal';
+import { useTheme } from '@/context/ThemeContext';
 
 /*
  * The app at a glance, under the "Why Practice Koro?" cards. Tablets and desktops get the
@@ -101,10 +102,19 @@ const PhoneFrame: React.FC<{ className?: string; children: React.ReactNode }> = 
   </div>
 );
 
+type OptionColors = { backgroundColor: string; borderColor: string };
+
+/** The correct option's highlight is animated inline, so dark mode needs its own colours. */
+const DARK_OPTION: { idle: OptionColors; picked: OptionColors } = {
+  idle: { backgroundColor: '#0F172A', borderColor: '#334155' },
+  picked: { backgroundColor: '#14532D', borderColor: '#22C55E' },
+};
+
 const MockTestPhone: React.FC<{ className?: string }> = ({
   className = 'w-[300px] sm:w-[330px]',
 }) => {
   const time = useTicker(28 * 60 + 17);
+  const dark = useTheme().resolvedTheme === 'dark';
   return (
     <PhoneFrame className={className}>
       <StatusBar />
@@ -136,9 +146,19 @@ const MockTestPhone: React.FC<{ className?: string }> = ({
               return (
                 <motion.div
                   key={label}
-                  initial={correct ? { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' } : false}
+                  initial={
+                    correct
+                      ? dark
+                        ? DARK_OPTION.idle
+                        : { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }
+                      : false
+                  }
                   whileInView={
-                    correct ? { backgroundColor: '#E3F7EA', borderColor: '#4ADE80' } : undefined
+                    correct
+                      ? dark
+                        ? DARK_OPTION.picked
+                        : { backgroundColor: '#E3F7EA', borderColor: '#4ADE80' }
+                      : undefined
                   }
                   viewport={{ once: true }}
                   transition={{ delay: 1, duration: 0.4 }}
@@ -372,6 +392,7 @@ const MOCK_OPTIONS = ['লর্ড কর্নওয়ালিস', 'লর�
 
 const DesignMockTestPhone: React.FC = () => {
   const time = useTicker(28 * 60 + 17);
+  const dark = useTheme().resolvedTheme === 'dark';
   return (
     <DesignPhone>
       <div className="mt-[24px] flex items-center justify-between px-[46px]">
@@ -405,9 +426,19 @@ const DesignMockTestPhone: React.FC = () => {
           return (
             <motion.div
               key={label}
-              initial={correct ? { backgroundColor: '#FFFFFF', borderColor: '#E3E8F0' } : false}
+              initial={
+                correct
+                  ? dark
+                    ? DARK_OPTION.idle
+                    : { backgroundColor: '#FFFFFF', borderColor: '#E3E8F0' }
+                  : false
+              }
               whileInView={
-                correct ? { backgroundColor: '#DDF6E2', borderColor: '#8FE3A6' } : undefined
+                correct
+                  ? dark
+                    ? DARK_OPTION.picked
+                    : { backgroundColor: '#DDF6E2', borderColor: '#8FE3A6' }
+                  : undefined
               }
               viewport={{ once: true }}
               transition={{ delay: 1, duration: 0.4 }}
