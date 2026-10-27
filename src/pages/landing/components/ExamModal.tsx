@@ -76,8 +76,18 @@ export const ExamModal: React.FC<ExamModalProps> = ({ exam, onClose }) => {
                 alt={exam.name}
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    '/images/popular_exams/logo_wbpsc.png';
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (!target.dataset.fallbackLevel) {
+                    target.dataset.fallbackLevel = '1';
+                    if (target.src.includes('/popular_exams/')) {
+                      target.src = target.src.replace('/popular_exams/', '/images/exams/');
+                    } else {
+                      target.src = target.src.replace('/images/exams/', '/exams/');
+                    }
+                  } else if (target.dataset.fallbackLevel === '1') {
+                    target.dataset.fallbackLevel = '2';
+                    target.src = target.src.replace('/images/exams/', '/exams/');
+                  }
                 }}
               />
             </div>
