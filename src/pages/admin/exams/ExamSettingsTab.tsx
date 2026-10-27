@@ -98,6 +98,11 @@ export function ExamSettingsTab({ qb, selectedExam }: ExamSettingsTabProps) {
                   },
                   { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png', label: 'WBPSC' },
                   {
+                    name: 'WBSSC Group C/D',
+                    url: '/images/exams/emblem_wbssc.png',
+                    label: 'WBSSC Group C/D',
+                  },
+                  {
                     name: 'Indian Railway',
                     url: '/images/exams/logo_railway.png',
                     label: 'Indian Railway',

@@ -14,27 +14,39 @@ export function LogoIcon({ className }: { className?: string }) {
   return <img src={asset('brand/logo-icon.png')} alt="" aria-hidden className={cn('h-9 w-9 rounded-xl object-cover', className)} />;
 }
 
-/** ExamAssets.getRoundIconAsset — keyword match on the exam title (WBPSC before WBP). */
+/** ExamAssets.getRoundIconAsset — keyword match on the exam title (WBSSC before SSC, WBPSC before WBP). */
 export function examLogoPath(title: string | null | undefined): string {
   const n = (title ?? '').toLowerCase().trim();
   const has = (...k: string[]) => k.some((x) => n.includes(x));
-  if (has('wbpsc', 'psc', 'civil service', 'wbcs', 'food', 'icds', 'clerkship')) return 'exams/logo_wbpsc.png';
-  if (has('wbp', 'police', 'constable')) return 'exams/logo_wbp.png';
+  if (has('wbssc', 'school service', 'group c', 'group d')) return 'exams/emblem_wbssc.png';
+  if (has('wbpsc', 'clerkship', 'psc', 'civil service', 'wbcs')) return 'exams/logo_wbpsc.png';
   if (has('kp', 'kolkata police')) return 'exams/logo_kp.png';
-  if (has('wbssc', 'group c', 'group d', 'clerk')) return 'exams/emblem_wbssc.png';
+  if (has('wbp', 'police', 'constable')) return 'exams/logo_wbp.png';
   if (has('railway', 'rrb', 'ntpc', 'alp')) return 'exams/logo_railway.png';
   if (has('ssc', 'cgl', 'chsl', 'mts', 'gd')) return 'exams/logo_ssc.png';
-  if (has('tet', 'primary', 'teacher', 'slst')) return 'exams/logo_wbtet.png';
-  if (has('bank', 'ibps', 'sbi')) return 'exams/logo_ssc.png';
-  return 'exams/logo_wbpsc.png';
+  if (has('tet', 'primary', 'teacher')) return 'exams/logo_wbtet.png';
+  if (has('food', 'icds')) return 'exams/header_icon_wb.png';
+  if (has('bank', 'ibps', 'sbi')) return 'exams/header_icon_central.png';
+  return 'exams/logo_wbp.png';
 }
 
 export function ExamLogo({ title, iconUrl, size = 48, className }: { title: string; iconUrl?: string | null; size?: number; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const src =
-    iconUrl && (iconUrl.startsWith('/') || /^https?:\/\//.test(iconUrl) || iconUrl.startsWith('data:'))
+  const defaultSrc = asset(examLogoPath(title));
+  const [currentSrc, setCurrentSrc] = useState<string>(() => {
+    return iconUrl && (iconUrl.startsWith('/') || /^https?:\/\//.test(iconUrl))
       ? iconUrl
-      : asset(examLogoPath(title));
+      : defaultSrc;
+  });
+
+  const handleError = () => {
+    if (currentSrc !== defaultSrc) {
+      setCurrentSrc(defaultSrc);
+    } else {
+      setFailed(true);
+    }
+  };
+
   if (failed) {
     return (
       <span
@@ -48,10 +60,10 @@ export function ExamLogo({ title, iconUrl, size = 48, className }: { title: stri
   }
   return (
     <img
-      src={src}
+      src={currentSrc}
       alt=""
       aria-hidden
-      onError={() => setFailed(true)}
+      onError={handleError}
       className={cn('shrink-0 object-contain', className)}
       style={{ width: size, height: size }}
     />

@@ -8,7 +8,9 @@ export const ExamLogoEmblem: React.FC<{ examName: string }> = ({ examName }) => 
   const norm = examName.toLowerCase();
   let logoUrl = '/images/exams/logo_wbpsc.png';
 
-  if (norm.includes('kolkata') || norm.includes('kp')) {
+  if (norm.includes('wbssc') || norm.includes('school service')) {
+    logoUrl = '/images/exams/emblem_wbssc.png';
+  } else if (norm.includes('kolkata') || norm.includes('kp')) {
     logoUrl = '/images/exams/logo_kp.png';
   } else if (norm.includes('wbp') || norm.includes('police')) {
     logoUrl = '/images/exams/logo_wbp.png';
@@ -23,8 +25,6 @@ export const ExamLogoEmblem: React.FC<{ examName: string }> = ({ examName }) => 
     norm.includes('clerkship') ||
     norm.includes('food') ||
     norm.includes('icds') ||
-    norm.includes('group c') ||
-    norm.includes('group d') ||
     norm.includes('wbcs')
   ) {
     logoUrl = '/images/exams/logo_wbpsc.png';

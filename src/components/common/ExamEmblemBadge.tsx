@@ -23,7 +23,7 @@ export const PoliceShieldBadge: React.FC<{ className?: string }> = ({ className 
 
 /**
  * Resolves the official government/board emblem URL based on exam title, slug, or icon identifier.
- * Guarantees a authentic official logo is returned without falling back to demo placeholder icons.
+ * Guarantees that each board gets its authentic official emblem without incorrect cross-matching.
  */
 export function getOfficialExamLogoUrl(
   title: string = '',
@@ -48,12 +48,23 @@ export function getOfficialExamLogoUrl(
 
   const norm = (title + ' ' + slug + ' ' + (iconName || '')).toLowerCase();
 
-  // 1. Kolkata Police
+  // 1. Kolkata Police (KP) -> Kolkata Police Official Emblem
   if (norm.includes('kolkata') || norm.includes('kp') || iconName === 'kolkata') {
     return '/images/exams/logo_kp.png';
   }
 
-  // 2. Primary TET / Upper Primary TET / Teaching / SLST / CTET
+  // 2. WBSSC Group C & D (West Bengal School Service Commission)
+  // MUST be checked BEFORE general 'ssc' or 'police' to avoid substring clash
+  if (
+    norm.includes('wbssc') ||
+    norm.includes('school service') ||
+    iconName === 'wbssc' ||
+    iconName === 'School'
+  ) {
+    return '/images/exams/emblem_wbssc.png';
+  }
+
+  // 3. Primary TET / Upper Primary TET / Teaching / SLST / CTET -> WBBPE Emblem
   if (
     norm.includes('tet') ||
     norm.includes('primary') ||
@@ -65,18 +76,20 @@ export function getOfficialExamLogoUrl(
     return '/images/exams/logo_wbtet.png';
   }
 
-  // 3. Indian Railways (RRB / NTPC / Group D / ALP)
+  // 4. Indian Railways (RRB / NTPC / Group D / ALP) -> Official Railway Crest
   if (
     norm.includes('railway') ||
     norm.includes('rrb') ||
     norm.includes('ntpc') ||
     norm.includes('group d') ||
-    iconName === 'railway'
+    norm.includes('alp') ||
+    iconName === 'railway' ||
+    iconName === 'Train'
   ) {
     return '/images/exams/logo_railway.png';
   }
 
-  // 4. SSC (Staff Selection Commission, GD, MTS, CGL, CHSL)
+  // 5. SSC (Staff Selection Commission: GD, MTS, CGL, CHSL) -> Official Central SSC Emblem
   if (
     norm.includes('ssc') ||
     norm.includes('cgl') ||
@@ -88,17 +101,7 @@ export function getOfficialExamLogoUrl(
     return '/images/exams/logo_ssc.png';
   }
 
-  // 5. WBSSC Group C & D
-  if (
-    norm.includes('wbssc') ||
-    norm.includes('school service') ||
-    iconName === 'wbssc'
-  ) {
-    return '/images/exams/emblem_wbssc.png';
-  }
-
-  // 6. WBPSC / Clerkship / WBCS / Food SI / ICDS / Civil Services
-  // (Evaluated BEFORE general 'Shield' check so Food SI gets the official WBPSC emblem)
+  // 6. WBPSC / Clerkship / WBCS / Food SI / ICDS / Civil Services -> Official WBPSC Emblem
   if (
     norm.includes('wbpsc') ||
     norm.includes('clerkship') ||
@@ -114,14 +117,15 @@ export function getOfficialExamLogoUrl(
     return '/images/exams/logo_wbpsc.png';
   }
 
-  // 7. West Bengal Police (WBP Constable, SI, Police)
+  // 7. West Bengal Police (WBP Constable, SI, Lady Constable) -> Official WBP Golden Shield
   if (
     norm.includes('wbp') ||
     norm.includes('police') ||
     norm.includes('constable') ||
     norm.includes('sub-inspector') ||
     norm.includes('sergeant') ||
-    iconName === 'Shield'
+    iconName === 'Shield' ||
+    iconName === 'wbp'
   ) {
     return '/images/exams/logo_wbp.png';
   }
@@ -153,11 +157,18 @@ export const ExamEmblemBadge: React.FC<{
         loading="lazy"
         onError={(e) => {
           const target = e.currentTarget as HTMLImageElement;
-          if (target.src.includes('/popular_exams/')) {
-            target.src = target.src.replace('/popular_exams/', '/exams/');
-          } else if (target.src.includes('/exams/')) {
-            target.src = target.src.replace('/exams/', '/popular_exams/');
-          } else if (!target.src.includes('logo_wbpsc.png')) {
+          if (!target.dataset.fallbackLevel) {
+            target.dataset.fallbackLevel = '1';
+            if (target.src.includes('/popular_exams/')) {
+              target.src = target.src.replace('/popular_exams/', '/images/exams/');
+            } else {
+              target.src = target.src.replace('/images/exams/', '/exams/');
+            }
+          } else if (target.dataset.fallbackLevel === '1') {
+            target.dataset.fallbackLevel = '2';
+            target.src = target.src.replace('/images/exams/', '/exams/');
+          } else if (target.dataset.fallbackLevel === '2') {
+            target.dataset.fallbackLevel = 'done';
             target.src = '/images/exams/logo_wbpsc.png';
           }
         }}

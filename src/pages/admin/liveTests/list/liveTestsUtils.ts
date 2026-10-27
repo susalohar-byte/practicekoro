@@ -4,6 +4,7 @@ export const PRESET_LOGOS = [
   { name: 'WBP Police', url: '/images/exams/logo_wbp.png' },
   { name: 'Kolkata Police', url: '/images/exams/logo_kp.png' },
   { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png' },
+  { name: 'WBSSC Group C/D', url: '/images/exams/emblem_wbssc.png' },
   { name: 'Railway', url: '/images/exams/logo_railway.png' },
   { name: 'SSC', url: '/images/exams/logo_ssc.png' },
   { name: 'WB TET', url: '/images/exams/logo_wbtet.png' },

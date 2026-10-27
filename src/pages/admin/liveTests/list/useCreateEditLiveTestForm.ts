@@ -71,7 +71,9 @@ export function useCreateEditLiveTestForm({
       }
       const text = `${selected.title} ${selected.slug || ''}`.toLowerCase();
       let matchedLogo = PRESET_LOGOS[0].url;
-      if (text.includes('kolkata') || text.includes('kp')) {
+      if (text.includes('wbssc') || text.includes('school service')) {
+        matchedLogo = '/images/exams/emblem_wbssc.png';
+      } else if (text.includes('kolkata') || text.includes('kp')) {
         matchedLogo = '/images/exams/logo_kp.png';
       } else if (
         text.includes('psc') ||
