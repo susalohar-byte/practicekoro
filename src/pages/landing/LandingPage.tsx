@@ -33,7 +33,7 @@ export const LandingPage: React.FC = () => {
     // Visitors who turn on Reduce Motion in their OS get the page without the movement
     <MotionConfig reducedMotion="user">
       <div
-        className={`min-h-screen bg-[#F7F8FD] text-slate-900 ${LANDING_FONT} selection:bg-blue-600 selection:text-white flex flex-col`}
+        className={`landing-scope min-h-screen bg-[#F7F8FD] text-slate-900 ${LANDING_FONT} selection:bg-blue-600 selection:text-white flex flex-col`}
       >
         {/* SEO Metadata */}
         {/* Title and description come from Admin → Settings → SEO (PlatformRuntimeSettings),
