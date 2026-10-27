@@ -14,27 +14,34 @@ export function LogoIcon({ className }: { className?: string }) {
   return <img src={asset('brand/logo-icon.png')} alt="" aria-hidden className={cn('h-9 w-9 rounded-xl object-cover', className)} />;
 }
 
-/** A logo the admin uploaded or linked in the exam's icon field (data: URL, http(s), or a site path). */
-function isCustomLogo(iconName: string): boolean {
-  return /^(data:|https?:\/\/|blob:|\/)/.test(iconName);
+/** A logo the admin uploaded, linked or picked as a preset in the exam's icon field. */
+function customLogo(iconName: string): string | null {
+  if (/^(data:|https?:\/\/|blob:|\/)/.test(iconName)) return iconName;
+  // A bare preset file name such as "images/exams/logo_wbp.png" is a path on the main site.
+  if (/\.(png|svg|webp)$/i.test(iconName)) return `/${iconName}`;
+  return null;
 }
 
 /**
- * Same choice as the admin console's ExamEmblemBadge, so students see the logo the admin sees:
- * the uploaded logo if there is one, else an official emblem picked from the title and icon key.
+ * Same choice as the admin console's getOfficialExamLogoUrl (ExamEmblemBadge), so students see
+ * the logo the admin sees: the uploaded or preset logo if there is one, else the board's official
+ * emblem picked from the title and icon key. WBSSC is matched before SSC and WBP, and WBPSC
+ * (Food SI, ICDS, Clerkship) before WBP.
  */
 export function examLogoSrc(title: string | null | undefined, iconName?: string | null): string {
   const icon = (iconName ?? '').trim();
-  if (icon && isCustomLogo(icon)) return icon;
+  const custom = icon ? customLogo(icon) : null;
+  if (custom) return custom;
   const n = `${title ?? ''} ${icon}`.toLowerCase();
   const has = (...k: string[]) => k.some((x) => n.includes(x));
   if (has('kolkata', 'kp')) return asset('exam-art/logo_kp.png');
-  if (has('wbp', 'police') || icon === 'Shield') return asset('exam-art/logo_wbp.png');
-  if (has('ssc')) return asset('exam-art/logo_ssc.png');
-  if (has('railway', 'rrb')) return asset('exam-art/logo_railway.png');
-  if (has('tet', 'primary', 'teacher', 'slst')) return asset('exam-art/logo_wbtet.png');
-  if (has('wbpsc', 'clerkship', 'wbcs', 'food', 'icds', 'wbssc', 'knowledge', 'general')) return asset('exam-art/logo_wbpsc.png');
-  return asset('brand/logo-icon.png');
+  if (has('wbssc', 'school service') || icon === 'School') return asset('exam-art/emblem_wbssc.png');
+  if (has('tet', 'primary', 'slst', 'ctet', 'teacher')) return asset('exam-art/logo_wbtet.png');
+  if (has('railway', 'rrb', 'ntpc', 'group d', 'alp') || icon === 'Train') return asset('exam-art/logo_railway.png');
+  if (has('ssc', 'cgl', 'chsl', 'mts', 'gd')) return asset('exam-art/logo_ssc.png');
+  if (has('wbpsc', 'clerkship', 'wbcs', 'food', 'icds', 'civil', 'psc')) return asset('exam-art/logo_wbpsc.png');
+  if (has('wbp', 'police', 'constable', 'sub-inspector', 'sergeant') || icon === 'Shield') return asset('exam-art/logo_wbp.png');
+  return asset('exam-art/logo_wbpsc.png');
 }
 
 export function ExamLogo({ title, iconUrl, size = 48, className }: { title: string; iconUrl?: string | null; size?: number; className?: string }) {

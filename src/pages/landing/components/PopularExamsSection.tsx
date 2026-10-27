@@ -41,7 +41,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'wbssc-group-cd',
     name: 'WBSSC Group C & D',
     bengaliName: 'ওয়েস্ট বেঙ্গল স্কুল সার্ভিস কমিশন গ্রুপ C & D',
-    logo: '/images/exams/emblem_wbssc.png',
+    logo: '/images/popular_exams/emblem_wbssc.png',
     badge: 'School Service',
     description:
       'স্কুল সার্ভিস কমিশনের গ্রুপ সি (করণিক) ও গ্রুপ ডি পদের জন্য নতুন সিলেবাস ভিত্তিক স্পেশাল প্র্যাকটিস সেট ও মক টেস্ট।',
@@ -174,10 +174,12 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
                 loading="lazy"
                 onError={(e) => {
                   const target = e.currentTarget as HTMLImageElement;
-                  if (target.src.includes('/popular_exams/')) {
-                    target.src = target.src.replace('/popular_exams/', '/exams/');
-                  } else if (target.src.includes('/exams/')) {
-                    target.src = target.src.replace('/exams/', '/popular_exams/');
+                  if (!target.dataset.fallbackLevel) {
+                    target.dataset.fallbackLevel = '1';
+                    target.src = target.src.replace('/popular_exams/', '/images/exams/');
+                  } else if (target.dataset.fallbackLevel === '1') {
+                    target.dataset.fallbackLevel = '2';
+                    target.src = target.src.replace('/images/exams/', '/exams/');
                   }
                 }}
               />
