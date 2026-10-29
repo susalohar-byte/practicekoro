@@ -32,11 +32,14 @@ jobs:
         run: |
           chmod +x scripts/supabase-sql.sh
           ./scripts/supabase-sql.sh -f supabase/tests/rls_security.sql -t -A | tee rls-results.json
+          # Per-function exposure checks (search_path, anon allow-list, caller checks, private helpers)
+          ./scripts/supabase-sql.sh -f supabase/tests/function_security.sql -t -A | tee function-results.json
           # Every assertion in every JSON row must be true
           python3 - <<'EOF'
           import json, sys
           ok = True
-          for line in open('rls-results.json'):
+          lines = open('rls-results.json').readlines() + open('function-results.json').readlines()
+          for line in lines:
               line = line.strip()
               if not line.startswith('{'):
                   continue

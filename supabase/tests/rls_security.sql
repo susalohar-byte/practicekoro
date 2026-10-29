@@ -144,17 +144,18 @@ select jsonb_build_object(
 -- ------------------------------------------------------------------
 select jsonb_build_object(
   -- any-user helpers answer about the caller only, unless admin / trusted backend
-  'has_role_self_or_admin',        pg_get_functiondef('public.has_role(uuid,text)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
-  'account_is_active_self_or_admin', pg_get_functiondef('public.account_is_active(uuid)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
-  'has_test_access_self_or_admin', pg_get_functiondef('public.has_test_access(uuid,text)'::regprocedure) like '%p_user_id IS DISTINCT FROM auth.uid()%',
+  'has_role_self_or_admin',        pg_get_functiondef('private.has_role(uuid,text)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'account_is_active_self_or_admin', pg_get_functiondef('private.account_is_active(uuid)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'has_test_access_self_or_admin', pg_get_functiondef('private.has_test_access(uuid,text)'::regprocedure) like '%p_user_id IS DISTINCT FROM auth.uid()%',
   'coupon_usage_caller_only',      pg_get_functiondef('public.validate_coupon_code(text,text,numeric,uuid)'::regprocedure) like '%p_user_id := auth.uid()%',
   -- RLS policies call has_role / live_paper_visible for anon too: keep EXECUTE
-  'has_role_rls_executable',       has_function_privilege('anon','public.has_role(uuid,text)','EXECUTE')
-                                   and has_function_privilege('authenticated','public.has_role(uuid,text)','EXECUTE'),
-  'live_paper_visible_rls_executable', has_function_privilege('anon','public.live_paper_visible(text)','EXECUTE'),
+  -- (moved to the non-API schema "private" in 20261029140000)
+  'has_role_rls_executable',       has_function_privilege('anon','private.has_role(uuid,text)','EXECUTE')
+                                   and has_function_privilege('authenticated','private.has_role(uuid,text)','EXECUTE'),
+  'live_paper_visible_rls_executable', has_function_privilege('anon','private.live_paper_visible(text)','EXECUTE'),
   -- caller checks inside client-facing RPCs
   'scheduled_notifications_staff_only', pg_get_functiondef('public.process_scheduled_notifications()'::regprocedure) like '%can_mutate_admin_record(''notifications'')%',
-  'exam_questions_published_only', pg_get_functiondef('public.get_student_exam_questions(text)'::regprocedure) like '%status = ''published'' OR public.has_role(v_user_id, ''admin'')%',
+  'exam_questions_published_only', pg_get_functiondef('public.get_student_exam_questions(text)'::regprocedure) like '%status = ''published'' OR private.has_role(v_user_id, ''admin'')%',
   'leaderboard_no_email_names',    pg_get_functiondef('public.get_test_leaderboard(text,text,text,text,integer)'::regprocedure) not like '%split_part%',
   -- definer functions no client/policy calls: not an RPC any more
   'unused_definers_not_rpc', (
@@ -176,13 +177,13 @@ select jsonb_build_object(
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
   ),
-  -- anon can execute only the public read RPCs and the helpers RLS policies need
+  -- anon can execute only the public read RPCs (the RLS helpers anon policies
+  -- need live in "private" since 20261029140000; see function_security.sql)
   'anon_definer_allowlist', not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
       and has_function_privilege('anon', p.oid, 'EXECUTE')
-      and p.proname not in ('get_public_seo_question_by_id','get_public_seo_questions',
-                            'has_role','is_management_super_admin','live_paper_visible')
+      and p.proname not in ('get_public_seo_question_by_id','get_public_seo_questions')
   )
 ) as definer_caller_checks;
 
