@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/components/ui.dart';
 import '../../data/models/exam_model.dart';
 import '../../data/repositories/catalog_repository.dart';
-import 'exam_logo.dart';
 
 const _allExams = '__all__';
 const _otherExams = '__other__';
@@ -333,14 +332,29 @@ class _ExamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtitle = exam.effectiveDescription;
     final testsCount = exam.effectiveTotalTests;
+    final customIcon = exam.iconName?.trim();
+    final hasCustomIcon = customIcon != null &&
+        customIcon.isNotEmpty &&
+        (customIcon.startsWith('http://') || customIcon.startsWith('https://'));
 
     return UICard(
       onTap: () => context.push('/exams/${exam.id}'),
-      padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       child: Row(
         children: [
-          ExamLogo(exam.title, size: 54),
-          const SizedBox(width: 14),
+          if (hasCustomIcon) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                customIcon,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(width: 14),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

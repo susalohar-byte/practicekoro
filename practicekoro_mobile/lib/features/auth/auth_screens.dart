@@ -135,10 +135,10 @@ class _AuthScaffold extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Image.asset(
-                              'assets/images/logo-circle.png',
+                              'assets/images/logo-circle.webp',
                               fit: BoxFit.contain,
                               errorBuilder: (_, _, _) => Image.asset(
-                                'assets/images/logo-transparent.png',
+                                'assets/images/logo-transparent.webp',
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, _, _) => const Icon(
                                   Icons.school_rounded,

@@ -120,7 +120,7 @@ class HeroBannerModel {
     final badgeText = json['badgeText']?.toString() ?? json['badge_text']?.toString();
     final highlightWord = json['highlightWord']?.toString() ?? json['highlight_word']?.toString();
     final rawImg = json['imageUrl']?.toString().trim() ?? json['image_url']?.toString().trim();
-    final imageUrl = (rawImg != null && rawImg.isNotEmpty) ? rawImg : 'assets/images/hero_banner_hd.png';
+    final imageUrl = (rawImg != null && rawImg.isNotEmpty) ? rawImg : 'assets/images/hero_banner_hd.webp';
     final mobileImageUrl = json['mobileImageUrl']?.toString().trim() ?? json['mobile_image_url']?.toString().trim();
     final bannerType = json['bannerType']?.toString() ?? json['banner_type']?.toString() ?? 'full_image';
     final showOverlay = json['showTextOverlay'] == true ||
@@ -219,7 +219,7 @@ class HeroBannerModel {
     id: 'default_hero_banner',
     title: 'PracticeKoro Exam Preparation',
     subtitle: 'Prepare with authentic mock tests, previous years questions and live tests',
-    imageUrl: 'assets/images/hero_banner_hd.png',
+    imageUrl: 'assets/images/hero_banner_hd.webp',
     bannerType: 'full_image',
     showTextOverlay: false,
     themeGradient: 'blue',

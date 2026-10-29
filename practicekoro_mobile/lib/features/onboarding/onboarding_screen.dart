@@ -126,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(26),
                         child: Image.asset(
-                          'assets/images/logo-icon.png',
+                          'assets/images/logo-icon.webp',
                           fit: BoxFit.cover,
                           filterQuality: FilterQuality.high,
                           errorBuilder: (_, _, _) => Container(
@@ -145,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // Official Brand Typography: PracticeKoro Wordmark
                     Image.asset(
-                      'assets/images/logo-text.png',
+                      'assets/images/logo-text.webp',
                       height: 38,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.high,

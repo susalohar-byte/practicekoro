@@ -56,11 +56,6 @@ class PracticeKoroApp extends StatelessWidget {
       ?bengaliFontFamily,
       'Tiro Bangla',
       'TiroBangla',
-      'Noto Sans Bengali',
-      'NotoSansBengali',
-      'NotoSansBengali_regular',
-      'Hind Siliguri',
-      'HindSiliguri',
       'Inter',
       'sans-serif',
     ];

@@ -6,7 +6,6 @@ import '../../data/models/exam_model.dart';
 import '../../data/models/test_model.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/profile_repository.dart';
-import '../exams/exam_logo.dart';
 
 /// Official Previous Year Question papers, by exam and year. Papers are the
 /// exam's tests whose type is PYQ; they open in the normal test flow.
@@ -216,8 +215,21 @@ class _PaperCard extends ConsumerWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          ExamLogo(examTitle, assetOverride: paper.examLogo, size: 44),
-          const SizedBox(width: 12),
+          if (paper.examLogo != null &&
+              (paper.examLogo!.startsWith('http://') ||
+                  paper.examLogo!.startsWith('https://'))) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                paper.examLogo!,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

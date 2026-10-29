@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/constants/exam_assets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/datasources/local_storage.dart';
@@ -135,7 +134,7 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/images/logo-circle.png',
+                                  'assets/images/logo-circle.webp',
                                   width: 38,
                                   height: 38,
                                   fit: BoxFit.cover,
@@ -382,7 +381,7 @@ class HomeScreen extends ConsumerWidget {
                                   SizedBox(
                                     height: 4.5,
                                     child: Image.asset(
-                                      'assets/images/exams_for_you_underline.png',
+                                      'assets/images/exams_for_you_underline.webp',
                                       fit: BoxFit.fill,
                                       errorBuilder: (context, error, stackTrace) =>
                                           const CustomPaint(
@@ -447,10 +446,11 @@ class HomeScreen extends ConsumerWidget {
                         title: e.title,
                         subtitle:
                             '${e.totalTests} Tests Available',
-                        emblemAsset:
-                            ExamAssets.getRoundIconAsset(e.title) ??
-                            'assets/images/logo-icon.png',
-                        fallbackAsset: 'assets/images/logo-icon.png',
+                        customIconUrl: (e.iconName != null &&
+                                (e.iconName!.startsWith('http://') ||
+                                    e.iconName!.startsWith('https://')))
+                            ? e.iconName
+                            : null,
                         onTap: () => context.push(
                           '/exams/${Uri.encodeComponent(e.id)}?title=${Uri.encodeComponent(e.title)}',
                         ),
@@ -691,7 +691,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     }
     if (title.contains('tet') || title.contains('wbssc') || title.contains('teach')) {
@@ -700,7 +700,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     }
     if (title.contains('railway') || title.contains('ntpc') || title.contains('rrb') || title.contains('ssc')) {
@@ -709,7 +709,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
 
@@ -720,7 +720,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     } else if (mod == 1) {
       return const _HomeLiveTestPalette(
@@ -728,7 +728,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     } else {
       return const _HomeLiveTestPalette(
@@ -736,7 +736,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
   }
@@ -979,20 +979,19 @@ class _HomeLiveTestCard extends StatelessWidget {
 class _ExamRecommendCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String emblemAsset;
-  final String fallbackAsset;
+  final String? customIconUrl;
   final VoidCallback onTap;
 
   const _ExamRecommendCard({
     required this.title,
     required this.subtitle,
-    required this.emblemAsset,
-    required this.fallbackAsset,
+    this.customIconUrl,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasIcon = customIconUrl != null && customIconUrl!.isNotEmpty;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -1000,7 +999,7 @@ class _ExamRecommendCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -1018,28 +1017,20 @@ class _ExamRecommendCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // 1. Exam Emblem inside soft rounded square container
-              Container(
-                width: 50,
-                height: 50,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFFF1F5F9),
-                    width: 1.0,
+              if (hasIcon) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    customIconUrl!,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                 ),
-                child: Image.asset(
-                  emblemAsset,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Image.asset(fallbackAsset, fit: BoxFit.contain),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 2. Exam Name and Available Tests (Category Tag removed so full exam name fits)
+                const SizedBox(width: 12),
+              ],
+              // Exam Name and Available Tests
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1068,7 +1059,7 @@ class _ExamRecommendCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // 3. Compact Circular Chevron Action Button (so exam names have plenty of room to fit)
+              // Compact Circular Chevron Action Button
               Container(
                 width: 32,
                 height: 32,
@@ -2175,10 +2166,10 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
   Widget _buildBannerImage(HeroBannerModel banner) {
     Widget fallback() {
       return Image.asset(
-        'assets/images/hero_banner_hd.png',
+        'assets/images/hero_banner_hd.webp',
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => Image.asset(
-          'assets/images/hero_banner_full.png',
+          'assets/images/hero_banner_full.webp',
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
         ),
