@@ -47,7 +47,9 @@ export const catalogContentApi = {
     const [examsRes, testsRes, testExamsRes] = await Promise.all([
       supabase
         .from('exams')
-        .select('id, title, slug, description, category, icon_name, banner_url, order_index, is_active')
+        .select(
+          'id, title, slug, description, category, icon_name, banner_url, order_index, is_active'
+        )
         .eq('is_active', true)
         .order('order_index', { ascending: true }),
       supabase
@@ -108,7 +110,9 @@ export const catalogContentApi = {
     if (!isSupabaseConfigured) return null;
     const { data: item, error } = await supabase
       .from('exams')
-      .select('id, title, slug, description, category, icon_name, banner_url, order_index, is_active')
+      .select(
+        'id, title, slug, description, category, icon_name, banner_url, order_index, is_active'
+      )
       .or(`slug.eq.${slug},id.eq.${slug}`)
       .eq('is_active', true)
       .maybeSingle();
@@ -213,7 +217,9 @@ export const catalogContentApi = {
     try {
       const { data, error } = await supabase
         .from('chapters')
-        .select('id, subject_id, name, slug, description, icon_name, parent_id, order_index, is_active')
+        .select(
+          'id, subject_id, name, slug, description, icon_name, parent_id, order_index, is_active'
+        )
         .eq('is_active', true)
         .order('order_index', { ascending: true });
       if (error || !data || data.length === 0) return [];
