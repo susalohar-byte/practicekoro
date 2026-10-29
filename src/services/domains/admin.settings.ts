@@ -20,9 +20,17 @@ import type {
 // --------------------------------------------------------------------------
 // APP SETTINGS API
 // --------------------------------------------------------------------------
-export async function getAppSettings(): Promise<AppSettingItem[]> {
+/** Large list rows that their own screens load; the site-wide settings poll skips them. */
+const LIST_SETTING_IDS = ['banners_hero_list', 'blog_posts_list', 'live_tests_schedule_list'];
+
+export async function getAppSettings(
+  options: { skipLists?: boolean } = {}
+): Promise<AppSettingItem[]> {
   if (!isSupabaseConfigured) return [...localAppSettings];
-  const { data, error } = await supabase.from('app_settings').select('*');
+  const query = supabase.from('app_settings').select('*');
+  const { data, error } = await (options.skipLists
+    ? query.not('id', 'in', `(${LIST_SETTING_IDS.join(',')})`)
+    : query);
   if (error) throw new Error(error.message);
   if (!Array.isArray(data)) throw new Error('Settings response was not confirmed.');
   return data.map((d: any) => ({

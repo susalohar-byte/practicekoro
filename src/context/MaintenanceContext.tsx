@@ -35,6 +35,7 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [settingsError, setSettingsError] = useState('');
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const requestVersion = useRef(0);
+  const lastRefresh = useRef(0);
   const languageWrite = useRef(false);
   const [appName, setAppName] = useState<string>('PracticeKoro');
   // Global feature flag: Default is 'bengali_only' (Bilingual = OFF)
@@ -44,7 +45,8 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const checkMaintenanceMode = useCallback(async (): Promise<boolean> => {
     const version = ++requestVersion.current;
     try {
-      const settings = await getAppSettings();
+      lastRefresh.current = Date.now();
+      const settings = await getAppSettings({ skipLists: true });
       if (!Array.isArray(settings))
         throw new Error('Platform settings response was not confirmed.');
       const read = (id: string, key: string) =>
@@ -110,14 +112,14 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
     refresh();
 
-    // Periodic check every 60 seconds
+    // Every open tab polls Supabase, and each read counts towards the egress quota:
+    // check every 5 minutes, skip hidden tabs, and let focus refresh at most once a minute.
     const interval = setInterval(() => {
-      refresh();
-    }, 60000);
+      if (document.visibilityState !== 'hidden') refresh();
+    }, 5 * 60_000);
 
-    // Re-check when window gains focus
     const handleFocus = () => {
-      refresh();
+      if (Date.now() - lastRefresh.current >= 60_000) refresh();
     };
     window.addEventListener('focus', handleFocus);
 
