@@ -39,7 +39,7 @@ export function PaymentsSummaryCards({ pay }: PaymentsSummaryCardsProps) {
     <>
       {/* SUMMARY METRICS CARDS: 6-CARD GRID INCLUDING SUCCESS, PENDING & FAILED */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Card 1: Retained Revenue */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-2xs flex items-center gap-3.5 hover:shadow-xs transition-shadow">
           <div className="w-11 h-11 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold text-lg shrink-0">

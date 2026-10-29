@@ -13,7 +13,7 @@ export function TestAttemptKpiCards({ testAttemptsState }: TestAttemptKpiCardsPr
       {/* ==================================================================== */}
       {/* 2. SUMMARY METRIC CARDS (5 CARDS IN A ROW) */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Card 1: Total Attempts */}
         <div className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-xs flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center shrink-0">

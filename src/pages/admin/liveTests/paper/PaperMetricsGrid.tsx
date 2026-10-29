@@ -20,7 +20,7 @@ export function PaperMetricsGrid({ ws }: PaperMetricsGridProps) {
   return (
     <>
       {/* 4. KEY METRICS BENTO GRID */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="pk-stagger grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Metric 1: Questions */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">

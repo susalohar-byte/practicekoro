@@ -13,7 +13,7 @@ export function BlogKpiCards({ blogState }: BlogKpiCardsProps) {
   return (
     <>
       {/* Top 4 KPI Cards Redesigned */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Posts */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2.5">

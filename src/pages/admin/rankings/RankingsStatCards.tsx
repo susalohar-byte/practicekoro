@@ -12,7 +12,7 @@ export function RankingsStatCards({ rk }: RankingsStatCardsProps) {
       {/* ==================================================================== */}
       {/* 2. SUMMARY METRIC CARDS (4 CARDS IN A ROW) */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Card 1: Total Students */}
         <div className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-xs flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0">
