@@ -216,7 +216,7 @@ class _PaperCard extends ConsumerWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          ExamLogo(examTitle, assetOverride: paper.examLogo, size: 44),
+          ExamLogo(examTitle, iconUrl: paper.examLogo, size: 44),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

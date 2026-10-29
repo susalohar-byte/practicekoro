@@ -107,7 +107,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               children: [
                 for (final e in examHits)
                   UIRow(
-                    leading: ExamLogo(e.title, size: 40),
+                    leading: ExamLogo(e.title, iconUrl: e.iconName, size: 40),
                     title: e.title,
                     subtitle: e.category,
                     onTap: () => context.push('/exams/${e.id}'),

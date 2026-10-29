@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/constants/exam_assets.dart';
+import '../exams/exam_logo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/datasources/local_storage.dart';
@@ -447,10 +447,7 @@ class HomeScreen extends ConsumerWidget {
                         title: e.title,
                         subtitle:
                             '${e.totalTests} Tests Available',
-                        emblemAsset:
-                            ExamAssets.getRoundIconAsset(e.title) ??
-                            'assets/images/logo-icon.webp',
-                        fallbackAsset: 'assets/images/logo-icon.webp',
+                        iconUrl: e.iconName,
                         onTap: () => context.push(
                           '/exams/${Uri.encodeComponent(e.id)}?title=${Uri.encodeComponent(e.title)}',
                         ),
@@ -979,15 +976,13 @@ class _HomeLiveTestCard extends StatelessWidget {
 class _ExamRecommendCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String emblemAsset;
-  final String fallbackAsset;
+  final String? iconUrl;
   final VoidCallback onTap;
 
   const _ExamRecommendCard({
     required this.title,
     required this.subtitle,
-    required this.emblemAsset,
-    required this.fallbackAsset,
+    this.iconUrl,
     required this.onTap,
   });
 
@@ -1022,7 +1017,7 @@ class _ExamRecommendCard extends StatelessWidget {
               Container(
                 width: 50,
                 height: 50,
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
@@ -1031,11 +1026,10 @@ class _ExamRecommendCard extends StatelessWidget {
                     width: 1.0,
                   ),
                 ),
-                child: Image.asset(
-                  emblemAsset,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Image.asset(fallbackAsset, fit: BoxFit.contain),
+                child: ExamLogo(
+                  title,
+                  iconUrl: iconUrl,
+                  size: 42,
                 ),
               ),
               const SizedBox(width: 12),

@@ -339,7 +339,7 @@ class _ExamCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
       child: Row(
         children: [
-          ExamLogo(exam.title, size: 54),
+          ExamLogo(exam.title, iconUrl: exam.iconName, size: 54),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
