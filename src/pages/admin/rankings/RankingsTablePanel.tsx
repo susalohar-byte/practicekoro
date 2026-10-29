@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminRankingsState } from './useAdminRankings';
+import { StudentAvatar } from '@/pages/admin/students/StudentAvatar';
 
 export interface RankingsTablePanelProps {
   rk: AdminRankingsState;
@@ -124,10 +125,11 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
                           {student.avatar ? (
-                            <img
-                              src={student.avatar}
-                              alt={student.name}
-                              className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200"
+                            <StudentAvatar
+                              avatarUrl={student.avatar}
+                              fullName={student.name}
+                              initials={student.initials}
+                              className="w-8 h-8 rounded-full shrink-0 border border-slate-200"
                             />
                           ) : (
                             <div
