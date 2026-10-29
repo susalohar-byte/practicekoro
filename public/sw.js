@@ -1,5 +1,5 @@
-// Practice Koro Service Worker v3.0 - Auto Update Support
-const CACHE_VERSION = 'v3';
+// Practice Koro Service Worker v3.1 - Auto Update Support
+const CACHE_VERSION = 'v3.1';
 const CACHE_NAME = `practice-koro-${CACHE_VERSION}`;
 const OFFLINE_URL = '/';
 
@@ -20,8 +20,9 @@ self.addEventListener('install', (event) => {
             return cache.addAll(STATIC_ASSETS);
         })
     );
-    // Skip waiting to activate immediately - DISABLED FOR AUTO-REFRESH FIX
-    // self.skipWaiting();
+    // Activate at once so a fixed worker replaces a broken one without closing every tab.
+    // No page code listens for controllerchange, so this does not trigger a reload.
+    self.skipWaiting();
 });
 
 // Activate event - clean old caches and notify clients
@@ -46,8 +47,7 @@ self.addEventListener('activate', (event) => {
             });
         })
     );
-    // Take control of all clients immediately - DISABLED FOR AUTO-REFRESH FIX
-    // self.clients.claim();
+    self.clients.claim();
 });
 
 // Message handler for manual update check
@@ -67,6 +67,13 @@ self.addEventListener('fetch', (event) => {
 
     // Skip non-http requests
     if (!request.url.startsWith('http')) {
+        return;
+    }
+
+    // Leave other origins (Google profile photos, Supabase, Razorpay) to the browser.
+    // A fetch made here falls under the page CSP's connect-src, which blocks image hosts,
+    // and the catch below would then turn a working image into a 503.
+    if (url.origin !== self.location.origin) {
         return;
     }
 
