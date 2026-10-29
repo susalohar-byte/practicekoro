@@ -80,7 +80,7 @@ begin
         'admin_save_test_exams', 'admin_update_app_settings', 'admin_update_payment_gateway',
         'assign_admin_staff_by_email', 'bulk_assign_students_to_batch',
         'bulk_grant_student_subscription', 'create_targeted_notification',
-        'get_admin_audiobook_stats', 'get_admin_dashboard_counts', 'get_admin_district_rankings',
+        'get_admin_dashboard_counts', 'get_admin_district_rankings',
         'get_admin_payments', 'get_admin_students', 'get_admin_subscriptions',
         'process_scheduled_notifications', 'remove_admin_staff_member', 'save_test_questions',
         'send_support_ticket_message', 'update_admin_staff_role')
