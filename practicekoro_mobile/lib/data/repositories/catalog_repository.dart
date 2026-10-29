@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +9,7 @@ import '../models/test_model.dart';
 import '../models/live_test_model.dart';
 import '../models/question_model.dart';
 import '../models/attempt_model.dart';
+import '../datasources/catalog_cache.dart';
 import '../datasources/local_storage.dart';
 import 'attempt_repository.dart';
 
@@ -102,13 +104,49 @@ class CatalogRepository {
     _mockTestsCache.clear();
     _topicTestsCache.clear();
     _liveTestsCache.clear();
+    unawaited(CatalogDiskCache.clear());
   }
 
   void clearExamsCache() {
     _examsCache = null;
+    unawaited(CatalogDiskCache.remove('exams'));
   }
 
   static const _timeout = Duration(seconds: 10);
+
+  /// How long a saved catalog copy is used before asking the server again.
+  static const _catalogMaxAge = Duration(hours: 1);
+  static const _liveTestsMaxAge = Duration(minutes: 5);
+
+  /// Like [_fetch], but answers from the phone's saved copy while it is
+  /// younger than [maxAge]. When the server cannot be reached, a copy up to
+  /// [CatalogDiskCache.maxStale] old is shown instead of an error.
+  Future<List<Map<String, dynamic>>> _cachedFetch(
+    String key,
+    Duration maxAge,
+    PostgrestTransformBuilder<List<Map<String, dynamic>>> Function(
+      SupabaseClient db,
+    )
+    query, {
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh) {
+      final fresh = await CatalogDiskCache.read(key, maxAge: maxAge);
+      if (fresh != null) return fresh;
+    }
+    try {
+      final rows = await _fetch(query);
+      if (rows.isNotEmpty) await CatalogDiskCache.write(key, rows);
+      return rows;
+    } on CatalogUnavailable {
+      final stale = await CatalogDiskCache.read(
+        key,
+        maxAge: CatalogDiskCache.maxStale,
+      );
+      if (stale != null) return stale;
+      rethrow;
+    }
+  }
 
   /// Runs a catalog query. A failure or timeout surfaces as a
   /// [CatalogUnavailable] so screens show an error with retry, never
@@ -143,12 +181,15 @@ class CatalogRepository {
 
   Future<List<ExamModel>> getExams({bool forceRefresh = false}) async {
     if (!forceRefresh && _examsCache != null) return _examsCache!;
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'exams',
+      _catalogMaxAge,
       (db) => db
           .from('exams')
           .select('*, tests(count)')
           .eq('is_active', true)
           .order('order_index', ascending: true),
+      forceRefresh: forceRefresh,
     );
     final list = res.map((e) => ExamModel.fromJson(e)).toList();
     if (list.isNotEmpty) _examsCache = list;
@@ -157,12 +198,15 @@ class CatalogRepository {
 
   Future<List<SubjectModel>> getSubjects({bool forceRefresh = false}) async {
     if (!forceRefresh && _subjectsCache != null) return _subjectsCache!;
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'subjects',
+      _catalogMaxAge,
       (db) => db
           .from('subjects')
           .select('*, chapters(count), tests(count)')
           .eq('is_active', true)
           .order('order_index', ascending: true),
+      forceRefresh: forceRefresh,
     );
     final list = res.map((e) => SubjectModel.fromJson(e)).toList();
     if (list.isNotEmpty) _subjectsCache = list;
@@ -182,14 +226,19 @@ class CatalogRepository {
       if (!bySubject && _allTopicsCache != null) return _allTopicsCache!;
     }
 
-    final res = await _fetch((db) {
-      var query = db
-          .from('chapters')
-          .select('*, tests(count)')
-          .eq('is_active', true);
-      if (bySubject) query = query.eq('subject_id', cleanSubId);
-      return query.order('order_index', ascending: true);
-    });
+    final res = await _cachedFetch(
+      bySubject ? 'topics:$cleanSubId' : 'topics',
+      _catalogMaxAge,
+      (db) {
+        var query = db
+            .from('chapters')
+            .select('*, tests(count)')
+            .eq('is_active', true);
+        if (bySubject) query = query.eq('subject_id', cleanSubId);
+        return query.order('order_index', ascending: true);
+      },
+      forceRefresh: forceRefresh,
+    );
     final list = res.map((e) => TopicModel.fromJson(e)).toList();
     if (list.isNotEmpty) {
       if (bySubject) {
@@ -205,7 +254,9 @@ class CatalogRepository {
     if (_topicTestsCache.containsKey(topicId)) {
       return _topicTestsCache[topicId]!;
     }
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'topic_tests:$topicId',
+      _catalogMaxAge,
       (db) => db
           .from('tests')
           .select()
@@ -277,7 +328,9 @@ class CatalogRepository {
       return _mockTestsCache[cacheKey]!;
     }
 
-    final res = await _fetch((db) {
+    final res = await _cachedFetch('mock_tests:$cacheKey', _catalogMaxAge, (
+      db,
+    ) {
       var query = db.from('tests').select();
       if (hasExam) query = query.eq('exam_id', examId);
       return query.eq('is_active', true).order('created_at', ascending: true);
@@ -302,18 +355,22 @@ class CatalogRepository {
       if (supa != null) {
         // Tier 1: Try public.live_tests table
         try {
-          var query = supa
-              .from('live_tests')
-              .select('*, tests(*)')
-              .eq('is_published', true);
-
-          if (examId != null && examId.isNotEmpty) {
-            query = query.eq('exam_id', examId);
-          }
-
-          final res = await query
-              .order('start_at', ascending: true)
-              .timeout(_timeout);
+          // Live/upcoming status is worked out from start/end times on every
+          // read, so a few minutes' saved copy never shows a finished test.
+          final res = await _cachedFetch(
+            'live_tests:$cacheKey',
+            _liveTestsMaxAge,
+            (db) {
+              var query = db
+                  .from('live_tests')
+                  .select('*, tests(*)')
+                  .eq('is_published', true);
+              if (examId != null && examId.isNotEmpty) {
+                query = query.eq('exam_id', examId);
+              }
+              return query.order('start_at', ascending: true);
+            },
+          );
 
           if (res.isNotEmpty) {
             final list = res.map((e) => LiveTestModel.fromJson(e)).toList();
