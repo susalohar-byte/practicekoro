@@ -137,7 +137,7 @@ void main() {
     test('defaultBanner provides authentic PracticeKoro HD banner', () {
       const banner = HeroBannerModel.defaultBanner;
       expect(banner.id, 'default_hero_banner');
-      expect(banner.imageUrl, 'assets/images/hero_banner_hd.png');
+      expect(banner.imageUrl, 'assets/images/hero_banner_hd.webp');
       expect(banner.isNetworkImage, isFalse);
       expect(banner.isActive, isTrue);
       expect(banner.isCurrentlyLive, isTrue);
@@ -150,7 +150,7 @@ void main() {
       final banners = await repo.getActiveHomeBanners();
       expect(banners, isNotEmpty);
       expect(banners.first.id, 'default_hero_banner');
-      expect(banners.first.imageUrl, 'assets/images/hero_banner_hd.png');
+      expect(banners.first.imageUrl, 'assets/images/hero_banner_hd.webp');
     });
   });
 }

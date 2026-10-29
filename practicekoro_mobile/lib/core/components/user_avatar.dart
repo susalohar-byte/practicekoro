@@ -194,7 +194,7 @@ class UserAvatar extends ConsumerWidget {
 
   Widget _buildFallback(String initial) {
     return Image.asset(
-      'assets/images/logo-circle.png',
+      'assets/images/logo-circle.webp',
       fit: BoxFit.cover,
       width: size,
       height: size,

@@ -1,6 +1,8 @@
 import { Plus, X } from 'lucide-react';
 import { isMathematicsSubject } from '@/utils/shortNotes';
 import { Button } from '@/components/common/Button';
+import { cn } from '@/lib/utils';
+import { bengaliFontClass } from '../questionBank/questionBankUtils';
 import type { MockTest } from '@/types';
 import type { AdminTestQuestionsState } from './useAdminTestQuestions';
 
@@ -73,7 +75,7 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                     rows={3}
                     value={newQuestionText}
                     onChange={(e) => setNewQuestionText(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF] font-tiro"
                     placeholder="সম্পূর্ণ প্রশ্নটি বাংলা ভাষায় লিখুন..."
                   />
                 </div>
@@ -100,7 +102,7 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                       rows={2}
                       value={newQuestionBengali}
                       onChange={(e) => setNewQuestionBengali(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF] font-tiro"
                       placeholder="বাংলায় প্রশ্ন লিখুন (ঐচ্ছিক)"
                     />
                   </div>
@@ -116,7 +118,10 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                     type="text"
                     value={newOptionA}
                     onChange={(e) => setNewOptionA(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]',
+                      bengaliFontClass(newOptionA)
+                    )}
                   />
                 </div>
                 <div>
@@ -127,7 +132,10 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                     type="text"
                     value={newOptionB}
                     onChange={(e) => setNewOptionB(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]',
+                      bengaliFontClass(newOptionB)
+                    )}
                   />
                 </div>
                 <div>
@@ -138,7 +146,10 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                     type="text"
                     value={newOptionC}
                     onChange={(e) => setNewOptionC(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]',
+                      bengaliFontClass(newOptionC)
+                    )}
                   />
                 </div>
                 <div>
@@ -149,7 +160,10 @@ export function CreateQuestionModal({ testQuestionsState, test }: CreateQuestion
                     type="text"
                     value={newOptionD}
                     onChange={(e) => setNewOptionD(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]"
+                    className={cn(
+                      'w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#070d1d] border border-slate-200 dark:border-[#192b57] text-slate-900 dark:text-white focus:outline-none focus:border-[#0075FF]',
+                      bengaliFontClass(newOptionD)
+                    )}
                   />
                 </div>
               </div>

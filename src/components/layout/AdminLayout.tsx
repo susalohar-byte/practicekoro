@@ -772,6 +772,7 @@ export const AdminLayout: React.FC = () => {
                   src={user.avatarUrl}
                   alt={user?.fullName || 'Susanta Lohar'}
                   className="w-full h-full object-cover rounded-full"
+                  referrerPolicy="no-referrer"
                   onError={() => setSidebarAvatarFailed(true)}
                 />
               ) : (
@@ -818,6 +819,7 @@ export const AdminLayout: React.FC = () => {
                       src={user.avatarUrl}
                       alt={user?.fullName || 'Susanta Lohar'}
                       className="w-full h-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
                       onError={() => setSidebarAvatarFailed(true)}
                     />
                   ) : (
@@ -939,6 +941,7 @@ export const AdminLayout: React.FC = () => {
                       src={user.avatarUrl}
                       alt={user?.fullName || 'Admin'}
                       className="w-full h-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
                       onError={() => setHeaderAvatarFailed(true)}
                     />
                   ) : (
@@ -975,6 +978,7 @@ export const AdminLayout: React.FC = () => {
                           src={user.avatarUrl}
                           alt={user?.fullName || 'Admin'}
                           className="w-full h-full object-cover rounded-full"
+                          referrerPolicy="no-referrer"
                           onError={() => setHeaderAvatarFailed(true)}
                         />
                       ) : (

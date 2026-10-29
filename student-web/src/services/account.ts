@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { AppError } from '@/lib/errors';
 import { num } from '@/lib/format';
+import { writeSavedQuestion } from '@/lib/savedQuestions';
 import type {
   AppNotification,
   Bookmark,
@@ -569,16 +570,62 @@ export async function fetchNotifications(): Promise<AppNotification[]> {
 export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
   const { data, error } = await supabase
     .from('bookmarks')
-    .select('id, question_id, note, created_at')
+    .select(`
+      id,
+      question_id,
+      note,
+      created_at,
+      questions (
+        id,
+        question_text,
+        question_bengali_text,
+        option_a,
+        option_b,
+        option_c,
+        option_d,
+        correct_option,
+        explanation,
+        explanation_bengali,
+        difficulty,
+        image_url
+      )
+    `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((r: Row) => ({
-    id: String(r.id),
-    questionId: String(r.question_id),
-    note: r.note ?? null,
-    createdAt: new Date(r.created_at),
-  }));
+  return (data ?? []).map((r: Row) => {
+    if (r.questions) {
+      const q = r.questions;
+      writeSavedQuestion(userId, {
+        id: String(q.id),
+        order: 0,
+        textEnglish: q.question_text || '',
+        textBengali: q.question_bengali_text || null,
+        imageUrl: q.image_url || null,
+        options: {
+          A: q.option_a || '',
+          B: q.option_b || '',
+          C: q.option_c || '',
+          D: q.option_d || '',
+        },
+        marks: 1,
+        negativeMarks: 0.25,
+        selected: null,
+        correct: (q.correct_option as any) || 'A',
+        isCorrect: false,
+        marksAwarded: 0,
+        explanation: q.explanation || null,
+        explanationBengali: q.explanation_bengali || null,
+        isBookmarked: true,
+      });
+    }
+    return {
+      id: String(r.id),
+      questionId: String(r.question_id),
+      note: r.note ?? null,
+      createdAt: new Date(r.created_at),
+    };
+  });
 }
 
 export async function addBookmark(userId: string, questionId: string): Promise<void> {

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../core/components/ui.dart';
 import 'widgets/onboarding_illustrations.dart';
 import 'widgets/practicekoro_wordmark.dart';
@@ -11,9 +10,8 @@ import 'widgets/practicekoro_wordmark.dart';
 /// Set once the student has seen (or skipped) onboarding.
 const onboardingDoneKey = 'onboarding_done';
 
-/// Brand splash: the PracticeKoro logo pops in with a slight turn and a ripple
-/// of brand blue, the wordmark slides up after it, then the logo glows gently
-/// until the app moves on.
+/// Brand splash: displays the official PracticeKoro app logo, brand typography,
+/// and motivational tagline with a smooth fade-in entrance before transitioning.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -22,96 +20,43 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  static const _brandBlue = Color(0xFF0158FC);
-
-  final bool _isTestEnvironment = WidgetsBinding.instance.runtimeType
-      .toString()
-      .contains('Test');
-
-  /// One-shot entrance; each element runs in its own Interval of it.
-  late final AnimationController _entrance = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1000),
-  );
-
-  /// Gentle glow after the entrance. Not started in tests, where a repeating
-  /// animation would never let pumpAndSettle finish.
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1300),
-  );
-
-  // Starts at 0.35 opacity so the logo is visible on the very first frame.
-  late final Animation<double> _logoFade = Tween<double>(begin: 0.35, end: 1)
-      .animate(
-        CurvedAnimation(
-          parent: _entrance,
-          curve: const Interval(0, 0.4, curve: Curves.easeOut),
-        ),
-      );
-  late final Animation<double> _logoScale = Tween<double>(begin: 0.7, end: 1)
-      .animate(
-        CurvedAnimation(
-          parent: _entrance,
-          curve: const Interval(0, 0.6, curve: Curves.easeOutBack),
-        ),
-      );
-  late final Animation<double> _logoTurn = Tween<double>(begin: -0.04, end: 0)
-      .animate(
-        CurvedAnimation(
-          parent: _entrance,
-          curve: const Interval(0, 0.6, curve: Curves.easeOutCubic),
-        ),
-      );
-  late final Animation<double> _ripple = CurvedAnimation(
-    parent: _entrance,
-    curve: const Interval(0.2, 0.9, curve: Curves.easeOut),
-  );
-  late final Animation<double> _wordmarkFade = CurvedAnimation(
-    parent: _entrance,
-    curve: const Interval(0.4, 0.85, curve: Curves.easeOut),
-  );
-  late final Animation<Offset> _wordmarkSlide =
-      Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-        CurvedAnimation(
-          parent: _entrance,
-          curve: const Interval(0.4, 0.9, curve: Curves.easeOutCubic),
-        ),
-      );
-  late final Animation<double> _glow = CurvedAnimation(
-    parent: _pulse,
-    curve: Curves.easeInOut,
-  );
-
-  bool _started = false;
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _scaleAnim;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+
+    // Start with 0.35 opacity so the logo is immediately visible on first frame
+    _fadeAnim = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _scaleAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    _animController.forward();
     _navigateToNext();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    // Respect the system "remove animations" setting: show the final frame.
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
-      _entrance.value = 1;
-      return;
-    }
-    _entrance.forward().whenComplete(() {
-      if (mounted && !_isTestEnvironment) _pulse.repeat(reverse: true);
-    });
-  }
-
   Future<void> _navigateToNext() async {
-    final isTestEnvironment = _isTestEnvironment;
-    final waitDuration = isTestEnvironment
-        ? Duration.zero
-        : const Duration(milliseconds: 1700);
+    final isTestEnvironment =
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final waitDuration =
+        isTestEnvironment ? Duration.zero : const Duration(milliseconds: 1700);
 
     if (waitDuration > Duration.zero) {
       await Future.delayed(waitDuration);
@@ -130,58 +75,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _entrance.dispose();
-    _pulse.dispose();
+    _animController.dispose();
     super.dispose();
-  }
-
-  Widget _logo() {
-    return AnimatedBuilder(
-      animation: _glow,
-      builder: (context, child) {
-        final g = _glow.value;
-        return Transform.scale(
-          scale: 1 + 0.03 * g,
-          child: Container(
-            width: 108,
-            height: 108,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                BoxShadow(
-                  color: _brandBlue.withValues(alpha: 0.22 + 0.12 * g),
-                  blurRadius: 36 + 14 * g,
-                  offset: const Offset(0, 12),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: child,
-          ),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: Image.asset(
-          'assets/images/logo-icon.png',
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, _, _) => Container(
-            color: UI.brand,
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.school_rounded,
-              color: Colors.white,
-              size: 54,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -201,63 +96,56 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // App icon: pops in with a slight turn over a fading ripple.
-                SizedBox(
-                  width: 108,
-                  height: 108,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _ripple,
-                        builder: (context, _) {
-                          final t = _ripple.value;
-                          return Opacity(
-                            opacity: (1 - t) * 0.45,
-                            child: Transform.scale(
-                              scale: 0.85 + 0.75 * t,
-                              child: Container(
-                                width: 108,
-                                height: 108,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: _brandBlue,
-                                    width: 2.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App Icon Logo: high-res squircle with ambient glow
+                    Container(
+                      width: 108,
+                      height: 108,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(26),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0158FC).withValues(alpha: 0.22),
+                            blurRadius: 36,
+                            offset: const Offset(0, 12),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      FadeTransition(
-                        opacity: _logoFade,
-                        child: ScaleTransition(
-                          scale: _logoScale,
-                          child: RotationTransition(
-                            turns: _logoTurn,
-                            child: _logo(),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(26),
+                        child: Image.asset(
+                          'assets/images/logo-icon.webp',
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, _, _) => Container(
+                            color: UI.brand,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.school_rounded,
+                              color: Colors.white,
+                              size: 54,
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-                // Official Brand Typography: PracticeKoro Wordmark
-                FadeTransition(
-                  opacity: _wordmarkFade,
-                  child: SlideTransition(
-                    position: _wordmarkSlide,
-                    child: Image.asset(
-                      'assets/images/logo-text.png',
+                    // Official Brand Typography: PracticeKoro Wordmark
+                    Image.asset(
+                      'assets/images/logo-text.webp',
                       height: 38,
                       fit: BoxFit.contain,
                       filterQuality: FilterQuality.high,
@@ -281,9 +169,9 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

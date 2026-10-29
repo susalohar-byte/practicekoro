@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Shield, BookOpen, X, AlertTriangle } from 'lucide-react';
-import { QuestionBankStatus } from './questionBankUtils';
+import { QuestionBankStatus, bengaliFontClass } from './questionBankUtils';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
@@ -306,7 +306,7 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                     checkDuplicate(e.target.value);
                   }}
                   placeholder="যেমন: ভারতের প্রথম গভর্নর-জেনারেল কে ছিলেন?"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none font-tiro"
                 />
               </div>
 
@@ -347,7 +347,10 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                         value={val}
                         onChange={(e) => setVal(e.target.value)}
                         placeholder={`Option ${opt} text`}
-                        className="w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 font-semibold"
+                        className={cn(
+                          'w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 font-semibold',
+                          bengaliFontClass(val)
+                        )}
                       />
                     </div>
                   );
@@ -364,7 +367,10 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   value={addExplanation}
                   onChange={(e) => setAddExplanation(e.target.value)}
                   placeholder="Concise explanation of the correct answer..."
-                  className="w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 resize-none"
+                  className={cn(
+                    'w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 resize-none',
+                    bengaliFontClass(addExplanation)
+                  )}
                 />
               </div>
 

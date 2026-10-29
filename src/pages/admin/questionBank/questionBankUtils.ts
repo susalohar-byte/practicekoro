@@ -21,3 +21,18 @@ export function withCurrentOption(options: string[], current: string): string[] 
   const unique = Array.from(new Set(options.filter(Boolean)));
   return current && !unique.includes(current) ? [current, ...unique] : unique;
 }
+
+/**
+ * Detects whether a string contains Bengali Unicode characters (U+0980 to U+09FF).
+ */
+export function hasBengali(text?: string | null): boolean {
+  if (!text) return false;
+  return /[\u0980-\u09FF]/.test(text);
+}
+
+/**
+ * Returns 'font-tiro' class when Bengali text is detected or explicitly required.
+ */
+export function bengaliFontClass(text?: string | null, force = false): string {
+  return force || hasBengali(text) ? 'font-tiro' : '';
+}

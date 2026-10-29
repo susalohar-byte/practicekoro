@@ -1267,12 +1267,11 @@ class _FaqTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: UI.line),
       ),
-      // Own Material so the tile's ink splash shows above the white card.
       child: Material(
-        type: MaterialType.transparency,
+        color: Colors.transparent,
         child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
           iconColor: UI.primary,
           collapsedIconColor: UI.muted,
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -1299,7 +1298,7 @@ class _FaqTile extends StatelessWidget {
           ],
         ),
       ),
-      ),
-    );
+    ),
+  );
   }
 }

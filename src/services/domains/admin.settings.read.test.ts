@@ -4,8 +4,17 @@ vi.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
   supabaseRuntime: { ...mocks, functions: { invoke: mocks.invoke } },
 }));
-import { getAppSettings, getPaymentGatewayConfig, sendTestEmail } from './admin.settings';
-beforeEach(() => vi.clearAllMocks());
+import {
+  getAppSettings,
+  getPaymentGatewayConfig,
+  invalidateAppSettingsCache,
+  sendTestEmail,
+} from './admin.settings';
+// getAppSettings keeps a 5-minute in-memory cache; each test needs a fresh read.
+beforeEach(() => {
+  vi.clearAllMocks();
+  invalidateAppSettingsCache();
+});
 it('rejects production settings permission failures instead of returning local defaults', async () => {
   mocks.from.mockReturnValue({
     select: async () => ({ data: null, error: { message: 'permission denied' } }),

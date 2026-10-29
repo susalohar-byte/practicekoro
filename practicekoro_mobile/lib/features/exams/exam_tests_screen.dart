@@ -366,7 +366,7 @@ class _ExamHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ExamLogo(title, assetOverride: logo, size: 64),
+          ExamLogo(title ?? exam?.title, iconUrl: logo ?? exam?.iconName, size: 64),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

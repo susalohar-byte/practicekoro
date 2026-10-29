@@ -79,6 +79,7 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans)'],
+        tiro: ['"Tiro Bangla"', '"Noto Serif Bengali"', 'serif'],
         headline: ['"Hind Siliguri"', '"Anek Bangla"', '"Noto Sans Bengali"', 'sans-serif'],
         letterpress: [
           '"Li Subha Letterpress Unicode"',

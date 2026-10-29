@@ -402,7 +402,8 @@ export const bannerService = {
       }
     }
 
-    return { url: opt.dataUrl, optimization: opt };
+    // Local / Offline fallback: preview URL only
+    return { url: opt.dataUrl || '/images/exam_hero_banner.png', optimization: opt };
   },
 
   /**

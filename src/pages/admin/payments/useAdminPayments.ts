@@ -214,16 +214,48 @@ export function useAdminPayments() {
 
   const totalPayments = periodPayments.length;
 
+  const totalVolume = useMemo(() => {
+    return periodPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  }, [periodPayments]);
+
   const successfulPayments = useMemo(() => {
     return periodPayments.filter((p) => p.status === 'Success').length;
+  }, [periodPayments]);
+
+  const successfulAmount = useMemo(() => {
+    return periodPayments
+      .filter((p) => p.status === 'Success')
+      .reduce((sum, p) => sum + retainedPaymentAmount(p.sourcePayment), 0);
+  }, [periodPayments]);
+
+  const pendingPayments = useMemo(() => {
+    return periodPayments.filter((p) => p.status === 'Pending').length;
+  }, [periodPayments]);
+
+  const pendingAmount = useMemo(() => {
+    return periodPayments
+      .filter((p) => p.status === 'Pending')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [periodPayments]);
 
   const failedPayments = useMemo(() => {
     return periodPayments.filter((p) => p.status === 'Failed').length;
   }, [periodPayments]);
 
+  const failedAmount = useMemo(() => {
+    return periodPayments
+      .filter((p) => p.status === 'Failed')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  }, [periodPayments]);
+
   const refundedPayments = useMemo(() => {
     return periodPayments.filter((p) => p.status === 'Refunded').length;
+  }, [periodPayments]);
+
+  const refundedAmount = useMemo(() => {
+    return periodPayments
+      .filter((p) => p.status === 'Refunded')
+      .reduce((sum, p) => sum + recordedRefundAmount(p.sourcePayment), 0);
   }, [periodPayments]);
 
   const successRate =
@@ -466,9 +498,15 @@ export function useAdminPayments() {
     cashFlowStats,
     totalRevenue,
     totalPayments,
+    totalVolume,
     successfulPayments,
+    successfulAmount,
+    pendingPayments,
+    pendingAmount,
     failedPayments,
+    failedAmount,
     refundedPayments,
+    refundedAmount,
     successRate,
     methodsList,
     topMethod,

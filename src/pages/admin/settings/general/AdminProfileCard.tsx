@@ -42,6 +42,7 @@ export function AdminProfileCard({ settings }: AdminProfileCardProps) {
                     src={currentAdmin.avatarUrl}
                     alt={currentAdmin?.fullName || 'Super Admin'}
                     className="w-full h-full object-cover rounded-full"
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <span>{currentAdmin?.fullName?.charAt(0) || 'S'}</span>

@@ -22,17 +22,32 @@ import type {
 /** Large list rows that their own screens load; the site-wide settings poll skips them. */
 const LIST_SETTING_IDS = ['banners_hero_list', 'blog_posts_list', 'live_tests_schedule_list'];
 
+// Short in-memory cache (per mode) so repeated reads in one tab don't hit Supabase again.
+const SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+const settingsCache = new Map<'all' | 'noLists', { rows: AppSettingItem[]; expiresAt: number }>();
+
+export function invalidateAppSettingsCache(): void {
+  settingsCache.clear();
+}
+
 export async function getAppSettings(
-  options: { skipLists?: boolean } = {}
+  options: { skipLists?: boolean; forceRefresh?: boolean } = {}
 ): Promise<AppSettingItem[]> {
   if (!isSupabaseConfigured) return [...localAppSettings];
+
+  const mode = options.skipLists ? 'noLists' : 'all';
+  const now = Date.now();
+  const hit = settingsCache.get(mode);
+  if (!options.forceRefresh && hit && now < hit.expiresAt) return hit.rows;
+
   const query = supabase.from('app_settings').select('*');
   const { data, error } = await (options.skipLists
     ? query.not('id', 'in', `(${LIST_SETTING_IDS.join(',')})`)
     : query);
   if (error) throw new Error(error.message);
   if (!Array.isArray(data)) throw new Error('Settings response was not confirmed.');
-  return data.map((d: any) => ({
+
+  const mapped = data.map((d: any) => ({
     id: d.id,
     category: d.category,
     key: d.key,
@@ -40,6 +55,9 @@ export async function getAppSettings(
     description: d.description || undefined,
     updatedAt: d.updated_at,
   }));
+
+  settingsCache.set(mode, { rows: mapped, expiresAt: now + SETTINGS_CACHE_TTL_MS });
+  return mapped;
 }
 
 export async function updateAppSetting(
@@ -249,6 +267,7 @@ export async function updateAppSettings(
       }
     });
 
+  invalidateAppSettingsCache();
   return { success: true };
 }
 
