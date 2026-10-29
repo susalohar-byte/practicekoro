@@ -35,6 +35,16 @@ it('returns only authoritative records, with no demo defaults merged in', async 
   expect(result).toHaveLength(1);
   expect(result[0].value).toBe('Saved Name');
 });
+it('leaves the large list rows out of the site-wide settings poll', async () => {
+  const not = vi.fn(async () => ({ data: [], error: null }));
+  mocks.from.mockReturnValue({ select: () => ({ not }) });
+  await expect(getAppSettings({ skipLists: true })).resolves.toEqual([]);
+  expect(not).toHaveBeenCalledWith(
+    'id',
+    'in',
+    '(banners_hero_list,blog_posts_list,live_tests_schedule_list)'
+  );
+});
 it('rejects payment gateway permission failures without local fallback', async () => {
   mocks.rpc.mockResolvedValue({ data: null, error: { message: 'gateway access denied' } });
   await expect(getPaymentGatewayConfig()).rejects.toThrow('gateway access denied');
