@@ -392,10 +392,8 @@ export const bannerService = {
           // Direct storage upload fallback not available
         }
 
-        // Fallback 2: Return client-optimized, compressed data URL (< 250 KB)
-        if (opt.dataUrl && opt.dataUrl.length < 500000) {
-          return { url: opt.dataUrl, optimization: opt };
-        }
+        // Never store the image inline as a data URL: every banner read would
+        // then download the whole image from the database and burn egress.
         throw uploadErr;
       }
     }
