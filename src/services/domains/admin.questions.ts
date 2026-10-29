@@ -20,11 +20,15 @@ import {
 import type { Question } from '@/types';
 
 function enrichQuestionWithTaxonomy(q: Question): Question {
+  // Names from the demo taxonomy only fill gaps in demo mode; live rows carry their own.
   const subjectName =
-    q.subjectName || localSubjects.find((s) => s.id === q.subjectId)?.name || undefined;
+    q.subjectName ||
+    (isSupabaseConfigured ? undefined : localSubjects.find((s) => s.id === q.subjectId)?.name);
   const chapId = q.chapterId || q.topicId;
   const chapterName =
-    q.chapterName || q.topicName || localChapters.find((c) => c.id === chapId)?.name || undefined;
+    q.chapterName ||
+    q.topicName ||
+    (isSupabaseConfigured ? undefined : localChapters.find((c) => c.id === chapId)?.name);
   return {
     ...q,
     subjectName,

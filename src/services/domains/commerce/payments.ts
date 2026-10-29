@@ -266,9 +266,9 @@ export const paymentsApi = {
       }
     }
 
-    // 4. Always synchronize local storage stores (for demo mode / offline consistency)
+    // 4. Demo engine only: synchronize the local stores
     try {
-      if (typeof window !== 'undefined') {
+      if (!isSupabaseConfigured && typeof window !== 'undefined') {
         const storedPayments = localStorage.getItem('practicekoro_payments');
         if (storedPayments) {
           const list = JSON.parse(storedPayments) as AdminPaymentRow[];

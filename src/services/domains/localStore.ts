@@ -5,6 +5,7 @@ import {
   MOCK_TESTS,
   MOCK_QUESTIONS,
 } from '@/services/mockData';
+import { STANDARD_EXAM_CATEGORIES } from './examCategoryDefaults';
 import type { Database } from '@/types/database';
 import type {
   AttemptAnswerState,
@@ -992,13 +993,7 @@ export const localLiveTestParticipations: LiveTestParticipation[] = [
   },
 ];
 
-export const localExamCategories: ExamCategory[] = [
-  { id: 'cat_wb_police', name: 'WB Police (WBP / KP)', orderIndex: 1, isActive: true },
-  { id: 'cat_wbpsc', name: 'WBPSC (Clerkship / WBCS)', orderIndex: 2, isActive: true },
-  { id: 'cat_teaching', name: 'Teaching (TET / SLST)', orderIndex: 3, isActive: true },
-  { id: 'cat_ssc', name: 'SSC & Central Govt.', orderIndex: 4, isActive: true },
-  { id: 'cat_railways', name: 'Railways (RRB)', orderIndex: 5, isActive: true },
-];
+export const localExamCategories: ExamCategory[] = STANDARD_EXAM_CATEGORIES.map((c) => ({ ...c }));
 
 // Local test-question assignments store for offline demo
 export const localTestQuestions: {

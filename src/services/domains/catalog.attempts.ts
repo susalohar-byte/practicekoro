@@ -146,8 +146,8 @@ export const catalogAttemptsApi = {
       }
     }
 
-    // Local in-memory sync
-    if (localAttemptsStore[attemptId]) {
+    // Demo engine only: local in-memory sync
+    if (!isSupabaseConfigured && localAttemptsStore[attemptId]) {
       localAttemptsStore[attemptId].attempt.timeSpentSeconds = timeSpentSeconds;
       answers.forEach((ans) => {
         localAttemptsStore[attemptId].answers[ans.questionId] = ans;
