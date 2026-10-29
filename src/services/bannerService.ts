@@ -381,7 +381,11 @@ export const bannerService = {
           const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
           const { error: directErr } = await supabaseRuntime.storage
             .from('banners')
-            .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: true });
+            .upload(path, fileToUpload, {
+              contentType: fileToUpload.type,
+              cacheControl: '31536000',
+              upsert: true,
+            });
           if (!directErr) {
             const { data: pubData } = supabaseRuntime.storage.from('banners').getPublicUrl(path);
             if (pubData?.publicUrl) {
@@ -392,15 +396,17 @@ export const bannerService = {
           // Direct storage upload fallback not available
         }
 
-        // Fallback 2: Return client-optimized, compressed data URL (< 250 KB)
-        if (opt.dataUrl && opt.dataUrl.length < 500000) {
-          return { url: opt.dataUrl, optimization: opt };
-        }
-        throw uploadErr;
+        // Never fallback to storing large base64 data URLs in database rows (major Supabase egress leak)
+        throw new Error(
+          uploadErr instanceof Error
+            ? `Banner upload failed: ${uploadErr.message}`
+            : 'Banner image upload failed. Please verify storage permissions.'
+        );
       }
     }
 
-    return { url: opt.dataUrl, optimization: opt };
+    // Local / Offline fallback: preview URL only
+    return { url: opt.dataUrl || '/images/exam_hero_banner.png', optimization: opt };
   },
 
   /**

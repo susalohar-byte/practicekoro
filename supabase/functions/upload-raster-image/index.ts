@@ -112,7 +112,7 @@ Deno.serve(async (req: Request) => {
     const path = `${auth.user.id}/${crypto.randomUUID()}.png`;
     const { error } = await service.storage
       .from(bucket)
-      .upload(path, safe, { contentType: 'image/png', upsert: false, cacheControl: '3600' });
+      .upload(path, safe, { contentType: 'image/png', upsert: false, cacheControl: '31536000' });
     if (error) return respond('Durable upload failed', 502);
     const publicUrl = service.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     return new Response(JSON.stringify({ success: true, publicUrl, path }), { headers });

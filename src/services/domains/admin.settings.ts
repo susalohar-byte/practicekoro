@@ -20,12 +20,28 @@ import type {
 // --------------------------------------------------------------------------
 // APP SETTINGS API
 // --------------------------------------------------------------------------
-export async function getAppSettings(): Promise<AppSettingItem[]> {
+let cachedSettings: AppSettingItem[] | null = null;
+let cachedSettingsExpiresAt = 0;
+const SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache to save Supabase egress
+
+export function invalidateAppSettingsCache(): void {
+  cachedSettings = null;
+  cachedSettingsExpiresAt = 0;
+}
+
+export async function getAppSettings(forceRefresh = false): Promise<AppSettingItem[]> {
   if (!isSupabaseConfigured) return [...localAppSettings];
+
+  const now = Date.now();
+  if (!forceRefresh && cachedSettings && now < cachedSettingsExpiresAt) {
+    return cachedSettings;
+  }
+
   const { data, error } = await supabase.from('app_settings').select('*');
   if (error) throw new Error(error.message);
   if (!Array.isArray(data)) throw new Error('Settings response was not confirmed.');
-  return data.map((d: any) => ({
+
+  const mapped = data.map((d: any) => ({
     id: d.id,
     category: d.category,
     key: d.key,
@@ -33,6 +49,10 @@ export async function getAppSettings(): Promise<AppSettingItem[]> {
     description: d.description || undefined,
     updatedAt: d.updated_at,
   }));
+
+  cachedSettings = mapped;
+  cachedSettingsExpiresAt = now + SETTINGS_CACHE_TTL_MS;
+  return mapped;
 }
 
 export async function updateAppSetting(
@@ -241,6 +261,7 @@ export async function updateAppSettings(
     }
   });
 
+  invalidateAppSettingsCache();
   return { success: true };
 }
 

@@ -1,6 +1,6 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Exam, Subject, Chapter } from '@/types';
-import type { ChapterRow, ExamRow, SubjectRow } from '@/services/domains/localStore';
+import type { ChapterRow, SubjectRow } from '@/services/domains/localStore';
 
 /** Section of the student catalog API: daily content, leaderboard, live updates, exams, subjects & chapters (split from domains/catalog.ts, same behaviour). */
 export const catalogContentApi = {
@@ -61,7 +61,7 @@ export const catalogContentApi = {
     const [examsRes, testsRes, testExamsRes] = await Promise.all([
       supabase
         .from('exams')
-        .select('*')
+        .select('id, title, slug, description, category, icon_name, banner_url, order_index, is_active')
         .eq('is_active', true)
         .order('order_index', { ascending: true }),
       supabase
@@ -79,7 +79,7 @@ export const catalogContentApi = {
     if (data.length === 0) return [];
 
     const statsMap: Record<string, { testsCount: number; questionsCount: number }> = {};
-    data.forEach((e: ExamRow) => {
+    data.forEach((e: { id: string }) => {
       statsMap[e.id] = { testsCount: 0, questionsCount: 0 };
     });
 
@@ -103,7 +103,7 @@ export const catalogContentApi = {
       );
     }
 
-    return (data as ExamRow[]).map((item) => ({
+    return (data as any[]).map((item) => ({
       id: item.id,
       title: item.title,
       slug: item.slug,
@@ -119,8 +119,48 @@ export const catalogContentApi = {
   },
 
   async getExamBySlug(slug: string): Promise<Exam | null> {
-    const exams = await this.getExams();
-    return exams.find((e) => e.slug === slug || e.id === slug) || null;
+    if (!isSupabaseConfigured) return null;
+    const { data: item, error } = await supabase
+      .from('exams')
+      .select('id, title, slug, description, category, icon_name, banner_url, order_index, is_active')
+      .or(`slug.eq.${slug},id.eq.${slug}`)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error || !item) return null;
+
+    const [testsCountRes, questionsRes] = await Promise.all([
+      supabase
+        .from('tests')
+        .select('*', { count: 'exact', head: true })
+        .eq('exam_id', item.id)
+        .eq('is_active', true)
+        .eq('status', 'published'),
+      supabase
+        .from('tests')
+        .select('total_questions')
+        .eq('exam_id', item.id)
+        .eq('is_active', true)
+        .eq('status', 'published'),
+    ]);
+
+    const totalQ = (questionsRes.data || []).reduce(
+      (acc: number, t: { total_questions?: number | null }) => acc + (t.total_questions || 0),
+      0
+    );
+
+    return {
+      id: item.id,
+      title: item.title,
+      slug: item.slug,
+      description: item.description ?? undefined,
+      category: item.category,
+      iconName: item.icon_name,
+      bannerUrl: item.banner_url ?? undefined,
+      orderIndex: item.order_index,
+      isActive: item.is_active,
+      testsCount: testsCountRes.count ?? 0,
+      questionsCount: totalQ,
+    };
   },
 
   async getSubjects(examId?: string): Promise<Subject[]> {
@@ -128,7 +168,7 @@ export const catalogContentApi = {
     try {
       let query = supabase
         .from('subjects')
-        .select('*')
+        .select('id, exam_id, name, slug, description, icon_name, order_index, is_active')
         .eq('is_active', true)
         .order('order_index', { ascending: true });
 
@@ -159,7 +199,7 @@ export const catalogContentApi = {
     try {
       const { data, error } = await supabase
         .from('chapters')
-        .select('*')
+        .select('id, subject_id, name, slug, description, icon_name, order_index, is_active')
         .eq('subject_id', subjectId)
         .eq('is_active', true)
         .order('order_index', { ascending: true });
@@ -187,7 +227,7 @@ export const catalogContentApi = {
     try {
       const { data, error } = await supabase
         .from('chapters')
-        .select('*')
+        .select('id, subject_id, name, slug, description, icon_name, parent_id, order_index, is_active')
         .eq('is_active', true)
         .order('order_index', { ascending: true });
       if (error || !data || data.length === 0) return [];

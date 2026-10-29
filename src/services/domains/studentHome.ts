@@ -96,14 +96,14 @@ function subscribeToTables(
 
 export function subscribeToStudentCatalogUpdates(callback: () => void): () => void {
   return subscribeToTables(
-    `student-catalog-${crypto.randomUUID()}`,
+    'student-catalog-channel',
     ['test_series', 'tests', 'test_exams'],
     callback
   );
 }
 
 export function subscribeToPopularExamUpdates(callback: () => void): () => void {
-  return subscribeToTables(`popular-exams-${crypto.randomUUID()}`, ['app_settings'], callback);
+  return subscribeToTables('popular-exams-channel', ['app_settings'], callback);
 }
 
 export const studentHomeApi = {

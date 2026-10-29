@@ -72,34 +72,40 @@ export const analyticsApi = {
           subjectsRes,
           chaptersRes,
           testSeriesRes,
-          testsRes,
-          questionsRes,
-          attemptsRes,
+          totalTestsRes,
+          publishedTestsRes,
+          draftTestsRes,
+          archivedTestsRes,
+          totalQuestionsRes,
+          activeQuestionsRes,
+          totalAttemptsRes,
+          completedAttemptsRes,
           profilesRes,
         ] = await Promise.all([
           supabase.from('exams').select('*', { count: 'exact', head: true }),
           supabase.from('subjects').select('*', { count: 'exact', head: true }),
           supabase.from('chapters').select('*', { count: 'exact', head: true }),
           supabase.from('test_series').select('*', { count: 'exact', head: true }),
-          supabase.from('tests').select('status'),
-          supabase.from('questions').select('is_active, status'),
-          supabase.from('test_attempts').select('status'),
+          supabase.from('tests').select('*', { count: 'exact', head: true }),
+          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'published'),
+          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'archived'),
+          supabase.from('questions').select('*', { count: 'exact', head: true }),
+          supabase
+            .from('questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+            .neq('status', 'archived'),
+          supabase.from('test_attempts').select('*', { count: 'exact', head: true }),
+          supabase
+            .from('test_attempts')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'completed'),
           supabase
             .from('profiles')
             .select('*', { count: 'exact', head: true })
             .eq('role', 'student'),
         ]);
-
-        const tests = (Array.isArray(testsRes.data) ? testsRes.data : []) as {
-          status: string | null;
-        }[];
-        const questions = (Array.isArray(questionsRes.data) ? questionsRes.data : []) as {
-          is_active: boolean | null;
-          status: string | null;
-        }[];
-        const attempts = (Array.isArray(attemptsRes.data) ? attemptsRes.data : []) as {
-          status: string | null;
-        }[];
 
         return {
           totalExams: examsRes.count ?? 0,
@@ -107,14 +113,14 @@ export const analyticsApi = {
           totalSubjects: subjectsRes.count ?? 0,
           totalChapters: chaptersRes.count ?? 0,
           totalTestSeries: testSeriesRes.count ?? 0,
-          totalTests: tests.length,
-          publishedTests: tests.filter((t) => t.status === 'published').length,
-          draftTests: tests.filter((t) => t.status === 'draft').length,
-          archivedTests: tests.filter((t) => t.status === 'archived').length,
-          totalQuestions: questions.length,
-          activeQuestions: questions.filter((q) => q.is_active && q.status !== 'archived').length,
-          totalAttempts: attempts.length,
-          completedAttempts: attempts.filter((a) => a.status === 'completed').length,
+          totalTests: totalTestsRes.count ?? 0,
+          publishedTests: publishedTestsRes.count ?? 0,
+          draftTests: draftTestsRes.count ?? 0,
+          archivedTests: archivedTestsRes.count ?? 0,
+          totalQuestions: totalQuestionsRes.count ?? 0,
+          activeQuestions: activeQuestionsRes.count ?? 0,
+          totalAttempts: totalAttemptsRes.count ?? 0,
+          completedAttempts: completedAttemptsRes.count ?? 0,
           totalStudents: profilesRes.count ?? 0,
         };
       } catch (err) {

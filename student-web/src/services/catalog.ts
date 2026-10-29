@@ -138,10 +138,17 @@ export function paperYear(t: MockTest): number | null {
 const TEST_COLUMNS =
   'id, exam_id, subject_id, chapter_id, test_series_id, title, description, test_type, duration_minutes, total_questions, total_marks, passing_marks, negative_marking, is_premium, order_index, created_at, year, paper_name, shift, exam_date, icon_url, is_live_only';
 
+const EXAM_COLUMNS =
+  'id, title, slug, category, description, order_index, is_active, icon_name, banner_url, tests(count)';
+const SUBJECT_COLUMNS =
+  'id, exam_id, name, name_english, name_bengali, name_bn, slug, icon_name, order_index, is_active, chapters(count), tests(count)';
+const TOPIC_COLUMNS =
+  'id, subject_id, name, title, title_bengali, name_bn, slug, order_index, is_active, tests(count)';
+
 export async function fetchExams(): Promise<Exam[]> {
   const { data, error } = await supabase
     .from('exams')
-    .select('*, tests(count)')
+    .select(EXAM_COLUMNS)
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;
@@ -151,7 +158,7 @@ export async function fetchExams(): Promise<Exam[]> {
 export async function fetchExam(examId: string): Promise<Exam | null> {
   const { data, error } = await supabase
     .from('exams')
-    .select('*, tests(count)')
+    .select(EXAM_COLUMNS)
     .eq('id', examId)
     .maybeSingle();
   if (error) throw error;
@@ -161,7 +168,7 @@ export async function fetchExam(examId: string): Promise<Exam | null> {
 export async function fetchSubjects(): Promise<Subject[]> {
   const { data, error } = await supabase
     .from('subjects')
-    .select('*, chapters(count), tests(count)')
+    .select(SUBJECT_COLUMNS)
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;
@@ -169,7 +176,7 @@ export async function fetchSubjects(): Promise<Subject[]> {
 }
 
 export async function fetchTopics(subjectId?: string | null): Promise<Topic[]> {
-  let q = supabase.from('chapters').select('*, tests(count)').eq('is_active', true);
+  let q = supabase.from('chapters').select(TOPIC_COLUMNS).eq('is_active', true);
   if (subjectId) q = q.eq('subject_id', subjectId);
   const { data, error } = await q.order('order_index', { ascending: true });
   if (error) throw error;

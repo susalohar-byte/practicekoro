@@ -110,10 +110,10 @@ export const MaintenanceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
     refresh();
 
-    // Periodic check every 60 seconds
+    // Periodic check every 5 minutes (300,000ms) instead of 60s to prevent unnecessary Supabase egress
     const interval = setInterval(() => {
       refresh();
-    }, 60000);
+    }, 300000);
 
     // Re-check when window gains focus
     const handleFocus = () => {
