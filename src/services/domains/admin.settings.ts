@@ -1,4 +1,3 @@
-import { readCompleteQuery } from './admin.reporting';
 import { getErrorMessage } from '@/lib/errors';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { parseSettingValue } from './admin.shared';
@@ -410,39 +409,19 @@ export async function updatePaymentGatewayConfig(
   return { success: true };
 }
 
-/** Explicit FK hints avoid chapter/topic ambiguity. Questions have no direct exam FK. */
-export const ADMIN_ITEM_ANALYSIS_SELECT = `
-  id,
-  question_id,
-  selected_option,
-  is_correct,
-  time_spent_seconds,
-  questions:questions!attempt_answers_question_id_fkey (
-    id,
-    question_text,
-    question_bengali_text,
-    subject_id,
-    chapter_id,
-    difficulty,
-    option_a,
-    option_b,
-    option_c,
-    option_d,
-    correct_option,
-    explanation,
-    subjects:subjects!questions_subject_id_fkey (
-      id, name,
-      exams:exams!subjects_exam_id_fkey ( id, title )
-    ),
-    chapters:chapters!questions_chapter_id_fkey (
-      id, name,
-      subjects:subjects!chapters_subject_id_fkey (
-        id, name,
-        exams:exams!subjects_exam_id_fkey ( id, title )
-      )
-    )
-  )
-`;
+/** One question's answer aggregates, as returned by the `admin_item_analysis` RPC. */
+interface ItemAnalysisRow {
+  question_id: string;
+  total: number;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  total_time: number;
+  timed_count: number;
+  option_counts: { A: number; B: number; C: number; D: number };
+  /** Same shape as the old questions -> subjects/chapters -> exams embed. */
+  question: any;
+}
 
 /**
  * Question-level Item Analysis (psychometrics, accuracy %, failure rate %, time traps, distractor distribution).
@@ -456,68 +435,37 @@ export async function getItemAnalysis(
   if (filters?.testId) throw new Error('Filtering item analysis by test is not supported.');
 
   if (isSupabaseConfigured) {
-    const answersData = await readCompleteQuery(() => {
-      let query = supabase
-        .from('attempt_answers')
-        .select(ADMIN_ITEM_ANALYSIS_SELECT, { count: 'exact' })
-        .order('id', { ascending: true });
-      if (filters?.startIso) query = query.gte('created_at', filters.startIso);
-      if (filters?.endIso) query = query.lte('created_at', filters.endIso);
-      return query;
+    // Aggregated per question in the database: one row per question, not one per answer.
+    const { data, error } = await supabase.rpc('admin_item_analysis', {
+      p_start: filters?.startIso ?? null,
+      p_end: filters?.endIso ?? null,
     });
+    if (error) throw new Error(error.message);
+    if (!Array.isArray(data)) throw new Error('Item analysis response was not confirmed.');
+    const rows = data as ItemAnalysisRow[];
 
-    if (answersData.length > 0) {
-      const questionMap = new Map<
-        string,
-        {
-          qInfo: any;
-          total: number;
-          correct: number;
-          wrong: number;
-          skipped: number;
-          totalTime: number;
-          timedCount: number;
-          optionsCount: { A: number; B: number; C: number; D: number };
-        }
-      >();
-
-      answersData.forEach((row: any) => {
-        const qId = row.question_id;
-        if (!questionMap.has(qId)) {
-          questionMap.set(qId, {
-            qInfo: row.questions,
-            total: 0,
-            correct: 0,
-            wrong: 0,
-            skipped: 0,
-            totalTime: 0,
-            timedCount: 0,
-            optionsCount: { A: 0, B: 0, C: 0, D: 0 },
-          });
-        }
-
-        const qStats = questionMap.get(qId)!;
-        qStats.total += 1;
-        const seconds = Number(row.time_spent_seconds || 0);
-        if (seconds > 0) {
-          qStats.totalTime += seconds;
-          qStats.timedCount += 1;
-        }
-
-        if (!row.selected_option) {
-          qStats.skipped += 1;
-        } else {
-          const opt = String(row.selected_option).toUpperCase() as 'A' | 'B' | 'C' | 'D';
-          if (qStats.optionsCount[opt] !== undefined) {
-            qStats.optionsCount[opt] += 1;
-          }
-          if (row.is_correct) {
-            qStats.correct += 1;
-          } else {
-            qStats.wrong += 1;
-          }
-        }
-      });
+    if (rows.length > 0) {
+      // Server order = first answer per question, the order the per-answer loop produced.
+      const questionMap = new Map(
+        rows.map((row) => [
+          row.question_id,
+          {
+            qInfo: row.question,
+            total: Number(row.total) || 0,
+            correct: Number(row.correct) || 0,
+            wrong: Number(row.wrong) || 0,
+            skipped: Number(row.skipped) || 0,
+            totalTime: Number(row.total_time) || 0,
+            timedCount: Number(row.timed_count) || 0,
+            optionsCount: {
+              A: Number(row.option_counts?.A) || 0,
+              B: Number(row.option_counts?.B) || 0,
+              C: Number(row.option_counts?.C) || 0,
+              D: Number(row.option_counts?.D) || 0,
+            },
+          },
+        ])
+      );
 
       items = Array.from(questionMap.entries()).map(([qId, s]) => {
         // Skipped answers (selected_option NULL) are excluded, consistent with Analytics.
