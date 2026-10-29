@@ -93,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
             ref.invalidate(rankingSummaryProvider);
             ref.invalidate(subjectsProvider);
             ref.invalidate(examsProvider);
-            ref.read(bannerRepositoryProvider).clearCache();
+            ref.read(bannerRepositoryProvider).refreshIfStale();
             ref.invalidate(homeBannersProvider);
             ref.invalidate(attemptHistoryProvider);
             ref.invalidate(_inProgressTopicsProvider);

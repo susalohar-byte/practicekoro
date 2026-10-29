@@ -369,6 +369,24 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
   void initState() {
     super.initState();
     _ticket = widget.ticket;
+    _loadMessages();
+  }
+
+  /// The ticket list comes without its conversation; load it for this ticket.
+  Future<void> _loadMessages() async {
+    final loaded = await const SupportRepository().getTicketMessages(
+      _ticket.id,
+    );
+    if (!mounted || loaded == null) return;
+    setState(() {
+      final ids = loaded.map((m) => m.id).toSet();
+      // Keep a reply sent while the conversation was still loading.
+      final pending = _ticket.messages.where((m) => !ids.contains(m.id));
+      _ticket = _ticket.copyWith(
+        messages: [...loaded, ...pending]
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+      );
+    });
   }
 
   @override

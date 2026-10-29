@@ -67,6 +67,18 @@ class StudentTicketsNotifier
 class SupportRepository {
   const SupportRepository();
 
+  /// Columns [SupportTicketModel.fromJson] reads. Messages are not included:
+  /// they load per ticket when it is opened ([getTicketMessages]).
+  static const _ticketColumns =
+      'id, user_id, student_name, student_email, subject, issue, category, '
+      'priority, status, resolution_notes, created_at, updated_at';
+  static const _messageColumns =
+      'id, ticket_id, author_name, author_kind, body, created_at';
+
+  /// The ticket list shows the student's latest tickets only.
+  static const ticketListLimit = 50;
+  static const messageLimit = 200;
+
   /// Fetches official support channels from Supabase `public.app_settings`.
   /// Admin updates in Platform Info card automatically propagate here.
   Future<SupportContactSettings> fetchContactSettings() async {
@@ -123,9 +135,10 @@ class SupportRepository {
       try {
         final res = await client
             .from('support_tickets')
-            .select('*, support_ticket_messages(*)')
+            .select(_ticketColumns)
             .eq('user_id', currentUser.id)
             .order('created_at', ascending: false)
+            .limit(ticketListLimit)
             .timeout(const Duration(seconds: 6));
 
         final list = (res as List)
@@ -213,7 +226,7 @@ class SupportRepository {
         final row = await client
             .from('support_tickets')
             .insert(insertPayload)
-            .select('*, support_ticket_messages(*)')
+            .select(_ticketColumns)
             .single()
             .timeout(const Duration(seconds: 6));
 
@@ -228,6 +241,30 @@ class SupportRepository {
     // Not saved on the server: say so, so the student can retry. A ticket kept
     // only on this phone would never reach the support team.
     throw const SupportTicketFailure();
+  }
+
+  /// The conversation on one ticket, oldest first, without internal notes.
+  /// Returns null when it could not be loaded (offline or server error).
+  Future<List<SupportMessageModel>?> getTicketMessages(String ticketId) async {
+    final client = supabaseClient;
+    if (client == null || client.auth.currentUser == null) return null;
+    try {
+      final rows = await client
+          .from('support_ticket_messages')
+          .select(_messageColumns)
+          .eq('ticket_id', ticketId)
+          .neq('author_kind', 'internal_note')
+          .order('created_at', ascending: true)
+          .limit(messageLimit)
+          .timeout(const Duration(seconds: 6));
+      return rows
+          .map((m) => SupportMessageModel.fromJson(Map<String, dynamic>.from(m)))
+          .where((m) => m.authorKind != 'internal_note')
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching support ticket messages: $e');
+      return null;
+    }
   }
 
   /// Sends a reply on an existing ticket from the student.
@@ -255,7 +292,7 @@ class SupportRepository {
               'author_kind': 'student',
               'body': body.trim(),
             })
-            .select()
+            .select(_messageColumns)
             .single()
             .timeout(const Duration(seconds: 6));
 
