@@ -5,8 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 import { setUpQueryCache } from '@/lib/queryCache';
+import { initMonitoring } from '@/lib/monitoring';
 import App from './App';
 import './styles/index.css';
+
+// Uncaught errors and rejections are reported once the SDK loads; off without a DSN.
+void initMonitoring('student-web');
 
 const queryClient = new QueryClient({
   defaultOptions: {

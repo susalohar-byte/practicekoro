@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/common/Button';
+import { reportError } from '@/lib/monitoring';
 import {
   isChunkLoadError,
   clearChunkReloadGuard,
@@ -43,6 +44,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Unhandled UI error:', error, info.componentStack);
+    if (!isChunkLoadError(error)) {
+      reportError(error, { area: this.props.area, componentStack: info.componentStack });
+    }
 
     if (isChunkLoadError(error) && typeof window !== 'undefined') {
       try {

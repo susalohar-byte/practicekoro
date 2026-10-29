@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/components/ui.dart';
 import 'core/routing/app_router.dart';
@@ -39,7 +40,19 @@ void main() async {
     }
   }
 
-  runApp(const ProviderScope(child: PracticeKoroApp()));
+  // Error monitoring (Sentry): off unless the build passes
+  // --dart-define=SENTRY_DSN=..., so debug and test builds report nothing.
+  // No personal data is sent and there is no performance tracing.
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+  if (sentryDsn.isEmpty) {
+    runApp(const ProviderScope(child: PracticeKoroApp()));
+    return;
+  }
+  await SentryFlutter.init((options) {
+    options.dsn = sentryDsn;
+    options.sendDefaultPii = false;
+    options.tracesSampleRate = 0;
+  }, appRunner: () => runApp(const ProviderScope(child: PracticeKoroApp())));
 }
 
 class PracticeKoroApp extends StatelessWidget {
