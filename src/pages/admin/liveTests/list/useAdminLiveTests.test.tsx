@@ -43,7 +43,7 @@ describe('useAdminLiveTests realtime refresh', () => {
     });
     expect(api.getLiveTests).toHaveBeenCalledTimes(1); // initial load
 
-    // A single save emits a local event, a broadcast and an app_settings change.
+    // A single save emits a local event, a storage event and a broadcast.
     act(() => {
       realtime.notify?.();
       realtime.notify?.();

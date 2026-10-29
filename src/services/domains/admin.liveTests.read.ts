@@ -2,7 +2,6 @@ import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabas
 import { localLiveTests } from '@/services/domains/localStore';
 import type { LiveTest } from '@/types';
 import {
-  APP_SETTINGS_LIVE_TESTS_ID,
   LIVE_TEST_COLUMNS,
   getStoredLiveTests,
   saveStoredLiveTests,
@@ -12,53 +11,15 @@ import {
 } from './admin.liveTests.store';
 
 /**
- * Persist Live Tests list across all 3 tiers:
- * 1. localStorage + in-memory + window custom event
- * 2. Supabase `public.app_settings` (`id = 'live_tests_schedule_list'`)
- * 3. Broadcast on Supabase Realtime channel
+ * After a Live Test change: keep the local copy (localStorage + in-memory + window event) and
+ * tell other open admin/student sessions to refetch (tiny Realtime broadcast). `public.live_tests`
+ * is the only remote store; the old `app_settings.live_tests_schedule_list` mirror is retired.
  */
 export async function syncLiveTestsToRemote(list: LiveTest[]): Promise<void> {
-  // Strip heavy nested `test` object before serializing to app_settings to keep payload compact,
-  // while keeping all metadata fields (`title`, `examId`, `examTitle`, `durationMinutes`, etc.) intact.
-  const compactList = list.map((lt) => ({
-    ...lt,
-    test: undefined,
-  }));
-
   saveStoredLiveTests(list);
 
   if (!isSupabaseConfigured) return;
 
-  try {
-    const settingRow = {
-      id: APP_SETTINGS_LIVE_TESTS_ID,
-      category: 'live_tests',
-      key: APP_SETTINGS_LIVE_TESTS_ID,
-      value: compactList,
-      description: 'Scheduled Live Mock Tests for Student Portal and Mobile App',
-      updated_at: new Date().toISOString(),
-    };
-
-    let rpcSuccess = false;
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('admin_update_app_settings', {
-        p_settings: [settingRow],
-      });
-      if (!rpcError && (rpcData?.success || rpcData?.updated_count !== undefined)) {
-        rpcSuccess = true;
-      }
-    } catch {
-      // Fallback to direct upsert
-    }
-
-    if (!rpcSuccess) {
-      await supabase.from('app_settings').upsert(settingRow, { onConflict: 'id' });
-    }
-  } catch (err) {
-    console.warn('Could not sync live tests to app_settings:', err);
-  }
-
-  // Broadcast realtime event
   try {
     const channel = supabase.channel('live_tests_sync_channel');
     channel.subscribe((status) => {

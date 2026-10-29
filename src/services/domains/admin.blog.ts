@@ -5,14 +5,52 @@ import type { BlogPost, BlogPostStatus } from '@/types';
 /**
  * Service domain for Admin Blog Management
  *
- * Persistence Architecture (3-Tier Resilient Storage):
- * 1. Primary: `public.blog_posts` table (when configured in Supabase)
- * 2. Universal Fallback: `public.app_settings` (`id = 'blog_posts_list'`)
- * 3. Local Cache: `localStorage` (`pk_admin_blog_posts`) + in-memory store
+ * Persistence:
+ * - With a database: `public.blog_posts` (one row per post). Reads use explicit columns;
+ *   writes go through `admin_mutate_collection` (content staff only).
+ * - Without one: `localStorage` (`pk_admin_blog_posts`) + in-memory store.
  */
 
 const STORAGE_KEY = 'pk_admin_blog_posts';
-const APP_SETTINGS_BLOG_ID = 'blog_posts_list';
+
+/** `public.blog_posts` columns read by `mapBlogPostRow` (never `*`). */
+const BLOG_POST_COLUMNS =
+  'id, title, slug, excerpt, content, category, author, author_role, author_avatar, status, ' +
+  'is_featured, thumbnail, views, unique_views, likes, comments, shares, read_time, ' +
+  'published_at, scheduled_at, created_at, updated_at, seo_title, seo_description, ' +
+  'seo_keywords, tags';
+
+/** A `blog_posts` row as the admin's `BlogPost` (same shape the JSON list used). */
+export function mapBlogPostRow(row: any): BlogPost {
+  return {
+    id: String(row.id),
+    title: row.title ?? '',
+    slug: row.slug ?? '',
+    excerpt: row.excerpt ?? '',
+    content: row.content ?? '',
+    category: row.category ?? '',
+    author: row.author ?? '',
+    authorRole: row.author_role ?? undefined,
+    authorAvatar: row.author_avatar ?? undefined,
+    status: row.status as BlogPostStatus,
+    isFeatured: Boolean(row.is_featured),
+    thumbnail: row.thumbnail ?? '',
+    views: Number(row.views) || 0,
+    uniqueViews: Number(row.unique_views) || 0,
+    likes: Number(row.likes) || 0,
+    comments: Number(row.comments) || 0,
+    shares: Number(row.shares) || 0,
+    readTime: row.read_time ?? '',
+    publishedAt: row.published_at ?? null,
+    scheduledAt: row.scheduled_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    seoTitle: row.seo_title ?? undefined,
+    seoDescription: row.seo_description ?? undefined,
+    seoKeywords: row.seo_keywords ?? undefined,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+  };
+}
 
 // Canonical initial blog posts matching media_1791219544751.jpg
 const CANONICAL_BLOG_POSTS: BlogPost[] = [
@@ -632,14 +670,12 @@ export const adminBlogApi = {
   async getAllBlogPosts(): Promise<BlogPost[]> {
     if (!isSupabaseConfigured) return loadStoredBlogPosts();
     const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('id', APP_SETTINGS_BLOG_ID)
-      .maybeSingle();
+      .from('blog_posts')
+      .select(BLOG_POST_COLUMNS)
+      .order('seq', { ascending: true });
     if (error) throw new Error(error.message);
-    const rows = typeof data?.value === 'string' ? JSON.parse(data.value) : data?.value || [];
-    if (!Array.isArray(rows)) throw new Error('Invalid blog content storage.');
-    return rows;
+    if (!Array.isArray(data)) throw new Error('Invalid blog content storage.');
+    return data.map(mapBlogPostRow);
   },
 
   /**
@@ -715,45 +751,7 @@ export const adminBlogApi = {
       tags: payload.tags || [],
     };
 
-    const updatedList = [newPost, ...currentList];
-    persistBlogPosts(updatedList);
-
-    if (isSupabaseConfigured) {
-      try {
-        await (supabase as any).from('blog_posts').insert([
-          {
-            id: newPost.id,
-            title: newPost.title,
-            slug: newPost.slug,
-            excerpt: newPost.excerpt,
-            content: newPost.content,
-            category: newPost.category,
-            author: newPost.author,
-            author_role: newPost.authorRole,
-            author_avatar: newPost.authorAvatar,
-            status: newPost.status,
-            is_featured: newPost.isFeatured,
-            thumbnail: newPost.thumbnail,
-            views: newPost.views,
-            unique_views: newPost.uniqueViews,
-            likes: newPost.likes,
-            comments: newPost.comments,
-            shares: newPost.shares,
-            read_time: newPost.readTime,
-            published_at: newPost.publishedAt,
-            scheduled_at: newPost.scheduledAt,
-            created_at: newPost.createdAt,
-            updated_at: newPost.updatedAt,
-            seo_title: newPost.seoTitle,
-            seo_description: newPost.seoDescription,
-            seo_keywords: newPost.seoKeywords,
-          },
-        ]);
-      } catch {
-        // Fallback already saved in app_settings & localStorage
-      }
-    }
-
+    persistBlogPosts([newPost, ...currentList]);
     return newPost;
   },
 
@@ -793,41 +791,6 @@ export const adminBlogApi = {
     nextList[index] = updatedPost;
     persistBlogPosts(nextList);
 
-    if (isSupabaseConfigured) {
-      try {
-        await (supabase as any)
-          .from('blog_posts')
-          .update({
-            title: updatedPost.title,
-            slug: updatedPost.slug,
-            excerpt: updatedPost.excerpt,
-            content: updatedPost.content,
-            category: updatedPost.category,
-            author: updatedPost.author,
-            author_role: updatedPost.authorRole,
-            author_avatar: updatedPost.authorAvatar,
-            status: updatedPost.status,
-            is_featured: updatedPost.isFeatured,
-            thumbnail: updatedPost.thumbnail,
-            views: updatedPost.views,
-            unique_views: updatedPost.uniqueViews,
-            likes: updatedPost.likes,
-            comments: updatedPost.comments,
-            shares: updatedPost.shares,
-            read_time: updatedPost.readTime,
-            published_at: updatedPost.publishedAt,
-            scheduled_at: updatedPost.scheduledAt,
-            updated_at: updatedPost.updatedAt,
-            seo_title: updatedPost.seoTitle,
-            seo_description: updatedPost.seoDescription,
-            seo_keywords: updatedPost.seoKeywords,
-          })
-          .eq('id', id);
-      } catch {
-        // Fallback already handled
-      }
-    }
-
     return updatedPost;
   },
 
@@ -841,17 +804,7 @@ export const adminBlogApi = {
       return true;
     }
     const currentList = await adminBlogApi.getAllBlogPosts();
-    const nextList = currentList.filter((p) => p.id !== id);
-    persistBlogPosts(nextList);
-
-    if (isSupabaseConfigured) {
-      try {
-        await (supabase as any).from('blog_posts').delete().eq('id', id);
-      } catch {
-        // Fallback already handled
-      }
-    }
-
+    persistBlogPosts(currentList.filter((p) => p.id !== id));
     return true;
   },
 

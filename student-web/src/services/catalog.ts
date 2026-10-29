@@ -295,33 +295,25 @@ export async function fetchLiveTests(examId?: string | null): Promise<LiveTest[]
   return (data ?? []).map(toLiveTest).filter((t) => isLiveNow(t, now) || isUpcoming(t, now));
 }
 
-/** Home hero banners the admin configured (app_settings.banners_hero_list). */
+/** Home hero banners the admin configured (`hero_banners`; RLS returns only live rows). */
+const HERO_BANNER_COLUMNS =
+  'id, title, subtitle, badge_text, image_url, mobile_image_url, banner_type, show_text_overlay, ' +
+  'primary_cta_text, primary_cta_link, placement, starts_at, expires_at, is_active, display_order';
+
 export async function fetchHomeBanners(): Promise<HeroBanner[]> {
   const { data, error } = await supabase
-    .from('app_settings')
-    .select('value')
-    .eq('id', 'banners_hero_list')
-    .maybeSingle();
+    .from('hero_banners')
+    .select(HERO_BANNER_COLUMNS)
+    .order('display_order', { ascending: true });
   if (error) throw error;
-  let list: unknown = data?.value;
-  if (typeof list === 'string') {
-    try {
-      list = JSON.parse(list);
-    } catch {
-      list = [];
-    }
-  }
-  if (!Array.isArray(list)) return [];
   const now = new Date();
-  return list
-    .filter((b): b is Row => !!b && typeof b === 'object')
+  return ((data ?? []) as Row[])
     .filter((b) => {
-      const active = b.isActive ?? b.is_active ?? true;
-      if (active !== true) return false;
+      if (b.is_active !== true) return false;
       const placement = (b.placement ?? '').toString().trim() || 'home_hero';
       if (placement !== 'home_hero' && placement !== 'all' && placement !== 'undefined') return false;
-      const starts = parseDate(b.startsAt ?? b.starts_at);
-      const expires = parseDate(b.expiresAt ?? b.expires_at);
+      const starts = parseDate(b.starts_at);
+      const expires = parseDate(b.expires_at);
       if (starts && starts > now) return false;
       if (expires && expires < now) return false;
       return true;
@@ -330,14 +322,13 @@ export async function fetchHomeBanners(): Promise<HeroBanner[]> {
       id: String(b.id ?? ''),
       title: b.title ?? '',
       subtitle: b.subtitle ?? null,
-      badgeText: b.badgeText ?? b.badge_text ?? null,
-      imageUrl: (b.imageUrl ?? b.image_url ?? '').toString().trim(),
-      mobileImageUrl: (b.mobileImageUrl ?? b.mobile_image_url ?? null) || null,
-      showTextOverlay:
-        b.showTextOverlay === true || b.show_text_overlay === true || b.bannerType === 'text_overlay',
-      ctaText: b.primaryCtaText ?? b.primary_cta_text ?? 'Start Now',
-      ctaLink: b.primaryCtaLink ?? b.primary_cta_link ?? '/exams',
-      displayOrder: num(b.displayOrder ?? b.display_order) ?? 1,
+      badgeText: b.badge_text ?? null,
+      imageUrl: (b.image_url ?? '').toString().trim(),
+      mobileImageUrl: b.mobile_image_url || null,
+      showTextOverlay: b.show_text_overlay === true || b.banner_type === 'text_overlay',
+      ctaText: b.primary_cta_text ?? 'Start Now',
+      ctaLink: b.primary_cta_link ?? '/exams',
+      displayOrder: num(b.display_order) ?? 1,
     }))
     .filter((b) => b.imageUrl.length > 0)
     .sort((a, b) => a.displayOrder - b.displayOrder);

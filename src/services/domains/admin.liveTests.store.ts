@@ -14,15 +14,13 @@ import type { LiveTest, LiveTestParticipant, MockTest } from '@/types';
  * LIVE TEST = EXISTING TEST + SCHEDULED EVENT + OPTIONAL RANKING
  * A Live Test does NOT have its own questions or runner; it is a thin event layer.
  *
- * Persistence Architecture (3-Tier Resilient Storage):
- * 1. Primary: `public.live_tests` & `public.live_test_participants` tables (when migrated)
- * 2. Universal Fallback: `public.app_settings` (`id = 'live_tests_schedule_list'`) — readable
- *    by all authenticated & anonymous clients (Web & Mobile) and writable by Admin via RPC/upsert.
- * 3. Local Cache: `localStorage` (`pk_live_tests_list` & `pk_live_test_participations`) + in-memory store.
+ * Persistence:
+ * 1. `public.live_tests` & `public.live_test_participants` tables (the only remote source of
+ *    Live Test events; there is no `app_settings` mirror any more).
+ * 2. Local Cache: `localStorage` (`pk_live_tests_list` & `pk_live_test_participations`) + in-memory store.
  */
 export const STORAGE_KEY = 'pk_live_tests_list';
 export const PARTICIPANTS_STORAGE_KEY = 'pk_live_test_participations';
-export const APP_SETTINGS_LIVE_TESTS_ID = 'live_tests_schedule_list';
 export const APP_SETTINGS_PARTICIPANTS_ID = 'live_tests_participants_list';
 
 export function getStoredLiveTests(): LiveTest[] {

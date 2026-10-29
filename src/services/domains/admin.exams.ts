@@ -362,20 +362,40 @@ export const DEFAULT_POPULAR_EXAMS: PopularExamCard[] = [
   },
 ];
 
+/** `public.popular_exam_cards` columns read by `mapPopularExamCardRow` (never `*`). */
+const POPULAR_EXAM_CARD_COLUMNS =
+  'id, exam_id, title, slug, route, tests_count, card_badge, card_gradient_start, ' +
+  'card_gradient_end, card_arrow_color, card_bg_image, card_emblem_url, order_index, is_active';
+
+function mapPopularExamCardRow(row: any): PopularExamCard {
+  return {
+    id: String(row.id),
+    examId: row.exam_id ?? undefined,
+    title: row.title ?? '',
+    slug: row.slug ?? undefined,
+    route: row.route ?? '',
+    testsCount: row.tests_count ?? '',
+    cardBadge: row.card_badge ?? undefined,
+    cardGradientStart: row.card_gradient_start ?? '',
+    cardGradientEnd: row.card_gradient_end ?? '',
+    cardArrowColor: row.card_arrow_color ?? undefined,
+    cardBgImage: row.card_bg_image ?? undefined,
+    cardEmblemUrl: row.card_emblem_url ?? undefined,
+    orderIndex: Number(row.order_index) || 0,
+    isActive: Boolean(row.is_active),
+  };
+}
+
 export async function getPopularExams(): Promise<PopularExamCard[]> {
   if (!isSupabaseConfigured) return attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
   try {
     const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('id', 'popular_exams_config')
-      .maybeSingle();
+      .from('popular_exam_cards')
+      .select(POPULAR_EXAM_CARD_COLUMNS)
+      .order('order_index', { ascending: true });
     if (error) throw error;
-    if (!data?.value) return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
-    const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
-    }
+    const parsed = (data || []).map(mapPopularExamCardRow);
+    if (parsed.length === 0) return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('pk_popular_exams_config', JSON.stringify(parsed));
@@ -387,9 +407,9 @@ export async function getPopularExams(): Promise<PopularExamCard[]> {
     const isLegacyDemo =
       parsed.length === 5 &&
       parsed.some(
-        (c: any) => c.id === 'popular-primary-tet' && c.cardBgImage?.includes('popular_exams/bg_')
+        (c) => c.id === 'popular-primary-tet' && c.cardBgImage?.includes('popular_exams/bg_')
       );
-    const cardsToUse = isLegacyDemo ? DEFAULT_POPULAR_EXAMS : (parsed as PopularExamCard[]);
+    const cardsToUse = isLegacyDemo ? DEFAULT_POPULAR_EXAMS : parsed;
     return await attachPopularExamCounts(cardsToUse);
   } catch (err) {
     console.warn('Could not fetch remote Popular Exam settings:', err);
@@ -491,11 +511,7 @@ export function subscribeToPopularExamUpdates(callback: () => void): () => void 
   if (!isSupabaseConfigured) return () => {};
   const channel = supabase
     .channel('popular-exam-settings-updates')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'app_settings', filter: 'id=eq.popular_exams_config' },
-      callback
-    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'popular_exam_cards' }, callback)
     .subscribe();
   return () => {
     void supabase.removeChannel(channel);
@@ -515,37 +531,12 @@ export async function savePopularExams(cards: PopularExamCard[]): Promise<Popula
   if (!isSupabaseConfigured) {
     throw new Error('Connect to the Admin Panel database before saving Popular Exams.');
   }
-  {
-    const settingRow = {
-      id: 'popular_exams_config',
-      category: 'general',
-      key: 'popular_exams_config',
-      value: normalized,
-      description: 'Admin-managed Popular Exam cards shown in student apps',
-      updated_at: new Date().toISOString(),
-    };
-
-    let saved = false;
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('admin_update_app_settings', {
-        p_settings: [settingRow],
-      });
-      if (!rpcError && (rpcData?.success || rpcData?.updated_count !== undefined)) {
-        saved = true;
-      }
-    } catch {
-      // Fallback to direct upsert
-    }
-
-    if (!saved) {
-      const { error } = await supabase
-        .from('app_settings')
-        .upsert(settingRow, { onConflict: 'id' });
-      if (error) {
-        throw new Error(`Could not save Popular Exam settings: ${error.message}`);
-      }
-    }
-  }
+  // One transaction: removed cards are deleted, the rest saved in this order.
+  const { data, error } = await supabase.rpc('admin_save_popular_exam_cards', {
+    p_cards: normalized,
+  });
+  if (error) throw new Error(`Could not save Popular Exam settings: ${error.message}`);
+  if (data?.success !== true) throw new Error('Popular Exam save was not confirmed.');
 
   notifyExamsUpdated();
   return await getPopularExams();

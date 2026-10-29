@@ -151,8 +151,12 @@ export async function optimizeBannerImage(
   });
 }
 
-const APP_SETTINGS_BANNER_ID = 'banners_hero_list';
-const APP_SETTINGS_BANNER_KEY = 'hero_banners_list';
+/** `public.hero_banners` columns read by `mapSupabaseRowToBanner` (never `*`). */
+export const HERO_BANNER_COLUMNS =
+  'id, badge_text, title, highlight_word, subtitle, primary_cta_text, primary_cta_link, ' +
+  'secondary_cta_text, secondary_cta_link, feature_pills, image_url, mobile_image_url, ' +
+  'banner_type, show_text_overlay, theme_gradient, target_audience, placement, starts_at, ' +
+  'expires_at, click_count, is_active, display_order, created_at, updated_at';
 
 export function mapSupabaseRowToBanner(row: any): HeroBanner {
   return {
@@ -179,6 +183,7 @@ export function mapSupabaseRowToBanner(row: any): HeroBanner {
     imageUrl: row.image_url || '/images/exam_hero_banner.png',
     mobileImageUrl: row.mobile_image_url || undefined,
     bannerType: row.banner_type || 'full_image',
+    showTextOverlay: Boolean(row.show_text_overlay ?? row.banner_type === 'text_overlay'),
     themeGradient: (row.theme_gradient as BannerThemeColor) || 'blue',
     targetAudience: (row.target_audience as BannerAudience) || 'all',
     placement: (row.placement as BannerPlacement) || 'home_hero',
@@ -266,97 +271,9 @@ function saveStoredBanners(banners: HeroBanner[]): void {
   }
 }
 
+/** Local (no database) mode only: the database is written through `admin_mutate_collection`. */
 async function syncBannersToRemote(banners: HeroBanner[]): Promise<void> {
-  // 1. Immediately update localStorage and notify all window listeners
   saveStoredBanners(banners);
-
-  if (!isSupabaseConfigured) return;
-
-  // 2. Sync to public.app_settings (universally readable by students & guests)
-  try {
-    const settingRow = {
-      id: APP_SETTINGS_BANNER_ID,
-      category: 'banners',
-      key: APP_SETTINGS_BANNER_KEY,
-      value: banners,
-      description: 'Dynamic Hero Banners for Student Home and Portals',
-      updated_at: new Date().toISOString(),
-    };
-
-    let rpcSuccess = false;
-    try {
-      const { data: rpcData, error: rpcError } = await supabaseRuntime.rpc(
-        'admin_update_app_settings',
-        {
-          p_settings: [settingRow],
-        }
-      );
-      if (!rpcError && (rpcData?.success || rpcData?.updated_count !== undefined)) {
-        rpcSuccess = true;
-      }
-    } catch {
-      // Continue to direct upsert
-    }
-
-    if (!rpcSuccess) {
-      await supabaseRuntime.from('app_settings').upsert(settingRow, { onConflict: 'id' });
-    }
-  } catch (appErr) {
-    console.warn('Could not sync hero banners to app_settings:', appErr);
-  }
-
-  // 3. Sync to public.hero_banners table (if table exists)
-  try {
-    for (const b of banners) {
-      await supabaseRuntime.from('hero_banners').upsert(
-        {
-          id: b.id,
-          badge_text: b.badgeText,
-          title: b.title,
-          highlight_word: b.highlightWord,
-          subtitle: b.subtitle,
-          primary_cta_text: b.primaryCtaText,
-          primary_cta_link: b.primaryCtaLink,
-          secondary_cta_text: b.secondaryCtaText,
-          secondary_cta_link: b.secondaryCtaLink,
-          feature_pills: b.featurePills,
-          image_url: b.imageUrl,
-          mobile_image_url: b.mobileImageUrl,
-          banner_type: b.bannerType || (b.showTextOverlay ? 'text_overlay' : 'full_image'),
-          show_text_overlay: Boolean(b.showTextOverlay ?? b.bannerType === 'text_overlay'),
-          theme_gradient: b.themeGradient,
-          target_audience: b.targetAudience,
-          placement: b.placement,
-          starts_at: b.startsAt,
-          expires_at: b.expiresAt,
-          click_count: b.clickCount,
-          is_active: b.isActive,
-          display_order: b.displayOrder,
-          created_at: b.createdAt,
-          updated_at: b.updatedAt,
-        },
-        { onConflict: 'id' }
-      );
-    }
-  } catch {
-    // hero_banners table might not exist in database yet
-  }
-
-  // 4. Send Supabase Realtime broadcast message for immediate sync across active student sessions
-  try {
-    const channel = supabaseRuntime.channel('banners_sync_channel');
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        channel.send({
-          type: 'broadcast',
-          event: 'banners_updated',
-          payload: { timestamp: Date.now() },
-        });
-      }
-    });
-  } catch {
-    // Ignore channel broadcast errors
-  }
 }
 
 export const bannerService = {
@@ -406,25 +323,21 @@ export const bannerService = {
   },
 
   /**
-   * Fetch all banners for Admin panel and Student Home.
-   * Priority:
-   * 1. Supabase public.hero_banners table (if available)
-   * 2. Supabase public.app_settings table (universal fallback readable by all visitors)
-   * 3. localStorage cache ('pk_hero_banners')
+   * All banners from `public.hero_banners` (RLS: content staff see every banner, everyone
+   * else only live ones), or the localStorage copy ('pk_hero_banners') without a database.
    * Empty when nothing is configured — no demo banners are ever injected.
    */
   async getBanners(): Promise<HeroBanner[]> {
     if (!isSupabaseConfigured)
       return getStoredBanners().sort((a, b) => a.displayOrder - b.displayOrder);
     const { data, error } = await supabaseRuntime
-      .from('app_settings')
-      .select('value')
-      .eq('id', APP_SETTINGS_BANNER_ID)
-      .maybeSingle();
+      .from('hero_banners')
+      .select(HERO_BANNER_COLUMNS)
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: true });
     if (error) throw new Error(error.message);
-    const raw = typeof data?.value === 'string' ? JSON.parse(data.value) : data?.value || [];
-    if (!Array.isArray(raw)) throw new Error('Invalid banner storage.');
-    return raw.map(sanitizeBanner).sort((a, b) => a.displayOrder - b.displayOrder);
+    if (!Array.isArray(data)) throw new Error('Invalid banner storage.');
+    return data.map(mapSupabaseRowToBanner);
   },
 
   /**
@@ -558,15 +471,6 @@ export const bannerService = {
     const current = getStoredBanners();
     const filtered = current.filter((b) => b.id !== id);
     await syncBannersToRemote(filtered);
-
-    if (isSupabaseConfigured) {
-      try {
-        await supabaseRuntime.from('hero_banners').delete().eq('id', id);
-      } catch {
-        // Handled via app_settings
-      }
-    }
-
     return true;
   },
 
