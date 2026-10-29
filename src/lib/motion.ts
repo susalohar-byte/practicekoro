@@ -2,6 +2,7 @@ export const MOTION = {
   fast: 150,
   base: 200,
   page: 220,
+  pageEnter: 320,
   exit: 120,
   easeOut: 'cubic-bezier(0.22, 1, 0.36, 1)',
 } as const;
@@ -26,5 +27,22 @@ export function playEnter(el: HTMLElement | null, offsetY = 4): void {
       { opacity: 1, transform: 'none' },
     ],
     { duration: MOTION.page, easing: MOTION.easeOut }
+  );
+}
+
+/**
+ * Page-change entrance: a clearer fade-up with a hint of scale, so moving
+ * between pages reads as a transition rather than a flash. Same rules as
+ * playEnter: no remount, no fill mode, skipped for reduced motion.
+ */
+export function playPageEnter(el: HTMLElement | null): void {
+  if (!el || typeof el.animate !== 'function' || prefersReducedMotion()) return;
+  el.getAnimations().forEach((a) => a.cancel());
+  el.animate(
+    [
+      { opacity: 0, transform: 'translateY(12px) scale(0.995)' },
+      { opacity: 1, transform: 'none' },
+    ],
+    { duration: MOTION.pageEnter, easing: MOTION.easeOut }
   );
 }
