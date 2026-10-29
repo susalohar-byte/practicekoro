@@ -118,6 +118,53 @@ select jsonb_build_object(
   )
 ) as views;
 
+-- ------------------------------------------------------------------
+-- 6. SECURITY DEFINER caller checks (20261029110000)
+-- ------------------------------------------------------------------
+select jsonb_build_object(
+  -- any-user helpers answer about the caller only, unless admin / trusted backend
+  'has_role_self_or_admin',        pg_get_functiondef('public.has_role(uuid,text)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'account_is_active_self_or_admin', pg_get_functiondef('public.account_is_active(uuid)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'has_test_access_self_or_admin', pg_get_functiondef('public.has_test_access(uuid,text)'::regprocedure) like '%p_user_id IS DISTINCT FROM auth.uid()%',
+  'coupon_usage_caller_only',      pg_get_functiondef('public.validate_coupon_code(text,text,numeric,uuid)'::regprocedure) like '%p_user_id := auth.uid()%',
+  -- RLS policies call has_role / live_paper_visible for anon too: keep EXECUTE
+  'has_role_rls_executable',       has_function_privilege('anon','public.has_role(uuid,text)','EXECUTE')
+                                   and has_function_privilege('authenticated','public.has_role(uuid,text)','EXECUTE'),
+  'live_paper_visible_rls_executable', has_function_privilege('anon','public.live_paper_visible(text)','EXECUTE'),
+  -- caller checks inside client-facing RPCs
+  'scheduled_notifications_staff_only', pg_get_functiondef('public.process_scheduled_notifications()'::regprocedure) like '%can_mutate_admin_record(''notifications'')%',
+  'exam_questions_published_only', pg_get_functiondef('public.get_student_exam_questions(text)'::regprocedure) like '%status = ''published'' OR public.has_role(v_user_id, ''admin'')%',
+  'leaderboard_no_email_names',    pg_get_functiondef('public.get_test_leaderboard(text,text,text,text,integer)'::regprocedure) not like '%split_part%',
+  -- definer functions no client/policy calls: not an RPC any more
+  'unused_definers_not_rpc', (
+    select bool_and(not has_function_privilege('anon', p, 'EXECUTE')
+                and not has_function_privilege('authenticated', p, 'EXECUTE')
+                and has_function_privilege('service_role', p, 'EXECUTE'))
+    from unnest(array[
+      'public.sync_admin_profile()', 'public.is_admin()', 'public.is_pk_admin()',
+      'public.publish_test(text)', 'public.admin_assign_series_tests(text[],text)',
+      'public.get_admin_dashboard_v2_stats()',
+      'public.is_live_test_active(public.live_tests,boolean)', 'public.is_test_live_locked(text,boolean)'
+    ]::regprocedure[]) p
+  ),
+  -- every definer function pins search_path, and pg_temp is never searched first
+  'definer_search_path_pinned', (
+    select bool_and(array_to_string(p.proconfig, ',') ~ '^search_path=("")?' and
+                    (array_to_string(p.proconfig, ',') = 'search_path=""'
+                     or array_to_string(p.proconfig, ',') like '%pg_temp%'))
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+  ),
+  -- anon can execute only the public read RPCs and the helpers RLS policies need
+  'anon_definer_allowlist', not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+      and p.proname not in ('get_public_seo_question_by_id','get_public_seo_questions',
+                            'has_role','is_management_super_admin','live_paper_visible')
+  )
+) as definer_caller_checks;
+
 rollback;
 
 -- ============================================================================
