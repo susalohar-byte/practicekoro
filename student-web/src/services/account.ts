@@ -186,7 +186,7 @@ export async function fetchLeaderboard(params: {
 export async function fetchPlans(): Promise<SubscriptionPlan[]> {
   const { data, error } = await supabase
     .from('subscription_plans')
-    .select('*')
+    .select('id, name, title, description, duration_days, price, original_price, features, currency, order_index, renewal_window_days')
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;

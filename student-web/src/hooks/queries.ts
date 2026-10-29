@@ -47,7 +47,7 @@ export const useTopicTests = (topicId: string) =>
 export const useTest = (id: string) =>
   useQuery({ queryKey: qk.test(id), queryFn: () => catalog.fetchTest(id), enabled: !!id });
 export const useLiveTests = () =>
-  useQuery({ queryKey: qk.liveTests, queryFn: () => catalog.fetchLiveTests(), refetchInterval: 60_000 });
+  useQuery({ queryKey: qk.liveTests, queryFn: () => catalog.fetchLiveTests(), refetchInterval: 5 * 60_000 });
 export const useBanners = () => useQuery({ queryKey: qk.banners, queryFn: catalog.fetchHomeBanners });
 
 export function useAttemptHistory() {
