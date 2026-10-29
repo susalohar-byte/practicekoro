@@ -44,7 +44,7 @@ describe('validated image upload boundary', () => {
       data: {
         success: true,
         publicUrl:
-          'https://prycanbnxuihxhskallw.supabase.co/storage/v1/object/public/avatars/user/id.png',
+          'https://wzcmhowowoyeldfqzkeh.supabase.co/storage/v1/object/public/avatars/user/id.png',
       },
       error: null,
     });

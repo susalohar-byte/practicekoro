@@ -39,7 +39,7 @@ if [ -z "${SUPABASE_PROJECT_REF:-}" ] && [ -f "$ROOT_DIR/.env" ]; then
   DETECTED_REF=$(grep -E '^VITE_SUPABASE_URL=' "$ROOT_DIR/.env" | sed -E 's/.*https:\/\/([^.]+)\.supabase\.co.*/\1/' || true)
   if [ -n "$DETECTED_REF" ]; then SUPABASE_PROJECT_REF="$DETECTED_REF"; fi
 fi
-SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-prycanbnxuihxhskallw}"
+SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-wzcmhowowoyeldfqzkeh}"
 REGION="${SUPABASE_DB_REGION:-ap-south-1}"
 
 if [ -z "${DATABASE_URL:-}" ]; then

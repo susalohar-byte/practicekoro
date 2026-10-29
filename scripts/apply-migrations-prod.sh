@@ -213,7 +213,7 @@ if [ -z "${SUPABASE_PROJECT_REF:-}" ] && [ -f "$ROOT_DIR/.env" ]; then
   fi
 fi
 
-SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-prycanbnxuihxhskallw}"
+SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-wzcmhowowoyeldfqzkeh}"
 REGION="${SUPABASE_DB_REGION:-ap-south-1}"
 
 if [ -z "${DATABASE_URL:-}" ]; then

@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/local_storage.dart';
 
 /// Supabase URL comes from `--dart-define-from-file=config/supabase.json` or defaults.
-const _defaultSupabaseUrl = 'https://prycanbnxuihxhskallw.supabase.co';
+const _defaultSupabaseUrl = 'https://wzcmhowowoyeldfqzkeh.supabase.co';
 
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: _defaultSupabaseUrl);
 
