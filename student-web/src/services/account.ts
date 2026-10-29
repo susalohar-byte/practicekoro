@@ -11,6 +11,7 @@ import type {
   StudentSubscription,
   SubscriptionPlan,
   SupportContact,
+  SupportMessage,
   SupportTicket,
   UpgradeOption,
 } from '@/types/models';
@@ -43,7 +44,11 @@ const str = (v: unknown): string | null => {
 };
 
 export async function fetchProfile(user: User): Promise<Profile> {
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('email, full_name, phone, avatar_url, target_exam_id, target_exam_title, state, district, gender, category, dob, preparation_status, preferred_subjects, created_at')
+    .eq('id', user.id)
+    .maybeSingle();
   if (error) throw error;
   const row: Row = data ?? {};
   const meta: Row = user.user_metadata ?? {};
@@ -420,8 +425,25 @@ export async function fetchSupportContact(): Promise<SupportContact> {
   };
 }
 
+function toMessage(m: Row): SupportMessage {
+  return {
+    id: String(m.id),
+    ticketId: String(m.ticket_id),
+    authorName: m.author_name ?? 'Support Staff',
+    authorKind: m.author_kind ?? 'support',
+    body: m.body ?? '',
+    createdAt: new Date(m.created_at),
+  };
+}
+
+const visibleMessages = (msgs: Row[]): SupportMessage[] =>
+  msgs
+    .filter((m) => m.author_kind !== 'internal_note')
+    .map(toMessage)
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+/** List rows carry no conversation; it is loaded per ticket by fetchTicketMessages when opened. */
 function toTicket(r: Row): SupportTicket {
-  const msgs: Row[] = r.support_ticket_messages ?? r.messages ?? [];
   return {
     id: String(r.id),
     subject: r.subject ?? '',
@@ -432,28 +454,37 @@ function toTicket(r: Row): SupportTicket {
     resolutionNotes: str(r.resolution_notes),
     createdAt: new Date(r.created_at),
     updatedAt: new Date(r.updated_at ?? r.created_at),
-    messages: msgs
-      .filter((m) => m.author_kind !== 'internal_note')
-      .map((m) => ({
-        id: String(m.id),
-        ticketId: String(m.ticket_id),
-        authorName: m.author_name ?? 'Support Staff',
-        authorKind: m.author_kind ?? 'support',
-        body: m.body ?? '',
-        createdAt: new Date(m.created_at),
-      }))
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
+    messages: visibleMessages(r.support_ticket_messages ?? r.messages ?? []),
   };
 }
 
+const TICKET_COLUMNS = 'id, subject, issue, category, priority, status, resolution_notes, created_at, updated_at';
+const TICKET_LIST_LIMIT = 50;
+const TICKET_MESSAGE_LIMIT = 200;
+
+/** The student's newest tickets, without their conversations (those load when a ticket is opened). */
 export async function fetchTickets(userId: string): Promise<SupportTicket[]> {
   const { data, error } = await supabase
     .from('support_tickets')
-    .select('*, support_ticket_messages(*)')
+    .select(TICKET_COLUMNS)
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(TICKET_LIST_LIMIT);
   if (error) throw error;
   return (data ?? []).map(toTicket);
+}
+
+/** Latest messages of one ticket, shown oldest first; internal staff notes are never sent to the student. */
+export async function fetchTicketMessages(ticketId: string): Promise<SupportMessage[]> {
+  const { data, error } = await supabase
+    .from('support_ticket_messages')
+    .select('id, ticket_id, author_name, author_kind, body, created_at')
+    .eq('ticket_id', ticketId)
+    .or('author_kind.is.null,author_kind.neq.internal_note')
+    .order('created_at', { ascending: false })
+    .limit(TICKET_MESSAGE_LIMIT);
+  if (error) throw error;
+  return visibleMessages(data ?? []);
 }
 
 export async function createTicket(input: {
@@ -487,7 +518,7 @@ export async function createTicket(input: {
       priority: 'medium',
       status: 'open',
     })
-    .select('*, support_ticket_messages(*)')
+    .select(TICKET_COLUMNS)
     .single();
   if (insertError) throw insertError;
   return toTicket(row);

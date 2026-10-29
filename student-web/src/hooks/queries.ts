@@ -27,6 +27,7 @@ export const qk = {
   subscription: (uid: string) => ['subscription', uid] as const,
   supportContact: ['support-contact'] as const,
   tickets: (uid: string) => ['tickets', uid] as const,
+  ticketMessages: (ticketId: string) => ['ticket-messages', ticketId] as const,
   notifications: (uid: string) => ['notifications', uid] as const,
   bookmarks: (uid: string) => ['bookmarks', uid] as const,
 };
@@ -103,6 +104,8 @@ export function useTickets() {
   const id = useUid();
   return useQuery({ queryKey: qk.tickets(id), queryFn: () => account.fetchTickets(id), enabled: !!id });
 }
+export const useTicketMessages = (ticketId: string) =>
+  useQuery({ queryKey: qk.ticketMessages(ticketId), queryFn: () => account.fetchTicketMessages(ticketId), enabled: !!ticketId });
 export function useNotifications() {
   const id = useUid();
   return useQuery({ queryKey: qk.notifications(id), queryFn: account.fetchNotifications, enabled: !!id });

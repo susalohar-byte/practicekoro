@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const m = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -123,6 +123,33 @@ describe('AuthContext session workflow regressions', () => {
       id: 'student-1',
       role: 'student',
     });
+  });
+
+  it('does not reload the profile or subscription on token refresh for the same user', async () => {
+    m.getSession.mockResolvedValue({ data: { session: { user: authUser } } });
+    renderAuth();
+    expect(await screen.findByTestId('auth-state')).toHaveTextContent('student:Practice Student');
+
+    const listener = m.onAuthStateChange.mock.calls[0][0] as (
+      event: string,
+      session: unknown
+    ) => Promise<void>;
+    await act(async () => {
+      await listener('INITIAL_SESSION', { user: authUser });
+      await listener('TOKEN_REFRESHED', { user: authUser });
+      await listener('SIGNED_IN', { user: authUser });
+    });
+    expect(m.rpc).toHaveBeenCalledTimes(1);
+
+    // A different account still gets a fresh load.
+    m.profile = { ...m.profile, id: 'student-2', full_name: 'Second Student' };
+    await act(async () => {
+      await listener('SIGNED_IN', { user: { ...authUser, id: 'student-2' } });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-state')).toHaveTextContent('student:Second Student')
+    );
+    expect(m.rpc).toHaveBeenCalledTimes(2);
   });
 
   it('clears local identity and premium cache when logging out', async () => {
