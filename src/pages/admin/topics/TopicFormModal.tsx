@@ -275,7 +275,7 @@ export function TopicFormModal({ tp }: TopicFormModalProps) {
 
                     <input
                       type="text"
-                      placeholder="https://... or data:image/..."
+                      placeholder="https://..."
                       value={formData.iconName}
                       onChange={(e) => setFormData({ ...formData, iconName: e.target.value })}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-[11px] font-mono text-slate-700 dark:text-slate-300 placeholder:font-sans"
