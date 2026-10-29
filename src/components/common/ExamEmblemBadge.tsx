@@ -41,9 +41,7 @@ export function getOfficialExamLogoUrl(
       iconName.endsWith('.svg') ||
       iconName.endsWith('.webp'))
   ) {
-    return iconName.startsWith('/') || iconName.startsWith('http')
-      ? iconName
-      : `/${iconName}`;
+    return iconName.startsWith('/') || iconName.startsWith('http') ? iconName : `/${iconName}`;
   }
 
   const norm = (title + ' ' + slug + ' ' + (iconName || '')).toLowerCase();

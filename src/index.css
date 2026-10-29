@@ -1104,3 +1104,101 @@ html.theme-anim textarea {
     background-color: rgb(34 211 238 / 0.1);
   }
 }
+
+/* ============================================================================
+   LANDING PAGE DARK MODE
+   The landing page colours text and surfaces with fixed hex utilities
+   (text-[#0B1B4F] and friends) that the compatibility layer above does not
+   know about, so in dark mode its cards turned dark while their text stayed
+   navy. These remap those hex utilities inside the landing page only.
+   ========================================================================= */
+@layer utilities {
+  /* Page and soft surfaces */
+  .dark .landing-scope.bg-\[\#F7F8FD\] {
+    background-color: var(--pk-background);
+  }
+  .dark .landing-scope .bg-\[\#F7F9FC\],
+  .dark .landing-scope .bg-\[\#F7F8FD\],
+  .dark .landing-scope .bg-\[\#EEF1F7\] {
+    background-color: rgb(30 41 59);
+  }
+  .dark .landing-scope .bg-\[\#E6EAF2\],
+  .dark .landing-scope .bg-\[\#C9D2EC\] {
+    background-color: rgb(51 65 85);
+  }
+  .dark .landing-scope .hover\:bg-\[\#A9B5D9\]:hover {
+    background-color: rgb(71 85 105);
+  }
+
+  /* Tinted chips and icon tiles */
+  .dark .landing-scope .bg-\[\#EAF2FF\],
+  .dark .landing-scope .bg-\[\#EAF1FF\],
+  .dark .landing-scope .bg-\[\#E6EFFB\] {
+    background-color: rgb(59 130 246 / 0.16);
+  }
+  .dark .landing-scope .bg-\[\#E6F8EC\],
+  .dark .landing-scope .bg-\[\#E6F9EE\],
+  .dark .landing-scope .bg-\[\#D8F5DE\] {
+    background-color: rgb(34 197 94 / 0.16);
+  }
+  .dark .landing-scope .bg-\[\#FFECEE\],
+  .dark .landing-scope .bg-\[\#FFEDEF\] {
+    background-color: rgb(244 63 94 / 0.16);
+  }
+  .dark .landing-scope .bg-\[\#FFF6E0\],
+  .dark .landing-scope .bg-\[\#FFF6DC\],
+  .dark .landing-scope .bg-\[\#FFF5E0\] {
+    background-color: rgb(245 158 11 / 0.16);
+  }
+  .dark .landing-scope .bg-\[\#F6EAFF\],
+  .dark .landing-scope .bg-\[\#F3ECFF\] {
+    background-color: rgb(139 92 246 / 0.18);
+  }
+
+  /* Text */
+  .dark .landing-scope .text-\[\#0B1B4F\],
+  .dark .landing-scope .text-\[\#0B1650\] {
+    color: rgb(241 245 249);
+  }
+  .dark .landing-scope .text-\[\#3A4462\],
+  .dark .landing-scope .text-\[\#4A5470\] {
+    color: rgb(203 213 225);
+  }
+  .dark .landing-scope .text-\[\#5B6478\],
+  .dark .landing-scope .text-\[\#6B7489\] {
+    color: rgb(148 163 184);
+  }
+  .dark .landing-scope .text-\[\#1A5CFF\],
+  .dark .landing-scope .text-\[\#1D63F0\],
+  .dark .landing-scope .text-\[\#1D4ED8\] {
+    color: rgb(96 165 250);
+  }
+  .dark .landing-scope .text-\[\#16A34A\],
+  .dark .landing-scope .text-\[\#15803D\] {
+    color: rgb(74 222 128);
+  }
+  .dark .landing-scope .text-\[\#E11D48\] {
+    color: rgb(251 113 133);
+  }
+  .dark .landing-scope .text-\[\#7C3AED\] {
+    color: rgb(167 139 250);
+  }
+  /* The hero and footer waves are drawn in the page colour. */
+  .dark .landing-scope .text-\[\#F7F8FD\] {
+    color: var(--pk-background);
+  }
+  /* Navy text on the yellow "Best Value" badge stays navy. */
+  .dark .landing-scope .bg-\[\#FFD43B\].text-\[\#0B1B4F\] {
+    color: rgb(11 27 79);
+  }
+
+  /* Hairlines */
+  .dark .landing-scope .border-\[\#EDF0F8\],
+  .dark .landing-scope .border-\[\#E3E8F0\],
+  .dark .landing-scope .border-\[\#EEF1F6\] {
+    border-color: rgb(51 65 85);
+  }
+  .dark .landing-scope .ring-\[\#EDF0F8\] {
+    --tw-ring-color: rgb(51 65 85);
+  }
+}

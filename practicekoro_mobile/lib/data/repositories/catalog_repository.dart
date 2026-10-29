@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +9,7 @@ import '../models/test_model.dart';
 import '../models/live_test_model.dart';
 import '../models/question_model.dart';
 import '../models/attempt_model.dart';
+import '../datasources/catalog_cache.dart';
 import '../datasources/local_storage.dart';
 import 'attempt_repository.dart';
 
@@ -84,7 +86,11 @@ class CatalogRepository {
   static final Map<String, List<TopicModel>> _subjectTopicsCache = {};
   static final Map<String, List<MockTestModel>> _mockTestsCache = {};
   static final Map<String, List<MockTestModel>> _topicTestsCache = {};
-  static final Map<String, List<LiveTestModel>> _liveTestsCache = {};
+  /// Published Live Test rows per exam key, with the time they were fetched.
+  /// Empty lists are kept too, so "no Live Test right now" is not asked again
+  /// for [_liveTestsMaxAge].
+  static final Map<String, ({DateTime at, List<LiveTestModel> rows})>
+  _liveTestsCache = {};
 
   SupabaseClient? get _supabase {
     try {
@@ -102,13 +108,52 @@ class CatalogRepository {
     _mockTestsCache.clear();
     _topicTestsCache.clear();
     _liveTestsCache.clear();
+    unawaited(CatalogDiskCache.clear());
   }
 
   void clearExamsCache() {
     _examsCache = null;
+    unawaited(CatalogDiskCache.remove('exams'));
   }
 
   static const _timeout = Duration(seconds: 10);
+
+  /// How long a saved catalog copy is used before asking the server again.
+  static const _catalogMaxAge = Duration(hours: 1);
+  static const _liveTestsMaxAge = Duration(minutes: 5);
+
+  /// Like [_fetch], but answers from the phone's saved copy while it is
+  /// younger than [maxAge]. When the server cannot be reached, a copy up to
+  /// [CatalogDiskCache.maxStale] old is shown instead of an error.
+  Future<List<Map<String, dynamic>>> _cachedFetch(
+    String key,
+    Duration maxAge,
+    PostgrestTransformBuilder<List<Map<String, dynamic>>> Function(
+      SupabaseClient db,
+    )
+    query, {
+    bool forceRefresh = false,
+    bool cacheEmpty = false,
+  }) async {
+    if (!forceRefresh) {
+      final fresh = await CatalogDiskCache.read(key, maxAge: maxAge);
+      if (fresh != null) return fresh;
+    }
+    try {
+      final rows = await _fetch(query);
+      if (rows.isNotEmpty || cacheEmpty) {
+        await CatalogDiskCache.write(key, rows);
+      }
+      return rows;
+    } on CatalogUnavailable {
+      final stale = await CatalogDiskCache.read(
+        key,
+        maxAge: CatalogDiskCache.maxStale,
+      );
+      if (stale != null) return stale;
+      rethrow;
+    }
+  }
 
   /// Runs a catalog query. A failure or timeout surfaces as a
   /// [CatalogUnavailable] so screens show an error with retry, never
@@ -143,12 +188,15 @@ class CatalogRepository {
 
   Future<List<ExamModel>> getExams({bool forceRefresh = false}) async {
     if (!forceRefresh && _examsCache != null) return _examsCache!;
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'exams',
+      _catalogMaxAge,
       (db) => db
           .from('exams')
           .select('*, tests(count)')
           .eq('is_active', true)
           .order('order_index', ascending: true),
+      forceRefresh: forceRefresh,
     );
     final list = res.map((e) => ExamModel.fromJson(e)).toList();
     if (list.isNotEmpty) _examsCache = list;
@@ -157,12 +205,15 @@ class CatalogRepository {
 
   Future<List<SubjectModel>> getSubjects({bool forceRefresh = false}) async {
     if (!forceRefresh && _subjectsCache != null) return _subjectsCache!;
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'subjects',
+      _catalogMaxAge,
       (db) => db
           .from('subjects')
           .select('*, chapters(count), tests(count)')
           .eq('is_active', true)
           .order('order_index', ascending: true),
+      forceRefresh: forceRefresh,
     );
     final list = res.map((e) => SubjectModel.fromJson(e)).toList();
     if (list.isNotEmpty) _subjectsCache = list;
@@ -182,14 +233,19 @@ class CatalogRepository {
       if (!bySubject && _allTopicsCache != null) return _allTopicsCache!;
     }
 
-    final res = await _fetch((db) {
-      var query = db
-          .from('chapters')
-          .select('*, tests(count)')
-          .eq('is_active', true);
-      if (bySubject) query = query.eq('subject_id', cleanSubId);
-      return query.order('order_index', ascending: true);
-    });
+    final res = await _cachedFetch(
+      bySubject ? 'topics:$cleanSubId' : 'topics',
+      _catalogMaxAge,
+      (db) {
+        var query = db
+            .from('chapters')
+            .select('*, tests(count)')
+            .eq('is_active', true);
+        if (bySubject) query = query.eq('subject_id', cleanSubId);
+        return query.order('order_index', ascending: true);
+      },
+      forceRefresh: forceRefresh,
+    );
     final list = res.map((e) => TopicModel.fromJson(e)).toList();
     if (list.isNotEmpty) {
       if (bySubject) {
@@ -205,7 +261,9 @@ class CatalogRepository {
     if (_topicTestsCache.containsKey(topicId)) {
       return _topicTestsCache[topicId]!;
     }
-    final res = await _fetch(
+    final res = await _cachedFetch(
+      'topic_tests:$topicId',
+      _catalogMaxAge,
       (db) => db
           .from('tests')
           .select()
@@ -232,42 +290,60 @@ class CatalogRepository {
       }
     }
 
-    // 3. Try to resolve by live test
-    try {
-      final liveList = await getLiveTests();
-      for (final lt in liveList) {
-        if (lt.id == testId || lt.testId == testId) {
-          return MockTestModel(
-            id: lt.testId.isNotEmpty ? lt.testId : lt.id,
-            examId: lt.examId,
-            examTitle: lt.examTitle ?? 'Live Test',
-            examLogo: lt.logo ?? lt.examLogo,
-            title: lt.title,
-            description: lt.instructions ?? 'Official Live Test examination.',
-            totalQuestions: lt.totalQuestions,
-            durationMinutes: lt.durationMinutes,
-            totalMarks: lt.totalMarks,
-            negativeMarking: lt.negativeMarking,
-            isPro: lt.subscriptionRequired,
-            category: 'Full Test',
-            instructions: [
-              'The test contains ${lt.totalQuestions} multiple choice questions.',
-              'Total duration of this test is ${lt.durationMinutes} minutes.',
-              'Total marks: ${lt.totalMarks.toInt()}.',
-              if (lt.negativeMarking > 0)
-                'Negative marking of ${lt.negativeMarking} marks will be deducted for each wrong answer.',
-              'Live leaderboard and statewide ranking will be published after test conclusion.',
-            ],
-          );
-        }
-      }
-    } catch (_) {}
+    // 3. A Live Test already loaded on this phone (no network).
+    final known = _cachedLiveTests()
+        .where((lt) => lt.id == testId || lt.testId == testId)
+        .firstOrNull;
+    if (known != null) return _mockFromLiveTest(known);
 
-    // 4. Any other real test, straight from the server.
+    // 4. The test row itself, straight from the server.
     final row = await _fetchOne(
       (db) => db.from('tests').select().eq('id', testId).maybeSingle(),
     );
+    // Live-only papers (and Live Test ids) are described by their Live Test
+    // entry; only then is the Live Test list read (itself cached 5 min).
+    if (row == null || row['is_live_only'] == true) {
+      try {
+        final live = (await getLiveTests())
+            .where((lt) => lt.id == testId || lt.testId == testId)
+            .firstOrNull;
+        if (live != null) return _mockFromLiveTest(live);
+      } catch (_) {}
+    }
     return row == null ? null : MockTestModel.fromJson(row);
+  }
+
+  /// Live Tests already held in memory and still fresh, across all exams.
+  static Iterable<LiveTestModel> _cachedLiveTests() sync* {
+    final now = DateTime.now();
+    for (final entry in _liveTestsCache.values) {
+      if (now.difference(entry.at) < _liveTestsMaxAge) yield* entry.rows;
+    }
+  }
+
+  static MockTestModel _mockFromLiveTest(LiveTestModel lt) {
+    return MockTestModel(
+      id: lt.testId.isNotEmpty ? lt.testId : lt.id,
+      examId: lt.examId,
+      examTitle: lt.examTitle ?? 'Live Test',
+      examLogo: lt.logo ?? lt.examLogo,
+      title: lt.title,
+      description: lt.instructions ?? 'Official Live Test examination.',
+      totalQuestions: lt.totalQuestions,
+      durationMinutes: lt.durationMinutes,
+      totalMarks: lt.totalMarks,
+      negativeMarking: lt.negativeMarking,
+      isPro: lt.subscriptionRequired,
+      category: 'Full Test',
+      instructions: [
+        'The test contains ${lt.totalQuestions} multiple choice questions.',
+        'Total duration of this test is ${lt.durationMinutes} minutes.',
+        'Total marks: ${lt.totalMarks.toInt()}.',
+        if (lt.negativeMarking > 0)
+          'Negative marking of ${lt.negativeMarking} marks will be deducted for each wrong answer.',
+        'Live leaderboard and statewide ranking will be published after test conclusion.',
+      ],
+    );
   }
 
   Future<List<MockTestModel>> getMockTests([String? examId]) async {
@@ -277,7 +353,9 @@ class CatalogRepository {
       return _mockTestsCache[cacheKey]!;
     }
 
-    final res = await _fetch((db) {
+    final res = await _cachedFetch('mock_tests:$cacheKey', _catalogMaxAge, (
+      db,
+    ) {
       var query = db.from('tests').select();
       if (hasExam) query = query.eq('exam_id', examId);
       return query.eq('is_active', true).order('created_at', ascending: true);
@@ -291,72 +369,80 @@ class CatalogRepository {
     return list;
   }
 
+  /// Columns [LiveTestModel.fromJson] reads, from `live_tests` and its test.
+  static const _liveTestColumns =
+      'id, test_id, title, exam_id, status, start_at, scheduled_start_time, '
+      'scheduled_end_time, duration_minutes, total_questions, total_marks, '
+      'negative_marking, enrolled_count, logo, exam_logo, ranking_enabled, '
+      'subscription_required, is_published, instructions, '
+      'tests(id, title, exam_id, duration_minutes, total_questions, '
+      'total_marks, negative_marking)';
+
+  static List<LiveTestModel> _activeOnly(List<LiveTestModel> rows) =>
+      rows.where((t) => t.isLive || t.isUpcoming).toList();
+
   Future<List<LiveTestModel>> getLiveTests([String? examId]) async {
-    final cacheKey = examId ?? 'all';
-    if (_liveTestsCache.containsKey(cacheKey)) {
-      return _liveTestsCache[cacheKey]!;
+    final hasExam = examId != null && examId.isNotEmpty;
+    final cacheKey = hasExam ? examId : 'all';
+    final hit = _liveTestsCache[cacheKey];
+    // Live/upcoming status is worked out from start/end times on every read,
+    // so a few minutes' saved copy never shows a finished test.
+    if (hit != null && DateTime.now().difference(hit.at) < _liveTestsMaxAge) {
+      return _activeOnly(hit.rows);
     }
 
+    List<LiveTestModel>? published;
+    // `live_tests` is the source of truth. An answer from it, even an empty
+    // one, is final (and cached, empty included).
     try {
-      final supa = _supabase;
-      if (supa != null) {
-        // Tier 1: Try public.live_tests table
-        try {
-          var query = supa
+      final res = await _cachedFetch(
+        'live_tests:$cacheKey',
+        _liveTestsMaxAge,
+        (db) {
+          var query = db
               .from('live_tests')
-              .select('*, tests(*)')
+              .select(_liveTestColumns)
               .eq('is_published', true);
+          if (hasExam) query = query.eq('exam_id', examId);
+          return query.order('start_at', ascending: true);
+        },
+        cacheEmpty: true,
+      );
+      published = res.map((e) => LiveTestModel.fromJson(e)).toList();
+    } catch (_) {}
 
-          if (examId != null && examId.isNotEmpty) {
-            query = query.eq('exam_id', examId);
-          }
-
-          final res = await query
-              .order('start_at', ascending: true)
-              .timeout(_timeout);
-
-          if (res.isNotEmpty) {
-            final list = res.map((e) => LiveTestModel.fromJson(e)).toList();
-            final active = list
-                .where((t) => !t.isLive && !t.isUpcoming ? false : true)
-                .toList();
-            if (active.isNotEmpty) {
-              _liveTestsCache[cacheKey] = active;
-              return active;
-            }
-          }
-        } catch (_) {}
-
-        // Tier 2: Try app_settings for 'live_tests_schedule_list'
-        try {
+    // Only when the table could not be read at all: the admin's mirror copy
+    // in `app_settings`.
+    if (published == null) {
+      try {
+        final supa = _supabase;
+        if (supa != null) {
           final res = await supa
               .from('app_settings')
               .select('value')
               .eq('id', 'live_tests_schedule_list')
               .maybeSingle()
               .timeout(_timeout);
-
-          if (res != null && res['value'] is List) {
-            final rawList = res['value'] as List;
-            final list = rawList
-                .map((e) => LiveTestModel.fromJson(e as Map<String, dynamic>))
-                .where((t) => t.isPublished && !(!t.isLive && !t.isUpcoming))
+          final raw = res?['value'];
+          if (raw is List) {
+            published = raw
+                .whereType<Map>()
+                .map((e) => LiveTestModel.fromJson(Map<String, dynamic>.from(e)))
+                // The mirror also holds drafts with no `is_published` flag.
+                .where((t) => t.isPublished && t.status != 'draft')
+                .where((t) => !hasExam || t.examId == examId)
                 .toList();
-            if (examId != null && examId.isNotEmpty) {
-              list.retainWhere((t) => t.examId == examId);
-            }
-            if (list.isNotEmpty) {
-              _liveTestsCache[cacheKey] = list;
-              return list;
-            }
           }
-        } catch (_) {}
-      }
-    } catch (_) {}
+        }
+      } catch (_) {}
+    }
 
     // No invented events: a student must only ever see Live Tests the admin
-    // actually scheduled. Not cached, so the next open retries the server.
-    return const <LiveTestModel>[];
+    // actually scheduled. When nothing could be read, nothing is cached, so
+    // the next open retries the server.
+    if (published == null) return const <LiveTestModel>[];
+    _liveTestsCache[cacheKey] = (at: DateTime.now(), rows: published);
+    return _activeOnly(published);
   }
 
   Future<List<QuestionModel>> getQuestions(String testId) async {

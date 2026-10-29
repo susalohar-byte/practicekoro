@@ -3,10 +3,10 @@ import { localLiveTests } from '@/services/domains/localStore';
 import type { LiveTest } from '@/types';
 import {
   APP_SETTINGS_LIVE_TESTS_ID,
+  LIVE_TEST_COLUMNS,
   getStoredLiveTests,
   saveStoredLiveTests,
   mapRowToMockTest,
-  fetchSourceTestsMap,
   enrichLiveTest,
   sortLiveTests,
 } from './admin.liveTests.store';
@@ -75,115 +75,36 @@ export async function syncLiveTestsToRemote(list: LiveTest[]): Promise<void> {
   }
 }
 
-async function fetchRemoteAppSettingsLiveTests(): Promise<any[] | null> {
-  if (!isSupabaseConfigured) return null;
-  try {
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('id', APP_SETTINGS_LIVE_TESTS_ID)
-      .maybeSingle();
+/** Reads `live_tests` with explicit columns (source paper embedded), narrowed by `apply`. */
+async function queryLiveTests(apply: (q: any) => any = (q) => q): Promise<LiveTest[]> {
+  const q = apply(supabase.from('live_tests').select(LIVE_TEST_COLUMNS).order('start_at'));
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return ((data || []) as any[]).map((r) =>
+    enrichLiveTest(r, r.tests ? mapRowToMockTest(r.tests) : null)
+  );
+}
 
-    if (error || !data || data.value === undefined || data.value === null) {
-      return null;
-    }
-
-    let rawVal = data.value;
-    if (typeof rawVal === 'string') {
-      try {
-        rawVal = JSON.parse(rawVal);
-      } catch {
-        return null;
-      }
-    }
-
-    if (Array.isArray(rawVal)) {
-      return rawVal;
-    }
-  } catch {
-    // Ignore
-  }
-  return null;
+function getLocalLiveTests(examId?: string): LiveTest[] {
+  const stored = getStoredLiveTests();
+  const sourceList = stored.length > 0 ? stored : localLiveTests;
+  const enriched = sourceList
+    .map((lt) => enrichLiveTest(lt))
+    .filter((lt) => !examId || lt.examId === examId);
+  return sortLiveTests(enriched);
 }
 
 export async function getLiveTests(examId?: string): Promise<LiveTest[]> {
-  if (isSupabaseConfigured) {
-    let q = supabase
-      .from('live_tests')
-      .select('*, tests(*, exams:exam_id(id,title))')
-      .order('start_at');
-    if (examId) q = q.eq('exam_id', examId);
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    return (data || []).map((r) => enrichLiveTest(r, r.tests ? mapRowToMockTest(r.tests) : null));
-  }
-
-  if (!isSupabaseConfigured) {
-    const stored = getStoredLiveTests();
-    const sourceList = stored.length > 0 ? stored : localLiveTests;
-    const enriched = sourceList
-      .map((lt) => enrichLiveTest(lt))
-      .filter((lt) => !examId || lt.examId === examId);
-    return sortLiveTests(enriched);
-  }
-
-  let rawItems: any[] | null = null;
-
-  // Tier 1: Try `public.live_tests` table in Supabase
-  try {
-    const { data, error } = await supabase
-      .from('live_tests')
-      .select('*, tests(*, exams:exam_id(id,title))')
-      .order('start_at', { ascending: true });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      rawItems = data;
-    }
-  } catch {
-    // Fallback to Tier 2 seamlessly
-  }
-
-  // Tier 2: Try `public.app_settings` (`id = 'live_tests_schedule_list'`)
-  if (!rawItems) {
-    const appSettingsList = await fetchRemoteAppSettingsLiveTests();
-    if (appSettingsList !== null) {
-      rawItems = appSettingsList;
-    }
-  }
-
-  // Tier 3: Fallback to localStorage cache
-  if (!rawItems) {
-    rawItems = getStoredLiveTests();
-  }
-
-  if (!rawItems || rawItems.length === 0) {
-    return [];
-  }
-
-  // Batch-enrich with real MockTest rows from `public.tests`
-  const testIds = rawItems
-    .map((item: any) => String(item.testId || item.test_id || ''))
-    .filter(Boolean);
-  const sourceTestsMap = await fetchSourceTestsMap(testIds);
-
-  const enriched = rawItems.map((item: any) => {
-    const tId = String(item.testId || item.test_id || '');
-    const joinedTest = item.tests ? mapRowToMockTest(item.tests) : null;
-    const sourceTest = joinedTest || sourceTestsMap.get(tId) || null;
-    return enrichLiveTest(item, sourceTest);
-  });
-
-  const sorted = sortLiveTests(enriched);
-  saveStoredLiveTests(sorted);
-
-  if (examId) {
-    return sorted.filter((lt) => lt.examId === examId);
-  }
-  return sorted;
+  if (!isSupabaseConfigured) return getLocalLiveTests(examId);
+  if (examId) return queryLiveTests((q) => q.eq('exam_id', examId));
+  return queryLiveTests();
 }
 
 export async function getActiveLiveTest(): Promise<LiveTest | null> {
-  const all = await getLiveTests();
+  // Only published, non-cancelled events can be active (same rule as the filter below).
+  const all = isSupabaseConfigured
+    ? await queryLiveTests((q) => q.eq('is_published', true).neq('status', 'cancelled'))
+    : await getLiveTests();
   const valid = all.filter(
     (lt) =>
       lt.isPublished !== false &&
@@ -211,14 +132,21 @@ export async function getActiveLiveTest(): Promise<LiveTest | null> {
 }
 
 export async function getLiveTestById(id: string): Promise<LiveTest | null> {
-  const all = await getLiveTests();
-  return all.find((lt) => lt.id === id) || null;
+  if (!isSupabaseConfigured) return getLocalLiveTests().find((lt) => lt.id === id) || null;
+  const rows = await queryLiveTests((q) => q.eq('id', id).limit(1));
+  return rows[0] || null;
+}
+
+/** Live Test events scheduled on one paper (`tests.id`). */
+export async function getLiveTestsByTestId(testId: string): Promise<LiveTest[]> {
+  if (!isSupabaseConfigured) return getLocalLiveTests().filter((lt) => lt.testId === testId);
+  return queryLiveTests((q) => q.eq('test_id', testId));
 }
 
 /** Check if a test is locked because it is part of an active (upcoming or live) Live Test */
 export async function isTestLockedForEditing(testId: string): Promise<boolean> {
-  const all = await getLiveTests();
-  return all.some(
+  const events = await getLiveTestsByTestId(testId);
+  return events.some(
     (lt) => lt.testId === testId && (lt.status === 'upcoming' || lt.status === 'live')
   );
 }

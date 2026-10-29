@@ -171,6 +171,19 @@ export function mapRowToMockTest(row: any): MockTest {
   };
 }
 
+/** `tests` columns read by `mapRowToMockTest` (+ exam title); never `*` (e.g. `icon_url`). */
+export const LIVE_SOURCE_TEST_COLUMNS =
+  'id, title, slug, description, test_type, duration_minutes, total_questions, total_marks, ' +
+  'passing_marks, negative_marking, is_premium, is_active, is_live_only, order_index, status, ' +
+  'exam_id, test_series_id, exams:exam_id(id,title)';
+
+/** `live_tests` columns read by `enrichLiveTest`, with the source paper embedded. */
+export const LIVE_TEST_COLUMNS =
+  'id, test_id, start_at, registration_deadline, status, ranking_enabled, subscription_required, ' +
+  'created_at, updated_at, title, exam_id, scheduled_start_time, scheduled_end_time, ' +
+  'duration_minutes, total_questions, total_marks, negative_marking, logo, exam_logo, ' +
+  `instructions, is_published, enrolled_count, tests(${LIVE_SOURCE_TEST_COLUMNS})`;
+
 /** Batch-fetch source MockTests from Supabase `public.tests` (with localTests fallback) */
 export async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string, MockTest>> {
   const map = new Map<string, MockTest>();
@@ -188,11 +201,11 @@ export async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string
     try {
       const { data, error } = await supabase
         .from('tests')
-        .select('*, exams:exam_id(id,title)')
+        .select(LIVE_SOURCE_TEST_COLUMNS)
         .in('id', uniqueIds);
 
       if (!error && Array.isArray(data)) {
-        for (const row of data) {
+        for (const row of data as any[]) {
           map.set(String(row.id), mapRowToMockTest(row));
         }
       }

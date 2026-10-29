@@ -2,7 +2,7 @@ import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabas
 import type { Exam, Subject, Chapter } from '@/types';
 import type { ChapterRow, SubjectRow } from '@/services/domains/localStore';
 
-/** Section of the student catalog API: daily content, leaderboard, live updates, exams, subjects & chapters (split from domains/catalog.ts, same behaviour). */
+/** Section of the student catalog API: daily content, leaderboard, exams, subjects & chapters (split from domains/catalog.ts, same behaviour). */
 export const catalogContentApi = {
   async getDailyContent(): Promise<Record<string, unknown>> {
     if (!isSupabaseConfigured) return {};
@@ -40,20 +40,6 @@ export const catalogContentApi = {
       district: string | null;
       tests_count: number;
     }>;
-  },
-
-  subscribeToStudentCatalogUpdates(callback: () => void): () => void {
-    if (!isSupabaseConfigured) return () => {};
-    const channel = supabase
-      .channel('student-catalog-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'test_series' }, callback)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tests' }, callback)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'subjects' }, callback)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, callback)
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
   },
 
   async getExams(): Promise<Exam[]> {

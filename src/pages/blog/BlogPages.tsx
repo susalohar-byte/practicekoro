@@ -9,7 +9,7 @@ import { Footer } from '@/pages/landing/components/Footer';
 import { BlogPostCard } from '@/pages/landing/components/BlogSection';
 import { LANDING_FONT } from '@/pages/landing/components/SectionHeading';
 import { RevealGroup, popIn, hoverLift } from '@/pages/landing/components/Reveal';
-import { formatPostDate, formatReadTime, usePublishedPosts } from './publicBlog';
+import { formatPostDate, formatReadTime, usePublishedPost, usePublishedPosts } from './publicBlog';
 
 const SITE = 'https://practicekoro.online';
 
@@ -106,8 +106,9 @@ export const BlogListPage: React.FC = () => {
 /** /blog/:slug — one article. */
 export const BlogPostPage: React.FC = () => {
   const { slug } = useParams();
-  const { data: posts, isPending, isError } = usePublishedPosts();
-  const post = posts?.find((p) => p.slug === slug);
+  const { data: post, isPending, isError } = usePublishedPost(slug);
+  // Cards only (no bodies); shares its cache with the /blog list
+  const { data: posts } = usePublishedPosts();
   const more = posts?.filter((p) => p.slug !== slug).slice(0, 3) ?? [];
 
   React.useEffect(() => {

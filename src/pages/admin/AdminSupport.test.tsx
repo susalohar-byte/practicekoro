@@ -7,6 +7,7 @@ vi.mock('@/lib/supabase', () => ({ isSupabaseConfigured: true }));
 vi.mock('@/services/api', () => ({
   api: {
     getSupportTickets: vi.fn(),
+    getSupportTicketMessages: vi.fn(),
     sendSupportTicketMessage: vi.fn(),
     updateSupportTicket: vi.fn(),
     createSupportTicket: vi.fn(),
@@ -29,6 +30,7 @@ const ticket: SupportTicketItem = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getSupportTickets).mockResolvedValue([ticket]);
+  vi.mocked(api.getSupportTicketMessages).mockResolvedValue([]);
 });
 describe('AdminSupport persistent conversations', () => {
   it('maps saved pending status to In Progress on reload', () => {
@@ -94,5 +96,26 @@ describe('AdminSupport persistent conversations', () => {
     const ticketItems = await screen.findAllByText('Support question');
     fireEvent.click(ticketItems[0]);
     expect(await screen.findByText('Previously saved answer')).toBeInTheDocument();
+    // Messages that came with the list are not fetched again.
+    expect(api.getSupportTicketMessages).not.toHaveBeenCalled();
+  });
+  it('fetches a ticket conversation only when the ticket is opened', async () => {
+    vi.mocked(api.getSupportTicketMessages).mockResolvedValue([
+      {
+        id: 'm1',
+        ticketId: 't1',
+        authorKind: 'support',
+        authorName: 'Support',
+        body: 'Answer loaded on open',
+        createdAt: '2026-10-01',
+      },
+    ]);
+    render(<AdminSupport />);
+    const ticketItems = await screen.findAllByText('Support question');
+    expect(api.getSupportTicketMessages).not.toHaveBeenCalled();
+    fireEvent.click(ticketItems[0]);
+    expect(await screen.findByText('Answer loaded on open')).toBeInTheDocument();
+    expect(api.getSupportTicketMessages).toHaveBeenCalledTimes(1);
+    expect(api.getSupportTicketMessages).toHaveBeenCalledWith('t1');
   });
 });

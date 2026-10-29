@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '@/services/api';
-import type { Subject, Chapter, Question } from '@/types';
+import type { Subject, Chapter } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
 import { ITEMS_PER_PAGE } from './topicManageUtils';
 
@@ -14,7 +14,11 @@ export function useAdminTopicManage() {
   /* ── Data ─────────── */
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  // Question counts only (total + per topic); the question rows themselves are never needed here.
+  const [questionCounts, setQuestionCounts] = useState<{
+    total: number;
+    byTopic: Record<string, number>;
+  }>({ total: 0, byTopic: {} });
   const [isLoading, setIsLoading] = useState(true);
 
   /* ── Filters ──────── */
@@ -71,14 +75,14 @@ export function useAdminTopicManage() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [subs, chaps, qs] = await Promise.all([
+      const [subs, chaps, counts] = await Promise.all([
         api.getAllAdminSubjects(),
         api.getAllAdminChapters(),
-        api.getAllAdminQuestions(),
+        api.getAdminQuestionTopicCounts(),
       ]);
       setSubjects(subs);
       setChapters(chaps);
-      setQuestions(qs);
+      setQuestionCounts(counts);
     } catch (err) {
       console.error('Failed to load topic manage data:', err);
     } finally {
@@ -124,14 +128,7 @@ export function useAdminTopicManage() {
     return map;
   }, [subjects]);
 
-  const questionCountsByTopic = useMemo(() => {
-    const counts: Record<string, number> = {};
-    questions.forEach((q) => {
-      const tid = q.topicId || q.chapterId;
-      if (tid) counts[tid] = (counts[tid] || 0) + 1;
-    });
-    return counts;
-  }, [questions]);
+  const questionCountsByTopic = questionCounts.byTopic;
 
   /* ── Filtered & Paginated Topics ─────────────────── */
   const filteredTopics = useMemo(() => {
@@ -167,10 +164,10 @@ export function useAdminTopicManage() {
     () => ({
       totalSubjects: subjects.length,
       totalTopics: chapters.length,
-      totalQuestions: questions.length,
+      totalQuestions: questionCounts.total,
       activeTopics: chapters.filter((c) => c.isActive).length,
     }),
-    [subjects, chapters, questions]
+    [subjects, chapters, questionCounts]
   );
 
   /* ── Subject CRUD ─────────────────────────────────── */
@@ -385,8 +382,6 @@ export function useAdminTopicManage() {
     setSubjects,
     chapters,
     setChapters,
-    questions,
-    setQuestions,
     isLoading,
     setIsLoading,
     search,

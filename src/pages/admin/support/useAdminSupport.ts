@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { api } from '@/services/api';
 import type { SupportTicketItem } from '@/types';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -65,6 +65,46 @@ export function useAdminSupport() {
 
   // Selected Ticket in Right Panel (Neutral initial state - nothing selected by default)
   const [selectedTicketId, setSelectedTicketId] = useState<string>('');
+
+  // Open ticket: its conversation is fetched on demand (the inbox list carries none).
+  const messagesRequested = useRef(new Set<string>());
+  useEffect(() => {
+    if (!isSupabaseConfigured || !selectedTicketId) return;
+    const ticket = ticketsList.find((t) => t.id === selectedTicketId);
+    if (!ticket || ticket.messagesLoaded !== false) return;
+    if (messagesRequested.current.has(selectedTicketId)) return;
+    messagesRequested.current.add(selectedTicketId);
+    const ticketId = selectedTicketId;
+    api
+      .getSupportTicketMessages(ticketId)
+      .then((messages) => {
+        setTicketsList((prev) =>
+          prev.map((t) =>
+            t.id === ticketId
+              ? {
+                  ...t,
+                  messagesLoaded: true,
+                  // Keep the opening message and anything sent while loading.
+                  messages: [
+                    ...t.messages.filter((m) => m.id.startsWith('initial-')),
+                    ...messages.map(supportMessageToChat),
+                    ...t.messages.filter(
+                      (m) => !m.id.startsWith('initial-') && !messages.some((x) => x.id === m.id)
+                    ),
+                  ],
+                }
+              : t
+          )
+        );
+      })
+      .catch((err) => {
+        messagesRequested.current.delete(ticketId);
+        setToastError(true);
+        setToastMessage(
+          err instanceof Error ? err.message : 'Ticket messages could not be loaded.'
+        );
+      });
+  }, [selectedTicketId, ticketsList]);
 
   // Search in filters
   const [filterSearch, setFilterSearch] = useState('');

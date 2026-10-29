@@ -53,6 +53,7 @@ export function mapAdminSupportTicket(t: SupportTicketItem): TicketRecord {
     status,
     dateStr,
     channel: 'Student Portal',
+    messagesLoaded: t.messages !== undefined,
     messages: [
       {
         id: `initial-${t.id}`,

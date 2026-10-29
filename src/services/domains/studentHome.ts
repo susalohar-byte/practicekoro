@@ -76,39 +76,7 @@ export async function getDailyContent(): Promise<DailyContent> {
   return (parseJsonObject(data?.value) || {}) as DailyContent;
 }
 
-function subscribeToTables(
-  channelName: string,
-  tables: string[],
-  callback: () => void
-): () => void {
-  if (!isSupabaseConfigured) return () => {};
-
-  let channel = supabase.channel(channelName);
-  for (const table of tables) {
-    channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, callback);
-  }
-  channel.subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
-}
-
-export function subscribeToStudentCatalogUpdates(callback: () => void): () => void {
-  return subscribeToTables(
-    'student-catalog-channel',
-    ['test_series', 'tests', 'test_exams'],
-    callback
-  );
-}
-
-export function subscribeToPopularExamUpdates(callback: () => void): () => void {
-  return subscribeToTables('popular-exams-channel', ['app_settings'], callback);
-}
-
 export const studentHomeApi = {
   getAppLeaderboard,
   getDailyContent,
-  subscribeToStudentCatalogUpdates,
-  subscribeToPopularExamUpdates,
 };

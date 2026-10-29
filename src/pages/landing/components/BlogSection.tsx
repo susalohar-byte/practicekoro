@@ -2,17 +2,17 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, Newspaper } from 'lucide-react';
-import type { BlogPost } from '@/types';
 import {
   formatPostDate,
   formatReadTime,
   pickHomepagePosts,
-  usePublishedPosts,
+  useHomepagePosts,
+  type BlogPostSummary,
 } from '@/pages/blog/publicBlog';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
 import { SectionHeading } from './SectionHeading';
 
-export const BlogPostCard: React.FC<{ post: BlogPost }> = ({ post }) => {
+export const BlogPostCard: React.FC<{ post: BlogPostSummary }> = ({ post }) => {
   const readTime = formatReadTime(post.readTime);
   return (
     <Link
@@ -60,7 +60,8 @@ export const BlogPostCard: React.FC<{ post: BlogPost }> = ({ post }) => {
 
 /** Three articles from the admin panel's blog: featured ones first, then the latest. */
 export const BlogSection: React.FC = () => {
-  const { data: posts, isPending, isError } = usePublishedPosts();
+  // Featured-first, one more than is shown (so "View all" knows there are more)
+  const { data: posts, isPending, isError } = useHomepagePosts();
 
   // No articles yet (or the list could not load): leave the section out
   if (isError || (!isPending && (!posts || posts.length === 0))) return null;

@@ -4,8 +4,17 @@ vi.mock('@/lib/supabase', () => ({
   isSupabaseConfigured: true,
   supabaseRuntime: { ...mocks, functions: { invoke: mocks.invoke } },
 }));
-import { getAppSettings, getPaymentGatewayConfig, sendTestEmail } from './admin.settings';
-beforeEach(() => vi.clearAllMocks());
+import {
+  getAppSettings,
+  getPaymentGatewayConfig,
+  invalidateAppSettingsCache,
+  sendTestEmail,
+} from './admin.settings';
+// getAppSettings keeps a 5-minute in-memory cache; each test needs a fresh read.
+beforeEach(() => {
+  vi.clearAllMocks();
+  invalidateAppSettingsCache();
+});
 it('rejects production settings permission failures instead of returning local defaults', async () => {
   mocks.from.mockReturnValue({
     select: async () => ({ data: null, error: { message: 'permission denied' } }),
@@ -34,6 +43,16 @@ it('returns only authoritative records, with no demo defaults merged in', async 
   const result = await getAppSettings();
   expect(result).toHaveLength(1);
   expect(result[0].value).toBe('Saved Name');
+});
+it('leaves the large list rows out of the site-wide settings poll', async () => {
+  const not = vi.fn(async () => ({ data: [], error: null }));
+  mocks.from.mockReturnValue({ select: () => ({ not }) });
+  await expect(getAppSettings({ skipLists: true })).resolves.toEqual([]);
+  expect(not).toHaveBeenCalledWith(
+    'id',
+    'in',
+    '(banners_hero_list,blog_posts_list,live_tests_schedule_list)'
+  );
 });
 it('rejects payment gateway permission failures without local fallback', async () => {
   mocks.rpc.mockResolvedValue({ data: null, error: { message: 'gateway access denied' } });

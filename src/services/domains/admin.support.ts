@@ -30,18 +30,47 @@ export const mapSupportTicket = (d: any): SupportTicketItem => ({
       a.createdAt.localeCompare(b.createdAt)
     ),
 });
-export async function getSupportTickets(): Promise<SupportTicketItem[]> {
+const SUPPORT_TICKET_COLUMNS =
+  'id, user_id, student_name, student_email, subject, issue, category, priority, status, ' +
+  'assigned_to, resolution_notes, created_at, updated_at';
+const SUPPORT_MESSAGE_COLUMNS = 'id, ticket_id, author_name, author_kind, body, created_at';
+
+/** How many of the newest tickets the admin inbox loads. */
+export const SUPPORT_TICKETS_LIMIT = 500;
+
+/**
+ * Newest admin support tickets (explicit columns, newest first, capped). The conversation of a
+ * ticket is not included: `messages` is left undefined and loaded with
+ * `getSupportTicketMessages` when the ticket is opened.
+ */
+export async function getSupportTickets(
+  options: { limit?: number } = {}
+): Promise<SupportTicketItem[]> {
   if (!isSupabaseConfigured) return [...localSupportTickets];
-  return loadAllPages(async (limit, offset) => {
-    const { data, error } = await supabase
-      .from('support_tickets')
-      .select('*, support_ticket_messages(*)')
-      .order('created_at', { ascending: false })
-      .order('id')
-      .range(offset, offset + limit - 1);
-    if (error) throw new Error(error.message);
-    return (data || []).map(mapSupportTicket);
-  });
+  const limit = Math.max(1, Math.min(options.limit ?? SUPPORT_TICKETS_LIMIT, 1000));
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select(SUPPORT_TICKET_COLUMNS)
+    .order('created_at', { ascending: false })
+    .order('id')
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return ((data || []) as any[]).map((d) => ({ ...mapSupportTicket(d), messages: undefined }));
+}
+
+/** The messages (replies and internal notes) of one ticket, oldest first. */
+export async function getSupportTicketMessages(ticketId: string): Promise<SupportTicketMessage[]> {
+  if (!isSupabaseConfigured) {
+    return localSupportTickets.find((t) => t.id === ticketId)?.messages || [];
+  }
+  const { data, error } = await supabase
+    .from('support_ticket_messages')
+    .select(SUPPORT_MESSAGE_COLUMNS)
+    .eq('ticket_id', ticketId)
+    .order('created_at', { ascending: true })
+    .order('id');
+  if (error) throw new Error(error.message);
+  return ((data || []) as any[]).map(mapSupportMessage);
 }
 export async function updateSupportTicket(
   id: string,
@@ -166,6 +195,7 @@ export async function getStudentSupportTickets(userId?: string): Promise<Support
 }
 export const adminSupportApi = {
   getSupportTickets,
+  getSupportTicketMessages,
   updateSupportTicket,
   createSupportTicket,
   getStudentSupportTickets,

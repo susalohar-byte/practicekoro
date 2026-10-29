@@ -126,9 +126,14 @@ Statuses were checked against production `supabase_migrations.schema_migrations`
 | `20261024124339_exam_centric_test_architecture_part2.sql`        | exam_subjects delete policy + admin_save_exam_subject_topics                                                                       | **APPLIED (SQL Editor)** |
 | `20261024145344_security_advisor_hardening.sql`                  | Security advisor fixes: internal-table policies, RPC EXECUTE grants                                                                |       **APPLIED**        |
 | `20261024150000_drop_admin_test_series_metrics.sql`              | Drop the unused admin_get_test_series_metrics RPC                                                                                  | **APPLIED (SQL Editor)** |
-| `20261025090000_student_ticket_replies.sql`                      | Support ticket student reply thread RLS & notification triggers                                                                     |       **APPLIED**        |
-| `20261026032817_student_self_account_deletion.sql`                | Student self-service account deletion cascade & cleanup RPC                                                                        |       **APPLIED**        |
-| `20261029105000_database_architecture_hardening.sql`              | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                 |       **PENDING**        |
+| `20261025090000_student_ticket_replies.sql`                      | Support ticket student reply thread RLS & notification triggers                                                                    |       **APPLIED**        |
+| `20261026032817_student_self_account_deletion.sql`               | Student self-service account deletion cascade & cleanup RPC                                                                        |       **APPLIED**        |
+| `20261029090000_block_inline_images.sql`                         | Reject new base64 images in image columns; move the home banner to the website copy                                                | **APPLIED (SQL Editor)** |
+| `20261029100000_rls_initplan_and_policy_merge.sql`               | RLS initplan form ((select auth.uid())) + merged duplicate permissive policies                                                     | **APPLIED (SQL Editor)** |
+| `20261029100100_fk_indexes_and_duplicate_index.sql`              | Indexes for 32 unindexed foreign keys; drop duplicate idx_subscriptions_user                                                       | **APPLIED (SQL Editor)** |
+| `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                        | **APPLIED (SQL Editor)** |
+| `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                               | **APPLIED (SQL Editor)** |
+| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                |       **PENDING**        |
 
 ---
 

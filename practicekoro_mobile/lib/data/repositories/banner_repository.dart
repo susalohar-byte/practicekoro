@@ -30,8 +30,38 @@ class BannerRepository {
     }
   }
 
+  /// A saved copy younger than this is shown without asking the server.
+  /// Admin changes still arrive within seconds through the realtime sync below.
+  static const Duration _diskMaxAge = Duration(minutes: 30);
+  static const String _savedAtKey = 'cached_hero_banners_saved_at';
+  bool _diskStale = false;
+
+  /// When the banner list was last asked from the server.
+  DateTime? _lastNetworkFetch;
+
+  /// Pull-to-refresh asks the server again only after this long.
+  static const Duration _manualRefreshMinInterval = Duration(minutes: 1);
+
+  /// Admin saves can arrive as a burst of broadcasts; they are folded into
+  /// a single refetch this long after the last one.
+  static const Duration _syncDebounce = Duration(seconds: 5);
+  Timer? _syncTimer;
+
   void clearCache() {
     _cache = null;
+    _diskStale = true;
+  }
+
+  /// For pull-to-refresh: drops the cached list only if it was fetched more
+  /// than [_manualRefreshMinInterval] ago, so repeated pulls do not
+  /// re-download it. Admin changes still arrive through [setupRealtimeSync].
+  void refreshIfStale() {
+    final last = _lastNetworkFetch;
+    if (last != null &&
+        DateTime.now().difference(last) < _manualRefreshMinInterval) {
+      return;
+    }
+    clearCache();
   }
 
   /// Load cached banners from SharedPreferences
@@ -44,7 +74,9 @@ class BannerRepository {
         if (decoded is List && decoded.isNotEmpty) {
           final list = decoded
               .whereType<Map>()
-              .map((m) => HeroBannerModel.fromJson(Map<String, dynamic>.from(m)))
+              .map(
+                (m) => HeroBannerModel.fromJson(Map<String, dynamic>.from(m)),
+              )
               .toList();
           list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
           return list;
@@ -56,12 +88,28 @@ class BannerRepository {
     return null;
   }
 
+  Future<bool> _diskCacheIsFresh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedAt = prefs.getInt(_savedAtKey);
+      if (savedAt == null) return false;
+      final age = DateTime.now().difference(
+        DateTime.fromMillisecondsSinceEpoch(savedAt),
+      );
+      return !age.isNegative && age < _diskMaxAge;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Save banners to SharedPreferences
   Future<void> _saveToDiskCache(List<HeroBannerModel> banners) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonList = banners.map((b) => b.toJson()).toList();
       await prefs.setString(_storageKey, jsonEncode(jsonList));
+      await prefs.setInt(_savedAtKey, DateTime.now().millisecondsSinceEpoch);
+      _diskStale = false;
     } catch (e) {
       debugPrint('Error saving banners to cache: $e');
     }
@@ -83,11 +131,14 @@ class BannerRepository {
       final diskBanners = await _loadFromDiskCache();
       if (diskBanners != null && diskBanners.isNotEmpty) {
         _cache = diskBanners;
+        // A recent copy saves re-downloading the banner list on every open.
+        if (!_diskStale && await _diskCacheIsFresh()) return diskBanners;
       }
     }
 
     final supa = _supabase;
     if (supa != null) {
+      _lastNetworkFetch = DateTime.now();
       // 1. Try public.app_settings (Admin panel central persistence store)
       try {
         final settingRow = await supa
@@ -108,7 +159,9 @@ class BannerRepository {
           if (parsedList is List && parsedList.isNotEmpty) {
             final banners = parsedList
                 .whereType<Map>()
-                .map((m) => HeroBannerModel.fromJson(Map<String, dynamic>.from(m)))
+                .map(
+                  (m) => HeroBannerModel.fromJson(Map<String, dynamic>.from(m)),
+                )
                 .toList();
             banners.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
             if (banners.isNotEmpty) {
@@ -132,7 +185,9 @@ class BannerRepository {
 
         if (rows.isNotEmpty) {
           final banners = rows
-              .map((r) => HeroBannerModel.fromJson(Map<String, dynamic>.from(r)))
+              .map(
+                (r) => HeroBannerModel.fromJson(Map<String, dynamic>.from(r)),
+              )
               .toList();
           if (banners.isNotEmpty) {
             _cache = banners;
@@ -155,7 +210,9 @@ class BannerRepository {
   }
 
   /// Fetches only active, live-scheduled banners for the Student Home carousel
-  Future<List<HeroBannerModel>> getActiveHomeBanners({bool forceRefresh = false}) async {
+  Future<List<HeroBannerModel>> getActiveHomeBanners({
+    bool forceRefresh = false,
+  }) async {
     final all = await getBanners(forceRefresh: forceRefresh);
     final active = all.where((b) {
       if (!b.isCurrentlyLive) return false;
@@ -174,13 +231,20 @@ class BannerRepository {
     final supa = _supabase;
     if (supa == null) return;
     try {
-      await supa.rpc('increment_banner_click', params: {'p_banner_id': bannerId});
+      await supa.rpc(
+        'increment_banner_click',
+        params: {'p_banner_id': bannerId},
+      );
     } catch (_) {
       // Silently ignore if RPC is not present
     }
   }
 
-  /// Subscribes to realtime sync broadcast messages and table changes from Admin Panel
+  /// Listens for the admin panel's tiny `banners_updated` broadcast, used
+  /// only as a "something changed" signal. The banner row itself is not
+  /// streamed (a `postgres_changes` subscription would ship the whole row to
+  /// every phone on each save); instead each phone refetches it once, a few
+  /// seconds after the last signal.
   void setupRealtimeSync(VoidCallback onUpdated) {
     final supa = _supabase;
     if (supa == null || _subscriptionChannel != null) return;
@@ -189,23 +253,12 @@ class BannerRepository {
       _subscriptionChannel!
           .onBroadcast(
             event: 'banners_updated',
-            callback: (payload) {
-              clearCache();
-              onUpdated();
-            },
-          )
-          .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'app_settings',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'id',
-              value: 'banners_hero_list',
-            ),
-            callback: (payload) {
-              clearCache();
-              onUpdated();
+            callback: (_) {
+              _syncTimer?.cancel();
+              _syncTimer = Timer(_syncDebounce, () {
+                clearCache();
+                onUpdated();
+              });
             },
           )
           .subscribe();
@@ -213,6 +266,8 @@ class BannerRepository {
   }
 
   void dispose() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
     try {
       _subscriptionChannel?.unsubscribe();
     } catch (_) {}

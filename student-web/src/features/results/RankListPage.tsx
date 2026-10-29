@@ -110,7 +110,7 @@ export default function RankListPage() {
                 </span>
               </label>
             )}
-            <label className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3">
+            <label className="flex h-11 min-h-11 flex-1 items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3">
               <Search className="h-[18px] w-[18px] text-[#94A3B8]" aria-hidden />
               <span className="sr-only">Search student name or rank</span>
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search student name or rank..." className="h-full flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-[#94A3B8]" />

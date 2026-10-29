@@ -50,4 +50,6 @@ export interface TicketRecord {
   channel: string;
   attachments?: AttachmentItem[];
   messages: ChatMessage[];
+  /** false while the ticket's replies / notes are not loaded yet (loaded when it is opened). */
+  messagesLoaded?: boolean;
 }

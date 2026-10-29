@@ -27,6 +27,7 @@ export const qk = {
   subscription: (uid: string) => ['subscription', uid] as const,
   supportContact: ['support-contact'] as const,
   tickets: (uid: string) => ['tickets', uid] as const,
+  ticketMessages: (ticketId: string) => ['ticket-messages', ticketId] as const,
   notifications: (uid: string) => ['notifications', uid] as const,
   bookmarks: (uid: string) => ['bookmarks', uid] as const,
 };
@@ -47,7 +48,7 @@ export const useTopicTests = (topicId: string) =>
 export const useTest = (id: string) =>
   useQuery({ queryKey: qk.test(id), queryFn: () => catalog.fetchTest(id), enabled: !!id });
 export const useLiveTests = () =>
-  useQuery({ queryKey: qk.liveTests, queryFn: () => catalog.fetchLiveTests(), refetchInterval: 60_000 });
+  useQuery({ queryKey: qk.liveTests, queryFn: () => catalog.fetchLiveTests(), refetchInterval: 5 * 60_000 });
 export const useBanners = () => useQuery({ queryKey: qk.banners, queryFn: catalog.fetchHomeBanners });
 
 export function useAttemptHistory() {
@@ -103,6 +104,8 @@ export function useTickets() {
   const id = useUid();
   return useQuery({ queryKey: qk.tickets(id), queryFn: () => account.fetchTickets(id), enabled: !!id });
 }
+export const useTicketMessages = (ticketId: string) =>
+  useQuery({ queryKey: qk.ticketMessages(ticketId), queryFn: () => account.fetchTicketMessages(ticketId), enabled: !!ticketId });
 export function useNotifications() {
   const id = useUid();
   return useQuery({ queryKey: qk.notifications(id), queryFn: account.fetchNotifications, enabled: !!id });

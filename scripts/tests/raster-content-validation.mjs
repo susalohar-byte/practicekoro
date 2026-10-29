@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import {
   sanitizeRaster,
   rasterDimensions,
+  isOpaque,
+  sniffRasterMime,
 } from '../../supabase/functions/_shared/raster-validation.ts';
 const req = createRequire(process.env.RASTER_DECODER_PACKAGE || import.meta.url);
 const { PNG } = req('pngjs'),
@@ -82,6 +84,25 @@ await assert.rejects(
   /Invalid decoded/
 );
 checks++;
+// Opaque images may be stored as JPEG; transparent ones must stay PNG.
+const opaque = { width: 4, height: 3, data: Buffer.alloc(4 * 3 * 4, 255) };
+const seeThrough = { width: 4, height: 3, data: Buffer.alloc(4 * 3 * 4, 128) };
+eq(isOpaque(opaque.data), true);
+eq(isOpaque(seeThrough.data), false);
+const toJpeg = async (img) => new Uint8Array(jpeg.encode(img, 85).data);
+const asJpeg = await sanitizeRaster(
+  PNG.sync.write(opaque),
+  'image/png',
+  1024 * 1024,
+  decode,
+  toJpeg
+);
+eq(sniffRasterMime(asJpeg), 'image/jpeg');
+eq(rasterDimensions(asJpeg, 'image/jpeg'), { width: 4, height: 3 });
+await assert.rejects(() =>
+  sanitizeRaster(png, 'image/png', 1024 * 1024, decode, async () => new Uint8Array([1, 2, 3, 4]))
+);
+checks++;
 console.log(
-  `PASS: ${checks} actual raster-byte validation assertions; PNG/JPEG decoding, content/MIME mismatch, SVG denial, polyglot stripping, CRC/size/pixel bounds.`
+  `PASS: ${checks} actual raster-byte validation assertions; PNG/JPEG decoding, content/MIME mismatch, SVG denial, polyglot stripping, CRC/size/pixel bounds, JPEG output for opaque images.`
 );

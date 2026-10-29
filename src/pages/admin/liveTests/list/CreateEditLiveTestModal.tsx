@@ -409,7 +409,7 @@ export const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = (
 
                   <input
                     type="text"
-                    placeholder="https://... or data:image/..."
+                    placeholder="https://..."
                     value={logo}
                     onChange={(e) => setLogo(e.target.value)}
                     className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-mono text-slate-700 dark:text-slate-300 placeholder:font-sans focus:outline-none focus:ring-1 focus:ring-blue-500"

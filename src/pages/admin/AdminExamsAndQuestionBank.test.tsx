@@ -5,6 +5,35 @@ import { AdminExams } from './AdminExams';
 import { AdminQuestionBank } from './AdminQuestionBank';
 import { api } from '@/services/api';
 import { SAMPLE_TXT_CONTENT } from '@/utils/txtQuestionParser';
+import {
+  computeQuestionBankStats,
+  matchesQuestionBankQuery,
+  type QuestionBankQuery,
+} from '@/services/domains/admin.questionBank';
+import type { Question } from '@/types';
+
+/**
+ * Server-side Question Bank stand-in: the mocked api pages / counts this list with the same
+ * filter rules the Supabase query builder implements.
+ */
+let bankRows: Question[] = [];
+function setBank(rows: unknown[]) {
+  bankRows = rows as Question[];
+  const matching = (query: QuestionBankQuery) =>
+    bankRows.filter((q) => matchesQuestionBankQuery(q, query));
+  (api.getQuestionBankPage as ReturnType<typeof vi.fn>).mockImplementation(
+    async (query: QuestionBankQuery, page: number, size: number) => {
+      const all = matching(query);
+      return { questions: all.slice((page - 1) * size, page * size), total: all.length };
+    }
+  );
+  (api.getQuestionBankIds as ReturnType<typeof vi.fn>).mockImplementation(
+    async (query: QuestionBankQuery) => matching(query).map((q) => q.id)
+  );
+  (api.getQuestionBankStats as ReturnType<typeof vi.fn>).mockImplementation(async () =>
+    computeQuestionBankStats(bankRows)
+  );
+}
 
 vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
@@ -61,6 +90,10 @@ vi.mock('@/services/api', () => ({
     getPopularExams: vi.fn(),
     savePopularExams: vi.fn(),
     getAllAdminQuestions: vi.fn(),
+    getQuestionBankPage: vi.fn(),
+    getQuestionBankIds: vi.fn(),
+    getQuestionBankStats: vi.fn(),
+    getAdminQuestionTexts: vi.fn(() => Promise.resolve([])),
     getAllAdminSubjects: vi.fn(),
     getAllAdminChapters: vi.fn(),
     getLiveTests: vi.fn(() => Promise.resolve([])),
@@ -251,7 +284,7 @@ describe('AdminQuestionBank Selection UI Updates', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (api.getAllAdminQuestions as ReturnType<typeof vi.fn>).mockResolvedValue(mockQuestions);
+    setBank(mockQuestions);
     (api.getAllAdminSubjects as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (api.getAllAdminChapters as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (api.getAllAdminExams as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -301,8 +334,40 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     });
   });
 
+  it('pages the bank on the server and still selects every matching question', async () => {
+    setBank(
+      Array.from({ length: 25 }, (_, i) => ({
+        ...mockQuestions[0],
+        id: `bulk_${i + 1}`,
+        questionText: `Bulk question ${i + 1}`,
+        questionBengaliText: `বাল্ক প্রশ্ন ${i + 1}`,
+      }))
+    );
+
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    // The total comes from the server count, not from the 10 rows on screen
+    await waitFor(() => {
+      expect(screen.getByText('Select All (25 Questions)')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/of 25 questions/)).toBeInTheDocument();
+    expect(api.getQuestionBankStats).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /select all \(25 questions\)/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Delete Selected (25)')).toBeInTheDocument();
+    });
+    expect(api.getQuestionBankIds).toHaveBeenCalledWith(
+      expect.objectContaining({ liveOnly: false })
+    );
+  });
+
   it('displays singular "Select All (1 Question)" when context has exactly 1 question', async () => {
-    (api.getAllAdminQuestions as ReturnType<typeof vi.fn>).mockResolvedValue([mockQuestions[0]]);
+    setBank([mockQuestions[0]]);
 
     render(
       <MemoryRouter>
@@ -346,10 +411,7 @@ describe('AdminQuestionBank Selection UI Updates', () => {
   });
 
   it('keeps Live Test questions out of the bank and lists them in the Live Test mode', async () => {
-    (api.getAllAdminQuestions as ReturnType<typeof vi.fn>).mockResolvedValue([
-      ...mockQuestions,
-      { ...mockQuestions[0], id: 'q_live_1', isLiveOnly: true },
-    ]);
+    setBank([...mockQuestions, { ...mockQuestions[0], id: 'q_live_1', isLiveOnly: true }]);
 
     render(
       <MemoryRouter>
@@ -361,7 +423,13 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     await waitFor(() => {
       expect(screen.getByText('Select All (3 Questions)')).toBeInTheDocument();
     });
-    expect(api.getAllAdminQuestions).toHaveBeenCalledWith({ includeLiveOnly: true });
+    // The bank is paged on the server: the whole table is never downloaded.
+    expect(api.getAllAdminQuestions).not.toHaveBeenCalled();
+    expect(api.getQuestionBankPage).toHaveBeenCalledWith(
+      expect.objectContaining({ liveOnly: false }),
+      1,
+      10
+    );
 
     // Live Test mode from the card: only the live question
     fireEvent.click(screen.getByText('Live Test'));
@@ -393,9 +461,11 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     });
     fireEvent.change(viewMode, { target: { value: 'live' } });
 
-    // Like Exam/Subject: its own stat card and MODE badge
+    // Like Exam/Subject: its own stat card and MODE badge (rows arrive from the server page)
     expect(screen.getByText('Live Test Questions')).toBeInTheDocument();
-    expect(screen.getAllByText('Live Test').length).toBeGreaterThan(1);
+    await waitFor(() => {
+      expect(screen.getAllByText('Live Test').length).toBeGreaterThan(1);
+    });
   });
 });
 

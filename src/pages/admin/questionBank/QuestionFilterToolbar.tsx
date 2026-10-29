@@ -34,7 +34,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
     selectedSourceFilter,
     setSelectedSourceFilter,
     showToast,
-    filteredQuestions,
+    filteredTotal,
   } = qb;
 
   // Deduplicated list of available subjects
@@ -292,7 +292,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
             <button
               type="button"
               onClick={() => {
-                showToast(`Filters active: ${filteredQuestions.length} questions matching.`);
+                showToast(`Filters active: ${filteredTotal} questions matching.`);
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
             >

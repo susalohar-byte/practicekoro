@@ -3,6 +3,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Search, BookOpen, Filter } from 'lucide-react';
 import type { MockTest, Question, Subject, Chapter } from '@/types';
 import { api } from '@/services/api';
+import type { AdminQuestionFilters } from '@/services/domains/admin.questions';
+
+/** Questions are listed one server page at a time ("Load more"), never the whole bank. */
+const QUESTION_PAGE_SIZE = 100;
 import { Button } from '@/components/common/Button';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
@@ -38,7 +42,12 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   >(new Map());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Server paging state for the listed questions
+  const [listFilters, setListFilters] = useState<AdminQuestionFilters>({});
+  const [loadedPage, setLoadedPage] = useState(0);
+  const [totalMatching, setTotalMatching] = useState(0);
   const loadRequestRef = useRef(0);
 
   // Filters
@@ -59,11 +68,12 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
       // 1. Get already assigned questions
       const assigned = await api.getTestAssignedQuestions(testId);
 
-      // 2. Load available questions from Central Question Bank
-      const allQs = await api.getAllAdminQuestions({
+      // 2. Load the first page of matching questions from the Central Question Bank
+      const filters: AdminQuestionFilters = {
         subjectId: testSubjectId || undefined,
         chapterId: testChapterId || undefined,
-      });
+      };
+      const firstPage = await api.getAdminQuestionsPaged(filters, 1, QUESTION_PAGE_SIZE);
       if (requestId !== loadRequestRef.current) return;
       setSelectedQuestionIds(new Set(assigned.map((a) => a.questionId)));
       setAssignedMarks(
@@ -71,7 +81,10 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
           assigned.map((a) => [a.questionId, { marks: a.marks, negativeMarks: a.negativeMarks }])
         )
       );
-      setQuestions(allQs);
+      setQuestions(firstPage.questions);
+      setListFilters(filters);
+      setLoadedPage(1);
+      setTotalMatching(firstPage.total);
     } catch (err) {
       if (requestId !== loadRequestRef.current) return;
       console.error('Failed to load question bank:', err);
@@ -86,6 +99,8 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
     // Clear anything left over from a previously opened test before loading.
     setQuestions([]);
+    setLoadedPage(0);
+    setTotalMatching(0);
     setSelectedQuestionIds(new Set());
     setAssignedMarks(new Map());
     setLoadError(null);
@@ -99,17 +114,43 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
   const handleApplyFilter = async () => {
     setIsLoading(true);
     try {
-      const filtered = await api.getAllAdminQuestions({
+      const filters: AdminQuestionFilters = {
         subjectId: selectedSubjectId || undefined,
         chapterId: selectedChapterId || undefined,
         difficulty: selectedDifficulty !== 'all' ? selectedDifficulty : undefined,
         search: searchTerm.trim() || undefined,
-      });
-      setQuestions(filtered);
+      };
+      const firstPage = await api.getAdminQuestionsPaged(filters, 1, QUESTION_PAGE_SIZE);
+      setQuestions(firstPage.questions);
+      setListFilters(filters);
+      setLoadedPage(1);
+      setTotalMatching(firstPage.total);
     } catch (err) {
       console.error('Failed to filter questions:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const next = await api.getAdminQuestionsPaged(
+        listFilters,
+        loadedPage + 1,
+        QUESTION_PAGE_SIZE
+      );
+      setQuestions((prev) => {
+        const seen = new Set(prev.map((q) => q.id));
+        return [...prev, ...next.questions.filter((q) => !seen.has(q.id))];
+      });
+      setLoadedPage((p) => p + 1);
+      setTotalMatching(next.total);
+    } catch (err) {
+      console.error('Failed to load more questions:', err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -370,6 +411,15 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
                 </div>
               );
             })
+          )}
+          {!loadError && !isLoading && questions.length < totalMatching && (
+            <div className="pt-2 text-center">
+              <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={isLoadingMore}>
+                {isLoadingMore
+                  ? 'Loading...'
+                  : `Load more (${questions.length} of ${totalMatching} shown)`}
+              </Button>
+            </div>
           )}
         </div>
 

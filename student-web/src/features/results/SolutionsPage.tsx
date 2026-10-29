@@ -285,7 +285,7 @@ export default function SolutionsPage() {
           <div className="space-y-3 lg:sticky lg:top-20">
             <Chips
               label="Filter questions"
-              wrap
+              className="lg:flex-wrap lg:overflow-visible"
               value={filter}
               onChange={setFilter}
               options={[

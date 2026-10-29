@@ -1,10 +1,15 @@
 import { isSupabaseConfigured } from '@/lib/supabase';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { bannerService, optimizeBannerImage } from '@/services/bannerService';
+import { bannerService } from '@/services/bannerService';
 import type { HeroBanner } from '@/types';
 import { AdminBannerItem, bannerStatusToRecord, mapHeroBannerToAdminItem } from './bannersUtils';
 import { INITIAL_BANNERS } from './demoBanners';
+
+// Banners are never saved inline as data URLs (every read would download the
+// whole image from the database), so a failed upload is reported, not hidden.
+const bannerUploadError = (err: unknown) =>
+  `Banner image upload failed${err instanceof Error && err.message ? `: ${err.message}` : ''}. Please try again.`;
 
 export function useAdminBanners() {
   const queryClient = useQueryClient();
@@ -287,28 +292,8 @@ export function useAdminBanners() {
         prev.map((b) => (b.id === activeId ? { ...b, imageUrl: url, fileName: file.name } : b))
       );
       showToast('success', `Selected image: ${file.name}`);
-    } catch {
-      // Fallback: compress client-side to lightweight data URI (< 150KB)
-      try {
-        const opt = await optimizeBannerImage(file);
-        setEditFormData((prev) =>
-          prev
-            ? {
-                ...prev,
-                imageUrl: opt.dataUrl,
-                fileName: file.name,
-              }
-            : null
-        );
-        setBanners((prev) =>
-          prev.map((b) =>
-            b.id === activeId ? { ...b, imageUrl: opt.dataUrl, fileName: file.name } : b
-          )
-        );
-        showToast('success', `Selected image: ${file.name}`);
-      } catch {
-        showToast('error', 'Failed to process banner image.');
-      }
+    } catch (err) {
+      showToast('error', bannerUploadError(err));
     }
   };
 
@@ -331,18 +316,8 @@ export function useAdminBanners() {
         fileName: file.name,
       }));
       showToast('success', `Selected image: ${file.name}`);
-    } catch {
-      try {
-        const opt = await optimizeBannerImage(file);
-        setNewBannerData((prev) => ({
-          ...prev,
-          imageUrl: opt.dataUrl,
-          fileName: file.name,
-        }));
-        showToast('success', `Selected image: ${file.name}`);
-      } catch {
-        showToast('error', 'Failed to process banner image.');
-      }
+    } catch (err) {
+      showToast('error', bannerUploadError(err));
     }
   };
 

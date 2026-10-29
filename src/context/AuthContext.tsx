@@ -38,18 +38,27 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'] & {
  */
 class InactiveAccountError extends Error {}
 
-const resolveUserProfile = async (supabaseUser: {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, any>;
-}): Promise<UserProfile> => {
+// Only the profile columns resolveUserProfile actually reads; `select('*')` pulled every
+// column on every auth event and was one of the top egress sources.
+const PROFILE_COLUMNS =
+  'id, full_name, email, phone, avatar_url, district, state, dob, gender, category, target_exam_id, preferred_subjects, preparation_status, role, admin_role, account_status, created_at';
+
+// Auth events that never change who the user is. When the profile for the same user id is
+// already loaded (or loading), these must not re-run the profile/roles/subscription reads:
+// TOKEN_REFRESHED fires roughly every hour per open tab, and SIGNED_IN/INITIAL_SESSION
+// repeat on tab focus and on mount alongside initAuth().
+const SAME_USER_EVENTS = new Set(['TOKEN_REFRESHED', 'SIGNED_IN', 'INITIAL_SESSION']);
+
+type AuthUserLike = { id: string; email?: string; user_metadata?: Record<string, any> };
+
+const resolveUserProfile = async (supabaseUser: AuthUserLike): Promise<UserProfile> => {
   try {
     const [profileRes, rolesRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle(),
+      supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', supabaseUser.id).maybeSingle(),
       supabase.from('user_roles').select('role').eq('user_id', supabaseUser.id),
     ]);
 
-    let profile = profileRes.data as ProfileRow | null;
+    let profile = profileRes.data as unknown as ProfileRow | null;
     if (profile?.account_status === 'inactive')
       throw new InactiveAccountError('This account is inactive. Contact support.');
     if (profileRes.error || rolesRes.error) throw new Error('Unable to verify account permissions');
@@ -203,6 +212,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isPro, setIsPro] = useState<boolean>(false);
 
   const [loading, setLoading] = useState<boolean>(true);
+  // The user id whose profile is loaded or loading, with that load's promise, so repeated
+  // auth events for the same account reuse it instead of hitting the database again.
+  const profileLoadRef = useRef<{ userId: string; promise: Promise<UserProfile> } | null>(null);
 
   const refreshProStatus = useCallback(async (): Promise<boolean> => {
     // UI hint only: this flag (and its localStorage cache) must never gate
@@ -226,6 +238,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsPro(local);
     return local;
   }, []);
+
+  const loadUser = useCallback(
+    (authUser: AuthUserLike, reuse = true): Promise<UserProfile> => {
+      const current = profileLoadRef.current;
+      if (reuse && current?.userId === authUser.id) return current.promise;
+      const promise = (async () => {
+        const userObj = await resolveUserProfile(authUser);
+        setUser(userObj);
+        localStorage.setItem('practicekoro_user', JSON.stringify(userObj));
+        await refreshProStatus();
+        return userObj;
+      })();
+      profileLoadRef.current = { userId: authUser.id, promise };
+      promise.catch(() => {
+        if (profileLoadRef.current?.promise === promise) profileLoadRef.current = null;
+      });
+      return promise;
+    },
+    [refreshProStatus]
+  );
 
   useEffect(() => {
     if (!isSupabaseConfigured || isDemoModeEnabled) {
@@ -255,10 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user) {
-          const userObj = await resolveUserProfile(session.user);
-          setUser(userObj);
-          localStorage.setItem('practicekoro_user', JSON.stringify(userObj));
-          await refreshProStatus();
+          await loadUser(session.user);
         } else {
           // No active Supabase session: the visitor is logged out. Never
           // restore a cached profile or fall back to a demo user here — a
@@ -288,12 +317,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cacheOwnerRef.current = nextUserId;
       }
       if (session?.user) {
+        if (SAME_USER_EVENTS.has(event) && profileLoadRef.current?.userId === session.user.id) {
+          return;
+        }
         try {
-          const userObj = await resolveUserProfile(session.user);
-          setUser(userObj);
-          localStorage.setItem('practicekoro_user', JSON.stringify(userObj));
-          await refreshProStatus();
+          await loadUser(session.user, false);
         } catch (err) {
+          profileLoadRef.current = null;
           setUser(null);
           setIsPro(false);
           localStorage.removeItem('practicekoro_user');
@@ -304,6 +334,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
         }
       } else if (event === 'SIGNED_OUT') {
+        profileLoadRef.current = null;
         // Cached admin reads (e.g. dashboard revenue) must not leak to the next account.
         invalidateApiCache();
         setUser(null);
@@ -322,7 +353,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
       window.removeEventListener('practicekoro:subscription_updated', handleSubUpdated);
     };
-  }, [refreshProStatus]);
+  }, [loadUser, refreshProStatus]);
 
   const login = async (
     email: string,
@@ -351,11 +382,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         // Single enforcement point: same resolver as session bootstrap —
         // role strictly from the database, promotion server-side only.
-        const userObj = await resolveUserProfile(data.user);
+        // Reuses the load the SIGNED_IN event already started for this user.
+        const userObj = await loadUser(data.user);
         authenticatedRole = userObj.role;
-
-        setUser(userObj);
-        localStorage.setItem('practicekoro_user', JSON.stringify(userObj));
       }
       return { error: null, role: authenticatedRole };
     } catch (err: unknown) {
@@ -404,6 +433,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     invalidateApiCache();
+    profileLoadRef.current = null;
     setUser(null);
     setIsPro(false);
     localStorage.removeItem('practicekoro_user');

@@ -67,61 +67,62 @@ export const analyticsApi = {
       }
 
       try {
+        // Head-only counts: nothing but the totals crosses the wire (previously every row of
+        // `tests`, `questions` and `test_attempts` was downloaded just to be counted).
+        const headCount = async (table: string, apply: (q: any) => any = (q) => q) => {
+          const { count } = await apply(
+            supabase.from(table as any).select('id', { count: 'exact', head: true })
+          );
+          return count ?? 0;
+        };
         const [
-          examsRes,
-          subjectsRes,
-          chaptersRes,
-          testSeriesRes,
-          totalTestsRes,
-          publishedTestsRes,
-          draftTestsRes,
-          archivedTestsRes,
-          totalQuestionsRes,
-          activeQuestionsRes,
-          totalAttemptsRes,
-          completedAttemptsRes,
-          profilesRes,
+          totalExams,
+          totalSubjects,
+          totalChapters,
+          totalTestSeries,
+          totalTests,
+          publishedTests,
+          draftTests,
+          archivedTests,
+          totalQuestions,
+          activeQuestions,
+          totalAttempts,
+          completedAttempts,
+          totalStudents,
         ] = await Promise.all([
-          supabase.from('exams').select('*', { count: 'exact', head: true }),
-          supabase.from('subjects').select('*', { count: 'exact', head: true }),
-          supabase.from('chapters').select('*', { count: 'exact', head: true }),
-          supabase.from('test_series').select('*', { count: 'exact', head: true }),
-          supabase.from('tests').select('*', { count: 'exact', head: true }),
-          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'published'),
-          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-          supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'archived'),
-          supabase.from('questions').select('*', { count: 'exact', head: true }),
-          supabase
-            .from('questions')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
-            .neq('status', 'archived'),
-          supabase.from('test_attempts').select('*', { count: 'exact', head: true }),
-          supabase
-            .from('test_attempts')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'completed'),
-          supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('role', 'student'),
+          headCount('exams'),
+          headCount('subjects'),
+          headCount('chapters'),
+          headCount('test_series'),
+          headCount('tests'),
+          headCount('tests', (q) => q.eq('status', 'published')),
+          headCount('tests', (q) => q.eq('status', 'draft')),
+          headCount('tests', (q) => q.eq('status', 'archived')),
+          headCount('questions'),
+          // Active = is_active and not archived (a NULL status counts as not archived).
+          headCount('questions', (q) =>
+            q.eq('is_active', true).or('status.is.null,status.neq.archived')
+          ),
+          headCount('test_attempts'),
+          headCount('test_attempts', (q) => q.eq('status', 'completed')),
+          headCount('profiles', (q) => q.eq('role', 'student')),
         ]);
 
         return {
-          totalExams: examsRes.count ?? 0,
-          activeExams: examsRes.count ?? 0,
-          totalSubjects: subjectsRes.count ?? 0,
-          totalChapters: chaptersRes.count ?? 0,
-          totalTestSeries: testSeriesRes.count ?? 0,
-          totalTests: totalTestsRes.count ?? 0,
-          publishedTests: publishedTestsRes.count ?? 0,
-          draftTests: draftTestsRes.count ?? 0,
-          archivedTests: archivedTestsRes.count ?? 0,
-          totalQuestions: totalQuestionsRes.count ?? 0,
-          activeQuestions: activeQuestionsRes.count ?? 0,
-          totalAttempts: totalAttemptsRes.count ?? 0,
-          completedAttempts: completedAttemptsRes.count ?? 0,
-          totalStudents: profilesRes.count ?? 0,
+          totalExams,
+          activeExams: totalExams,
+          totalSubjects,
+          totalChapters,
+          totalTestSeries,
+          totalTests,
+          publishedTests,
+          draftTests,
+          archivedTests,
+          totalQuestions,
+          activeQuestions,
+          totalAttempts,
+          completedAttempts,
+          totalStudents,
         };
       } catch (err) {
         console.warn('Fallback direct stats calculation failed:', err);

@@ -14,6 +14,8 @@ import {
   createSupportTicket,
   getStudentSupportTickets,
   getSupportTickets,
+  getSupportTicketMessages,
+  SUPPORT_TICKETS_LIMIT,
   sendSupportTicketMessage,
   updateSupportTicket,
 } from './admin.support';
@@ -35,7 +37,7 @@ beforeEach(() => {
   mocks.from.mockImplementation(() => {
     let offset = 0;
     const q: any = {};
-    for (const k of ['select', 'order', 'eq', 'update']) q[k] = vi.fn(() => q);
+    for (const k of ['select', 'order', 'eq', 'update', 'limit']) q[k] = vi.fn(() => q);
     q.range = vi.fn((value) => {
       offset = value;
       return q;
@@ -131,6 +133,31 @@ describe('support persistence', () => {
       p_body: 'Private',
       p_internal: true,
     });
+  });
+  it('lists the newest tickets with explicit columns, capped, without their messages', async () => {
+    mocks.result.data = [
+      { id: 't1', student_name: 'Learner', issue: 'Help', category: 'Other', created_at: '2026' },
+    ];
+    const tickets = await getSupportTickets();
+    expect(tickets.map((t) => t.id)).toEqual(['t1']);
+    expect(tickets[0].messages).toBeUndefined();
+    const q = mocks.from.mock.results[0].value;
+    expect(mocks.from).toHaveBeenCalledWith('support_tickets');
+    const [columns] = q.select.mock.calls[0];
+    expect(columns).not.toContain('*');
+    expect(columns).not.toContain('support_ticket_messages');
+    expect(q.order).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(q.limit).toHaveBeenCalledWith(SUPPORT_TICKETS_LIMIT);
+  });
+  it('loads one ticket conversation on demand', async () => {
+    mocks.result.data = [
+      { id: 'm1', ticket_id: 't1', author_kind: 'support', body: 'Hi', created_at: '2026' },
+    ];
+    expect((await getSupportTicketMessages('t1')).map((m) => m.id)).toEqual(['m1']);
+    const q = mocks.from.mock.results[0].value;
+    expect(mocks.from).toHaveBeenCalledWith('support_ticket_messages');
+    expect(q.eq).toHaveBeenCalledWith('ticket_id', 't1');
+    expect(q.select.mock.calls[0][0]).not.toContain('*');
   });
   it('does not silently turn a failed ticket read into an empty list', async () => {
     mocks.result.error = { message: 'Unavailable' };

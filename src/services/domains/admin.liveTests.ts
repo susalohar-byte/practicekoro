@@ -33,11 +33,13 @@ import {
   isLiveTestRegistered,
   joinLiveTestEvent,
   recordLiveTestSubmission,
+  fetchRemoteParticipations,
 } from './admin.liveTests.participants';
 import {
   getLiveQuestionIndex,
   getLiveTestsStats,
   getLiveTestLeaderboard,
+  getLiveTestLeaderboards,
 } from './admin.liveTests.stats';
 import { subscribeToLiveTestUpdates } from './admin.liveTests.realtime';
 
@@ -64,7 +66,8 @@ export {
 export { registerForLiveTest, isLiveTestRegistered, joinLiveTestEvent, recordLiveTestSubmission };
 export type { LiveTestStats } from './admin.liveTests.stats';
 export { EMPTY_LIVE_TEST_STATS } from './admin.liveTests.stats';
-export { getLiveQuestionIndex, getLiveTestsStats, getLiveTestLeaderboard };
+export { getLiveQuestionIndex, getLiveTestsStats, getLiveTestLeaderboard, getLiveTestLeaderboards };
+export type { LiveTestLeaderboardContext } from './admin.liveTests.stats';
 export { subscribeToLiveTestUpdates };
 
 /** Backward-compatible aliases */
@@ -90,6 +93,8 @@ export const adminLiveTestsApi = {
   joinLiveTestEvent,
   recordLiveTestSubmission,
   getLiveTestLeaderboard,
+  getLiveTestLeaderboards,
+  fetchLiveTestParticipations: fetchRemoteParticipations,
   getLiveTestsStats,
   getLiveQuestionIndex,
   subscribeToLiveTestUpdates,

@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question, Subject, Chapter } from '@/types';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { UploadMode, QuestionBankStatus } from './questionBankUtils';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 
+type QuestionText = Pick<Question, 'questionText' | 'questionBengaliText'>;
+
 interface AddQuestionFormInput {
+  /** Rows on screen (the whole store in demo mode, only the current page with Supabase). */
   questions: Question[];
   subjects: Subject[];
   topics: Chapter[];
@@ -57,6 +61,27 @@ export function useAddQuestionForm({
   } | null>(null);
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
+  // Duplicate detection compares against every question. With Supabase the list on screen is
+  // only one page, so the question texts alone are fetched once each time the modal opens.
+  const [bankTexts, setBankTexts] = useState<QuestionText[] | null>(null);
+  useEffect(() => {
+    if (!isSupabaseConfigured || !isAddModalOpen) return;
+    let cancelled = false;
+    api
+      .getAdminQuestionTexts()
+      .then((texts) => {
+        if (!cancelled) setBankTexts(texts);
+      })
+      .catch(() => {
+        // Duplicate hints are advisory; fall back to the rows on screen.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAddModalOpen]);
+  const duplicateCandidates: QuestionText[] =
+    isSupabaseConfigured && bankTexts ? bankTexts : questions;
+
   // Duplicate Detection Logic
   const checkDuplicate = (text: string) => {
     if (!text || text.length < 8) {
@@ -64,7 +89,7 @@ export function useAddQuestionForm({
       return;
     }
     const cleanText = text.toLowerCase().replace(/[^a-z0-9\u0980-\u09FF]/g, '');
-    for (const q of questions) {
+    for (const q of duplicateCandidates) {
       const existing = (q.questionBengaliText || q.questionText || '')
         .toLowerCase()
         .replace(/[^a-z0-9\u0980-\u09FF]/g, '');

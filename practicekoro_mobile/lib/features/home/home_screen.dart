@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/exam_assets.dart';
@@ -92,7 +93,7 @@ class HomeScreen extends ConsumerWidget {
             ref.invalidate(rankingSummaryProvider);
             ref.invalidate(subjectsProvider);
             ref.invalidate(examsProvider);
-            ref.read(bannerRepositoryProvider).clearCache();
+            ref.read(bannerRepositoryProvider).refreshIfStale();
             ref.invalidate(homeBannersProvider);
             ref.invalidate(attemptHistoryProvider);
             ref.invalidate(_inProgressTopicsProvider);
@@ -2197,12 +2198,12 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
     }
 
     if (banner.isNetworkImage) {
-      return Image.network(
-        banner.effectiveImageUrl,
+      // Saved on the phone's disk, so the banner is not downloaded on every open.
+      return CachedNetworkImage(
+        imageUrl: banner.effectiveImageUrl,
         fit: BoxFit.cover,
-        gaplessPlayback: true,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
+        useOldImageOnUrlChange: true,
+        placeholder: (context, url) {
           return Container(
             color: const Color(0xFFF1F5F9),
             alignment: Alignment.center,
@@ -2216,7 +2217,7 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
             ),
           );
         },
-        errorBuilder: (context, error, stackTrace) => fallback(),
+        errorWidget: (context, url, error) => fallback(),
       );
     }
 
