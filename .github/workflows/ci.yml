@@ -26,6 +26,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
+      # Two migrations sharing a version would make `supabase db push` skip one.
+      - run: node scripts/check-migrations.mjs
 
   test:
     name: Unit Tests
@@ -54,9 +56,48 @@ jobs:
       - run: npm ci --prefix student-web
       - run: npm run build
 
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Hermetic: demo-mode build plus a stubbed Supabase host (playwright.config.ts),
+      # so no spec reaches production or Razorpay.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  mobile:
+    name: Mobile (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: practicekoro_mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
   notify:
     name: Notify on Failure
-    needs: [typecheck-and-lint, test, build]
+    needs: [typecheck-and-lint, test, build, e2e, mobile]
     if: failure()
     runs-on: ubuntu-latest
     steps:
