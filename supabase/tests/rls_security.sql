@@ -47,7 +47,9 @@ select jsonb_build_object(
   'payments_owner_policy',     exists(select 1 from pg_policies where schemaname='public' and tablename='payments' and qual ilike '%auth.uid()%'),
   'subscriptions_owner_policy',exists(select 1 from pg_policies where schemaname='public' and tablename='subscriptions' and (qual ilike '%auth.uid()%' or with_check ilike '%auth.uid()%')),
   'attempts_owner_policy',     exists(select 1 from pg_policies where schemaname='public' and tablename='test_attempts' and (qual ilike '%auth.uid()%' or with_check ilike '%auth.uid()%')),
-  'answers_owner_policy',      exists(select 1 from pg_policies where schemaname='public' and tablename='attempt_answers' and qual ilike '%user_id = auth.uid()%'),
+  -- Accepts both the plain and the initplan form "( SELECT auth.uid() AS uid)" (20261029100000).
+  'answers_owner_policy',      exists(select 1 from pg_policies where schemaname='public' and tablename='attempt_answers'
+                                 and (qual ilike '%user_id = auth.uid()%' or qual ilike '%user_id = ( SELECT auth.uid() AS uid)%')),
   'results_owner_policy',      exists(select 1 from pg_policies where schemaname='public' and tablename='test_results' and qual ilike '%auth.uid()%'),
   'mistakes_owner_policy',     exists(select 1 from pg_policies where schemaname='public' and tablename='mistakes' and qual ilike '%auth.uid()%'),
   'bookmarks_owner_policy',    exists(select 1 from pg_policies where schemaname='public' and tablename='bookmarks' and qual ilike '%auth.uid()%'),
