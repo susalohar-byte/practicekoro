@@ -41,6 +41,17 @@ export function rasterDimensions(bytes: Uint8Array, mime: string) {
     throw new Error('Image dimensions exceed the safe pixel limit');
   return { width, height };
 }
+/** PNG or JPEG from the file's own signature bytes. */
+export function sniffRasterMime(bytes: Uint8Array): 'image/png' | 'image/jpeg' {
+  if (bytes[0] === 137 && bytes[1] === 80) return 'image/png';
+  if (bytes[0] === 255 && bytes[1] === 216) return 'image/jpeg';
+  throw new Error('Unknown sanitized image format');
+}
+/** True when every pixel is fully opaque, so a JPEG loses no transparency. */
+export function isOpaque(data: Uint8Array) {
+  for (let i = 3; i < data.length; i += 4) if (data[i] !== 255) return false;
+  return true;
+}
 export async function sanitizeRaster(
   bytes: Uint8Array,
   mime: string,
@@ -63,6 +74,6 @@ export async function sanitizeRaster(
   const result = await encode(image);
   if (!result.length || result.length > limit)
     throw new Error('Sanitized image size exceeds the limit');
-  rasterDimensions(result, 'image/png');
+  rasterDimensions(result, sniffRasterMime(result));
   return result;
 }
