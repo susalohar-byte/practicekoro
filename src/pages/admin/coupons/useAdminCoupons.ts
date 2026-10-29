@@ -97,7 +97,7 @@ export function useAdminCoupons() {
           source: c,
           id: c.id,
           code: c.code,
-          title: c.code.replace(/_/g, ' '),
+          title: c.title || c.code.replace(/_/g, ' '),
           subtitle: c.description || 'Special Discount',
           discountType: isPct ? 'percentage' : 'fixed',
           discountValue: c.discountValue,
@@ -307,6 +307,7 @@ export function useAdminCoupons() {
     try {
       const payload = {
         code: formCode.trim().toUpperCase(),
+        title: formTitle.trim(),
         description: formDescription.trim() || undefined,
         discountType: formDiscountType,
         discountValue: discountNum,

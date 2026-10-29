@@ -252,8 +252,8 @@ export async function removeStaffMember(
         };
     }
 
-    // Update in local fallback store
-    const idx = localStaffUsers.findIndex((s) => s.id === userId);
+    // Demo engine only: update the local staff store
+    const idx = isSupabaseConfigured ? -1 : localStaffUsers.findIndex((s) => s.id === userId);
     if (idx !== -1) {
       localStaffUsers.splice(idx, 1);
     }
@@ -296,8 +296,10 @@ export async function updateStaffRole(
         };
     }
 
-    // Update in local fallback store
-    const localMember = localStaffUsers.find((s) => s.id === userId);
+    // Demo engine only: update the local staff store
+    const localMember = isSupabaseConfigured
+      ? undefined
+      : localStaffUsers.find((s) => s.id === userId);
     if (localMember) {
       localMember.adminRole = newRole;
       localMember.role = 'admin';

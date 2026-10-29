@@ -33,10 +33,15 @@ Hostinger Git deployments).
 
 ## Required Edge Function secrets
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET`
+- `ALLOWED_ORIGINS` (optional; defaults to the practicekoro.online domains)
+
+Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`.
+Setting up a new project or moving to one: follow
+[SUPABASE_PROJECT_SETUP.md](SUPABASE_PROJECT_SETUP.md); auth URLs, Google login, these
+secrets and the Razorpay webhook do not move with the database.
 
 ## Hostinger SPA routing
 
@@ -80,3 +85,15 @@ building, otherwise the deployed site white-screens.
 Keep the previous `dist` artifact and deployment available. Database changes require an
 explicit, reviewed down-migration or point-in-time recovery; never improvise destructive SQL in
 production.
+
+## Error monitoring
+
+Errors are reported to Sentry only when a DSN is set at build time; without one nothing is
+sent and the SDK is not even bundled.
+
+- Website and admin panel: `VITE_SENTRY_DSN` in `.env` (the Student Web Panel build reads
+  its own `student-web/.env`).
+- Mobile app: `flutter build ... --dart-define=SENTRY_DSN=<dsn>`.
+
+No personal data is sent (`sendDefaultPii` off, no session replay, no performance tracing).
+The site's Content-Security-Policy already allows the Sentry ingest hosts.

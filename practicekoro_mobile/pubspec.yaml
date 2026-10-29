@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.8+9
+version: 1.0.11+12
 
 environment:
   sdk: ^3.10.7
@@ -45,6 +45,7 @@ dependencies:
   razorpay_flutter: ^1.4.7
   flutter_svg: ^2.3.0
   cached_network_image: ^4.0.5
+  sentry_flutter: ^10.2.0
 
 dev_dependencies:
   flutter_test:
@@ -82,18 +83,6 @@ flutter:
     - family: Inter_regular
       fonts:
         - asset: assets/fonts/Inter.ttf
-    - family: Plus Jakarta Sans
-      fonts:
-        - asset: assets/fonts/PlusJakartaSans.ttf
-    - family: PlusJakartaSans
-      fonts:
-        - asset: assets/fonts/PlusJakartaSans.ttf
-    - family: Noto Sans Bengali
-      fonts:
-        - asset: assets/fonts/NotoSansBengali.ttf
-    - family: NotoSansBengali
-      fonts:
-        - asset: assets/fonts/NotoSansBengali.ttf
     - family: Tiro Bangla
       fonts:
         - asset: assets/fonts/TiroBangla-Regular.ttf

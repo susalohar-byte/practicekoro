@@ -71,7 +71,7 @@ export function WrongQuestionsTable({ data, perf }: WrongQuestionsTableProps) {
                     {q.questionText}
                   </p>
                   {q.questionTextBn && (
-                    <p className="text-[11px] text-[#64748B] font-normal mt-0.5 line-clamp-1">
+                    <p className="text-[11px] text-[#64748B] font-normal mt-0.5 line-clamp-1 font-tiro">
                       {q.questionTextBn}
                     </p>
                   )}

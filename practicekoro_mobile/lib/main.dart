@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/components/ui.dart';
 import 'core/routing/app_router.dart';
@@ -24,12 +25,12 @@ void main() async {
       await Supabase.initialize(
         url: const String.fromEnvironment(
           'SUPABASE_URL',
-          defaultValue: 'https://prycanbnxuihxhskallw.supabase.co',
+          defaultValue: 'https://wzcmhowowoyeldfqzkeh.supabase.co',
         ),
         publishableKey: const String.fromEnvironment(
           'SUPABASE_ANON_KEY',
           defaultValue:
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByeWNhbmJueHVpaHhoc2thbGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMTY1NTgsImV4cCI6MjEwNDg5MjU1OH0.HOzUGuRqD0Y9qWlGGhvHGenylTJ2Sky_G7E3PEO0EIw',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6Y21ob3dvd295ZWxkZnF6a2VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzMDE4OTMsImV4cCI6MjEwNjg3Nzg5M30.Z5N63dz47Y-JdygzP4b2pGNfiu7GR-fD7HbdwgFQQVs',
         ),
       );
       // Refresh the on-device profile for a student who is already signed in.
@@ -39,7 +40,19 @@ void main() async {
     }
   }
 
-  runApp(const ProviderScope(child: PracticeKoroApp()));
+  // Error monitoring (Sentry): off unless the build passes
+  // --dart-define=SENTRY_DSN=..., so debug and test builds report nothing.
+  // No personal data is sent and there is no performance tracing.
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+  if (sentryDsn.isEmpty) {
+    runApp(const ProviderScope(child: PracticeKoroApp()));
+    return;
+  }
+  await SentryFlutter.init((options) {
+    options.dsn = sentryDsn;
+    options.sendDefaultPii = false;
+    options.tracesSampleRate = 0;
+  }, appRunner: () => runApp(const ProviderScope(child: PracticeKoroApp())));
 }
 
 class PracticeKoroApp extends StatelessWidget {
@@ -56,11 +69,6 @@ class PracticeKoroApp extends StatelessWidget {
       ?bengaliFontFamily,
       'Tiro Bangla',
       'TiroBangla',
-      'Noto Sans Bengali',
-      'NotoSansBengali',
-      'NotoSansBengali_regular',
-      'Hind Siliguri',
-      'HindSiliguri',
       'Inter',
       'sans-serif',
     ];

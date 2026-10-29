@@ -1,6 +1,8 @@
 import React from 'react';
 import { Archive, Check, Edit2, Eye, Trash2 } from 'lucide-react';
 import type { Question } from '@/types';
+import { cn } from '@/lib/utils';
+import { bengaliFontClass } from './questionBankUtils';
 
 export interface QuestionTableRowProps {
   q: Question;
@@ -60,7 +62,12 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
       {/* Question Text */}
       <td className="px-4 py-3.5 max-w-md">
         <div className="space-y-1">
-          <p className="font-bold text-slate-900 dark:text-white line-clamp-2 leading-relaxed">
+          <p
+            className={cn(
+              'font-bold text-slate-900 dark:text-white line-clamp-2 leading-relaxed',
+              bengaliFontClass(q.questionBengaliText || q.questionText)
+            )}
+          >
             {q.questionBengaliText || q.questionText}
           </p>
           <div className="flex items-center gap-2 pt-0.5">

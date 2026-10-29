@@ -12,7 +12,7 @@ export function CutoffStatCards({ co }: CutoffStatCardsProps) {
       {/* ==================================================================== */}
       {/* 2. FOUR SUMMARY METRIC CARDS                                        */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Exams */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-2xs flex items-center gap-4 hover:shadow-xs transition-shadow">
           <div className="w-12 h-12 rounded-xl bg-[#EDE9FE] flex items-center justify-center text-[#7C3AED] shrink-0">

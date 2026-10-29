@@ -16,7 +16,7 @@ export function AnalyticsKpiCards({ analyticsState }: AnalyticsKpiCardsProps) {
     overallAccuracyVal,
   } = analyticsState;
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
+    <div className="pk-stagger grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
       {/* Card 1: Total Students */}
       <div className={card}>
         <div className="flex items-start justify-between">

@@ -66,6 +66,7 @@ export interface SubscriptionJoinRow {
 export interface CouponRow {
   id: string;
   code: string;
+  title: string | null;
   description: string | null;
   discount_type: CouponItem['discountType'];
   discount_value: number | string;

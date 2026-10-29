@@ -3,6 +3,8 @@ import { BookOpen, Check, Edit2, Lock, Trash2 } from 'lucide-react';
 import { ShortNotesBox } from '@/components/common/ShortNotesBox';
 import { isMathematicsQuestion } from '@/utils/shortNotes';
 import type { Question } from '@/types';
+import { cn } from '@/lib/utils';
+import { bengaliFontClass } from './questionBankUtils';
 
 export interface QuestionCardProps {
   q: Question;
@@ -58,7 +60,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
           {/* Question Number & Text */}
           <div className="space-y-1 flex-1 min-w-0">
-            <h3 className="text-[15px] sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed">
+            <h3
+              className={cn(
+                'text-[15px] sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed',
+                bengaliFontClass(q.questionBengaliText || q.questionText)
+              )}
+            >
               {questionNumber}. {q.questionBengaliText || q.questionText}
             </h3>
           </div>
@@ -109,11 +116,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 A.
               </span>
               <span
-                className={
+                className={cn(
                   q.correctOption === 'A'
                     ? 'font-semibold text-emerald-950 dark:text-emerald-100'
-                    : ''
-                }
+                    : '',
+                  bengaliFontClass(q.optionA)
+                )}
               >
                 {q.optionA}
               </span>
@@ -144,11 +152,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 C.
               </span>
               <span
-                className={
+                className={cn(
                   q.correctOption === 'C'
                     ? 'font-semibold text-emerald-950 dark:text-emerald-100'
-                    : ''
-                }
+                    : '',
+                  bengaliFontClass(q.optionC)
+                )}
               >
                 {q.optionC}
               </span>
@@ -182,11 +191,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 B.
               </span>
               <span
-                className={
+                className={cn(
                   q.correctOption === 'B'
                     ? 'font-semibold text-emerald-950 dark:text-emerald-100'
-                    : ''
-                }
+                    : '',
+                  bengaliFontClass(q.optionB)
+                )}
               >
                 {q.optionB}
               </span>
@@ -217,11 +227,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 D.
               </span>
               <span
-                className={
+                className={cn(
                   q.correctOption === 'D'
                     ? 'font-semibold text-emerald-950 dark:text-emerald-100'
-                    : ''
-                }
+                    : '',
+                  bengaliFontClass(q.optionD)
+                )}
               >
                 {q.optionD}
               </span>

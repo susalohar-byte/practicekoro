@@ -13,7 +13,7 @@ void main() {
         'id': 'db56c2fd-eead-4daf-a157-1e11fe44c5f5',
         'title': 'ClerkShip Exan Banner',
         'imageUrl':
-            'https://prycanbnxuihxhskallw.supabase.co/storage/v1/object/public/banners/1d4dfd0d-d883-477e-a9f6-1cc88fea953c/5301f5f3-bc37-44c7-997d-f473187b918d.png',
+            'https://wzcmhowowoyeldfqzkeh.supabase.co/storage/v1/object/public/banners/1d4dfd0d-d883-477e-a9f6-1cc88fea953c/5301f5f3-bc37-44c7-997d-f473187b918d.png',
         'isActive': true,
         'startsAt': '',
         'subtitle': 'ClerkShip Exan Banner',
@@ -137,7 +137,7 @@ void main() {
     test('defaultBanner provides authentic PracticeKoro HD banner', () {
       const banner = HeroBannerModel.defaultBanner;
       expect(banner.id, 'default_hero_banner');
-      expect(banner.imageUrl, 'assets/images/hero_banner_hd.png');
+      expect(banner.imageUrl, 'assets/images/hero_banner_hd.webp');
       expect(banner.isNetworkImage, isFalse);
       expect(banner.isActive, isTrue);
       expect(banner.isCurrentlyLive, isTrue);
@@ -150,7 +150,7 @@ void main() {
       final banners = await repo.getActiveHomeBanners();
       expect(banners, isNotEmpty);
       expect(banners.first.id, 'default_hero_banner');
-      expect(banners.first.imageUrl, 'assets/images/hero_banner_hd.png');
+      expect(banners.first.imageUrl, 'assets/images/hero_banner_hd.webp');
     });
   });
 }

@@ -1,6 +1,7 @@
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localExamCategories } from '@/services/domains/localStore';
+import { STANDARD_EXAM_CATEGORIES } from './examCategoryDefaults';
 import type { ExamCategory } from '@/types';
 
 /** Section of the admin API: examCategories (split from domains/admin.ts, same behaviour). */
@@ -30,7 +31,7 @@ export function normalizeLegacyExamCategory(category?: string | null): string {
   const lower = trimmed.toLowerCase();
 
   // If already matches one of the standard categories, keep it
-  for (const standard of localExamCategories) {
+  for (const standard of STANDARD_EXAM_CATEGORIES) {
     if (standard.name.toLowerCase() === lower) {
       return standard.name;
     }
@@ -79,6 +80,8 @@ export function normalizeLegacyExamCategory(category?: string | null): string {
 }
 
 export function getLocalExamCategoriesWithPersistence(): ExamCategory[] {
+  // Demo engine only; live builds read categories from the database.
+  if (isSupabaseConfigured) return STANDARD_EXAM_CATEGORIES.map((c) => ({ ...c }));
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const saved = window.localStorage.getItem('practicekoro_exam_categories');

@@ -16,6 +16,7 @@ import { MathText } from '@/components/common/MathText';
 import { ShortNotesBox } from '@/components/common/ShortNotesBox';
 import { cn } from '@/lib/utils';
 import { isMathematicsQuestion } from '@/utils/shortNotes';
+import { bengaliFontClass } from '../../questionBank/questionBankUtils';
 import type { LiveTestWorkspaceState } from './useLiveTestWorkspace';
 
 export interface PaperQuestionDrawerProps {
@@ -186,7 +187,7 @@ export function PaperQuestionDrawer({ ws }: PaperQuestionDrawerProps) {
                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                     Question (Bengali)
                   </span>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-sm font-semibold text-slate-900 leading-relaxed">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-sm font-semibold text-slate-900 leading-relaxed font-tiro">
                     <MathText>{activeQuestion.questionBengaliText}</MathText>
                   </div>
                 </div>
@@ -235,7 +236,7 @@ export function PaperQuestionDrawer({ ws }: PaperQuestionDrawerProps) {
                         >
                           {opt.key}
                         </span>
-                        <span className="flex-1 min-w-0">
+                        <span className={cn('flex-1 min-w-0', bengaliFontClass(opt.text))}>
                           <MathText>{opt.text || '—'}</MathText>
                         </span>
                         {isCorrect && (
@@ -297,7 +298,7 @@ export function PaperQuestionDrawer({ ws }: PaperQuestionDrawerProps) {
                   value={editBengaliText}
                   onChange={(e) => setEditBengaliText(e.target.value)}
                   placeholder="বাংলা প্রশ্ন লিখুন..."
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none font-tiro"
                 />
               </div>
 
@@ -335,7 +336,10 @@ export function PaperQuestionDrawer({ ws }: PaperQuestionDrawerProps) {
                       value={opt.val}
                       onChange={(e) => opt.set(e.target.value)}
                       placeholder={`Option ${opt.key}`}
-                      className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                      className={cn(
+                        'flex-1 px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none',
+                        bengaliFontClass(opt.val)
+                      )}
                     />
                   </div>
                 ))}

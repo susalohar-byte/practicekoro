@@ -160,6 +160,13 @@ A record of how each file reached production, checked against `schema_migrations
 | `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                             | **APPLIED (SQL Editor, backfill)** |
 | `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                                    | **APPLIED (SQL Editor, backfill)** |
 | `20261029110000_definer_function_hardening.sql`                  | SECURITY DEFINER hardening: has_role / account_is_active self-only, revoke unused RPC grants                                            | **APPLIED (SQL Editor, backfill)** |
+| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                |            **APPLIED**             |
+| `20261029120000_small_db_hardening.sql`                          | Small DB hardening: indexes, schema isolation and permissions                                                                      |            **APPLIED**             |
+| `20261029130000_app_settings_lists_to_tables.sql`                 | Move app_settings JSON arrays to relational tables (hero banners, tickers, payment gateways)                                       |            **APPLIED**             |
+| `20261029140000_private_schema_rls_helpers.sql`                  | Move definer helper functions to private schema                                                                                    |            **APPLIED**             |
+| `20261029150000_remove_audiobooks.sql`                           | Remove unused audiobooks feature (drop tables and RPCs)                                                                           |            **APPLIED**             |
+| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners table                                                                                     |            **APPLIED**             |
+| `20261029170000_coupon_title.sql`                                | Add title column to coupons table                                                                                                  |            **APPLIED**             |
 
 ---
 

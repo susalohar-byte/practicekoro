@@ -1,6 +1,7 @@
 import { Trophy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminRankingsState } from './useAdminRankings';
+import { StudentAvatar } from '@/pages/admin/students/StudentAvatar';
 
 export interface RankingsTop3ModalProps {
   rk: AdminRankingsState;
@@ -47,10 +48,11 @@ export function RankingsTop3Modal({ rk }: RankingsTop3ModalProps) {
                   >
                     Rank #{st.rank}
                   </span>
-                  <img
-                    src={st.avatar}
-                    alt={st.name}
-                    className="w-14 h-14 rounded-full mx-auto object-cover border-2 border-white shadow-md"
+                  <StudentAvatar
+                    avatarUrl={st.avatar}
+                    fullName={st.name}
+                    initials={st.initials}
+                    className="w-14 h-14 rounded-full mx-auto border-2 border-white shadow-md"
                   />
                   <h4 className="font-bold text-slate-900 text-sm">{st.name}</h4>
                   <p className="text-xs text-slate-500">{st.location}</p>

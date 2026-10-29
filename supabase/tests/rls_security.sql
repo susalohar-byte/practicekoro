@@ -71,6 +71,27 @@ select jsonb_build_object(
 select jsonb_build_object(
   'gateway_mutation_blocked',  not has_table_privilege('authenticated','public.payment_gateways','INSERT,UPDATE,DELETE'),
   'gateway_anon_read_blocked', not has_table_privilege('anon','public.payment_gateways','SELECT'),
+  -- 20261029120000: no API role may TRUNCATE (it skips RLS) or use REFERENCES/TRIGGER
+  'api_roles_no_truncate', not exists (
+    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p')
+      and (has_table_privilege('anon', c.oid, 'TRUNCATE,REFERENCES,TRIGGER')
+        or has_table_privilege('authenticated', c.oid, 'TRUNCATE,REFERENCES,TRIGGER'))),
+  -- 20261029120000: secrets are service_role-only; no hard-coded admin email in policies
+  'gateway_secrets_client_unreadable', not has_column_privilege('authenticated','public.payment_gateways','key_secret','SELECT')
+                                   and not has_column_privilege('authenticated','public.payment_gateways','webhook_secret','SELECT')
+                                   and not has_column_privilege('anon','public.payment_gateways','key_secret','SELECT')
+                                   and not has_column_privilege('anon','public.payment_gateways','webhook_secret','SELECT'),
+  'gateway_secrets_service_readable', has_column_privilege('service_role','public.payment_gateways','key_secret','SELECT')
+                                   and has_column_privilege('service_role','public.payment_gateways','webhook_secret','SELECT'),
+  'gateway_no_email_policy',   not exists(select 1 from pg_policies where schemaname='public' and tablename='payment_gateways'
+                                 and (coalesce(qual,'') || coalesce(with_check,'')) ilike '%email%'),
+  'cutoff_one_permissive_select_per_role', not exists(
+                                 select 1 from unnest(array['anon','authenticated']::name[]) r
+                                 join pg_policies p on p.roles && array[r, 'public']::name[]
+                                 where p.schemaname='public' and p.tablename='cutoff_records'
+                                   and p.permissive='PERMISSIVE' and p.cmd in ('SELECT','ALL')
+                                 group by r having count(*) > 1),
   'webhook_execute_blocked',   not has_function_privilege('authenticated','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
   'webhook_anon_execute_blocked', not has_function_privilege('anon','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
   'webhook_service_role_allowed',  has_function_privilege('service_role','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
@@ -123,17 +144,18 @@ select jsonb_build_object(
 -- ------------------------------------------------------------------
 select jsonb_build_object(
   -- any-user helpers answer about the caller only, unless admin / trusted backend
-  'has_role_self_or_admin',        pg_get_functiondef('public.has_role(uuid,text)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
-  'account_is_active_self_or_admin', pg_get_functiondef('public.account_is_active(uuid)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
-  'has_test_access_self_or_admin', pg_get_functiondef('public.has_test_access(uuid,text)'::regprocedure) like '%p_user_id IS DISTINCT FROM auth.uid()%',
+  'has_role_self_or_admin',        pg_get_functiondef('private.has_role(uuid,text)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'account_is_active_self_or_admin', pg_get_functiondef('private.account_is_active(uuid)'::regprocedure) like '%has_role(auth.uid(), ''admin'')%',
+  'has_test_access_self_or_admin', pg_get_functiondef('private.has_test_access(uuid,text)'::regprocedure) like '%p_user_id IS DISTINCT FROM auth.uid()%',
   'coupon_usage_caller_only',      pg_get_functiondef('public.validate_coupon_code(text,text,numeric,uuid)'::regprocedure) like '%p_user_id := auth.uid()%',
   -- RLS policies call has_role / live_paper_visible for anon too: keep EXECUTE
-  'has_role_rls_executable',       has_function_privilege('anon','public.has_role(uuid,text)','EXECUTE')
-                                   and has_function_privilege('authenticated','public.has_role(uuid,text)','EXECUTE'),
-  'live_paper_visible_rls_executable', has_function_privilege('anon','public.live_paper_visible(text)','EXECUTE'),
+  -- (moved to the non-API schema "private" in 20261029140000)
+  'has_role_rls_executable',       has_function_privilege('anon','private.has_role(uuid,text)','EXECUTE')
+                                   and has_function_privilege('authenticated','private.has_role(uuid,text)','EXECUTE'),
+  'live_paper_visible_rls_executable', has_function_privilege('anon','private.live_paper_visible(text)','EXECUTE'),
   -- caller checks inside client-facing RPCs
   'scheduled_notifications_staff_only', pg_get_functiondef('public.process_scheduled_notifications()'::regprocedure) like '%can_mutate_admin_record(''notifications'')%',
-  'exam_questions_published_only', pg_get_functiondef('public.get_student_exam_questions(text)'::regprocedure) like '%status = ''published'' OR public.has_role(v_user_id, ''admin'')%',
+  'exam_questions_published_only', pg_get_functiondef('public.get_student_exam_questions(text)'::regprocedure) like '%status = ''published'' OR private.has_role(v_user_id, ''admin'')%',
   'leaderboard_no_email_names',    pg_get_functiondef('public.get_test_leaderboard(text,text,text,text,integer)'::regprocedure) not like '%split_part%',
   -- definer functions no client/policy calls: not an RPC any more
   'unused_definers_not_rpc', (
@@ -155,13 +177,13 @@ select jsonb_build_object(
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
   ),
-  -- anon can execute only the public read RPCs and the helpers RLS policies need
+  -- anon can execute only the public read RPCs (the RLS helpers anon policies
+  -- need live in "private" since 20261029140000; see function_security.sql)
   'anon_definer_allowlist', not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
       and has_function_privilege('anon', p.oid, 'EXECUTE')
-      and p.proname not in ('get_public_seo_question_by_id','get_public_seo_questions',
-                            'has_role','is_management_super_admin','live_paper_visible')
+      and p.proname not in ('get_public_seo_question_by_id','get_public_seo_questions')
   )
 ) as definer_caller_checks;
 

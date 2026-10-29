@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/constants/exam_assets.dart';
+import '../exams/exam_logo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/datasources/local_storage.dart';
@@ -135,7 +135,7 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/images/logo-circle.png',
+                                  'assets/images/logo-circle.webp',
                                   width: 38,
                                   height: 38,
                                   fit: BoxFit.cover,
@@ -382,7 +382,7 @@ class HomeScreen extends ConsumerWidget {
                                   SizedBox(
                                     height: 4.5,
                                     child: Image.asset(
-                                      'assets/images/exams_for_you_underline.png',
+                                      'assets/images/exams_for_you_underline.webp',
                                       fit: BoxFit.fill,
                                       errorBuilder: (context, error, stackTrace) =>
                                           const CustomPaint(
@@ -447,10 +447,7 @@ class HomeScreen extends ConsumerWidget {
                         title: e.title,
                         subtitle:
                             '${e.totalTests} Tests Available',
-                        emblemAsset:
-                            ExamAssets.getRoundIconAsset(e.title) ??
-                            'assets/images/logo-icon.png',
-                        fallbackAsset: 'assets/images/logo-icon.png',
+                        iconUrl: e.iconName,
                         onTap: () => context.push(
                           '/exams/${Uri.encodeComponent(e.id)}?title=${Uri.encodeComponent(e.title)}',
                         ),
@@ -691,7 +688,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     }
     if (title.contains('tet') || title.contains('wbssc') || title.contains('teach')) {
@@ -700,7 +697,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     }
     if (title.contains('railway') || title.contains('ntpc') || title.contains('rrb') || title.contains('ssc')) {
@@ -709,7 +706,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
 
@@ -720,7 +717,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     } else if (mod == 1) {
       return const _HomeLiveTestPalette(
@@ -728,7 +725,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     } else {
       return const _HomeLiveTestPalette(
@@ -736,7 +733,7 @@ class _HomeLiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
   }
@@ -979,15 +976,13 @@ class _HomeLiveTestCard extends StatelessWidget {
 class _ExamRecommendCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String emblemAsset;
-  final String fallbackAsset;
+  final String? iconUrl;
   final VoidCallback onTap;
 
   const _ExamRecommendCard({
     required this.title,
     required this.subtitle,
-    required this.emblemAsset,
-    required this.fallbackAsset,
+    this.iconUrl,
     required this.onTap,
   });
 
@@ -1022,7 +1017,7 @@ class _ExamRecommendCard extends StatelessWidget {
               Container(
                 width: 50,
                 height: 50,
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
@@ -1031,11 +1026,10 @@ class _ExamRecommendCard extends StatelessWidget {
                     width: 1.0,
                   ),
                 ),
-                child: Image.asset(
-                  emblemAsset,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Image.asset(fallbackAsset, fit: BoxFit.contain),
+                child: ExamLogo(
+                  title,
+                  iconUrl: iconUrl,
+                  size: 42,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1887,7 +1881,7 @@ class _ExamsForYouSwooshPainter extends CustomPainter {
 }
 
 /// Dynamic Hero Banner Card / Carousel Section
-/// Fetches promotional banners from Admin Panel (Supabase app_settings & hero_banners).
+/// Fetches promotional banners from Admin Panel (Supabase `hero_banners`).
 /// Displays high-fidelity images with auto-sliding carousel if multiple banners exist,
 /// interactive dot indicators, text overlays, and fallback to default HD hero banner.
 class _HeroBannerSection extends ConsumerStatefulWidget {
@@ -2175,10 +2169,10 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
   Widget _buildBannerImage(HeroBannerModel banner) {
     Widget fallback() {
       return Image.asset(
-        'assets/images/hero_banner_hd.png',
+        'assets/images/hero_banner_hd.webp',
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => Image.asset(
-          'assets/images/hero_banner_full.png',
+          'assets/images/hero_banner_full.webp',
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
         ),

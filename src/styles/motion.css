@@ -150,6 +150,37 @@
   transition-timing-function: var(--pk-ease-standard);
 }
 
+/* ---------------------------------------------------------------------------
+   Physical feedback, only when the user has not asked for reduced motion.
+   Uses the standalone `scale` / `translate` properties, which compose with
+   Tailwind's `transform` utilities instead of replacing them.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Press: a slight shrink confirms the click landed. */
+  :where(.admin-scope)
+    :where(button, [role='button']):not(:disabled):not([aria-disabled='true']):active {
+    scale: 0.97;
+  }
+
+  :where(.admin-scope)
+    :where(a, button, [role='button']):not([class*='transition']):not([class*='duration-']) {
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill, stroke, opacity,
+      box-shadow, scale;
+  }
+
+  /* Hover lift for clickable KPI cards only, so static cards don't look clickable. */
+  .pk-stagger > :is(a, button, [role='button'], .cursor-pointer) {
+    transition-property: translate, scale, box-shadow, border-color, background-color;
+    transition-duration: var(--pk-motion-base);
+    transition-timing-function: var(--pk-ease-out);
+  }
+
+  .pk-stagger > :is(a, button, [role='button'], .cursor-pointer):hover {
+    translate: 0 -2px;
+  }
+}
+
 /* Clear keyboard focus indicator; elements with their own focus styles win. */
 :where(.admin-scope) :where(a, button, [role='button'], [tabindex], summary):focus-visible {
   outline: 2px solid var(--pk-primary);

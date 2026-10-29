@@ -197,7 +197,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     }
     if (title.contains('tet') || title.contains('wbssc') || title.contains('teach')) {
@@ -206,7 +206,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     }
     if (title.contains('railway') || title.contains('ntpc') || title.contains('rrb') || title.contains('ssc')) {
@@ -215,7 +215,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
 
@@ -227,7 +227,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFF2563EB),
         thumbBg: Color(0xFFEFF6FF),
         timeColor: Color(0xFF2563EB),
-        iconAsset: 'assets/images/exams/live_icon_wbp.png',
+        iconAsset: 'assets/images/exams/live_icon_wbp.webp',
       );
     } else if (mod == 1) {
       return const _LiveTestPalette(
@@ -235,7 +235,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFFF43F5E),
         thumbBg: Color(0xFFFFF1F2),
         timeColor: Color(0xFFE11D48),
-        iconAsset: 'assets/images/exams/live_icon_wbssc.png',
+        iconAsset: 'assets/images/exams/live_icon_wbssc.webp',
       );
     } else {
       return const _LiveTestPalette(
@@ -243,7 +243,7 @@ class _LiveTestPalette {
         accentColor: Color(0xFF0D9488),
         thumbBg: Color(0xFFECFDF5),
         timeColor: Color(0xFF0D9488),
-        iconAsset: 'assets/images/exams/live_icon_railway.png',
+        iconAsset: 'assets/images/exams/live_icon_railway.webp',
       );
     }
   }

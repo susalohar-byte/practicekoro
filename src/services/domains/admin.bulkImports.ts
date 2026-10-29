@@ -188,9 +188,11 @@ export async function bulkCreateQuestionsFromTxt(params: {
   const errors: string[] = [];
   let currentTestOrder = 1;
   // Questions of a Live Test paper are created hidden (never briefly visible in the bank).
-  let testIsLiveOnly = params.testId
-    ? Boolean(localTests.find((t) => t.id === params.testId)?.isLiveOnly)
-    : false;
+  // Live builds read the flag from the database below; the demo engine reads its store.
+  let testIsLiveOnly =
+    params.testId && !isSupabaseConfigured
+      ? Boolean(localTests.find((t) => t.id === params.testId)?.isLiveOnly)
+      : false;
 
   if (params.testId && isSupabaseConfigured) {
     const { data: testRow, error: testError } = await supabase

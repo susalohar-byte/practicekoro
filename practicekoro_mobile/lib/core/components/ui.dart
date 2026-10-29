@@ -147,10 +147,8 @@ class UI {
   static const List<String> bengaliFontFallback = [
     'Tiro Bangla',
     'TiroBangla',
-    'Noto Sans Bengali',
-    'NotoSansBengali',
-    'Hind Siliguri',
-    'HindSiliguri',
+    'Inter',
+    'sans-serif',
   ];
 
   /// Question text across tests and practice (clean, authoritative, comfortable in Tiro Bangla)
@@ -383,7 +381,7 @@ class UIBrandLogo extends StatelessWidget {
     return Semantics(
       label: 'PracticeKoro',
       child: Image.asset(
-        'assets/images/logo-transparent.png',
+        'assets/images/logo-transparent.webp',
         height: height,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
@@ -758,13 +756,16 @@ class UIGroup extends StatelessWidget {
     return Container(
       decoration: UI.box(),
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const Divider(),
-            children[i],
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const Divider(),
+              children[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

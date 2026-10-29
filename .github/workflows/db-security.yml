@@ -41,12 +41,15 @@ jobs:
           fi
           chmod +x scripts/supabase-sql.sh
           ./scripts/supabase-sql.sh -f supabase/tests/rls_security.sql -t -A | tee rls-results.json
+          # Per-function exposure checks (search_path, anon allow-list, caller checks, private helpers)
+          ./scripts/supabase-sql.sh -f supabase/tests/function_security.sql -t -A | tee function-results.json
           # Every assertion in every JSON row must be true, and there must be rows
           python3 - <<'EOF'
           import json, sys
           ok = True
           rows = 0
-          for line in open('rls-results.json'):
+          lines = open('rls-results.json').readlines() + open('function-results.json').readlines()
+          for line in lines:
               line = line.strip()
               if not line.startswith('{'):
                   continue
@@ -57,7 +60,7 @@ jobs:
                   ok = False
                   print('FAILED ASSERTIONS:', json.dumps(failed, indent=2))
           if rows == 0:
-              print('No assertion rows were read from supabase/tests/rls_security.sql.')
+              print('No assertion rows were read from supabase/tests/*.sql.')
               ok = False
           if not ok:
               sys.exit(1)

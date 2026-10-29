@@ -414,7 +414,7 @@ export const AdminRevenueAnalytics: React.FC = () => {
         </div>
 
         {/* 6 Key Performance Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        <div className="pk-stagger grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
           {/* 1. Total Students */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden">
             <div className="flex items-center justify-between text-slate-400 mb-2">

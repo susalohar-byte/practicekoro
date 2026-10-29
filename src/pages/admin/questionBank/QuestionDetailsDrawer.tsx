@@ -1,6 +1,11 @@
 import { X, Edit2, Shuffle, Check, Trash2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UploadMode, withCurrentOption, QuestionBankStatus } from './questionBankUtils';
+import {
+  UploadMode,
+  withCurrentOption,
+  QuestionBankStatus,
+  bengaliFontClass,
+} from './questionBankUtils';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
 export interface QuestionDetailsDrawerProps {
@@ -134,7 +139,7 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                   rows={2}
                   value={drawerBengaliText}
                   onChange={(e) => setDrawerBengaliText(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none font-tiro"
                 />
               </div>
 
@@ -209,6 +214,7 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                             spellCheck={false}
                             className={cn(
                               'admin-drawer-option-input admin-transparent-input w-full bg-transparent border-0 outline-none shadow-none text-xs font-medium focus:outline-none focus:ring-0 p-0 m-0',
+                              bengaliFontClass(drawerOptions[optKey]),
                               isCorrect
                                 ? 'text-emerald-950 dark:text-emerald-100 font-semibold'
                                 : 'text-slate-800 dark:text-slate-200'
@@ -517,7 +523,7 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                   value={editExplanationBengali}
                   onChange={(e) => setEditExplanationBengali(e.target.value)}
                   placeholder="Enter detailed explanation of why the correct option is right..."
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none font-tiro"
                 />
               </div>
               <div>

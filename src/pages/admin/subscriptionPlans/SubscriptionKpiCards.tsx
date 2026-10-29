@@ -17,7 +17,7 @@ export function SubscriptionKpiCards({ plansState }: SubscriptionKpiCardsProps) 
       {/* ==================================================================== */}
       {/* 2. FOUR SUMMARY METRICS CARDS (LIVE BACKEND DATA)                   */}
       {/* ==================================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Subscribers */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-2xs flex items-center gap-4 hover:shadow-xs transition-shadow">
           <div className="w-12 h-12 rounded-xl bg-[#DCFCE7] dark:bg-emerald-950/60 text-[#16A34A] dark:text-emerald-400 flex items-center justify-center shrink-0">

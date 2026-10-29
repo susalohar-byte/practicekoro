@@ -12,7 +12,7 @@ export function BannerStatCards({ bn }: BannerStatCardsProps) {
       {/* ================================================================= */}
       {/* 2. SUMMARY KPI METRIC CARDS (Exact 4-Card Row)                    */}
       {/* ================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Card 1: Total Banners */}
         <div className="bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">

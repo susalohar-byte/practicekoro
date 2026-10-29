@@ -6,6 +6,7 @@ import { MathText } from '@/components/common/MathText';
 import { isMathematicsQuestion } from '@/utils/shortNotes';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import { cn } from '@/lib/utils';
+import { bengaliFontClass } from './questionBankUtils';
 import type { Question } from '@/types';
 
 export interface PreviewQuestionModalProps {
@@ -57,7 +58,12 @@ export const PreviewQuestionModal: React.FC<PreviewQuestionModalProps> = ({
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm font-black text-slate-900 dark:text-white leading-relaxed">
+          <p
+            className={cn(
+              'text-sm font-black text-slate-900 dark:text-white leading-relaxed',
+              bengaliFontClass(question.questionBengaliText || question.questionText)
+            )}
+          >
             <MathText>{question.questionBengaliText || question.questionText}</MathText>
           </p>
 
@@ -78,7 +84,7 @@ export const PreviewQuestionModal: React.FC<PreviewQuestionModalProps> = ({
                       : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
                   }`}
                 >
-                  <span>
+                  <span className={bengaliFontClass(opt.text)}>
                     ({opt.key.toLowerCase()}) <MathText>{opt.text}</MathText>
                   </span>
                   {isCorrect && (

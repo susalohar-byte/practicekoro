@@ -17,7 +17,7 @@ export function QuestionStatCards({ qb }: QuestionStatCardsProps) {
   return (
     <>
       {/* 3. SIX STAT METRIC CARDS (Exact values & styling from media_1791132993733.jpg) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="pk-stagger grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {/* Card 1: Total Questions */}
         <div
           onClick={() => {

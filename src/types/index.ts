@@ -1003,6 +1003,7 @@ export interface AppSettingItem {
 export interface CouponItem {
   id: string;
   code: string;
+  title?: string;
   description?: string;
   discountType: 'percentage' | 'fixed';
   discountValue: number;

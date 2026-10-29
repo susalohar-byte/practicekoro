@@ -17,6 +17,7 @@ export function PaymentsFilterToolbar({ pay }: PaymentsFilterToolbarProps) {
     filterMethod,
     setFilterMethod,
     timeRange,
+    setTimeRange,
     setCurrentPage,
     showToast,
   } = pay;
@@ -87,10 +88,24 @@ export function PaymentsFilterToolbar({ pay }: PaymentsFilterToolbarProps) {
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
-        {/* Date Range Picker */}
-        <div className="flex items-center border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 bg-white gap-2">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>{timeRange} · Asia/Kolkata</span>
+        {/* Date Range Selector */}
+        <div className="relative min-w-[170px]">
+          <select
+            aria-label="Filter payments by time range"
+            value={timeRange}
+            onChange={(e) => {
+              setTimeRange(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full appearance-none border border-slate-200 rounded-xl pl-8 pr-7 py-2 text-xs text-slate-800 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="Last 30 Days">Last 30 Days</option>
+            <option value="Last 90 Days">Last 90 Days</option>
+            <option value="This Year">This Year</option>
+            <option value="All Time">All Time (All Payments)</option>
+          </select>
+          <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
         {/* Filter and Reset Buttons */}
@@ -111,6 +126,9 @@ export function PaymentsFilterToolbar({ pay }: PaymentsFilterToolbarProps) {
               setFilterStatus('All Status');
               setFilterPlan('All Plans');
               setFilterMethod('All Payment Gateways');
+              setTimeRange('Last 30 Days');
+              setCurrentPage(1);
+              setSelectedCheckboxes([]);
               showToast('Filters reset to default view.');
             }}
             className="text-[#2563EB] hover:underline font-semibold text-xs px-2.5 py-2 cursor-pointer"

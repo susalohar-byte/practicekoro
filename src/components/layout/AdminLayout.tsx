@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import { useMaintenance } from '@/context/MaintenanceContext';
 import { cn } from '@/lib/utils';
-import { playEnter } from '@/lib/motion';
+import { playPageEnter } from '@/lib/motion';
 import { usePresence } from '@/hooks/usePresence';
 import { preloadRoute, preloadCoreAdminRoutes } from '@/utils/routePreload';
 import type { AdminPermissions } from '@/types';
@@ -73,6 +73,18 @@ interface NavSection {
   items: NavItem[];
 }
 
+/**
+ * Skeleton shown while a page's code loads. When it goes away the real page
+ * has just mounted, so the page transition plays again for it; otherwise a
+ * first visit would animate only the skeleton and then pop the page in.
+ */
+const RouteSkeleton: React.FC<{ contentRef: React.RefObject<HTMLDivElement | null> }> = ({
+  contentRef,
+}) => {
+  useEffect(() => () => playPageEnter(contentRef.current), [contentRef]);
+  return <AdminRouteSkeleton />;
+};
+
 export const AdminLayout: React.FC = () => {
   const { user, logout, adminRole, hasPermission } = useAuth();
   const { appName } = usePlatformBrand();
@@ -100,9 +112,11 @@ export const AdminLayout: React.FC = () => {
   const userMenu = usePresence(isUserMenuOpen);
   const sidebarUserMenu = usePresence(isSidebarUserOpen);
 
-  // Subtle content fade on route change (no remount, so page state is kept)
+  // Page transition on route change (no remount, so page state is kept).
+  // The new page starts at the top instead of the old page's scroll position.
   useEffect(() => {
-    playEnter(contentRef.current);
+    if (window.scrollY > 0) window.scrollTo({ top: 0 });
+    playPageEnter(contentRef.current);
   }, [location.pathname]);
 
   // Idle prefetching for core routes to eliminate route chunk load latency
@@ -758,6 +772,7 @@ export const AdminLayout: React.FC = () => {
                   src={user.avatarUrl}
                   alt={user?.fullName || 'Susanta Lohar'}
                   className="w-full h-full object-cover rounded-full"
+                  referrerPolicy="no-referrer"
                   onError={() => setSidebarAvatarFailed(true)}
                 />
               ) : (
@@ -804,6 +819,7 @@ export const AdminLayout: React.FC = () => {
                       src={user.avatarUrl}
                       alt={user?.fullName || 'Susanta Lohar'}
                       className="w-full h-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
                       onError={() => setSidebarAvatarFailed(true)}
                     />
                   ) : (
@@ -925,6 +941,7 @@ export const AdminLayout: React.FC = () => {
                       src={user.avatarUrl}
                       alt={user?.fullName || 'Admin'}
                       className="w-full h-full object-cover rounded-full"
+                      referrerPolicy="no-referrer"
                       onError={() => setHeaderAvatarFailed(true)}
                     />
                   ) : (
@@ -961,6 +978,7 @@ export const AdminLayout: React.FC = () => {
                           src={user.avatarUrl}
                           alt={user?.fullName || 'Admin'}
                           className="w-full h-full object-cover rounded-full"
+                          referrerPolicy="no-referrer"
                           onError={() => setHeaderAvatarFailed(true)}
                         />
                       ) : (
@@ -1043,7 +1061,7 @@ export const AdminLayout: React.FC = () => {
         {/* Content body with GPU-accelerated page transition */}
         <main className="flex-1 p-4 sm:p-6 lg:p-7 bg-slate-50 dark:bg-[#030712]">
           <div ref={contentRef} className="max-w-[1560px] mx-auto">
-            <React.Suspense fallback={<AdminRouteSkeleton />}>
+            <React.Suspense fallback={<RouteSkeleton contentRef={contentRef} />}>
               <Outlet />
             </React.Suspense>
           </div>

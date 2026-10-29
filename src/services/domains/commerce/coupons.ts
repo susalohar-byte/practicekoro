@@ -23,6 +23,7 @@ export const couponsApi = {
     return (data as CouponRow[]).map((d) => ({
       id: d.id,
       code: d.code,
+      title: d.title || undefined,
       description: d.description || undefined,
       discountType: d.discount_type,
       discountValue: Number(d.discount_value),
@@ -51,6 +52,7 @@ export const couponsApi = {
           .from('coupons')
           .insert({
             code: normalizedCode,
+            title: coupon.title?.trim() || null,
             description: coupon.description || null,
             discount_type: coupon.discountType,
             discount_value: coupon.discountValue,
@@ -71,6 +73,7 @@ export const couponsApi = {
         const newCoupon: CouponItem = {
           id: data.id,
           code: data.code,
+          title: data.title || undefined,
           description: data.description || undefined,
           discountType: data.discount_type,
           discountValue: Number(data.discount_value),
@@ -118,6 +121,7 @@ export const couponsApi = {
       try {
         const payload: CouponWrite = { updated_at: new Date().toISOString() };
         if (updates.code) payload.code = updates.code.trim().toUpperCase();
+        if (updates.title !== undefined) payload.title = updates.title.trim() || null;
         if (updates.description !== undefined) payload.description = updates.description || null;
         if (updates.discountType) payload.discount_type = updates.discountType;
         if (updates.discountValue !== undefined) payload.discount_value = updates.discountValue;

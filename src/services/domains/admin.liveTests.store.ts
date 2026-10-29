@@ -14,33 +14,39 @@ import type { LiveTest, LiveTestParticipant, MockTest } from '@/types';
  * LIVE TEST = EXISTING TEST + SCHEDULED EVENT + OPTIONAL RANKING
  * A Live Test does NOT have its own questions or runner; it is a thin event layer.
  *
- * Persistence Architecture (3-Tier Resilient Storage):
- * 1. Primary: `public.live_tests` & `public.live_test_participants` tables (when migrated)
- * 2. Universal Fallback: `public.app_settings` (`id = 'live_tests_schedule_list'`) — readable
- *    by all authenticated & anonymous clients (Web & Mobile) and writable by Admin via RPC/upsert.
- * 3. Local Cache: `localStorage` (`pk_live_tests_list` & `pk_live_test_participations`) + in-memory store.
+ * Persistence:
+ * 1. `public.live_tests` & `public.live_test_participants` tables (the only remote source of
+ *    Live Test events; there is no `app_settings` mirror any more).
+ * 2. Local Cache: `localStorage` (`pk_live_tests_list` & `pk_live_test_participations`) + in-memory store.
  */
 export const STORAGE_KEY = 'pk_live_tests_list';
 export const PARTICIPANTS_STORAGE_KEY = 'pk_live_test_participations';
-export const APP_SETTINGS_LIVE_TESTS_ID = 'live_tests_schedule_list';
 export const APP_SETTINGS_PARTICIPANTS_ID = 'live_tests_participants_list';
 
+// The demo engine's seed lists. Live builds start from an empty cache instead,
+// so demo events and participants can never appear next to real ones.
+const demoLiveTests = (): LiveTest[] => (isSupabaseConfigured ? [] : [...localLiveTests]);
+const demoParticipations = (): LiveTestParticipant[] =>
+  isSupabaseConfigured ? [] : [...localLiveTestParticipations];
+
 export function getStoredLiveTests(): LiveTest[] {
-  if (typeof window === 'undefined') return [...localLiveTests];
+  if (typeof window === 'undefined') return demoLiveTests();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [...localLiveTests];
+    if (!raw) return demoLiveTests();
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...localLiveTests];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : demoLiveTests();
   } catch {
-    return [...localLiveTests];
+    return demoLiveTests();
   }
 }
 
 export function saveStoredLiveTests(list: LiveTest[]): void {
-  // Sync in-memory localLiveTests array
-  localLiveTests.length = 0;
-  localLiveTests.push(...list);
+  // Demo engine only: sync the in-memory localLiveTests array
+  if (!isSupabaseConfigured) {
+    localLiveTests.length = 0;
+    localLiveTests.push(...list);
+  }
 
   if (typeof window === 'undefined') return;
   try {
@@ -52,23 +58,25 @@ export function saveStoredLiveTests(list: LiveTest[]): void {
 }
 
 export function getStoredParticipations(): LiveTestParticipant[] {
-  if (typeof window === 'undefined') return [...localLiveTestParticipations];
+  if (typeof window === 'undefined') return demoParticipations();
   try {
     const raw = localStorage.getItem(PARTICIPANTS_STORAGE_KEY);
-    if (!raw) return [...localLiveTestParticipations];
+    if (!raw) return demoParticipations();
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       return parsed;
     }
-    return [...localLiveTestParticipations];
+    return demoParticipations();
   } catch {
-    return [...localLiveTestParticipations];
+    return demoParticipations();
   }
 }
 
 export function saveStoredParticipations(list: LiveTestParticipant[]): void {
-  localLiveTestParticipations.length = 0;
-  localLiveTestParticipations.push(...list);
+  if (!isSupabaseConfigured) {
+    localLiveTestParticipations.length = 0;
+    localLiveTestParticipations.push(...list);
+  }
 
   if (typeof window === 'undefined') return;
   try {
@@ -184,17 +192,18 @@ export const LIVE_TEST_COLUMNS =
   'duration_minutes, total_questions, total_marks, negative_marking, logo, exam_logo, ' +
   `instructions, is_published, enrolled_count, tests(${LIVE_SOURCE_TEST_COLUMNS})`;
 
-/** Batch-fetch source MockTests from Supabase `public.tests` (with localTests fallback) */
+/** Batch-fetch source MockTests from Supabase `public.tests` (demo engine: from its store) */
 export async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string, MockTest>> {
   const map = new Map<string, MockTest>();
   const uniqueIds = Array.from(new Set(testIds.filter(Boolean)));
   if (uniqueIds.length === 0) return map;
 
-  // 1. Seed from localTests first
-  for (const id of uniqueIds) {
-    const local = localTests.find((t) => t.id === id);
-    if (local) map.set(id, local);
-  }
+  // 1. Demo engine: seed from localTests
+  if (!isSupabaseConfigured)
+    for (const id of uniqueIds) {
+      const local = localTests.find((t) => t.id === id);
+      if (local) map.set(id, local);
+    }
 
   // 2. Query Supabase `public.tests` when configured
   if (isSupabaseConfigured) {
@@ -222,9 +231,15 @@ export function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest 
   const test =
     sourceTest ||
     lt.test ||
-    localTests.find((t) => t.id === lt.testId || t.id === lt.test_id) ||
+    (isSupabaseConfigured
+      ? null
+      : localTests.find((t) => t.id === lt.testId || t.id === lt.test_id)) ||
     null;
-  const exam = localExams.find((e) => e.id === (lt.examId || lt.exam_id || test?.examId));
+  // Demo engine only: fill exam title and logo from the demo exams. Live rows
+  // carry their own (a demo exam's icon name is not a usable logo).
+  const exam = isSupabaseConfigured
+    ? undefined
+    : localExams.find((e) => e.id === (lt.examId || lt.exam_id || test?.examId));
 
   const startAt =
     lt.startAt ||
