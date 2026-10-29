@@ -381,7 +381,11 @@ export const bannerService = {
           const path = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
           const { error: directErr } = await supabaseRuntime.storage
             .from('banners')
-            .upload(path, fileToUpload, { contentType: fileToUpload.type, upsert: true });
+            .upload(path, fileToUpload, {
+              contentType: fileToUpload.type,
+              upsert: true,
+              cacheControl: '31536000',
+            });
           if (!directErr) {
             const { data: pubData } = supabaseRuntime.storage.from('banners').getPublicUrl(path);
             if (pubData?.publicUrl) {

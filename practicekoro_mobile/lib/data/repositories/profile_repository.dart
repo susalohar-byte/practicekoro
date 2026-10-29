@@ -154,13 +154,14 @@ class StudentProfileNotifier extends Notifier<StudentProfileModel> {
               );
           publicUrl = client.storage.from('avatars').getPublicUrl(path);
         } catch (storageErr) {
-          debugPrint(
-            'Supabase storage upload error: $storageErr. Falling back to data URI.',
-          );
+          // Never sync the photo inline as a data URI: it would be stored in
+          // the profile row and downloaded with it on every read.
+          debugPrint('Supabase storage upload error: $storageErr');
+          rethrow;
         }
       }
 
-      // If storage upload failed or client is offline/guest, use data URI fallback
+      // Guest / offline only: the data URI stays on this device.
       publicUrl ??= 'data:image/$cleanExt;base64,${base64Encode(bytes)}';
 
       final updatedProfile = state.copyWith(

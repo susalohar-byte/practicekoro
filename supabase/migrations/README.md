@@ -126,6 +126,7 @@ Statuses were checked against production `supabase_migrations.schema_migrations`
 | `20261024124339_exam_centric_test_architecture_part2.sql`        | exam_subjects delete policy + admin_save_exam_subject_topics                                                                       | **APPLIED (SQL Editor)** |
 | `20261024145344_security_advisor_hardening.sql`                  | Security advisor fixes: internal-table policies, RPC EXECUTE grants                                                                |       **APPLIED**        |
 | `20261024150000_drop_admin_test_series_metrics.sql`              | Drop the unused admin_get_test_series_metrics RPC                                                                                  | **APPLIED (SQL Editor)** |
+| `20261029090000_block_inline_images.sql`                         | Reject new base64 images in image columns; move the home banner to the website copy                                                |       **PENDING**        |
 
 ---
 
