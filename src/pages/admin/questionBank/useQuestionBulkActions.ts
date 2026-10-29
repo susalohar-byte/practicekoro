@@ -4,6 +4,8 @@ import { QuestionBankStatus, questionBankStatus } from './questionBankUtils';
 import { api } from '@/services/api';
 import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import { csvCell } from '@/utils/csvExport';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { getErrorMessage } from '@/lib/errors';
 
 interface QuestionBulkActionsInput {
   questions: Question[];
@@ -83,10 +85,21 @@ export function useQuestionBulkActions({
     );
   };
 
-  // Export Selected to CSV
-  const handleExportSelectedCSV = () => {
+  // Export Selected to CSV (a selection can span pages: rows not on screen are fetched by id)
+  const handleExportSelectedCSV = async () => {
     if (selectedRowIds.size === 0) return;
-    const toExport = questions.filter((q) => selectedRowIds.has(q.id));
+    const onScreen = questions.filter((q) => selectedRowIds.has(q.id));
+    const onScreenIds = new Set(onScreen.map((q) => q.id));
+    const missingIds = Array.from(selectedRowIds).filter((id) => !onScreenIds.has(id));
+    let toExport = onScreen;
+    if (missingIds.length > 0 && isSupabaseConfigured) {
+      try {
+        toExport = [...onScreen, ...(await api.getAdminQuestionsByIds(missingIds))];
+      } catch (err) {
+        showToast(getErrorMessage(err, 'Selected questions could not be loaded for export.'));
+        return;
+      }
+    }
     const headers = [
       'id',
       'question',

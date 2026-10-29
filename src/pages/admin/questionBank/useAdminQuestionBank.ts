@@ -43,6 +43,8 @@ export function useAdminQuestionBank() {
   const {
     questions,
     setQuestions,
+    setPageQuestions,
+    dataVersion,
     exams,
     subjects,
     topics,
@@ -81,11 +83,21 @@ export function useAdminQuestionBank() {
     pageSize,
     setPageSize,
     filterTopicOptions,
-    filteredQuestions,
+    filteredTotal,
+    getFilteredQuestionIds,
     stats,
     totalPages,
     paginatedQuestions,
-  } = useQuestionBankFilters({ questions, subjects, topics, isLoading, liveQuestionIndex });
+  } = useQuestionBankFilters({
+    questions,
+    setPageQuestions,
+    dataVersion,
+    subjects,
+    topics,
+    isLoading,
+    liveQuestionIndex,
+    showToast,
+  });
 
   const {
     activeQuestion,
@@ -393,7 +405,8 @@ export function useAdminQuestionBank() {
     pageSize,
     setPageSize,
     drawerTopicNames,
-    filteredQuestions,
+    filteredTotal,
+    getFilteredQuestionIds,
     stats,
     totalPages,
     paginatedQuestions,

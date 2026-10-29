@@ -187,11 +187,25 @@ export async function getLiveTestsStats(
   return result;
 }
 
-export async function getLiveTestLeaderboard(liveTestId: string): Promise<LiveTestParticipant[]> {
+/**
+ * Already-loaded inputs a caller can hand to `getLiveTestLeaderboard` so ranking many events
+ * does not re-read the participations app_settings row and the live test once per event.
+ */
+export interface LiveTestLeaderboardContext {
+  /** Result of `fetchRemoteParticipations()`, read once for the whole screen. */
+  participations?: LiveTestParticipant[];
+  /** The live test itself (skips the by-id lookup); `null` means it is known not to exist. */
+  liveTest?: LiveTest | null;
+}
+
+export async function getLiveTestLeaderboard(
+  liveTestId: string,
+  context: LiveTestLeaderboardContext = {}
+): Promise<LiveTestParticipant[]> {
   const candidatesByUserId = new Map<string, LiveTestParticipant>();
 
   // 1. Seed from local & app_settings participations
-  const storedParts = await fetchRemoteParticipations();
+  const storedParts = context.participations ?? (await fetchRemoteParticipations());
   for (const p of storedParts) {
     if (p.liveTestId === liveTestId && (p.status === 'completed' || p.score !== undefined)) {
       candidatesByUserId.set(p.userId, { ...p });
@@ -231,7 +245,8 @@ export async function getLiveTestLeaderboard(liveTestId: string): Promise<LiveTe
     // 3. Also enrich from `public.test_attempts` for the underlying `testId` so all real student
     // submissions in Supabase appear on the statewide leaderboard even without migration 044!
     try {
-      const liveTest = await getLiveTestById(liveTestId);
+      const liveTest =
+        context.liveTest !== undefined ? context.liveTest : await getLiveTestById(liveTestId);
       const windowStart = liveTest ? new Date(liveTest.startAt).getTime() : NaN;
       if (liveTest?.testId && !isNaN(windowStart)) {
         // Only attempts started during the live window count — practice attempts of the same
@@ -335,4 +350,24 @@ export async function getLiveTestLeaderboard(liveTestId: string): Promise<LiveTe
     ...p,
     rank: idx + 1,
   }));
+}
+
+/**
+ * Leaderboards of several Live Tests: the participations row is read once and the already
+ * loaded live tests are reused, instead of both being fetched again for every event.
+ */
+export async function getLiveTestLeaderboards(
+  liveTests: LiveTest[],
+  participations?: LiveTestParticipant[]
+): Promise<Record<string, LiveTestParticipant[]>> {
+  const result: Record<string, LiveTestParticipant[]> = {};
+  if (liveTests.length === 0) return result;
+  const parts = participations ?? (await fetchRemoteParticipations());
+  const boards = await Promise.all(
+    liveTests.map((lt) => getLiveTestLeaderboard(lt.id, { participations: parts, liveTest: lt }))
+  );
+  liveTests.forEach((lt, idx) => {
+    result[lt.id] = boards[idx];
+  });
+  return result;
 }

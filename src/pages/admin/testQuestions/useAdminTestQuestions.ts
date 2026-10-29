@@ -91,28 +91,28 @@ export function useAdminTestQuestions(options: UseAdminTestQuestionsOptions = {}
     }
     try {
       setIsLoading(true);
-      const [testData, assigned, bank, allSubjects, allChapters, allExams, locked] =
-        await Promise.all([
-          api.getTestById(currentTestId),
-          api.getTestAssignedQuestions(currentTestId),
-          // The bank selector is not offered for a Live Test paper.
-          liveMode ? Promise.resolve([] as Question[]) : api.getAllAdminQuestions(),
-          api.getAllAdminSubjects(),
-          api.getAllAdminChapters(),
-          api.getAllAdminExams(),
-          // Fail closed: if the live-test lock cannot be verified, treat the test as locked.
-          api.isTestLockedForEditing(currentTestId).then(
-            (isLocked) => ({ isLocked, error: '' }),
-            (err) => ({
-              isLocked: true,
-              error: getErrorMessage(err, 'Live Test lock status could not be verified.'),
-            })
-          ),
-        ]);
+      const [testData, assigned, allSubjects, allChapters, allExams, locked] = await Promise.all([
+        api.getTestById(currentTestId),
+        api.getTestAssignedQuestions(currentTestId),
+        api.getAllAdminSubjects(),
+        api.getAllAdminChapters(),
+        api.getAllAdminExams(),
+        // Fail closed: if the live-test lock cannot be verified, treat the test as locked.
+        api.isTestLockedForEditing(currentTestId).then(
+          (isLocked) => ({ isLocked, error: '' }),
+          (err) => ({
+            isLocked: true,
+            error: getErrorMessage(err, 'Live Test lock status could not be verified.'),
+          })
+        ),
+      ]);
 
       setTest(testData);
       setAssignedQuestions(assigned);
-      setBankQuestions(bank);
+      // The bank selector list is (re)loaded on demand by the effect below.
+      setBankQuestions([]);
+      setBankLoadedFor('');
+      setBankVersion((v) => v + 1);
       setSubjects(allSubjects);
       setChapters(allChapters);
       setExams(allExams);
@@ -133,6 +133,44 @@ export function useAdminTestQuestions(options: UseAdminTestQuestionsOptions = {}
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Question Bank selector rows: fetched only when the "select" tab is open (never for a Live
+  // Test paper), and narrowed on the server to the test's topic / exam context.
+  const [bankVersion, setBankVersion] = useState(0);
+  const [bankLoadedFor, setBankLoadedFor] = useState('');
+  const [bankLoading, setBankLoading] = useState(false);
+  useEffect(() => {
+    if (liveMode || activeTab !== 'select' || !test || isLoading) return;
+    const key = `${test.id}:${bankVersion}`;
+    if (bankLoadedFor === key) return;
+    let cancelled = false;
+    setBankLoading(true);
+    api
+      .getAdminQuestionsForTestContext({
+        testType: test.testType,
+        chapterId: test.chapterId,
+        topicId: test.topicId,
+        subjectId: test.subjectId,
+        year: test.year,
+        examId: test.examId,
+        examTitle: test.examTitle,
+        testSubjectId: subjects.find((s) => s.id === test.subjectId)?.id,
+      })
+      .then((bank) => {
+        if (cancelled) return;
+        setBankQuestions(bank);
+        setBankLoadedFor(key);
+        setBankLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('Error loading question bank:', err);
+        setBankLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [liveMode, activeTab, test, isLoading, subjects, bankVersion, bankLoadedFor]);
 
   const handleSelectTest = (id: string) => {
     if (liveMode) return;
@@ -475,6 +513,7 @@ export function useAdminTestQuestions(options: UseAdminTestQuestionsOptions = {}
     setAssignedQuestions,
     bankQuestions,
     setBankQuestions,
+    bankLoading,
     subjects,
     setSubjects,
     chapters,

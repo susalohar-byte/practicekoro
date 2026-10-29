@@ -52,6 +52,21 @@ export type AdminQuestionFilters = {
   includeLiveOnly?: boolean;
 };
 
+/**
+ * Explicit column list for admin question rows: exactly what `mapQuestionRow` reads (plus the
+ * subject / chapter names). Never `*`, so new heavy columns are not shipped to every list.
+ */
+export const ADMIN_QUESTION_COLUMNS = `
+      id, tags, section, subtopic, chapter_id, topic_id, subject_id,
+      question_text, question_bengali_text, image_url,
+      option_a, option_b, option_c, option_d, correct_option,
+      explanation, explanation_bengali, difficulty, default_marks, default_negative_marks,
+      question_type, source_type, source_year, source_exam, source_paper, source_shift,
+      is_active, is_live_only, status,
+      subjects:subject_id (id, name),
+      chapters:chapter_id (id, name)
+    `;
+
 export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Promise<Question[]> {
   if (!isSupabaseConfigured) {
     let questions = [...localQuestions];
@@ -132,13 +147,7 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
   const rows = await loadAllPages<any>(async (limit, offset) => {
     let query = supabase
       .from('questions')
-      .select(
-        `
-      *,
-      subjects:subject_id (id, name),
-      chapters:chapter_id (id, name)
-    `
-      )
+      .select(ADMIN_QUESTION_COLUMNS)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -280,19 +289,7 @@ export async function getAllAdminQuestionIds(filters?: AdminQuestionFilters): Pr
  * count so the admin UI can render pagination controls.
  */
 export async function getAdminQuestionsPaged(
-  filters:
-    | {
-        subjectId?: string;
-        chapterId?: string;
-        topicId?: string;
-        difficulty?: string;
-        sourceType?: string;
-        search?: string;
-        status?: string;
-        hasImage?: 'all' | 'with_image' | 'without_image';
-        includeLiveOnly?: boolean;
-      }
-    | undefined,
+  filters: AdminQuestionFilters | undefined,
   page: number,
   pageSize: number
 ): Promise<{ questions: Question[]; total: number }> {
@@ -309,42 +306,18 @@ export async function getAdminQuestionsPaged(
     };
   }
 
+  let testQuestionIds: string[] | null = null;
+  if (filters?.testId) {
+    testQuestionIds = await resolveTestQuestionIds(filters.testId);
+    if (testQuestionIds.length === 0) return { questions: [], total: 0 };
+  }
+
   let query = supabase
     .from('questions')
-    .select(
-      `
-      *,
-      subjects:subject_id (id, name),
-      chapters:chapter_id (id, name)
-    `,
-      { count: 'exact' }
-    )
-    .order('created_at', { ascending: false });
-
-  if (!filters?.includeLiveOnly) query = query.eq('is_live_only', false);
-  if (filters?.subjectId) query = query.eq('subject_id', filters.subjectId);
-  const chapId = filters?.topicId || filters?.chapterId;
-  if (chapId) query = query.or(`chapter_id.eq.${chapId},topic_id.eq.${chapId}`);
-  if (filters?.sourceType) {
-    if (filters.sourceType === 'full_mock' || filters.sourceType === 'other') {
-      query = query.in('source_type', ['other', 'full_mock']);
-    } else {
-      query = query.eq('source_type', filters.sourceType);
-    }
-  }
-  if (filters?.status) query = query.eq('status', filters.status);
-  if (filters?.hasImage === 'with_image') {
-    query = query.not('image_url', 'is', null).neq('image_url', '');
-  } else if (filters?.hasImage === 'without_image') {
-    query = query.or('image_url.is.null,image_url.eq.""');
-  }
-  if (filters?.search && filters.search.trim()) {
-    const term = searchOrFilterValue(filters.search);
-    query = query.or(
-      `question_text.ilike.${term},question_bengali_text.ilike.${term},explanation.ilike.${term},explanation_bengali.ilike.${term}`
-    );
-  }
-
+    .select(ADMIN_QUESTION_COLUMNS, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
+  query = applyQuestionListFilters(query, filters, testQuestionIds);
   query = query.range(from, to);
 
   const { data, error, count } = await query;
@@ -358,6 +331,160 @@ export async function getAdminQuestionsPaged(
   };
 }
 
+/** Full question rows for the given ids only (e.g. exporting a selection spread over pages). */
+export async function getAdminQuestionsByIds(ids: string[]): Promise<Question[]> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (unique.length === 0) return [];
+  if (!isSupabaseConfigured) {
+    const wanted = new Set(unique);
+    return localQuestions.filter((q) => wanted.has(q.id));
+  }
+  const CHUNK = 150; // keeps the `id=in.(...)` URL well under proxy limits
+  const out: Question[] = [];
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const { data, error } = await supabase
+      .from('questions')
+      .select(ADMIN_QUESTION_COLUMNS)
+      .in('id', unique.slice(i, i + CHUNK));
+    if (error) throw new Error(error.message);
+    out.push(...(data || []).map((q: any) => mapQuestionRow(q)));
+  }
+  return out;
+}
+
+/**
+ * Question counts per topic / chapter (bank questions only, like `getAllAdminQuestions()`),
+ * reading just the two id columns instead of every question row.
+ */
+export async function getAdminQuestionTopicCounts(): Promise<{
+  total: number;
+  byTopic: Record<string, number>;
+}> {
+  const tally = (rows: { topicId?: string; chapterId?: string }[]) => {
+    const byTopic: Record<string, number> = {};
+    for (const r of rows) {
+      const tid = r.topicId || r.chapterId;
+      if (tid) byTopic[tid] = (byTopic[tid] || 0) + 1;
+    }
+    return { total: rows.length, byTopic };
+  };
+  if (!isSupabaseConfigured) return tally(await getAllAdminQuestions());
+
+  const rows = await loadAllPages<{
+    id: string;
+    topic_id: string | null;
+    chapter_id: string | null;
+  }>(async (limit, offset) => {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id, topic_id, chapter_id')
+      .eq('is_live_only', false)
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
+    if (error) throw new Error(error.message);
+    return (data || []) as { id: string; topic_id: string | null; chapter_id: string | null }[];
+  }, 1000);
+  return tally(
+    rows.map((r) => ({
+      topicId: r.topic_id ?? r.chapter_id ?? undefined,
+      chapterId: r.chapter_id ?? r.topic_id ?? undefined,
+    }))
+  );
+}
+
+export type AdminQuestionText = Pick<Question, 'id' | 'questionText' | 'questionBengaliText'>;
+
+/** Only the question texts of every question (incl. Live Test ones), for duplicate detection. */
+export async function getAdminQuestionTexts(): Promise<AdminQuestionText[]> {
+  if (!isSupabaseConfigured) {
+    return (await getAllAdminQuestions({ includeLiveOnly: true })).map((q) => ({
+      id: q.id,
+      questionText: q.questionText,
+      questionBengaliText: q.questionBengaliText,
+    }));
+  }
+  const rows = await loadAllPages<{
+    id: string;
+    question_text: string | null;
+    question_bengali_text: string | null;
+  }>(async (limit, offset) => {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id, question_text, question_bengali_text')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (error) throw new Error(error.message);
+    return (data || []) as {
+      id: string;
+      question_text: string | null;
+      question_bengali_text: string | null;
+    }[];
+  }, 1000);
+  return rows.map((r) => ({
+    id: String(r.id),
+    questionText: r.question_text || '',
+    questionBengaliText: r.question_bengali_text ?? undefined,
+  }));
+}
+
+/** The test-type context a "pick questions for this test" screen narrows the bank to. */
+export interface TestQuestionContext {
+  testType?: string;
+  chapterId?: string;
+  topicId?: string;
+  subjectId?: string;
+  year?: number;
+  examId?: string;
+  examTitle?: string;
+  /** Subject the test belongs to (full mocks keep other-exam questions of this subject). */
+  testSubjectId?: string;
+}
+
+/**
+ * Bank questions that can possibly be eligible for a test of this context. The server filter
+ * is a superset of the screen's own eligibility rules (`useTestQuestionSelection`), so the
+ * screen keeps its exact behaviour while a topic test no longer downloads the whole bank.
+ */
+export async function getAdminQuestionsForTestContext(
+  ctx: TestQuestionContext
+): Promise<Question[]> {
+  if (!isSupabaseConfigured) return getAllAdminQuestions();
+  const type = ctx.testType;
+  const examPattern = ctx.examTitle ? searchOrFilterValue(ctx.examTitle) : '';
+  const rows = await loadAllPages<any>(async (limit, offset) => {
+    let query = supabase
+      .from('questions')
+      .select(ADMIN_QUESTION_COLUMNS)
+      .eq('is_live_only', false)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (type === 'topic' || type === 'chapter_mock') {
+      const topicId = ctx.chapterId || ctx.topicId;
+      if (topicId) query = query.or(`chapter_id.eq.${topicId},topic_id.eq.${topicId}`);
+      else if (ctx.subjectId) query = query.eq('subject_id', ctx.subjectId);
+    } else if (type === 'pyq') {
+      if (ctx.year) {
+        query = query.or(`source_year.is.null,source_year.eq.0,source_year.eq.${Number(ctx.year)}`);
+      }
+      if (ctx.examId && ctx.examTitle) {
+        query = query.or(`source_exam.is.null,source_exam.eq."",source_exam.ilike.${examPattern}`);
+      }
+    } else if (type === 'full_mock') {
+      if (ctx.examId && ctx.examTitle && ctx.testSubjectId) {
+        query = query.or(
+          `source_exam.is.null,source_exam.eq."",source_exam.ilike.${examPattern},subject_id.is.null,subject_id.eq.${ctx.testSubjectId}`
+        );
+      }
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data || []) as any[];
+  }, 1000);
+  return rows.map((q: any) => mapQuestionRow(q));
+}
+
 export async function getQuestionById(id: string): Promise<Question | null> {
   if (!isSupabaseConfigured) {
     const found = localQuestions.find((q) => q.id === id);
@@ -366,13 +493,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
 
   const { data, error } = await supabase
     .from('questions')
-    .select(
-      `
-      *,
-      subjects:subject_id (id, name),
-      chapters:chapter_id (id, name)
-    `
-    )
+    .select(ADMIN_QUESTION_COLUMNS)
     .eq('id', id)
     .maybeSingle();
 
@@ -683,6 +804,10 @@ export const adminQuestionsApi = {
   getAllAdminQuestionIds,
   getAdminQuestionsCount,
   getAdminQuestionsPaged,
+  getAdminQuestionsByIds,
+  getAdminQuestionTopicCounts,
+  getAdminQuestionTexts,
+  getAdminQuestionsForTestContext,
   getQuestionById,
   getPublicQuestionById,
   getPublicQuestions,

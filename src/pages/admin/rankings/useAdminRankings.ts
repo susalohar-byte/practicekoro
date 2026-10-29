@@ -2,7 +2,7 @@ import { csvCell } from '@/utils/csvExport';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
-import type { LiveTest } from '@/types';
+import type { LiveTest, LiveTestParticipant } from '@/types';
 import {
   type RankingStudent,
   aggregateLiveParticipants,
@@ -38,6 +38,31 @@ export function useAdminRankings() {
   const [dbSubjects, setDbSubjects] = useState<any[]>([]);
   const [dbLiveTests, setDbLiveTests] = useState<LiveTest[]>([]);
   const dbLiveTestsRef = useRef<LiveTest[]>([]);
+  // Read once per page load and shared by every live leaderboard request: the live test list
+  // and the participations app_settings row (not once per live test / per filter change).
+  const liveTestsPromiseRef = useRef<Promise<LiveTest[]> | null>(null);
+  const loadLiveTestsOnce = useCallback((): Promise<LiveTest[]> => {
+    if (!liveTestsPromiseRef.current) {
+      liveTestsPromiseRef.current = (api.getLiveTests?.() ?? Promise.resolve([])).catch(
+        (err: unknown) => {
+          liveTestsPromiseRef.current = null; // allow a retry later
+          throw err;
+        }
+      );
+    }
+    return liveTestsPromiseRef.current;
+  }, []);
+  const participationsPromiseRef = useRef<Promise<LiveTestParticipant[]> | null>(null);
+  const loadParticipationsOnce = useCallback((): Promise<LiveTestParticipant[] | undefined> => {
+    if (typeof api.fetchLiveTestParticipations !== 'function') return Promise.resolve(undefined);
+    if (!participationsPromiseRef.current) {
+      participationsPromiseRef.current = api.fetchLiveTestParticipations().catch(() => {
+        participationsPromiseRef.current = null;
+        return [] as LiveTestParticipant[];
+      });
+    }
+    return participationsPromiseRef.current;
+  }, []);
 
   // Live rankings list loaded from Supabase
   const [studentsList, setStudentsList] = useState<RankingStudent[]>([]);
@@ -64,7 +89,7 @@ export function useAdminRankings() {
         console.error('Failed to load subjects for ranking filters:', err);
         return [];
       }),
-      (api.getLiveTests?.() ?? Promise.resolve([])).catch((err: any) => {
+      loadLiveTestsOnce().catch((err: any) => {
         console.error('Failed to load live tests for ranking filters:', err);
         return [];
       }),
@@ -80,7 +105,7 @@ export function useAdminRankings() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadLiveTestsOnce]);
 
   // Fetch live rankings from Supabase
   const fetchRankings = useCallback(
@@ -114,10 +139,14 @@ export function useAdminRankings() {
         if (isLiveTestMode) {
           // 1. Single Live Test Leaderboard
           if (targetLiveTestId && targetLiveTestId !== 'All Live Tests') {
-            const participants = await (api.getLiveTestLeaderboard?.(targetLiveTestId) ??
-              Promise.resolve([]));
+            const knownLiveTest = dbLiveTestsRef.current.find((t) => t.id === targetLiveTestId);
+            const participations = await loadParticipationsOnce();
+            const participants = await (api.getLiveTestLeaderboard?.(targetLiveTestId, {
+              participations,
+              liveTest: knownLiveTest,
+            }) ?? Promise.resolve([]));
             if (isStale()) return;
-            const liveTest = dbLiveTestsRef.current.find((t) => t.id === targetLiveTestId);
+            const liveTest = knownLiveTest;
             let list = (participants || []).map((p, idx) =>
               mapLiveParticipantToRankingStudent(p, liveTest, p.rank || idx + 1)
             );
@@ -137,7 +166,7 @@ export function useAdminRankings() {
             // 2. All Live Tests Aggregated Leaderboard
             let liveTestsToFetch = dbLiveTestsRef.current;
             if (liveTestsToFetch.length === 0) {
-              liveTestsToFetch = await (api.getLiveTests?.() ?? Promise.resolve([]));
+              liveTestsToFetch = await loadLiveTestsOnce();
               if (Array.isArray(liveTestsToFetch)) {
                 setDbLiveTests(liveTestsToFetch);
                 dbLiveTestsRef.current = liveTestsToFetch;
@@ -152,8 +181,13 @@ export function useAdminRankings() {
               });
             }
 
+            // One participations read for all events; each event's own row is reused.
+            const participations = await loadParticipationsOnce();
             const leaderboardPromises = (liveTestsToFetch || []).map(async (lt) => {
-              const parts = await (api.getLiveTestLeaderboard?.(lt.id) ?? Promise.resolve([]));
+              const parts = await (api.getLiveTestLeaderboard?.(lt.id, {
+                participations,
+                liveTest: lt,
+              }) ?? Promise.resolve([]));
               return (parts || []).map((p) => ({ participant: p, liveTest: lt }));
             });
             const results = await Promise.all(leaderboardPromises);
@@ -206,6 +240,8 @@ export function useAdminRankings() {
       selectedLiveTestId,
       timePeriod,
       debouncedSearch,
+      loadLiveTestsOnce,
+      loadParticipationsOnce,
     ]
   );
 
