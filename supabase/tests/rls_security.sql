@@ -71,6 +71,21 @@ select jsonb_build_object(
 select jsonb_build_object(
   'gateway_mutation_blocked',  not has_table_privilege('authenticated','public.payment_gateways','INSERT,UPDATE,DELETE'),
   'gateway_anon_read_blocked', not has_table_privilege('anon','public.payment_gateways','SELECT'),
+  -- 20261029120000: secrets are service_role-only; no hard-coded admin email in policies
+  'gateway_secrets_client_unreadable', not has_column_privilege('authenticated','public.payment_gateways','key_secret','SELECT')
+                                   and not has_column_privilege('authenticated','public.payment_gateways','webhook_secret','SELECT')
+                                   and not has_column_privilege('anon','public.payment_gateways','key_secret','SELECT')
+                                   and not has_column_privilege('anon','public.payment_gateways','webhook_secret','SELECT'),
+  'gateway_secrets_service_readable', has_column_privilege('service_role','public.payment_gateways','key_secret','SELECT')
+                                   and has_column_privilege('service_role','public.payment_gateways','webhook_secret','SELECT'),
+  'gateway_no_email_policy',   not exists(select 1 from pg_policies where schemaname='public' and tablename='payment_gateways'
+                                 and (coalesce(qual,'') || coalesce(with_check,'')) ilike '%email%'),
+  'cutoff_one_permissive_select_per_role', not exists(
+                                 select 1 from unnest(array['anon','authenticated']::name[]) r
+                                 join pg_policies p on p.roles && array[r, 'public']::name[]
+                                 where p.schemaname='public' and p.tablename='cutoff_records'
+                                   and p.permissive='PERMISSIVE' and p.cmd in ('SELECT','ALL')
+                                 group by r having count(*) > 1),
   'webhook_execute_blocked',   not has_function_privilege('authenticated','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
   'webhook_anon_execute_blocked', not has_function_privilege('anon','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
   'webhook_service_role_allowed',  has_function_privilege('service_role','public.reconcile_razorpay_webhook(text,text,numeric,text,text)','EXECUTE'),
