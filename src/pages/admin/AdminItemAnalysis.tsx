@@ -230,7 +230,7 @@ export const AdminItemAnalysis: React.FC = () => {
       </div>
 
       {/* ─── 2. SUMMARY KPI STATS CARDS ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="pk-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Questions Evaluated */}
         <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
