@@ -1,5 +1,6 @@
 import { Crown, Trophy } from 'lucide-react';
 import type { AdminRankingsState } from './useAdminRankings';
+import { StudentAvatar } from '@/pages/admin/students/StudentAvatar';
 
 export interface RankingsTop3CardProps {
   rk: AdminRankingsState;
@@ -44,10 +45,11 @@ export function RankingsTop3Card({ rk }: RankingsTop3CardProps) {
               >
                 <Trophy className="w-3.5 h-3.5 text-slate-400 mb-1" />
                 {top2Student.avatar ? (
-                  <img
-                    src={top2Student.avatar}
-                    alt={top2Student.name}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
+                  <StudentAvatar
+                    avatarUrl={top2Student.avatar}
+                    fullName={top2Student.name}
+                    initials={top2Student.initials}
+                    className="w-10 h-10 rounded-full border border-slate-200 shadow-2xs"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shadow-2xs">
@@ -84,10 +86,11 @@ export function RankingsTop3Card({ rk }: RankingsTop3CardProps) {
               >
                 <Crown className="w-4 h-4 text-amber-500 mb-1" />
                 {top1Student.avatar ? (
-                  <img
-                    src={top1Student.avatar}
-                    alt={top1Student.name}
-                    className="w-11 h-11 rounded-full object-cover border-2 border-amber-300 shadow-xs"
+                  <StudentAvatar
+                    avatarUrl={top1Student.avatar}
+                    fullName={top1Student.name}
+                    initials={top1Student.initials}
+                    className="w-11 h-11 rounded-full border-2 border-amber-300 shadow-xs"
                   />
                 ) : (
                   <div className="w-11 h-11 rounded-full bg-amber-200 text-amber-800 font-bold text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs">
@@ -124,10 +127,11 @@ export function RankingsTop3Card({ rk }: RankingsTop3CardProps) {
               >
                 <Trophy className="w-3.5 h-3.5 text-amber-700 mb-1" />
                 {top3Student.avatar ? (
-                  <img
-                    src={top3Student.avatar}
-                    alt={top3Student.name}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-2xs"
+                  <StudentAvatar
+                    avatarUrl={top3Student.avatar}
+                    fullName={top3Student.name}
+                    initials={top3Student.initials}
+                    className="w-10 h-10 rounded-full border border-slate-200 shadow-2xs"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-800 font-bold text-xs flex items-center justify-center shadow-2xs">

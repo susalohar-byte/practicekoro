@@ -1,6 +1,7 @@
 import { BookOpen, CheckCircle2, FileText, MapPin, TrendingUp, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminRankingsState } from './useAdminRankings';
+import { StudentAvatar } from '@/pages/admin/students/StudentAvatar';
 
 export interface RankingsStudentDetailsCardProps {
   rk: AdminRankingsState;
@@ -38,10 +39,11 @@ export function RankingsStudentDetailsCard({ rk }: RankingsStudentDetailsCardPro
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   {activeStudent.avatar ? (
-                    <img
-                      src={activeStudent.avatar}
-                      alt={activeStudent.name}
-                      className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-2xs"
+                    <StudentAvatar
+                      avatarUrl={activeStudent.avatar}
+                      fullName={activeStudent.name}
+                      initials={activeStudent.initials}
+                      className="w-11 h-11 rounded-full border border-slate-200 shadow-2xs"
                     />
                   ) : (
                     <div

@@ -1,6 +1,7 @@
 import { ArrowRight, Crown, Printer, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminRankingsState } from './useAdminRankings';
+import { StudentAvatar } from '@/pages/admin/students/StudentAvatar';
 
 export interface RankingsStudentProfileModalProps {
   rk: AdminRankingsState;
@@ -31,10 +32,11 @@ export function RankingsStudentProfileModal({ rk }: RankingsStudentProfileModalP
 
             <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
               {activeStudent.avatar ? (
-                <img
-                  src={activeStudent.avatar}
-                  alt={activeStudent.name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                <StudentAvatar
+                  avatarUrl={activeStudent.avatar}
+                  fullName={activeStudent.name}
+                  initials={activeStudent.initials}
+                  className="w-16 h-16 rounded-full border-2 border-white shadow-md"
                 />
               ) : (
                 <div
