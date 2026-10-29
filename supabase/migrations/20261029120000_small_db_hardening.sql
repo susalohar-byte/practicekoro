@@ -132,5 +132,28 @@ revoke select on public.payment_gateways from anon, authenticated;
 revoke select (key_secret, webhook_secret) on public.payment_gateways from anon, authenticated;
 grant select (gateway, key_id, is_active, created_at, updated_at)
   on public.payment_gateways to authenticated;
+-- Writes go through admin_update_payment_gateway (SECURITY DEFINER) and the
+-- edge functions (service_role); no client role writes the table directly.
+revoke insert, update, delete on public.payment_gateways from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 4. Table privileges clients never need
+-- ---------------------------------------------------------------------------
+-- TRUNCATE skips RLS entirely, and REFERENCES / TRIGGER are never used by the
+-- API roles. PostgREST cannot issue them, but nothing should rely on that.
+do $$
+declare
+  t record;
+begin
+  for t in select tablename from pg_tables where schemaname = 'public' loop
+    execute format(
+      'revoke truncate, references, trigger on public.%I from anon, authenticated',
+      t.tablename);
+  end loop;
+end $$;
+
+-- Tables created later by the migration role start without them too.
+alter default privileges in schema public
+  revoke truncate, references, trigger on tables from anon, authenticated;
 
 commit;

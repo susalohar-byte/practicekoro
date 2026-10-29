@@ -71,6 +71,12 @@ select jsonb_build_object(
 select jsonb_build_object(
   'gateway_mutation_blocked',  not has_table_privilege('authenticated','public.payment_gateways','INSERT,UPDATE,DELETE'),
   'gateway_anon_read_blocked', not has_table_privilege('anon','public.payment_gateways','SELECT'),
+  -- 20261029120000: no API role may TRUNCATE (it skips RLS) or use REFERENCES/TRIGGER
+  'api_roles_no_truncate', not exists (
+    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p')
+      and (has_table_privilege('anon', c.oid, 'TRUNCATE,REFERENCES,TRIGGER')
+        or has_table_privilege('authenticated', c.oid, 'TRUNCATE,REFERENCES,TRIGGER'))),
   -- 20261029120000: secrets are service_role-only; no hard-coded admin email in policies
   'gateway_secrets_client_unreadable', not has_column_privilege('authenticated','public.payment_gateways','key_secret','SELECT')
                                    and not has_column_privilege('authenticated','public.payment_gateways','webhook_secret','SELECT')
