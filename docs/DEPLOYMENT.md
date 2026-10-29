@@ -33,10 +33,15 @@ Hostinger Git deployments).
 
 ## Required Edge Function secrets
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET`
+- `ALLOWED_ORIGINS` (optional; defaults to the practicekoro.online domains)
+
+Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`.
+Setting up a new project or moving to one: follow
+[SUPABASE_PROJECT_SETUP.md](SUPABASE_PROJECT_SETUP.md); auth URLs, Google login, these
+secrets and the Razorpay webhook do not move with the database.
 
 ## Hostinger SPA routing
 
