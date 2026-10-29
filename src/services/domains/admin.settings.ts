@@ -221,32 +221,33 @@ export async function updateAppSettings(
       return { success: false, error: getErrorMessage(error, 'Settings save failed') };
     }
   }
-  // Always update or insert (upsert) into in-memory localAppSettings
-  updates.forEach((u) => {
-    const parsedVal = parseSettingValue(u.value);
-    const meta = SETTINGS_META[u.id] || {
-      category: 'general',
-      key: u.id,
-      description: 'Platform configuration setting',
-    };
-    const idx = localAppSettings.findIndex((l) => l.id === u.id || l.key === u.id);
-    if (idx >= 0) {
-      localAppSettings[idx] = {
-        ...localAppSettings[idx],
-        value: parsedVal,
-        updatedAt: new Date().toISOString(),
+  // Demo engine only: mirror the change into the in-memory settings store.
+  if (!isSupabaseConfigured)
+    updates.forEach((u) => {
+      const parsedVal = parseSettingValue(u.value);
+      const meta = SETTINGS_META[u.id] || {
+        category: 'general',
+        key: u.id,
+        description: 'Platform configuration setting',
       };
-    } else {
-      localAppSettings.push({
-        id: u.id,
-        category: meta.category,
-        key: meta.key,
-        value: parsedVal,
-        description: meta.description,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-  });
+      const idx = localAppSettings.findIndex((l) => l.id === u.id || l.key === u.id);
+      if (idx >= 0) {
+        localAppSettings[idx] = {
+          ...localAppSettings[idx],
+          value: parsedVal,
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        localAppSettings.push({
+          id: u.id,
+          category: meta.category,
+          key: meta.key,
+          value: parsedVal,
+          description: meta.description,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
 
   return { success: true };
 }

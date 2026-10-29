@@ -68,12 +68,11 @@ export const catalogReviewApi = {
 
   async getUserAttempts(userId: string, testIds?: string[]): Promise<TestAttempt[]> {
     if (testIds && testIds.length === 0) return [];
-    // Merge any live session attempts with mock attempts if not on Supabase
-    const sessionAttempts = Object.values(localAttemptsStore)
-      .filter((a) => a.attempt.userId === userId && a.attempt.status === 'completed')
-      .map((a) => a.attempt);
-
+    // Demo engine: merge this session's attempts with the mock attempts
     if (!isSupabaseConfigured) {
+      const sessionAttempts = Object.values(localAttemptsStore)
+        .filter((a) => a.attempt.userId === userId && a.attempt.status === 'completed')
+        .map((a) => a.attempt);
       const combined = [...sessionAttempts, ...MOCK_ATTEMPTS];
       const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
       return testIds ? unique.filter((attempt) => testIds.includes(attempt.testId)) : unique;
@@ -234,6 +233,7 @@ export const catalogReviewApi = {
         console.error('resolveMistake Supabase error:', err);
       }
     }
+    if (isSupabaseConfigured) return false;
     const idx = MOCK_MISTAKES.findIndex((m) => m.id === mistakeId);
     if (idx !== -1) {
       MOCK_MISTAKES[idx].isResolved = isResolved;
