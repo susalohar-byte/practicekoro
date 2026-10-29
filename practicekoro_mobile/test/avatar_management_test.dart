@@ -28,12 +28,12 @@ void main() {
       const profile = StudentProfileModel(
         fullName: 'Test Student',
         googleAvatarUrl: 'https://lh3.googleusercontent.com/google_photo.jpg',
-        customAvatarUrl: 'https://prycanbnxuihxhskallw.supabase.co/storage/v1/object/public/avatars/user/custom.jpg',
+        customAvatarUrl: 'https://wzcmhowowoyeldfqzkeh.supabase.co/storage/v1/object/public/avatars/user/custom.jpg',
       );
 
       expect(
         profile.effectiveAvatarUrl,
-        'https://prycanbnxuihxhskallw.supabase.co/storage/v1/object/public/avatars/user/custom.jpg',
+        'https://wzcmhowowoyeldfqzkeh.supabase.co/storage/v1/object/public/avatars/user/custom.jpg',
       );
     });
 
