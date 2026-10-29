@@ -756,13 +756,16 @@ class UIGroup extends StatelessWidget {
     return Container(
       decoration: UI.box(),
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const Divider(),
-            children[i],
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const Divider(),
+              children[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

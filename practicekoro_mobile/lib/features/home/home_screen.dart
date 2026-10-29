@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/constants/exam_assets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/datasources/local_storage.dart';
@@ -446,11 +447,10 @@ class HomeScreen extends ConsumerWidget {
                         title: e.title,
                         subtitle:
                             '${e.totalTests} Tests Available',
-                        customIconUrl: (e.iconName != null &&
-                                (e.iconName!.startsWith('http://') ||
-                                    e.iconName!.startsWith('https://')))
-                            ? e.iconName
-                            : null,
+                        emblemAsset:
+                            ExamAssets.getRoundIconAsset(e.title) ??
+                            'assets/images/logo-icon.webp',
+                        fallbackAsset: 'assets/images/logo-icon.webp',
                         onTap: () => context.push(
                           '/exams/${Uri.encodeComponent(e.id)}?title=${Uri.encodeComponent(e.title)}',
                         ),
@@ -979,19 +979,20 @@ class _HomeLiveTestCard extends StatelessWidget {
 class _ExamRecommendCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final String? customIconUrl;
+  final String emblemAsset;
+  final String fallbackAsset;
   final VoidCallback onTap;
 
   const _ExamRecommendCard({
     required this.title,
     required this.subtitle,
-    this.customIconUrl,
+    required this.emblemAsset,
+    required this.fallbackAsset,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasIcon = customIconUrl != null && customIconUrl!.isNotEmpty;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -999,7 +1000,7 @@ class _ExamRecommendCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -1017,20 +1018,28 @@ class _ExamRecommendCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              if (hasIcon) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    customIconUrl!,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              // 1. Exam Emblem inside soft rounded square container
+              Container(
+                width: 50,
+                height: 50,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFF1F5F9),
+                    width: 1.0,
                   ),
                 ),
-                const SizedBox(width: 12),
-              ],
-              // Exam Name and Available Tests
+                child: Image.asset(
+                  emblemAsset,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Image.asset(fallbackAsset, fit: BoxFit.contain),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 2. Exam Name and Available Tests (Category Tag removed so full exam name fits)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1059,7 +1068,7 @@ class _ExamRecommendCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Compact Circular Chevron Action Button
+              // 3. Compact Circular Chevron Action Button (so exam names have plenty of room to fit)
               Container(
                 width: 32,
                 height: 32,

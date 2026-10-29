@@ -6,6 +6,7 @@ import '../../data/models/exam_model.dart';
 import '../../data/models/subject_model.dart';
 import '../../data/models/topic_model.dart';
 import '../../data/repositories/catalog_repository.dart';
+import '../exams/exam_logo.dart';
 import '../practice/practice_common.dart';
 
 /// One search across exams, subjects and topics.
@@ -106,21 +107,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               children: [
                 for (final e in examHits)
                   UIRow(
-                    leading: (e.iconName != null &&
-                            (e.iconName!.startsWith('http://') ||
-                                e.iconName!.startsWith('https://')))
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              e.iconName!,
-                              width: 36,
-                              height: 36,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const SizedBox.shrink(),
-                            ),
-                          )
-                        : null,
+                    leading: ExamLogo(e.title, size: 40),
                     title: e.title,
                     subtitle: e.category,
                     onTap: () => context.push('/exams/${e.id}'),

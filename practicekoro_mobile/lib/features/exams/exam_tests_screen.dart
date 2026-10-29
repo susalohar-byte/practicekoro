@@ -6,6 +6,7 @@ import '../../data/models/exam_model.dart';
 import '../../data/models/test_model.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/profile_repository.dart';
+import 'exam_logo.dart';
 
 /// Available test filter tabs
 const _filterTabs = ['All Tests', 'Full Test', 'Topic Test', 'PYQ'];
@@ -349,9 +350,6 @@ class _ExamHeader extends StatelessWidget {
         ? '${exam.totalQuestions} Questions'
         : null;
 
-    final String? examLogo = logo;
-    final hasLogo = examLogo != null &&
-        (examLogo.startsWith('http://') || examLogo.startsWith('https://'));
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -368,19 +366,8 @@ class _ExamHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (hasLogo) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                examLogo,
-                width: 56,
-                height: 56,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-            const SizedBox(width: 14),
-          ],
+          ExamLogo(title, assetOverride: logo, size: 64),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
