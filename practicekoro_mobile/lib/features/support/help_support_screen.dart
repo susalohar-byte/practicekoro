@@ -274,7 +274,10 @@ class HelpSupportScreen extends ConsumerWidget {
         UIGroup(
           children: [
             for (final (q, a) in _faqs)
-              Theme(
+              // Own Material so the tile's ink splash shows above the group card.
+              Material(
+                type: MaterialType.transparency,
+                child: Theme(
                 data: Theme.of(
                   context,
                 ).copyWith(dividerColor: Colors.transparent),
@@ -287,6 +290,7 @@ class HelpSupportScreen extends ConsumerWidget {
                     Text(a, style: UI.body.copyWith(color: UI.textSoft)),
                   ],
                 ),
+              ),
               ),
           ],
         ),
