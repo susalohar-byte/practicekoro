@@ -28,6 +28,15 @@ export function PaymentsTablePanel({ pay }: PaymentsTablePanelProps) {
     handleToggleRowCheckbox,
     handleOpenRefund,
   } = pay;
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
+  const paginatedRows = filteredRows.slice(startIndex, endIndex);
+
+  const isAllFilteredSelected =
+    filteredRows.length > 0 &&
+    selectedCheckboxes.length > 0 &&
+    filteredRows.every((r) => selectedCheckboxes.includes(r.id));
   return (
     <>
       {/* LEFT COLUMN: PAYMENTS TABLE */}
@@ -45,10 +54,7 @@ export function PaymentsTablePanel({ pay }: PaymentsTablePanelProps) {
                   <th className="py-3 px-3 w-8 text-center">
                     <input
                       type="checkbox"
-                      checked={
-                        selectedCheckboxes.length > 0 &&
-                        selectedCheckboxes.length === filteredRows.length
-                      }
+                      checked={isAllFilteredSelected}
                       onChange={handleSelectAll}
                       className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
                     />
@@ -65,14 +71,14 @@ export function PaymentsTablePanel({ pay }: PaymentsTablePanelProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/70 text-xs">
-                {filteredRows.length === 0 ? (
+                {paginatedRows.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="py-12 text-center text-xs text-slate-400">
                       No payment records found.
                     </td>
                   </tr>
                 ) : (
-                  filteredRows.slice(0, 10).map((row, idx) => {
+                  paginatedRows.map((row, idx) => {
                     const isSelected = Boolean(isDetailsPanelOpen && selectedRowId === row.id);
                     const isChecked = selectedCheckboxes.includes(row.id);
                     return (
@@ -102,7 +108,7 @@ export function PaymentsTablePanel({ pay }: PaymentsTablePanelProps) {
 
                         {/* # */}
                         <td className="py-3 px-2 text-center text-slate-500 font-normal">
-                          {idx + 1}
+                          {startIndex + idx + 1}
                         </td>
 
                         {/* Student */}
@@ -254,7 +260,7 @@ export function PaymentsTablePanel({ pay }: PaymentsTablePanelProps) {
           {/* Table Footer / Pagination */}
           <div className="border-t border-slate-100 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
             <div>
-              Showing {filteredRows.length === 0 ? 0 : 1}–{Math.min(filteredRows.length, 10)} of{' '}
+              Showing {filteredRows.length === 0 ? 0 : startIndex + 1}–{endIndex} of{' '}
               {filteredRows.length.toLocaleString('en-IN')} payments
             </div>
 

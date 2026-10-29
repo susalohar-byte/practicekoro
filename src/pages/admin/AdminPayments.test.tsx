@@ -86,6 +86,56 @@ describe('AdminPayments status and subscription display', () => {
     expect(screen.getByText('Inactive')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refund Payment' })).toBeEnabled();
   });
+
+  it('displays Success, Pending, and Failed stats in summary cards and filters on card click', async () => {
+    vi.mocked(api.getAllAdminPayments).mockResolvedValue([
+      { ...payment, id: 'p1', studentName: 'Alice Success', status: 'completed', amount: 499 },
+      { ...payment, id: 'p2', studentName: 'Bob Pending', status: 'pending', amount: 299 },
+      { ...payment, id: 'p3', studentName: 'Charlie Failed', status: 'failed', amount: 199 },
+      { ...payment, id: 'p4', studentName: 'Daisy Refunded', status: 'refunded', amount: 399 },
+    ]);
+    render(<AdminPayments />);
+    await screen.findByText('Alice Success');
+
+    // Stats cards render counts and values
+    expect(screen.getByRole('button', { name: /Successful/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pending/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Failed/ })).toBeInTheDocument();
+    expect(screen.getAllByText('₹299').length).toBeGreaterThanOrEqual(2); // in card and table row
+
+    // Clicking Pending card filters table to only pending
+    fireEvent.click(screen.getByRole('button', { name: /Pending/ }));
+    const table = within(screen.getByRole('table', { name: 'Payment records' }));
+    expect(table.getByText('Bob Pending')).toBeInTheDocument();
+    expect(table.queryByText('Alice Success')).not.toBeInTheDocument();
+    expect(table.queryByText('Charlie Failed')).not.toBeInTheDocument();
+  });
+
+  it('paginates payments across multiple pages correctly', async () => {
+    // Generate 15 payments
+    const manyPayments: AdminPaymentRow[] = Array.from({ length: 15 }, (_, i) => ({
+      ...payment,
+      id: `p-${i + 1}`,
+      studentName: `Student ${i + 1}`,
+      transactionId: `txn-${i + 1}`,
+      createdAt: new Date(Date.now() - i * 60000).toISOString(),
+    }));
+    vi.mocked(api.getAllAdminPayments).mockResolvedValue(manyPayments);
+    render(<AdminPayments />);
+
+    // Page 1 should show Student 1 to 10
+    expect(await screen.findByText('Student 1')).toBeInTheDocument();
+    expect(screen.getByText('Student 10')).toBeInTheDocument();
+    expect(screen.queryByText('Student 11')).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 1–10 of 15 payments/)).toBeInTheDocument();
+
+    // Click Page 2
+    fireEvent.click(screen.getByRole('button', { name: 'Page 2' }));
+    expect(await screen.findByText('Student 11')).toBeInTheDocument();
+    expect(screen.getByText('Student 15')).toBeInTheDocument();
+    expect(screen.queryByText('Student 1')).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 11–15 of 15 payments/)).toBeInTheDocument();
+  });
 });
 
 describe('AdminPayments subscription cancellation', () => {
