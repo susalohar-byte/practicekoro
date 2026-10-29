@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import pngjs from 'npm:pngjs@7.0.0';
 import jpeg from 'npm:jpeg-js@0.4.4';
-import { sanitizeRaster } from '../_shared/raster-validation.ts';
+import { isOpaque, sanitizeRaster, sniffRasterMime } from '../_shared/raster-validation.ts';
 const limits: Record<string, number> = {
   avatars: 2 * 1024 * 1024,
   'question-images': 5 * 1024 * 1024,
@@ -107,12 +107,18 @@ Deno.serve(async (req: Request) => {
         });
       },
       async (image) =>
-        new Uint8Array(pngjs.PNG.sync.write({ ...image, data: Buffer.from(image.data) }))
+        // Photos and banners without transparency are stored as JPEG, several
+        // times smaller than PNG, so every download costs less egress. Logos
+        // with transparency and question diagrams (sharp text) stay PNG.
+        bucket !== 'question-images' && isOpaque(image.data)
+          ? new Uint8Array(jpeg.encode(image, 85).data)
+          : new Uint8Array(pngjs.PNG.sync.write({ ...image, data: Buffer.from(image.data) }))
     );
-    const path = `${auth.user.id}/${crypto.randomUUID()}.png`;
+    const mime = sniffRasterMime(safe);
+    const path = `${auth.user.id}/${crypto.randomUUID()}.${mime === 'image/jpeg' ? 'jpg' : 'png'}`;
     const { error } = await service.storage
       .from(bucket)
-      .upload(path, safe, { contentType: 'image/png', upsert: false, cacheControl: '3600' });
+      .upload(path, safe, { contentType: mime, upsert: false, cacheControl: '31536000' });
     if (error) return respond('Durable upload failed', 502);
     const publicUrl = service.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     return new Response(JSON.stringify({ success: true, publicUrl, path }), { headers });

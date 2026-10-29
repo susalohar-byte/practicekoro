@@ -97,7 +97,7 @@ export function useAdminExams() {
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const path = `exam-logos/${Date.now()}-${cleanName}`;
         const { data, error } = await supabaseRuntime.storage.from('banners').upload(path, file, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           upsert: true,
         });
         if (!error && data) {

@@ -130,6 +130,7 @@ Statuses were checked against production `supabase_migrations.schema_migrations`
 | `20261029100100_fk_indexes_and_duplicate_index.sql`              | Indexes for 32 unindexed foreign keys; drop duplicate idx_subscriptions_user                                                       |       **PENDING**        |
 | `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                        |       **PENDING**        |
 | `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                               |       **PENDING**        |
+| `20261029090000_block_inline_images.sql`                         | Reject new base64 images in image columns; move the home banner to the website copy                                                |       **PENDING**        |
 
 ---
 
