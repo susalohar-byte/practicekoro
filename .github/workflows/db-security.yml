@@ -2,6 +2,9 @@ name: DB Security Assertions
 
 on:
   workflow_dispatch:
+  # Called by db-migrations.yml after it applies migrations to production, so
+  # the assertions run against the migrated schema (not racing the apply).
+  workflow_call:
   pull_request:
     paths:
       - 'supabase/migrations/**'
@@ -9,7 +12,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/**'
       - 'supabase/tests/**'
 
 permissions:
@@ -30,21 +32,33 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
+          # Fail loudly: without the secret (or with a psql error) this job used
+          # to pass, because `| tee` hid the exit code and zero rows were read.
+          set -o pipefail
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_URL is not set (repo Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
           chmod +x scripts/supabase-sql.sh
           ./scripts/supabase-sql.sh -f supabase/tests/rls_security.sql -t -A | tee rls-results.json
-          # Every assertion in every JSON row must be true
+          # Every assertion in every JSON row must be true, and there must be rows
           python3 - <<'EOF'
           import json, sys
           ok = True
+          rows = 0
           for line in open('rls-results.json'):
               line = line.strip()
               if not line.startswith('{'):
                   continue
               row = json.loads(line)
+              rows += 1
               failed = {k: v for k, v in row.items() if v is not True}
               if failed:
                   ok = False
                   print('FAILED ASSERTIONS:', json.dumps(failed, indent=2))
+          if rows == 0:
+              print('No assertion rows were read from supabase/tests/rls_security.sql.')
+              ok = False
           if not ok:
               sys.exit(1)
           print('All DB security assertions passed.')
