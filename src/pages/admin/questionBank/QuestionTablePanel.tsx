@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { questionBankType } from './questionBankUtils';
+import { questionBankType, bengaliFontClass } from './questionBankUtils';
 import {
   MoreVertical,
   Edit2,
@@ -133,7 +133,12 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
 
                         {/* Question Bengali / English Preview */}
                         <td className="py-3 px-4 max-w-[240px]">
-                          <p className="truncate text-slate-900 dark:text-slate-100 font-medium">
+                          <p
+                            className={cn(
+                              'truncate text-slate-900 dark:text-slate-100 font-medium',
+                              bengaliFontClass(q.questionBengaliText || q.questionText)
+                            )}
+                          >
                             {q.questionBengaliText || q.questionText}
                           </p>
                         </td>

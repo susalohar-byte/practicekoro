@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ClipboardList, ChevronUp, ChevronDown } from 'lucide-react';
 import { useContentLanguage } from '@/context/MaintenanceContext';
 import { MathText } from '@/components/common/MathText';
+import { cn } from '@/lib/utils';
 
 interface ShortNotesBoxProps {
   explanation?: string;
@@ -306,7 +307,12 @@ export const ShortNotesBox: React.FC<ShortNotesBoxProps> = ({
       {/* Content Rendering */}
       {isMathematics ? (
         /* Mathematics: Preserve raw mathematical steps and formula layout */
-        <div className="mt-3.5 text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-sans whitespace-pre-line">
+        <div
+          className={cn(
+            'mt-3.5 text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-sans whitespace-pre-line',
+            /[\u0980-\u09FF]/.test(normalizedExplanation) && 'font-tiro'
+          )}
+        >
           <MathText>{normalizedExplanation}</MathText>
         </div>
       ) : (
@@ -317,7 +323,12 @@ export const ShortNotesBox: React.FC<ShortNotesBoxProps> = ({
               <span className="text-blue-600 dark:text-blue-400 font-black text-sm select-none leading-relaxed shrink-0">
                 •
               </span>
-              <div className="text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-normal min-w-0 flex-1">
+              <div
+                className={cn(
+                  'text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-normal min-w-0 flex-1',
+                  /[\u0980-\u09FF]/.test(point) && 'font-tiro'
+                )}
+              >
                 {formatInlineText(point)}
               </div>
             </div>

@@ -3,6 +3,7 @@ import { MathText } from '@/components/common/MathText';
 import { ShortNotesBox } from '@/components/common/ShortNotesBox';
 import { cn } from '@/lib/utils';
 import { isMathematicsQuestion } from '@/utils/shortNotes';
+import { bengaliFontClass } from '../../questionBank/questionBankUtils';
 import type { LiveTestWorkspaceState } from './useLiveTestWorkspace';
 
 export interface PaperQuestionListProps {
@@ -127,7 +128,7 @@ export function PaperQuestionList({ ws }: PaperQuestionListProps) {
                           <td className="py-3 px-4 max-w-[340px]">
                             <div className="space-y-0.5">
                               {q.questionBengaliText && (
-                                <p className="text-xs font-semibold text-slate-900 truncate leading-snug">
+                                <p className="text-xs font-semibold text-slate-900 truncate leading-snug font-tiro">
                                   {q.questionBengaliText}
                                 </p>
                               )}
@@ -324,12 +325,17 @@ export function PaperQuestionList({ ws }: PaperQuestionListProps) {
                       )}
                     </div>
 
-                    <div className="text-sm sm:text-base font-bold text-slate-900 leading-relaxed">
+                    <div
+                      className={cn(
+                        'text-sm sm:text-base font-bold text-slate-900 leading-relaxed',
+                        bengaliFontClass(q.questionText)
+                      )}
+                    >
                       <MathText>{q.questionText}</MathText>
                     </div>
 
                     {q.questionBengaliText && (
-                      <div className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+                      <div className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans font-tiro">
                         <MathText>{q.questionBengaliText}</MathText>
                       </div>
                     )}
@@ -363,7 +369,7 @@ export function PaperQuestionList({ ws }: PaperQuestionListProps) {
                             >
                               {opt.key}
                             </span>
-                            <span className="flex-1">
+                            <span className={cn('flex-1', bengaliFontClass(opt.text))}>
                               <MathText>{opt.text || '—'}</MathText>
                             </span>
                             {isCorrect && (

@@ -61,7 +61,7 @@ export function PerformanceQuestionModal({ perf }: PerformanceQuestionModalProps
                   {selectedQuestion.questionText}
                 </p>
                 {selectedQuestion.questionTextBn && (
-                  <p className="text-xs text-slate-700 pt-1 border-t border-slate-200/60 leading-relaxed font-normal">
+                  <p className="text-xs text-slate-700 pt-1 border-t border-slate-200/60 leading-relaxed font-normal font-tiro">
                     {selectedQuestion.questionTextBn}
                   </p>
                 )}

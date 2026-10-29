@@ -56,6 +56,13 @@
 }
 
 @layer utilities {
+  /* Tiro Bangla for authentic Bengali examination questions and typography */
+  .font-tiro,
+  .font-tiro-bangla,
+  .font-bengali-question {
+    font-family: 'Tiro Bangla', 'Noto Serif Bengali', serif;
+  }
+
   .bg-pk-gradient {
     background-image: var(--pk-gradient-primary);
   }

@@ -3,6 +3,8 @@ import { isMathematicsQuestion } from '@/utils/shortNotes';
 import { Button } from '@/components/common/Button';
 import { ShortNotesBox } from '@/components/common/ShortNotesBox';
 import { MathText } from '@/components/common/MathText';
+import { cn } from '@/lib/utils';
+import { bengaliFontClass } from '../questionBank/questionBankUtils';
 import type { MockTest } from '@/types';
 import type { AdminTestQuestionsState } from './useAdminTestQuestions';
 
@@ -125,12 +127,17 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                       )}
                     </div>
 
-                    <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed">
+                    <p
+                      className={cn(
+                        'text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed',
+                        bengaliFontClass(q.questionText)
+                      )}
+                    >
                       <MathText>{q.questionText}</MathText>
                     </p>
 
                     {q.questionBengaliText && (
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans font-tiro">
                         <MathText>{q.questionBengaliText}</MathText>
                       </p>
                     )}
@@ -147,7 +154,7 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                         <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-[#152347] text-[10px] font-black flex items-center justify-center shrink-0">
                           A
                         </span>
-                        <span>
+                        <span className={bengaliFontClass(q.optionA)}>
                           <MathText>{q.optionA}</MathText>
                         </span>
                       </div>
@@ -161,7 +168,7 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                         <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-[#152347] text-[10px] font-black flex items-center justify-center shrink-0">
                           B
                         </span>
-                        <span>
+                        <span className={bengaliFontClass(q.optionB)}>
                           <MathText>{q.optionB}</MathText>
                         </span>
                       </div>
@@ -175,7 +182,7 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                         <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-[#152347] text-[10px] font-black flex items-center justify-center shrink-0">
                           C
                         </span>
-                        <span>
+                        <span className={bengaliFontClass(q.optionC)}>
                           <MathText>{q.optionC}</MathText>
                         </span>
                       </div>
@@ -189,7 +196,7 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                         <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-[#152347] text-[10px] font-black flex items-center justify-center shrink-0">
                           D
                         </span>
-                        <span>
+                        <span className={bengaliFontClass(q.optionD)}>
                           <MathText>{q.optionD}</MathText>
                         </span>
                       </div>

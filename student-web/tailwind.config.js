@@ -23,6 +23,7 @@ export default {
       fontFamily: {
         sans: ['Inter', '"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
         bengali: ['"Noto Sans Bengali"', 'Inter', 'sans-serif'],
+        tiro: ['"Tiro Bangla"', '"Noto Serif Bengali"', 'serif'],
       },
       borderRadius: { card: '14px' },
       boxShadow: {
