@@ -4,9 +4,9 @@ import type { BlogPost } from '@/types';
 
 /**
  * Blog posts as visitors see them. Posts are written in the admin panel (Admin → Blog) and
- * stored in the `blog_posts_list` app setting. Visitors never download that whole row (every
- * post with its full body): the database returns card fields through `public_blog_summaries`
- * and a single article through `public_blog_post`. Both apply the visibility rule (published,
+ * stored in `public.blog_posts`. Visitors never download every post with its full body: the
+ * database returns card fields through `public_blog_summaries` and a single article through
+ * `public_blog_post`. Both apply the visibility rule (published,
  * or scheduled and due; needs a slug) and the newest-first order on the server.
  */
 

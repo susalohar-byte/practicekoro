@@ -122,7 +122,7 @@ export function useAdminLiveTests() {
     loadData();
 
     if (typeof api.subscribeToLiveTestUpdates === 'function') {
-      // One save fires several signals (local event, broadcast, app_settings change), so
+      // One save fires several signals (local event, cross-tab storage event, broadcast), so
       // coalesce a burst into a single refetch shortly after the last one.
       let timer: ReturnType<typeof setTimeout> | null = null;
       let disposed = false;
