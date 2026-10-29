@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -81,7 +82,9 @@ class UserAvatar extends ConsumerWidget {
                         height: size * 0.4,
                         child: const CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -147,14 +150,16 @@ class UserAvatar extends ConsumerWidget {
 
       // 2. Network URL (Google avatar or Supabase storage public URL)
       if (url.startsWith('http://') || url.startsWith('https://')) {
-        return Image.network(
-          url,
+        // Saved on the phone's disk, so the photo is not downloaded each time.
+        return CachedNetworkImage(
+          imageUrl: url,
           fit: BoxFit.cover,
           width: size,
           height: size,
-          errorBuilder: (_, _, _) => _buildFallback(initial),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
+          errorWidget: (_, _, _) => _buildFallback(initial),
+          progressIndicatorBuilder: (context, _, progress) {
+            // The upload overlay already shows its own spinner.
+            if (isLoading) return Container(color: UI.primarySoft);
             return Container(
               color: UI.primarySoft,
               alignment: Alignment.center,
@@ -163,10 +168,7 @@ class UserAvatar extends ConsumerWidget {
                 height: size * 0.35,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
+                  value: progress.progress,
                   valueColor: const AlwaysStoppedAnimation<Color>(UI.primary),
                 ),
               ),
@@ -254,10 +256,7 @@ Future<void> showAvatarPickerSheet(BuildContext context, WidgetRef ref) async {
               const SizedBox(height: 4),
               Text(
                 'Choose an image to represent your account',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 20),
               ListTile(
@@ -329,7 +328,9 @@ Future<void> showAvatarPickerSheet(BuildContext context, WidgetRef ref) async {
                     ),
                   ),
                   title: Text(
-                    hasGoogle ? 'Restore Google Picture' : 'Remove Custom Picture',
+                    hasGoogle
+                        ? 'Restore Google Picture'
+                        : 'Remove Custom Picture',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
