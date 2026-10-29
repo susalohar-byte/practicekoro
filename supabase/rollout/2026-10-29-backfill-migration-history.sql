@@ -42,13 +42,13 @@ begin
     failed := array_append(failed, '20261024150000');
   end if;
 
-  -- 20261029090000_block_inline_images: function + trigger on 10 tables
+  -- 20261029090000_block_inline_images: function + trigger on 9 tables (10 if audiobooks table still exists)
   if to_regprocedure('public.reject_inline_images()') is null
      or (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid
          join pg_namespace n on n.oid = c.relnamespace
          where n.nspname = 'public' and t.tgname = 'reject_inline_images'
            and c.relname in ('app_settings', 'exams', 'test_series', 'tests', 'subjects', 'chapters',
-                             'live_tests', 'questions', 'profiles', 'audiobooks')) <> 10 then
+                             'live_tests', 'questions', 'profiles', 'audiobooks')) not in (9, 10) then
     failed := array_append(failed, '20261029090000');
   end if;
 
@@ -70,7 +70,7 @@ begin
     failed := array_append(failed, '20261029100000');
   end if;
 
-  -- 20261029100100_fk_indexes_and_duplicate_index: 32 FK indexes, duplicate dropped
+  -- 20261029100100_fk_indexes_and_duplicate_index: 30 FK indexes (32 if audiobooks still exists), duplicate dropped
   if (select count(*) from pg_indexes where schemaname = 'public' and indexname in (
         'idx_admin_audit_logs_admin_id', 'idx_app_settings_updated_by', 'idx_attempt_answers_question_id',
         'idx_audiobook_listens_user_id', 'idx_audiobooks_created_by', 'idx_bookmarks_question_id',
@@ -84,7 +84,7 @@ begin
         'idx_subscription_changes_user_id', 'idx_subscription_expiry_reminders_notification_id',
         'idx_subscriptions_payment_id', 'idx_subscriptions_plan_id', 'idx_support_ticket_messages_author_id',
         'idx_support_tickets_assigned_to', 'idx_test_results_user_id', 'idx_test_series_exam_id',
-        'idx_tests_subject_id')) <> 32
+        'idx_tests_subject_id')) not in (30, 32)
      or to_regclass('public.idx_subscriptions_user') is not null then
     failed := array_append(failed, '20261029100100');
   end if;
