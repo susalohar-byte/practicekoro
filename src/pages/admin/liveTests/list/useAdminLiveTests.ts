@@ -6,6 +6,9 @@ import type { Exam, LiveTest } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { formatScheduledDate, type ToastType } from './liveTestsUtils';
 
+/** Quiet period before a burst of live-test update signals triggers one list refetch. */
+export const LIVE_TESTS_REFRESH_DEBOUNCE_MS = 1500;
+
 let globalToastHandler: ((msg: string, type: ToastType) => void) | null = null;
 
 export const toast = {
@@ -119,13 +122,27 @@ export function useAdminLiveTests() {
     loadData();
 
     if (typeof api.subscribeToLiveTestUpdates === 'function') {
+      // One save fires several signals (local event, broadcast, app_settings change), so
+      // coalesce a burst into a single refetch shortly after the last one.
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let disposed = false;
       const unsubscribe = api.subscribeToLiveTestUpdates(() => {
-        api
-          .getLiveTests()
-          .then(setLiveTests)
-          .catch(() => {});
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          timer = null;
+          api
+            .getLiveTests()
+            .then((next) => {
+              if (!disposed) setLiveTests(next);
+            })
+            .catch(() => {});
+        }, LIVE_TESTS_REFRESH_DEBOUNCE_MS);
       });
-      return () => unsubscribe();
+      return () => {
+        disposed = true;
+        if (timer) clearTimeout(timer);
+        unsubscribe();
+      };
     }
   }, [loadData]);
 

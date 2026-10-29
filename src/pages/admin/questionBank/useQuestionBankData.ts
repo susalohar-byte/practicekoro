@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Question, Exam, Subject, Chapter, LiveTest } from '@/types';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { INITIAL_DEMO_QUESTIONS } from './demoQuestions';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 
-/** Question Bank data: questions, taxonomy lists and Live Test papers loaded from the backend. */
+/**
+ * Question Bank data: taxonomy lists and Live Test papers loaded from the backend, plus the
+ * question rows on screen (the current server page with Supabase, the whole store in demo mode).
+ */
 export function useQuestionBankData(showToast: (msg: string) => void) {
   // Master Taxonomy & State
   const [questions, setQuestions] = useState<Question[]>(
@@ -28,13 +31,30 @@ export function useQuestionBankData(showToast: (msg: string) => void) {
     [liveQuestionIndex, liveTests]
   );
 
-  // Load Real Data from Backend API / Supabase
+  // Bumped after every reload / question mutation so the server-paged list and the stat
+  // cards (owned by useQuestionBankFilters) are fetched again.
+  const [dataVersion, setDataVersion] = useState(0);
+  const bumpDataVersion = useCallback(() => setDataVersion((v) => v + 1), []);
+
+  // Question mutations (add, edit, delete, import, bulk) update the visible rows right away
+  // and then refresh the page + counts from the server (Supabase mode).
+  const updateQuestions = useCallback<React.Dispatch<React.SetStateAction<Question[]>>>(
+    (action) => {
+      setQuestions(action);
+      if (isSupabaseConfigured) bumpDataVersion();
+    },
+    [bumpDataVersion]
+  );
+
+  // Load taxonomy + Live Tests. With Supabase the questions themselves are loaded one page at
+  // a time by useQuestionBankFilters; the demo store still loads its local list here.
   const loadInitialData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [allQuestions, allExams, allSubjects, allChapters, allLiveTests] = await Promise.all([
-        // Live Test questions are loaded too, but only shown in the Live Test mode.
-        api.getAllAdminQuestions({ includeLiveOnly: true }),
+        isSupabaseConfigured
+          ? Promise.resolve([] as Question[])
+          : api.getAllAdminQuestions({ includeLiveOnly: true }),
         api.getAllAdminExams().catch(() => []),
         api.getAllAdminSubjects().catch(() => []),
         api.getAllAdminChapters().catch(() => []),
@@ -48,17 +68,15 @@ export function useQuestionBankData(showToast: (msg: string) => void) {
       if (allChapters && allChapters.length > 0) setTopics(allChapters);
 
       if (isSupabaseConfigured) {
-        setQuestions(allQuestions || []);
-      } else {
-        if (allQuestions && allQuestions.length > 0) {
-          // Merge without losing initial demo questions
-          const existingIds = new Set(INITIAL_DEMO_QUESTIONS.map((dq) => dq.id));
-          const merged = [
-            ...INITIAL_DEMO_QUESTIONS,
-            ...allQuestions.filter((q) => !existingIds.has(q.id)),
-          ];
-          setQuestions(merged);
-        }
+        bumpDataVersion();
+      } else if (allQuestions && allQuestions.length > 0) {
+        // Merge without losing initial demo questions
+        const existingIds = new Set(INITIAL_DEMO_QUESTIONS.map((dq) => dq.id));
+        const merged = [
+          ...INITIAL_DEMO_QUESTIONS,
+          ...allQuestions.filter((q) => !existingIds.has(q.id)),
+        ];
+        setQuestions(merged);
       }
     } catch (err) {
       showToast(getErrorMessage(err, 'Questions could not be loaded.'));
@@ -75,7 +93,9 @@ export function useQuestionBankData(showToast: (msg: string) => void) {
 
   return {
     questions,
-    setQuestions,
+    setQuestions: updateQuestions,
+    setPageQuestions: setQuestions,
+    dataVersion,
     exams,
     subjects,
     topics,

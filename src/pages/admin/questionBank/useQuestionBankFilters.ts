@@ -1,7 +1,15 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Question, Subject, Chapter } from '@/types';
-import { questionBankType, questionBankStatus } from './questionBankUtils';
+import { api } from '@/services/api';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { getErrorMessage } from '@/lib/errors';
+import {
+  computeQuestionBankStats,
+  matchesQuestionBankQuery,
+  type QuestionBankQuery,
+  type QuestionBankStats,
+} from '@/services/domains/admin.questionBank';
 
 // Standard syllabus topics offered in the topic filter when a subject has none yet.
 const FALLBACK_SUBJECT_TOPICS: Record<string, string[]> = {
@@ -68,20 +76,49 @@ const FALLBACK_SUBJECT_TOPICS: Record<string, string[]> = {
 };
 
 interface QuestionBankFiltersInput {
+  /** Rows on screen: the current server page (Supabase) or the whole demo store. */
   questions: Question[];
+  /** Replaces the rows with a freshly fetched server page (no refresh side effects). */
+  setPageQuestions: (rows: Question[]) => void;
+  /** Changes whenever the page and counts must be fetched again. */
+  dataVersion: number;
   subjects: Subject[];
   topics: Chapter[];
   isLoading: boolean;
   liveQuestionIndex: Record<string, string>;
+  showToast: (msg: string) => void;
+}
+
+const EMPTY_STATS: QuestionBankStats = {
+  total: 0,
+  examQuestions: 0,
+  subjectQuestions: 0,
+  liveQuestions: 0,
+  published: 0,
+  draft: 0,
+  underReview: 0,
+};
+
+/** Debounces a value (search typing should not fire one server query per keystroke). */
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
 }
 
 /** Question Bank upload-mode tabs, filter bar, statistics and pagination. */
 export function useQuestionBankFilters({
   questions,
+  setPageQuestions,
+  dataVersion,
   subjects,
   topics,
   isLoading,
   liveQuestionIndex,
+  showToast,
 }: QuestionBankFiltersInput) {
   // Top Upload Mode Filter: 'all' | 'exam' | 'subject' | 'live'
   const [activeUploadMode, setActiveUploadMode] = useState<'all' | 'exam' | 'subject' | 'live'>(
@@ -188,117 +225,50 @@ export function useQuestionBankFilters({
     }
   }, [selectedSubjectFilter, selectedTopicFilter, filterTopicOptions]);
 
-  // Filtered Questions Dataset
-  const filteredQuestions = useMemo(() => {
-    return questions.filter((q) => {
-      // 0. Live Test questions appear only in the Live Test mode (and never in Exam/Subject)
-      if (activeUploadMode === 'live') {
-        if (!q.isLiveOnly) return false;
-        if (selectedLiveTestFilter !== 'all' && liveQuestionIndex[q.id] !== selectedLiveTestFilter)
-          return false;
-      } else if (q.isLiveOnly) {
-        return false;
-      }
-
-      // 1. Top Selector Mode Filter (By Exam vs By Subject)
-      if (activeUploadMode === 'exam' && q.uploadMode !== 'exam' && !q.sourceExam) return false;
-      if (activeUploadMode === 'subject' && q.uploadMode === 'exam' && q.sourceExam) return false;
-
-      // 2. View Mode Filter
-      if (viewModeFilter === 'exam' && q.uploadMode !== 'exam' && !q.sourceExam) return false;
-      if (viewModeFilter === 'subject' && q.uploadMode === 'exam' && q.sourceExam) return false;
-
-      // 3. Search Query Filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matchesBen = q.questionBengaliText?.toLowerCase().includes(query);
-        const matchesEng = q.questionText?.toLowerCase().includes(query);
-        const matchesOptA = q.optionA?.toLowerCase().includes(query);
-        const matchesOptB = q.optionB?.toLowerCase().includes(query);
-        const matchesOptC = q.optionC?.toLowerCase().includes(query);
-        const matchesOptD = q.optionD?.toLowerCase().includes(query);
-        const matchesId = q.id?.toLowerCase().includes(query);
-        const matchesTopic =
-          q.topicName?.toLowerCase().includes(query) ||
-          q.chapterName?.toLowerCase().includes(query);
-        const matchesExam = q.sourceExam?.toLowerCase().includes(query);
-        const matchesSubject = q.subjectName?.toLowerCase().includes(query);
-
-        if (
-          !matchesBen &&
-          !matchesEng &&
-          !matchesOptA &&
-          !matchesOptB &&
-          !matchesOptC &&
-          !matchesOptD &&
-          !matchesId &&
-          !matchesTopic &&
-          !matchesExam &&
-          !matchesSubject
-        ) {
-          return false;
-        }
-      }
-
-      // 4. Exam Filter
-      if (selectedExamFilter !== 'all') {
-        if (
-          !q.sourceExam ||
-          !q.sourceExam.toLowerCase().includes(selectedExamFilter.toLowerCase())
-        ) {
-          return false;
-        }
-      }
-
-      // 5. Subject Filter
-      if (selectedSubjectFilter !== 'all') {
-        if (
-          !q.subjectName ||
-          !q.subjectName.toLowerCase().includes(selectedSubjectFilter.toLowerCase())
-        ) {
-          return false;
-        }
-      }
-
-      // 6. Topic Filter
-      if (selectedTopicFilter !== 'all') {
-        const top = q.topicName || q.chapterName || '';
-        if (!top.toLowerCase().includes(selectedTopicFilter.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // 7. Type Filter
-      if (selectedTypeFilter !== 'all') {
-        const t = questionBankType(q).toLowerCase();
-        if (t !== selectedTypeFilter.toLowerCase()) return false;
-      }
-
-      // 8. Status Filter
-      if (selectedStatusFilter !== 'all') {
-        const s = questionBankStatus(q);
-        if (s !== selectedStatusFilter.toLowerCase()) return false;
-      }
-
-      // 9. Year Filter
-      if (selectedYearFilter !== 'all') {
-        if (String(q.sourceYear) !== selectedYearFilter) return false;
-      }
-
-      // 10. Source Filter
-      if (selectedSourceFilter !== 'all') {
-        const src = (q.sourceType === 'pyq' ? 'Official PYQ' : 'Original').toLowerCase();
-        if (!src.includes(selectedSourceFilter.toLowerCase())) return false;
-      }
-
-      return true;
-    });
+  // The active filters as one list query: run on the server (Supabase) or in the browser (demo).
+  const debouncedSearch = useDebouncedValue(searchQuery, isSupabaseConfigured ? 300 : 0);
+  const listQuery = useMemo<QuestionBankQuery>(() => {
+    const live = activeUploadMode === 'live';
+    const lower = (v: string) => v.toLowerCase();
+    const term = debouncedSearch.trim() ? lower(debouncedSearch.trim()) : '';
+    const subjectName = selectedSubjectFilter !== 'all' ? selectedSubjectFilter : undefined;
+    const topicName = selectedTopicFilter !== 'all' ? selectedTopicFilter : undefined;
+    return {
+      liveOnly: live,
+      questionIds:
+        live && selectedLiveTestFilter !== 'all'
+          ? Object.keys(liveQuestionIndex).filter(
+              (qid) => liveQuestionIndex[qid] === selectedLiveTestFilter
+            )
+          : undefined,
+      examMode: activeUploadMode === 'exam' || viewModeFilter === 'exam',
+      subjectMode: activeUploadMode === 'subject' || viewModeFilter === 'subject',
+      search: term || undefined,
+      searchSubjectIds: term
+        ? subjects.filter((s) => lower(s.name || '').includes(term)).map((s) => s.id)
+        : undefined,
+      searchChapterIds: term
+        ? topics.filter((t) => lower(t.name || '').includes(term)).map((t) => t.id)
+        : undefined,
+      sourceExam: selectedExamFilter !== 'all' ? selectedExamFilter : undefined,
+      subjectName,
+      subjectIds: subjectName
+        ? subjects.filter((s) => lower(s.name || '').includes(lower(subjectName))).map((s) => s.id)
+        : undefined,
+      topicName,
+      chapterIds: topicName
+        ? topics.filter((t) => lower(t.name || '').includes(lower(topicName))).map((t) => t.id)
+        : undefined,
+      type: selectedTypeFilter !== 'all' ? selectedTypeFilter : undefined,
+      status: selectedStatusFilter !== 'all' ? selectedStatusFilter : undefined,
+      sourceYear: selectedYearFilter !== 'all' ? selectedYearFilter : undefined,
+      source: selectedSourceFilter !== 'all' ? selectedSourceFilter : undefined,
+    };
   }, [
-    questions,
     activeUploadMode,
     selectedLiveTestFilter,
     liveQuestionIndex,
-    searchQuery,
+    debouncedSearch,
     viewModeFilter,
     selectedExamFilter,
     selectedSubjectFilter,
@@ -307,7 +277,74 @@ export function useQuestionBankFilters({
     selectedStatusFilter,
     selectedYearFilter,
     selectedSourceFilter,
+    subjects,
+    topics,
   ]);
+
+  // Demo store: filter the whole local list in the browser, as before.
+  const localFiltered = useMemo(
+    () =>
+      isSupabaseConfigured ? [] : questions.filter((q) => matchesQuestionBankQuery(q, listQuery)),
+    [questions, listQuery]
+  );
+
+  // Supabase: only the visible page is fetched, with the exact total of matching rows.
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverStats, setServerStats] = useState<QuestionBankStats>(EMPTY_STATS);
+  const queryKey = JSON.stringify(listQuery);
+
+  // A changed filter starts again on page 1.
+  const previousQueryKey = useRef(queryKey);
+  useEffect(() => {
+    if (previousQueryKey.current !== queryKey) {
+      previousQueryKey.current = queryKey;
+      setCurrentPage(1);
+    }
+  }, [queryKey]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || isLoading) return;
+    let cancelled = false;
+    api
+      .getQuestionBankPage(listQuery, currentPage, pageSize)
+      .then(({ questions: rows, total }) => {
+        if (cancelled) return;
+        setPageQuestions(rows);
+        setServerTotal(total);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) showToast(getErrorMessage(err, 'Questions could not be loaded.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+    // listQuery is represented by queryKey; showToast / setPageQuestions are stable setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey, currentPage, pageSize, dataVersion, isLoading]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || isLoading) return;
+    let cancelled = false;
+    api
+      .getQuestionBankStats()
+      .then((next) => {
+        if (!cancelled) setServerStats(next);
+      })
+      .catch(() => {
+        // Stat cards keep their previous numbers; the list reports its own errors.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dataVersion, isLoading]);
+
+  const filteredTotal = isSupabaseConfigured ? serverTotal : localFiltered.length;
+
+  /** Ids of every question matching the filters (all pages), for "Select All N". */
+  const getFilteredQuestionIds = useCallback(async (): Promise<string[]> => {
+    if (!isSupabaseConfigured) return localFiltered.map((q) => q.id);
+    return api.getQuestionBankIds(listQuery);
+  }, [localFiltered, listQuery]);
 
   // Exam and Live Test modes do not use Subject / Topic: clear those filters when entering them
   useEffect(() => {
@@ -322,40 +359,19 @@ export function useQuestionBankFilters({
     }
   }, [activeUploadMode, viewModeFilter]);
 
-  // Statistics calculation grounded to database numbers
-  const stats = useMemo(() => {
-    const total = questions.length;
-    const bankQuestions = questions.filter((q) => !q.isLiveOnly);
-    const examQuestions = bankQuestions.filter(
-      (q) => q.uploadMode === 'exam' || Boolean(q.sourceExam)
-    ).length;
-    const subjectQuestions = bankQuestions.filter(
-      (q) => q.uploadMode === 'subject' || (!q.sourceExam && Boolean(q.subjectId || q.subjectName))
-    ).length;
-    const liveQuestions = questions.length - bankQuestions.length;
-    const published = questions.filter((q) => questionBankStatus(q) === 'published').length;
-    const draft = questions.filter((q) => questionBankStatus(q) === 'draft').length;
-    const underReview = questions.filter((q) => {
-      const status = questionBankStatus(q);
-      return status === 'under_review' || status === 'review';
-    }).length;
-    return {
-      total,
-      examQuestions,
-      subjectQuestions,
-      liveQuestions,
-      published,
-      draft,
-      underReview,
-    };
-  }, [questions]);
+  // Statistics grounded to database numbers (head counts with Supabase)
+  const stats = useMemo(
+    () => (isSupabaseConfigured ? serverStats : computeQuestionBankStats(questions)),
+    [serverStats, questions]
+  );
 
   // Paginated List
-  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize));
   const paginatedQuestions = useMemo(() => {
+    if (isSupabaseConfigured) return questions;
     const start = (currentPage - 1) * pageSize;
-    return filteredQuestions.slice(start, start + pageSize);
-  }, [filteredQuestions, currentPage, pageSize]);
+    return localFiltered.slice(start, start + pageSize);
+  }, [questions, localFiltered, currentPage, pageSize]);
 
   // Keep page within bounds when filters change or questions are modified
   useEffect(() => {
@@ -392,7 +408,8 @@ export function useQuestionBankFilters({
     pageSize,
     setPageSize,
     filterTopicOptions,
-    filteredQuestions,
+    filteredTotal,
+    getFilteredQuestionIds,
     stats,
     totalPages,
     paginatedQuestions,

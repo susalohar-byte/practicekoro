@@ -36,6 +36,7 @@ export function QuestionSelectorTab({
   const {
     activeTab,
     assignedQuestionIds,
+    bankLoading,
     countPreset,
     currentPage,
     customCount,
@@ -270,7 +271,11 @@ export function QuestionSelectorTab({
 
           {/* Questions List (Paginated with Individual Checkboxes & Already-Added Badges) */}
           <div className="space-y-3">
-            {eligibleBankQuestions.length === 0 ? (
+            {bankLoading && eligibleBankQuestions.length === 0 ? (
+              <div className="p-16 text-center rounded-3xl bg-white dark:bg-[#0a1226] border border-slate-200 dark:border-[#152347] text-xs text-slate-500 shadow-md">
+                Loading questions from Question Bank...
+              </div>
+            ) : eligibleBankQuestions.length === 0 ? (
               <div className="p-16 text-center rounded-3xl bg-white dark:bg-[#0a1226] border border-slate-200 dark:border-[#152347] space-y-3 shadow-md">
                 <FileQuestion className="w-12 h-12 text-slate-400 mx-auto" />
                 <h4 className="text-base font-bold text-slate-900 dark:text-white">

@@ -26,7 +26,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
     handleSelectAll,
     paginatedQuestions,
     selectedRowIds,
-    filteredQuestions,
+    filteredTotal,
     currentPage,
     pageSize,
     setActiveQuestion,
@@ -62,7 +62,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         paginatedQuestions.length > 0 &&
                         paginatedQuestions.every((q) => selectedRowIds.has(q.id))
                       }
-                      title={`Select All (${filteredQuestions.length} Questions)`}
+                      title={`Select All (${filteredTotal} Questions)`}
                       className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
                     />
                   </th>
@@ -330,9 +330,9 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
           {/* Footer Pagination */}
           <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-slate-200/80 dark:border-slate-800 text-xs gap-3">
             <span className="font-semibold text-slate-500 dark:text-slate-400">
-              Showing {filteredQuestions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–
-              {Math.min(filteredQuestions.length, currentPage * pageSize)} of{' '}
-              {filteredQuestions.length.toLocaleString('en-IN')} questions
+              Showing {filteredTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1}–
+              {Math.min(filteredTotal, currentPage * pageSize)} of{' '}
+              {filteredTotal.toLocaleString('en-IN')} questions
             </span>
 
             <div className="flex items-center gap-2">

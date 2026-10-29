@@ -67,55 +67,62 @@ export const analyticsApi = {
       }
 
       try {
+        // Head-only counts: nothing but the totals crosses the wire (previously every row of
+        // `tests`, `questions` and `test_attempts` was downloaded just to be counted).
+        const headCount = async (table: string, apply: (q: any) => any = (q) => q) => {
+          const { count } = await apply(
+            supabase.from(table as any).select('id', { count: 'exact', head: true })
+          );
+          return count ?? 0;
+        };
         const [
-          examsRes,
-          subjectsRes,
-          chaptersRes,
-          testSeriesRes,
-          testsRes,
-          questionsRes,
-          attemptsRes,
-          profilesRes,
+          totalExams,
+          totalSubjects,
+          totalChapters,
+          totalTestSeries,
+          totalTests,
+          publishedTests,
+          draftTests,
+          archivedTests,
+          totalQuestions,
+          activeQuestions,
+          totalAttempts,
+          completedAttempts,
+          totalStudents,
         ] = await Promise.all([
-          supabase.from('exams').select('*', { count: 'exact', head: true }),
-          supabase.from('subjects').select('*', { count: 'exact', head: true }),
-          supabase.from('chapters').select('*', { count: 'exact', head: true }),
-          supabase.from('test_series').select('*', { count: 'exact', head: true }),
-          supabase.from('tests').select('status'),
-          supabase.from('questions').select('is_active, status'),
-          supabase.from('test_attempts').select('status'),
-          supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('role', 'student'),
+          headCount('exams'),
+          headCount('subjects'),
+          headCount('chapters'),
+          headCount('test_series'),
+          headCount('tests'),
+          headCount('tests', (q) => q.eq('status', 'published')),
+          headCount('tests', (q) => q.eq('status', 'draft')),
+          headCount('tests', (q) => q.eq('status', 'archived')),
+          headCount('questions'),
+          // Active = is_active and not archived (a NULL status counts as not archived).
+          headCount('questions', (q) =>
+            q.eq('is_active', true).or('status.is.null,status.neq.archived')
+          ),
+          headCount('test_attempts'),
+          headCount('test_attempts', (q) => q.eq('status', 'completed')),
+          headCount('profiles', (q) => q.eq('role', 'student')),
         ]);
 
-        const tests = (Array.isArray(testsRes.data) ? testsRes.data : []) as {
-          status: string | null;
-        }[];
-        const questions = (Array.isArray(questionsRes.data) ? questionsRes.data : []) as {
-          is_active: boolean | null;
-          status: string | null;
-        }[];
-        const attempts = (Array.isArray(attemptsRes.data) ? attemptsRes.data : []) as {
-          status: string | null;
-        }[];
-
         return {
-          totalExams: examsRes.count ?? 0,
-          activeExams: examsRes.count ?? 0,
-          totalSubjects: subjectsRes.count ?? 0,
-          totalChapters: chaptersRes.count ?? 0,
-          totalTestSeries: testSeriesRes.count ?? 0,
-          totalTests: tests.length,
-          publishedTests: tests.filter((t) => t.status === 'published').length,
-          draftTests: tests.filter((t) => t.status === 'draft').length,
-          archivedTests: tests.filter((t) => t.status === 'archived').length,
-          totalQuestions: questions.length,
-          activeQuestions: questions.filter((q) => q.is_active && q.status !== 'archived').length,
-          totalAttempts: attempts.length,
-          completedAttempts: attempts.filter((a) => a.status === 'completed').length,
-          totalStudents: profilesRes.count ?? 0,
+          totalExams,
+          activeExams: totalExams,
+          totalSubjects,
+          totalChapters,
+          totalTestSeries,
+          totalTests,
+          publishedTests,
+          draftTests,
+          archivedTests,
+          totalQuestions,
+          activeQuestions,
+          totalAttempts,
+          completedAttempts,
+          totalStudents,
         };
       } catch (err) {
         console.warn('Fallback direct stats calculation failed:', err);

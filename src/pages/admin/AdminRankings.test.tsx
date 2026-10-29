@@ -10,6 +10,7 @@ vi.mock('@/services/api', () => ({
     getAllAdminSubjects: vi.fn().mockResolvedValue([]),
     getLiveTests: vi.fn().mockResolvedValue([]),
     getLiveTestLeaderboard: vi.fn().mockResolvedValue([]),
+    fetchLiveTestParticipations: vi.fn().mockResolvedValue([]),
     getAdminRankings: vi.fn(),
   },
 }));
@@ -102,5 +103,35 @@ describe('AdminRankings real data states', () => {
     expect(screen.getAllByText('Kolkata, West Bengal').length).toBeGreaterThan(0);
     expect(screen.getAllByText('88%').length).toBeGreaterThan(0);
     expect(screen.getAllByText('92%').length).toBeGreaterThan(0);
+  });
+
+  it('reads live tests and participations once and reuses them for every event leaderboard', async () => {
+    vi.mocked(api.getAdminRankings).mockResolvedValue([]);
+    const events = ['lt-1', 'lt-2', 'lt-3'].map(
+      (id) =>
+        ({
+          id,
+          testId: `test-${id}`,
+          title: `Live ${id}`,
+          startAt: new Date().toISOString(),
+          status: 'ended',
+        }) as any
+    );
+    vi.mocked(api.getLiveTests).mockResolvedValue(events);
+    vi.mocked(api.fetchLiveTestParticipations).mockResolvedValue([]);
+    vi.mocked(api.getLiveTestLeaderboard).mockResolvedValue([]);
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Live Tests/i }));
+    await waitFor(() => expect(api.getLiveTestLeaderboard).toHaveBeenCalledTimes(3));
+
+    expect(api.getLiveTests).toHaveBeenCalledTimes(1);
+    expect(api.fetchLiveTestParticipations).toHaveBeenCalledTimes(1);
+    for (const lt of events) {
+      expect(api.getLiveTestLeaderboard).toHaveBeenCalledWith(lt.id, {
+        participations: [],
+        liveTest: lt,
+      });
+    }
   });
 });

@@ -11,6 +11,7 @@ import { adminSubjectsApi } from './admin.subjects';
 import { adminChaptersApi } from './admin.chapters';
 import { adminTestsApi } from './admin.tests';
 import { adminQuestionsApi } from './admin.questions';
+import { adminQuestionBankApi } from './admin.questionBank';
 import { adminExamCategoriesApi } from './admin.examCategories';
 import { adminTestQuestionsApi } from './admin.testQuestions';
 import { adminBulkImportsApi } from './admin.bulkImports';
@@ -29,6 +30,7 @@ export const adminApi = {
   ...adminLiveTestsApi,
   ...adminBlogApi,
   ...adminQuestionsApi,
+  ...adminQuestionBankApi,
   ...adminExamCategoriesApi,
   ...adminTestQuestionsApi,
   ...adminBulkImportsApi,
