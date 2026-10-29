@@ -85,8 +85,6 @@ export function CouponFormPanel({ cp }: CouponFormPanelProps) {
               <input
                 type="text"
                 required
-                disabled
-                title="Display title is derived from the coupon code; it is not a stored field."
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="Welcome Offer"
