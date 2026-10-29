@@ -135,13 +135,21 @@ export function paperYear(t: MockTest): number | null {
   return m ? Number(m[0]) : null;
 }
 
+// Explicit column lists keep every response down to what the mappers above read.
+const EXAM_COLUMNS =
+  'id, title, slug, short_name, subtitle, category, description, icon_name, banner_url, order_index, tests(count)';
+const SUBJECT_COLUMNS = 'id, exam_id, name, slug, icon_name, order_index, chapters(count), tests(count)';
+const TOPIC_COLUMNS = 'id, subject_id, name, slug, order_index, tests(count)';
+const LIVE_TEST_COLUMNS =
+  'id, test_id, title, exam_id, status, start_at, scheduled_start_time, scheduled_end_time, registration_deadline, duration_minutes, total_questions, total_marks, negative_marking, enrolled_count, logo, exam_logo, ranking_enabled, subscription_required, instructions, tests(id, title, exam_id, duration_minutes, total_questions, total_marks, negative_marking, exams(title))';
+
 const TEST_COLUMNS =
   'id, exam_id, subject_id, chapter_id, test_series_id, title, description, test_type, duration_minutes, total_questions, total_marks, passing_marks, negative_marking, is_premium, order_index, created_at, year, paper_name, shift, exam_date, icon_url, is_live_only';
 
 export async function fetchExams(): Promise<Exam[]> {
   const { data, error } = await supabase
     .from('exams')
-    .select('*, tests(count)')
+    .select(EXAM_COLUMNS)
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;
@@ -151,7 +159,7 @@ export async function fetchExams(): Promise<Exam[]> {
 export async function fetchExam(examId: string): Promise<Exam | null> {
   const { data, error } = await supabase
     .from('exams')
-    .select('*, tests(count)')
+    .select(EXAM_COLUMNS)
     .eq('id', examId)
     .maybeSingle();
   if (error) throw error;
@@ -161,7 +169,7 @@ export async function fetchExam(examId: string): Promise<Exam | null> {
 export async function fetchSubjects(): Promise<Subject[]> {
   const { data, error } = await supabase
     .from('subjects')
-    .select('*, chapters(count), tests(count)')
+    .select(SUBJECT_COLUMNS)
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;
@@ -169,7 +177,7 @@ export async function fetchSubjects(): Promise<Subject[]> {
 }
 
 export async function fetchTopics(subjectId?: string | null): Promise<Topic[]> {
-  let q = supabase.from('chapters').select('*, tests(count)').eq('is_active', true);
+  let q = supabase.from('chapters').select(TOPIC_COLUMNS).eq('is_active', true);
   if (subjectId) q = q.eq('subject_id', subjectId);
   const { data, error } = await q.order('order_index', { ascending: true });
   if (error) throw error;
@@ -278,7 +286,7 @@ export function isUpcoming(t: LiveTest, now = new Date()): boolean {
 export async function fetchLiveTests(examId?: string | null): Promise<LiveTest[]> {
   let q = supabase
     .from('live_tests')
-    .select('*, tests(id, title, exam_id, duration_minutes, total_questions, total_marks, negative_marking, exams(title))')
+    .select(LIVE_TEST_COLUMNS)
     .eq('is_published', true);
   if (examId) q = q.eq('exam_id', examId);
   const { data, error } = await q.order('start_at', { ascending: true });
