@@ -1,0 +1,40 @@
+# Supabase project settings that live outside the database: Auth URLs, the
+# Google provider and Edge Function JWT checks. These were only ever set by
+# hand in the dashboard, so moving to a new project lost them (Google login
+# and payments broke). Keep this file in step with the production project.
+#
+# Apply to the linked project (shows a diff and asks before changing anything):
+#   supabase link --project-ref <ref>
+#   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=... SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=... \
+#     supabase config push
+# Read the diff: settings not listed here fall back to CLI defaults, so do not
+# accept a change you did not expect. Full checklist: docs/SUPABASE_PROJECT_SETUP.md
+
+project_id = "practicekoro"
+
+[auth]
+site_url = "https://practicekoro.online"
+# /admin, /dashboard/login-callback and /reset-password on the site, plus the
+# mobile app's deep link. localhost is for development only.
+additional_redirect_urls = [
+  "https://practicekoro.online/**",
+  "https://www.practicekoro.online/**",
+  "com.practicekoro://login-callback",
+  "http://localhost:5173/**",
+]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Production requires students to confirm their email before signing in.
+enable_confirmations = true
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+
+# Razorpay calls the webhook without a Supabase JWT; the function checks the
+# Razorpay signature instead. Every other function requires a signed-in user.
+[functions.razorpay-webhook]
+verify_jwt = false
