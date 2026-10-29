@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 /// Model representing a promotional or announcement Hero Banner managed
-/// by the Admin Panel in Supabase (app_settings `banners_hero_list` / `hero_banners`).
+/// by the Admin Panel in Supabase (`public.hero_banners`).
 @immutable
 class HeroBannerModel {
   final String id;

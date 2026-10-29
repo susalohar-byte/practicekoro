@@ -1887,7 +1887,7 @@ class _ExamsForYouSwooshPainter extends CustomPainter {
 }
 
 /// Dynamic Hero Banner Card / Carousel Section
-/// Fetches promotional banners from Admin Panel (Supabase app_settings & hero_banners).
+/// Fetches promotional banners from Admin Panel (Supabase `hero_banners`).
 /// Displays high-fidelity images with auto-sliding carousel if multiple banners exist,
 /// interactive dot indicators, text overlays, and fallback to default HD hero banner.
 class _HeroBannerSection extends ConsumerStatefulWidget {

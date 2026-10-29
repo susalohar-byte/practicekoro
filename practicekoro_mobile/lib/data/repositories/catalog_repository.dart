@@ -411,32 +411,6 @@ class CatalogRepository {
       published = res.map((e) => LiveTestModel.fromJson(e)).toList();
     } catch (_) {}
 
-    // Only when the table could not be read at all: the admin's mirror copy
-    // in `app_settings`.
-    if (published == null) {
-      try {
-        final supa = _supabase;
-        if (supa != null) {
-          final res = await supa
-              .from('app_settings')
-              .select('value')
-              .eq('id', 'live_tests_schedule_list')
-              .maybeSingle()
-              .timeout(_timeout);
-          final raw = res?['value'];
-          if (raw is List) {
-            published = raw
-                .whereType<Map>()
-                .map((e) => LiveTestModel.fromJson(Map<String, dynamic>.from(e)))
-                // The mirror also holds drafts with no `is_published` flag.
-                .where((t) => t.isPublished && t.status != 'draft')
-                .where((t) => !hasExam || t.examId == examId)
-                .toList();
-          }
-        }
-      } catch (_) {}
-    }
-
     // No invented events: a student must only ever see Live Tests the admin
     // actually scheduled. When nothing could be read, nothing is cached, so
     // the next open retries the server.

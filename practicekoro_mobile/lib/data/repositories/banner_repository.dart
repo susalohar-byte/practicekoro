@@ -115,12 +115,20 @@ class BannerRepository {
     }
   }
 
-  /// Fetches all banners configured by the Admin panel.
+  /// Columns [HeroBannerModel.fromJson] reads from `hero_banners` (never `*`).
+  static const _bannerColumns =
+      'id, badge_text, title, highlight_word, subtitle, primary_cta_text, '
+      'primary_cta_link, secondary_cta_text, secondary_cta_link, feature_pills, '
+      'image_url, mobile_image_url, banner_type, show_text_overlay, '
+      'theme_gradient, target_audience, placement, starts_at, expires_at, '
+      'click_count, is_active, display_order, created_at, updated_at';
+
+  /// Fetches the banners configured by the Admin panel.
   /// Priority:
-  /// 1. Supabase public.app_settings table (id: 'banners_hero_list' / key: 'hero_banners_list')
-  /// 2. Supabase public.hero_banners table (if available)
-  /// 3. Disk cache from SharedPreferences
-  /// 4. In-memory cache / default PracticeKoro HD hero banner
+  /// 1. Supabase `public.hero_banners` (row level security returns only live
+  ///    banners: active and inside their schedule window)
+  /// 2. Disk cache from SharedPreferences
+  /// 3. In-memory cache / default PracticeKoro HD hero banner
   Future<List<HeroBannerModel>> getBanners({bool forceRefresh = false}) async {
     if (!forceRefresh && _cache != null && _cache!.isNotEmpty) {
       return _cache!;
@@ -139,64 +147,23 @@ class BannerRepository {
     final supa = _supabase;
     if (supa != null) {
       _lastNetworkFetch = DateTime.now();
-      // 1. Try public.app_settings (Admin panel central persistence store)
-      try {
-        final settingRow = await supa
-            .from('app_settings')
-            .select('value')
-            .eq('id', 'banners_hero_list')
-            .maybeSingle()
-            .timeout(const Duration(seconds: 15));
-
-        if (settingRow != null && settingRow['value'] != null) {
-          final rawValue = settingRow['value'];
-          dynamic parsedList = rawValue;
-          if (rawValue is String) {
-            try {
-              parsedList = jsonDecode(rawValue);
-            } catch (_) {}
-          }
-          if (parsedList is List && parsedList.isNotEmpty) {
-            final banners = parsedList
-                .whereType<Map>()
-                .map(
-                  (m) => HeroBannerModel.fromJson(Map<String, dynamic>.from(m)),
-                )
-                .toList();
-            banners.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
-            if (banners.isNotEmpty) {
-              _cache = banners;
-              await _saveToDiskCache(banners);
-              return banners;
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('app_settings banner fetch: $e');
-      }
-
-      // 2. Try hero_banners table fallback
       try {
         final rows = await supa
             .from('hero_banners')
-            .select('*')
+            .select(_bannerColumns)
             .order('display_order', ascending: true)
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 15));
 
-        if (rows.isNotEmpty) {
-          final banners = rows
-              .map(
-                (r) => HeroBannerModel.fromJson(Map<String, dynamic>.from(r)),
-              )
-              .toList();
-          if (banners.isNotEmpty) {
-            _cache = banners;
-            await _saveToDiskCache(banners);
-            return banners;
-          }
-        }
-      } catch (_) {
-        // hero_banners table might not be in the schema cache
+        final banners = rows
+            .map((r) => HeroBannerModel.fromJson(Map<String, dynamic>.from(r)))
+            .toList();
+        // An answer from the server is final, empty included (every banner
+        // switched off or out of schedule): never fall back to an old copy.
+        _cache = banners;
+        await _saveToDiskCache(banners);
+        return banners;
+      } catch (e) {
+        debugPrint('hero_banners fetch: $e');
       }
     }
 
