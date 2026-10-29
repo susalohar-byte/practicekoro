@@ -132,6 +132,7 @@ Statuses were checked against production `supabase_migrations.schema_migrations`
 | `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                        |       **PENDING**        |
 | `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                               |       **PENDING**        |
 | `20261029150000_remove_audiobooks.sql`                           | Remove the unused Audiobook feature: drops the 5 audiobook tables and their RPCs (destructive)                                     |       **PENDING**        |
+| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners.image_url / mobile_image_url                                                              |       **PENDING**        |
 
 ---
 
