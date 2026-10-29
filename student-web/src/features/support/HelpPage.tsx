@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import { fmtDate, fmtTime } from '@/lib/format';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/auth/AuthProvider';
-import { qk, useProfile, useSupportContact, useTickets } from '@/hooks/queries';
+import { qk, useProfile, useSupportContact, useTicketMessages, useTickets } from '@/hooks/queries';
 import { createTicket, sendTicketMessage, ticketNumber } from '@/services/account';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -136,6 +136,8 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const st = statusBadge(ticket.status);
+  const conversation = useTicketMessages(ticket.id);
+  const messages = conversation.data ?? [];
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
@@ -144,7 +146,10 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
     try {
       await sendTicketMessage({ ticketId: ticket.id, body });
       setBody('');
-      await queryClient.invalidateQueries({ queryKey: qk.tickets(user.id) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: qk.ticketMessages(ticket.id) }),
+        queryClient.invalidateQueries({ queryKey: qk.tickets(user.id) }),
+      ]);
     } catch (err) {
       toast(`Failed to send message: ${friendlyError(err)}`, 'error');
     } finally {
@@ -170,11 +175,17 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
           <p className="mt-1 whitespace-pre-line text-[13px] text-[#14532D]">{ticket.resolutionNotes}</p>
         </div>
       )}
-      {ticket.messages.length > 0 && (
+      {conversation.isLoading && (
+        <div className="mt-5 flex justify-center">
+          <Spinner />
+        </div>
+      )}
+      {conversation.isError && <p className="mt-5 text-[13px] text-muted">The conversation could not be loaded.</p>}
+      {messages.length > 0 && (
         <div className="mt-5">
           <p className="mb-2 text-[13px] font-bold text-ink">Conversation</p>
           <div className="space-y-2.5">
-            {ticket.messages.map((m) => {
+            {messages.map((m) => {
               const mine = m.authorKind === 'student';
               return (
                 <div key={m.id} className={cn('max-w-[78%] rounded-xl border px-3 py-2', mine ? 'ml-auto border-primary/20 bg-primary-soft' : 'border-[#E2E8F0] bg-[#F1F5F9]')}>
