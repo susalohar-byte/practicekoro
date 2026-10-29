@@ -109,6 +109,8 @@ async function bootstrap(): Promise<void> {
     ]);
 
     clearChunkReloadGuard();
+    // Not awaited: the first render must not wait for the monitoring SDK.
+    void import('@/lib/monitoring').then((m) => m.initMonitoring('web'));
 
     const queryClient = new QueryClient({
       defaultOptions: {

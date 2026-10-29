@@ -45,6 +45,7 @@ dependencies:
   razorpay_flutter: ^1.4.7
   flutter_svg: ^2.3.0
   cached_network_image: ^4.0.5
+  sentry_flutter: ^10.2.0
 
 dev_dependencies:
   flutter_test:
