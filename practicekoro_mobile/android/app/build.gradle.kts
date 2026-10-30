@@ -45,10 +45,23 @@ android {
 
     defaultConfig {
         applicationId = "com.practicekoro"
-        minSdk = flutter.minSdkVersion
+        // sentry_flutter 10.x needs Android 8.0 (API 26); Flutter's default is 24.
+        minSdk = 26
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // PK_ARM64_ONLY=1 builds the small 64-bit APK with the same versionCode as the
+    // universal one (split-per-abi would add 2000, which blocks later universal updates).
+    // Plugins ship 32-bit libraries too, so those are left out; otherwise the APK would
+    // install on 32-bit phones that lack the Flutter engine and crash on launch.
+    if (System.getenv("PK_ARM64_ONLY") == "1") {
+        packaging {
+            jniLibs {
+                excludes += listOf("lib/armeabi-v7a/**", "lib/x86_64/**", "lib/x86/**")
+            }
+        }
     }
 
     buildTypes {

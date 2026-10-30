@@ -6,6 +6,6 @@
 export const APK_ARM64 = {
   href: '/PracticeKoro-arm64.apk',
   file: 'PracticeKoro.apk',
-  size: '25 MB',
+  size: '27 MB',
 };
-export const APK_UNIVERSAL = { href: '/PracticeKoro.apk', file: 'PracticeKoro.apk', size: '64 MB' };
+export const APK_UNIVERSAL = { href: '/PracticeKoro.apk', file: 'PracticeKoro.apk', size: '70 MB' };
