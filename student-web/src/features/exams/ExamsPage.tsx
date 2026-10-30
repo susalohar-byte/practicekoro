@@ -95,7 +95,7 @@ export default function ExamsPage() {
                   <ExamLogo title={e.title} iconUrl={e.iconUrl} size={54} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[16px] font-bold text-[#0F172A]">{e.title}</span>
-                    <span className="block truncate text-[13px] text-[#64748B]">{e.description || e.subtitle || e.category || 'State Competitive Exam'}</span>
+                    <span className="line-clamp-2 text-[13px] leading-snug text-[#64748B]">{e.description || e.subtitle || e.category || 'State Competitive Exam'}</span>
                     <span className="block text-[13px] font-bold text-[#0F172A]">
                       {e.totalTests} {e.totalTests === 1 ? 'Test' : 'Tests'}
                     </span>

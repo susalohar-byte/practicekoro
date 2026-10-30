@@ -36,16 +36,16 @@ function SubjectCard({ s, index, chapters }: { s: Subject; index: number; chapte
         <Icon className="h-6 w-6" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate">
-          <span className="text-[16px] font-bold text-[#0F172A]">{s.nameEnglish}</span>
-          {s.nameBengali && s.nameBengali !== s.nameEnglish && (
-            <span lang="bn" className="ml-1 text-[12.5px] font-medium text-[#64748B]">
-              ({s.nameBengali})
-            </span>
-          )}
-        </span>
+        {/* English name wraps to a second line before it is cut; the Bengali name gets its
+            own line, so neither disappears behind an ellipsis on tablet-width cards. */}
+        <span className="line-clamp-2 text-[16px] font-bold leading-snug text-[#0F172A]">{s.nameEnglish}</span>
+        {s.nameBengali && s.nameBengali !== s.nameEnglish && (
+          <span lang="bn" className="block truncate text-[12.5px] font-medium text-[#64748B]">
+            {s.nameBengali}
+          </span>
+        )}
         <span className="block text-[13px] font-medium text-[#64748B]">
-          {chapters} Chapters • {s.totalTests > 0 ? `${s.totalTests} Tests` : 'Mock Tests'}
+          {chapters} {chapters === 1 ? 'Chapter' : 'Chapters'} • {s.totalTests > 0 ? `${s.totalTests} ${s.totalTests === 1 ? 'Test' : 'Tests'}` : 'Mock Tests'}
         </span>
       </span>
       <span className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]">
