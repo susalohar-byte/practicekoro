@@ -77,6 +77,11 @@ select jsonb_build_object(
     where n.nspname = 'public' and c.relkind in ('r', 'p')
       and (has_table_privilege('anon', c.oid, 'TRUNCATE,REFERENCES,TRIGGER')
         or has_table_privilege('authenticated', c.oid, 'TRUNCATE,REFERENCES,TRIGGER'))),
+  -- 20261030120000: signed-out visitors cannot write to any table, whatever RLS says
+  'anon_no_table_writes', not exists (
+    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p')
+      and has_table_privilege('anon', c.oid, 'INSERT,UPDATE,DELETE')),
   -- 20261029120000: secrets are service_role-only; no hard-coded admin email in policies
   'gateway_secrets_client_unreadable', not has_column_privilege('authenticated','public.payment_gateways','key_secret','SELECT')
                                    and not has_column_privilege('authenticated','public.payment_gateways','webhook_secret','SELECT')
