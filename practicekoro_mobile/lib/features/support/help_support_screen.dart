@@ -181,7 +181,7 @@ class HelpSupportScreen extends ConsumerWidget {
                   'TICKET DESK',
                   style: TextStyle(
                     color: Color(0xFF4F46E5),
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -215,7 +215,7 @@ class HelpSupportScreen extends ConsumerWidget {
                   'FAST REPLY',
                   style: TextStyle(
                     color: Color(0xFF1E7E34),
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -354,7 +354,7 @@ class _TicketsSection extends ConsumerWidget {
                       Text(
                         'Need help? Raise a ticket to track resolution.',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           color: UI.muted,
                         ),
                       ),
@@ -438,7 +438,7 @@ class _TicketsSection extends ConsumerWidget {
                               Text(
                                 '${tickets[i].category} • ${DateFormat('dd MMM yyyy').format(tickets[i].createdAt.toLocal())}',
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: UI.muted,
                                 ),
                               ),
@@ -509,7 +509,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          fontSize: 10.5,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           color: fg,
         ),

@@ -167,6 +167,7 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
                     ),
                   ),
                   IconButton(
+                    tooltip: 'Close',
                     icon: const Icon(Icons.close_rounded, color: UI.muted),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -198,7 +199,7 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
                       label: Text(
                         cat,
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: _selectedCategory == cat
                               ? FontWeight.w700
                               : FontWeight.w500,
@@ -485,7 +486,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                     child: Text(
                       _ticket.displayStatus.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: statusColor,
                       ),
@@ -494,6 +495,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                 ],
               ),
               IconButton(
+                tooltip: 'Close',
                 icon: const Icon(Icons.close_rounded, color: UI.muted),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -511,7 +513,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
           const SizedBox(height: 4),
           Text(
             'Created on ${DateFormat('dd MMM yyyy, hh:mm a').format(_ticket.createdAt.toLocal())}',
-            style: const TextStyle(fontSize: 11.5, color: UI.muted),
+            style: const TextStyle(fontSize: 12, color: UI.muted),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1, color: UI.line),
@@ -538,7 +540,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                           const Text(
                             'Original Issue',
                             style: TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: UI.muted,
                             ),
@@ -555,7 +557,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                             child: Text(
                               _ticket.category,
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: UI.primary,
                               ),
@@ -665,7 +667,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                                       ? 'Support Admin (${msg.authorName})'
                                       : 'You',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: msg.isFromAdmin
                                         ? const Color(0xFF334155)
@@ -676,7 +678,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                                 Text(
                                   DateFormat('hh:mm a').format(msg.createdAt.toLocal()),
                                   style: const TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     color: UI.muted,
                                   ),
                                 ),
@@ -731,6 +733,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
+                  tooltip: 'Send reply',
                   icon: _isSending
                       ? const SizedBox(
                           width: 18,

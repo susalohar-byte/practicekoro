@@ -124,7 +124,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           Text(
                             'Instant Access',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: UI.primary,
                             ),
@@ -332,7 +332,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           SizedBox(height: 2),
                           Text(
                             'UPI • Debit/Credit Cards • Net Banking',
-                            style: TextStyle(fontSize: 11, color: UI.muted),
+                            style: TextStyle(fontSize: 12, color: UI.muted),
                           ),
                         ],
                       ),
@@ -413,7 +413,7 @@ class _ProPassValidityCard extends StatelessWidget {
                     Text(
                       'PRO MEMBER',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: 0.5,
@@ -447,7 +447,7 @@ class _ProPassValidityCard extends StatelessWidget {
                     Text(
                       expiringSoon ? 'Expiring soon' : 'Active',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: expiringSoon
                             ? const Color(0xFFFDE68A)
@@ -834,7 +834,7 @@ class _PlanCard extends StatelessWidget {
               child: const Text(
                 'FREE STARTER · সর্বদা বিনামূল্যে',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                   letterSpacing: 0.6,
@@ -852,7 +852,7 @@ class _PlanCard extends StatelessWidget {
               child: Text(
                 '★ BEST VALUE · SAVE ${plan.discountPercentage}%',
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                   letterSpacing: 0.6,
@@ -910,7 +910,7 @@ class _PlanCard extends StatelessWidget {
                       child: Text(
                         plan.formattedDuration,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: UI.textSoft,
                         ),
@@ -950,7 +950,7 @@ class _PlanCard extends StatelessWidget {
                         child: const Text(
                           'Forever',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: UI.textSoft,
                           ),
@@ -981,7 +981,7 @@ class _PlanCard extends StatelessWidget {
                         child: Text(
                           '${plan.discountPercentage}% OFF',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: UI.success,
                           ),
@@ -996,7 +996,7 @@ class _PlanCard extends StatelessWidget {
                   plan.isFree
                       ? 'Free access for all students • No payment required'
                       : 'One-time payment • No auto-renewal',
-                  style: const TextStyle(fontSize: 11.5, color: UI.muted),
+                  style: const TextStyle(fontSize: 12, color: UI.muted),
                 ),
 
                 const SizedBox(height: 16),
@@ -1236,7 +1236,7 @@ class _FeaturePerksGrid extends StatelessWidget {
                 Text(
                   perk.$4,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: UI.muted,
                     height: 1.3,
                   ),

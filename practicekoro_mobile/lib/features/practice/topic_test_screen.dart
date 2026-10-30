@@ -185,6 +185,7 @@ class _TopicTestScreenState extends ConsumerState<TopicTestScreen> {
                               ),
                               suffixIcon: _query.isNotEmpty
                                   ? IconButton(
+                                      tooltip: 'Clear search',
                                       icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF64748B)),
                                       onPressed: () {
                                         _searchController.clear();

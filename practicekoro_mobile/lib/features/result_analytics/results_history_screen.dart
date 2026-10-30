@@ -578,7 +578,7 @@ class _RankPreviewRow extends StatelessWidget {
                 Text(
                   item.testTitle,
                   style: const TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
@@ -606,7 +606,7 @@ class _RankPreviewRow extends StatelessWidget {
               Text(
                 'Rank #${item.rank}',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isMe
                       ? const Color(0xFF0158FC)
@@ -669,7 +669,7 @@ class _RankPreviewRow extends StatelessWidget {
       child: Text(
         '#$rank',
         style: TextStyle(
-          fontSize: 11.5,
+          fontSize: 12,
           fontWeight: FontWeight.w800,
           color: isMe ? const Color(0xFF0158FC) : const Color(0xFF475569),
         ),
@@ -800,9 +800,9 @@ class _RecentResultCard extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: const Text(
-                        'LIVE TEST',
+                        'LIVE',
                         style: TextStyle(
-                          fontSize: 7.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),

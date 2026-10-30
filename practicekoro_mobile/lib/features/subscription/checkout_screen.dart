@@ -848,7 +848,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
                             child: Text(
                               'Guaranteed 100% secure payment with instant subscription activation.',
                               style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: UI.textSoft,
                                 height: 1.3,
                               ),
@@ -893,7 +893,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
                             const Text(
                               'Total to pay',
                               style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: UI.muted,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1099,7 +1099,7 @@ class _PlanOverviewCard extends StatelessWidget {
                     child: Text(
                       'Activating for: $name ($email)',
                       style: const TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         color: UI.textSoft,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1200,7 +1200,7 @@ class _BillingBreakdownCard extends StatelessWidget {
           const Text(
             'Inclusive of GST and all applicable government taxes',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: UI.muted,
             ),
           ),
@@ -1273,7 +1273,7 @@ extension on _BillingBreakdownCard {
             Text(
               'Your pass will be valid until $validUntil (${plan.durationDays} days '
               'from your original purchase).',
-              style: const TextStyle(fontSize: 11, height: 1.35, color: UI.muted),
+              style: const TextStyle(fontSize: 12, height: 1.35, color: UI.muted),
             ),
           ],
         ],

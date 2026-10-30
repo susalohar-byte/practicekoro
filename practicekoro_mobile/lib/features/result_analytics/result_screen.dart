@@ -83,6 +83,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           child: Row(
             children: [
               IconButton(
+                tooltip: 'Back',
                 icon: const Icon(Icons.chevron_left_rounded, size: 28, color: Color(0xFF0F172A)),
                 onPressed: () {
                   if (GoRouter.of(context).canPop()) {
@@ -168,7 +169,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     Text(
                       DateFormat('d MMM yyyy • h:mm a').format(a.completedAt),
                       style: const TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
@@ -691,7 +692,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 child: Text(
                   statusLabel,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: statusFg,
                   ),
@@ -920,7 +921,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                   child: Text(
                     '${(percentUsed * 100).round()}% Used',
                     style: const TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0158FC),
                     ),
@@ -1045,7 +1046,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         const Text(
                           'Avg / Question',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -1078,7 +1079,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         const Text(
                           'Avg / Attempted',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -1113,7 +1114,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         const Text(
                           'Attempt Rate',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -1327,7 +1328,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Color(0xFF64748B),
           ),
@@ -1417,7 +1418,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: accentColor,
                   ),
@@ -1467,7 +1468,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 9.5,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               color: color.withValues(alpha: 0.8),
             ),
@@ -1680,7 +1681,7 @@ class _MetricBadge extends StatelessWidget {
           Text(
             subtitle!,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
               color: Color(0xFF94A3B8),
             ),

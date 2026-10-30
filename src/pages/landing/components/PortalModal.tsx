@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { studentPanelUrl } from '@/lib/studentPanel';
+import { APK_ARM64, APK_UNIVERSAL } from './apkDownloads';
 import {
   X,
   ShieldCheck,
@@ -148,8 +149,8 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </a>
                   <a
-                    href="/PracticeKoro.apk"
-                    download="PracticeKoro.apk"
+                    href={APK_ARM64.href}
+                    download={APK_ARM64.file}
                     onClick={onClose}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer"
                   >
@@ -158,8 +159,16 @@ export const PortalModal: React.FC<PortalModalProps> = ({ isOpen, onClose }) => 
                   </a>
                   <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
                     <Smartphone className="w-3 h-3 text-emerald-500" />
-                    v2.0 • 70 MB
+                    v2.0 • {APK_ARM64.size}
                   </span>
+                  <a
+                    href={APK_UNIVERSAL.href}
+                    download={APK_UNIVERSAL.file}
+                    onClick={onClose}
+                    className="text-[11px] font-medium text-slate-500 underline hover:text-emerald-700"
+                  >
+                    পুরনো ফোনে ইনস্টল না হলে: সম্পূর্ণ ভার্সন ({APK_UNIVERSAL.size})
+                  </a>
                 </div>
               </div>
             </div>

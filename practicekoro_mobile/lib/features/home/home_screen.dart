@@ -312,7 +312,7 @@ class HomeScreen extends ConsumerWidget {
                                 const Text(
                                   'Rank',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFFB45309),
                                     letterSpacing: 0.3,
@@ -834,7 +834,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                             Text(
                               'LIVE',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
                                 letterSpacing: 0.3,
@@ -865,7 +865,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                             Text(
                               'UPCOMING',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFFD97706),
                                 letterSpacing: 0.3,
@@ -895,7 +895,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: palette.timeColor,
                       ),
@@ -914,7 +914,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                         Text(
                           '${test.durationMinutes} Mins',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -926,7 +926,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                               '•',
                               style: TextStyle(
                                 color: Color(0xFF94A3B8),
-                                fontSize: 10,
+                                fontSize: 11,
                               ),
                             ),
                           ),
@@ -939,7 +939,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                           Text(
                             test.formattedParticipants!,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF64748B),
                             ),
@@ -1162,7 +1162,7 @@ class _ContinuePracticingCard extends StatelessWidget {
                 Text(
                   questions,
                   style: const TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF94A3B8),
                   ),
@@ -1188,7 +1188,7 @@ class _ContinuePracticingCard extends StatelessWidget {
                       '$percent%',
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 11.5,
+                        fontSize: 12,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -2085,7 +2085,7 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
                               child: Text(
                                 banner.badgeText!.toUpperCase(),
                                 style: const TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1E293B),
                                   letterSpacing: 0.4,
@@ -2132,7 +2132,7 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
                                 Text(
                                   banner.primaryCtaText.isNotEmpty ? banner.primaryCtaText : 'Start Now',
                                   style: const TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF005CFD),
                                   ),

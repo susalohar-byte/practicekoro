@@ -918,7 +918,7 @@ class _CompletionCard extends StatelessWidget {
                 Text(
                   '$percent%',
                   style: const TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

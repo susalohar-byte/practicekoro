@@ -181,6 +181,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const Icon(
             Icons.chevron_left_rounded,
             size: 28,
@@ -394,7 +395,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                     Text(
                       selected.subtitle,
                       style: const TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
@@ -596,6 +597,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
           ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
+                  tooltip: 'Close',
                   icon: const Icon(
                     Icons.close_rounded,
                     size: 18,
