@@ -34,7 +34,7 @@ export function AdminMoneyChart({
           {/* Net Retained */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+            <span className="text-slate-600 dark:text-slate-400 font-medium text-[11px]">
               Period Net:
             </span>
             <span className="font-bold text-blue-700 dark:text-blue-300">
@@ -44,7 +44,7 @@ export function AdminMoneyChart({
 
           {/* Gross Retained */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-            <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+            <span className="text-slate-600 dark:text-slate-400 font-medium text-[11px]">
               Gross Retained:
             </span>
             <span className="font-bold text-slate-800 dark:text-slate-200">

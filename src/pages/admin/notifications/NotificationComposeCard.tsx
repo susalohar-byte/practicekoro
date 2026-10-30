@@ -108,6 +108,7 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
                 Title <span className="text-rose-500">*</span>
               </label>
               <input
+                aria-label="Title"
                 ref={titleInputRef}
                 type="text"
                 value={formTitle}
@@ -147,6 +148,7 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
                   <Send className="w-3.5 h-3.5 text-blue-600" />
                 </div>
                 <select
+                  aria-label="Type"
                   value={formType}
                   onChange={(e) => setFormType(e.target.value as NotificationCategory)}
                   className="w-full appearance-none border border-slate-200 rounded-xl pl-9 pr-7 py-2 text-xs text-slate-800 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -173,6 +175,7 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
               <div className="relative">
                 <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
+                  aria-label="Action Link (Optional)"
                   type="text"
                   value={formActionLink}
                   onChange={(e) => setFormActionLink(e.target.value)}
@@ -220,6 +223,9 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
               {/* Toggle 2: Firebase Cloud Messaging (FCM Push) */}
               <div className="flex items-center gap-3">
                 <button
+                  role="switch"
+                  aria-checked={formSendPush}
+                  aria-label="Push Notification (FCM)"
                   type="button"
                   onClick={() => setFormSendPush(!formSendPush)}
                   className={cn(
@@ -252,6 +258,8 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
               {/* Toggle 3: Direct SMS Alert (Fast2SMS) */}
               <div className="flex items-center gap-3">
                 <button
+                  role="switch"
+                  aria-checked={formSendSms}
                   type="button"
                   disabled
                   aria-label="Direct Carrier SMS (unavailable)"
@@ -300,6 +308,9 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
               {/* Toggle 4: Email */}
               <div className="flex items-center gap-3">
                 <button
+                  role="switch"
+                  aria-checked={formSendEmail}
+                  aria-label="Email"
                   type="button"
                   onClick={() => setFormSendEmail(!formSendEmail)}
                   className={cn(
@@ -381,6 +392,7 @@ export function NotificationComposeCard({ notificationsState }: NotificationComp
               <div className="relative">
                 <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
+                  aria-label="Select Date and Time"
                   type="datetime-local"
                   value={formScheduledDate}
                   onChange={(e) => setFormScheduledDate(e.target.value)}

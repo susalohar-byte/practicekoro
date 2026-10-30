@@ -63,6 +63,7 @@ export function SupportFiltersSidebar({ supportState }: SupportFiltersSidebarPro
               >
                 <div className="flex items-center gap-2">
                   <input
+                    aria-label={item.name}
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggleStatusCheckbox(item.name)}
@@ -121,6 +122,7 @@ export function SupportFiltersSidebar({ supportState }: SupportFiltersSidebarPro
               >
                 <div className="flex items-center gap-2">
                   <input
+                    aria-label={item.name}
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggleCategoryCheckbox(item.name)}
@@ -156,6 +158,7 @@ export function SupportFiltersSidebar({ supportState }: SupportFiltersSidebarPro
               >
                 <div className="flex items-center gap-2">
                   <input
+                    aria-label={item.name}
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => togglePriorityCheckbox(item.name)}

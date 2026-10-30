@@ -48,6 +48,7 @@ export function BlogFilterToolbar({ blogState }: BlogFilterToolbarProps) {
 
             {/* Category Dropdown */}
             <select
+              aria-label="Filter by category"
               value={categoryFilter}
               onChange={(e) => {
                 setCategoryFilter(e.target.value);
@@ -65,6 +66,7 @@ export function BlogFilterToolbar({ blogState }: BlogFilterToolbarProps) {
 
             {/* Status Dropdown */}
             <select
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -81,6 +83,7 @@ export function BlogFilterToolbar({ blogState }: BlogFilterToolbarProps) {
 
             {/* Author Dropdown */}
             <select
+              aria-label="Filter by author"
               value={authorFilter}
               onChange={(e) => {
                 setAuthorFilter(e.target.value);
@@ -98,6 +101,7 @@ export function BlogFilterToolbar({ blogState }: BlogFilterToolbarProps) {
 
             {/* Time Dropdown */}
             <select
+              aria-label="Filter by time period"
               value={timeFilter}
               onChange={(e) => {
                 setTimeFilter(e.target.value);

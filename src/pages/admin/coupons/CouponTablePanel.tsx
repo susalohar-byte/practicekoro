@@ -35,6 +35,7 @@ export function CouponTablePanel({ cp }: CouponTablePanelProps) {
                 <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 tracking-wider">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         selectedCheckboxes.length > 0 &&
@@ -81,6 +82,7 @@ export function CouponTablePanel({ cp }: CouponTablePanelProps) {
                             onClick={(e) => handleToggleRow(row.id, e)}
                           >
                             <input
+                              aria-label="Select row"
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => {}}
@@ -117,7 +119,7 @@ export function CouponTablePanel({ cp }: CouponTablePanelProps) {
                                 ? `${row.discountValue}%`
                                 : `₹${row.discountValue}`}
                             </span>
-                            <span className="text-[10px] text-emerald-700/80 block">
+                            <span className="text-[10px] text-emerald-700 block">
                               {row.maxDiscount ? `Max ₹${row.maxDiscount}` : 'Flat Off'}
                             </span>
                           </td>
@@ -171,6 +173,7 @@ export function CouponTablePanel({ cp }: CouponTablePanelProps) {
                           >
                             <div className="relative inline-block text-left">
                               <button
+                                aria-label="More actions"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuId(activeMenuId === row.id ? null : row.id);
@@ -268,6 +271,7 @@ export function CouponTablePanel({ cp }: CouponTablePanelProps) {
 
               <div className="relative ml-2">
                 <select
+                  aria-label="Rows per page"
                   value={rowsPerPage}
                   onChange={(e) => setRowsPerPage(Number(e.target.value))}
                   className="appearance-none border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"

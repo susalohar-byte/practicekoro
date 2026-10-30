@@ -49,6 +49,7 @@ export function TestAttemptFilterToolbar({ testAttemptsState }: TestAttemptFilte
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Exam</label>
           <div className="relative">
             <select
+              aria-label="Exam"
               value={filterExam}
               onChange={(e) => {
                 setFilterExam(e.target.value);
@@ -73,6 +74,7 @@ export function TestAttemptFilterToolbar({ testAttemptsState }: TestAttemptFilte
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Test Type</label>
           <div className="relative">
             <select
+              aria-label="Test Type"
               value={filterType}
               onChange={(e) => {
                 setFilterType(e.target.value);
@@ -94,6 +96,7 @@ export function TestAttemptFilterToolbar({ testAttemptsState }: TestAttemptFilte
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Result</label>
           <div className="relative">
             <select
+              aria-label="Result"
               value={filterResult}
               onChange={(e) => {
                 setFilterResult(e.target.value);
@@ -114,6 +117,7 @@ export function TestAttemptFilterToolbar({ testAttemptsState }: TestAttemptFilte
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Date Range</label>
           <div className="relative">
             <select
+              aria-label="Date Range"
               value={filterDateRange}
               onChange={(e) => {
                 setFilterDateRange(e.target.value as DateRangeFilter);

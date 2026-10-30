@@ -44,6 +44,7 @@ export function CouponFilterToolbar({ cp }: CouponFilterToolbarProps) {
           <label className="text-[10px] font-semibold text-slate-400 mb-1 block">Status</label>
           <div className="relative">
             <select
+              aria-label="Status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -62,6 +63,7 @@ export function CouponFilterToolbar({ cp }: CouponFilterToolbarProps) {
           <label className="text-[10px] font-semibold text-slate-400 mb-1 block">Plan</label>
           <div className="relative">
             <select
+              aria-label="Plan"
               value={filterPlan}
               onChange={(e) => setFilterPlan(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -82,6 +84,7 @@ export function CouponFilterToolbar({ cp }: CouponFilterToolbarProps) {
           </label>
           <div className="relative">
             <select
+              aria-label="Discount Type"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"

@@ -101,6 +101,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
             />
             {searchQuery && (
               <button
+                aria-label="Close"
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
@@ -116,6 +117,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* View Mode */}
           <div>
             <select
+              aria-label="Filter by view mode"
               value={viewModeFilter}
               onChange={(e) => {
                 const val = e.target.value as 'all' | 'exam' | 'subject' | 'live';
@@ -135,6 +137,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Exam Filter */}
           <div>
             <select
+              aria-label="Filter by exam"
               value={selectedExamFilter}
               onChange={(e) => {
                 setSelectedExamFilter(e.target.value);
@@ -160,6 +163,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Subject Filter */}
           <div>
             <select
+              aria-label="Filter by subject"
               value={selectedSubjectFilter}
               onChange={(e) => {
                 setSelectedSubjectFilter(e.target.value);
@@ -182,6 +186,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Topic Filter */}
           <div>
             <select
+              aria-label="Filter by topic"
               value={selectedTopicFilter}
               onChange={(e) => {
                 setSelectedTopicFilter(e.target.value);
@@ -215,6 +220,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Type Filter */}
           <div>
             <select
+              aria-label="Filter by type"
               value={selectedTypeFilter}
               onChange={(e) => {
                 setSelectedTypeFilter(e.target.value);
@@ -232,6 +238,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Status Filter */}
           <div>
             <select
+              aria-label="Filter by status"
               value={selectedStatusFilter}
               onChange={(e) => {
                 setSelectedStatusFilter(e.target.value);
@@ -252,6 +259,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Year Filter */}
           <div>
             <select
+              aria-label="Filter by year"
               value={selectedYearFilter}
               onChange={(e) => {
                 setSelectedYearFilter(e.target.value);
@@ -272,6 +280,7 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           {/* Source Filter */}
           <div>
             <select
+              aria-label="Filter by source"
               value={selectedSourceFilter}
               onChange={(e) => {
                 setSelectedSourceFilter(e.target.value);

@@ -28,6 +28,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
         {/* Sort by dropdown */}
         <div className="relative">
           <select
+            aria-label="Sort by"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="appearance-none bg-white text-xs text-slate-600 font-medium pr-6 pl-2 py-1 rounded-lg cursor-pointer focus:outline-none"
@@ -64,6 +65,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
                   {/* Checkbox */}
                   <div className="pt-1">
                     <input
+                      aria-label={`Select ticket ${tkt.ticketNumber}`}
                       type="checkbox"
                       onClick={(e) => e.stopPropagation()}
                       className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
@@ -150,6 +152,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
 
         <div className="flex items-center gap-1.5">
           <button
+            aria-label="Previous page"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -190,6 +193,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
           <span className="px-1 text-slate-400">...</span>
 
           <button
+            aria-label="Next page"
             onClick={() => setCurrentPage((p) => p + 1)}
             className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
           >
@@ -198,6 +202,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
 
           <div className="relative ml-2">
             <select
+              aria-label="Rows per page"
               value={rowsPerPage}
               onChange={(e) => setRowsPerPage(Number(e.target.value))}
               className="appearance-none border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"

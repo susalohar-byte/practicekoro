@@ -83,6 +83,7 @@ export function CouponFormPanel({ cp }: CouponFormPanelProps) {
                 Title <span className="text-rose-500">*</span>
               </label>
               <input
+                aria-label="Title"
                 type="text"
                 required
                 value={formTitle}
@@ -271,6 +272,9 @@ export function CouponFormPanel({ cp }: CouponFormPanelProps) {
                   </span>
                 </div>
                 <button
+                  role="switch"
+                  aria-checked={formActiveImmediately}
+                  aria-label="Active immediately"
                   type="button"
                   onClick={() => setFormActiveImmediately(!formActiveImmediately)}
                   className={cn(
@@ -298,6 +302,9 @@ export function CouponFormPanel({ cp }: CouponFormPanelProps) {
                   </span>
                 </div>
                 <button
+                  role="switch"
+                  aria-checked={formFirstTimeOnly}
+                  aria-label="Limit to one use per user"
                   type="button"
                   onClick={() => setFormFirstTimeOnly(!formFirstTimeOnly)}
                   className={cn(

@@ -62,6 +62,7 @@ export const AdminStudents: React.FC = () => {
       {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
+        aria-label="Import students from CSV"
         type="file"
         accept=".csv"
         className="hidden"

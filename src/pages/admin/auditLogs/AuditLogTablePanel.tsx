@@ -54,6 +54,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
                 <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 tracking-wider">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={selectedIds.length > 0 && selectedIds.length === filteredLogs.length}
                       onChange={handleSelectAll}
@@ -105,6 +106,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
                             onClick={(e) => handleToggleRow(row.id, e)}
                           >
                             <input
+                              aria-label="Select row"
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => {}}
@@ -195,6 +197,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
                           >
                             <div className="relative inline-block text-left">
                               <button
+                                aria-label="More actions"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuId(activeMenuId === row.id ? null : row.id);
@@ -268,6 +271,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
 
             <div className="flex items-center gap-1.5">
               <button
+                aria-label="Previous page"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -280,6 +284,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
               </span>
 
               <button
+                aria-label="Next page"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -289,6 +294,7 @@ export function AuditLogTablePanel({ al }: AuditLogTablePanelProps) {
 
               <div className="relative ml-2">
                 <select
+                  aria-label="Rows per page"
                   value={rowsPerPage}
                   onChange={(e) => {
                     setRowsPerPage(Number(e.target.value));

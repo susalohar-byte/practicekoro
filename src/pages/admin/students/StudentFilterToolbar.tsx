@@ -41,6 +41,7 @@ export function StudentFilterToolbar({ studentsState }: StudentFilterToolbarProp
         {/* All Status Dropdown */}
         <div className="w-[125px]">
           <select
+            aria-label="Filter by status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"
@@ -54,6 +55,7 @@ export function StudentFilterToolbar({ studentsState }: StudentFilterToolbarProp
         {/* All Subscription Plans Dropdown */}
         <div className="w-[180px]">
           <select
+            aria-label="Filter by subscription plan"
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"
@@ -69,6 +71,7 @@ export function StudentFilterToolbar({ studentsState }: StudentFilterToolbarProp
         {/* All Exams Dropdown */}
         <div className="w-[140px]">
           <select
+            aria-label="Filter by exam"
             value={examFilter}
             onChange={(e) => setExamFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"

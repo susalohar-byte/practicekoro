@@ -44,6 +44,7 @@ export function PracticePackDeliveryCard({ analyticsState, data }: PracticePackD
             Target Weak Topic
           </label>
           <select
+            aria-label="Target Weak Topic"
             value={selectedTopicId}
             onChange={(e) => setSelectedTopicId(e.target.value)}
             className="w-full border rounded-xl p-2.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
@@ -62,6 +63,7 @@ export function PracticePackDeliveryCard({ analyticsState, data }: PracticePackD
             Target Student Cohort
           </label>
           <select
+            aria-label="Target Student Cohort"
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value as 'all' | 'active' | 'pro')}
             className="w-full border rounded-xl p-2.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"

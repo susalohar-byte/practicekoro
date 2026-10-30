@@ -51,6 +51,7 @@ export function TestAttemptsTableCard({ testAttemptsState }: TestAttemptsTableCa
               <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
                 <th className="py-3 px-3.5 w-10 text-center">
                   <input
+                    aria-label="Select all rows"
                     type="checkbox"
                     checked={isAllCurrentPageSelected}
                     onChange={toggleSelectAll}
@@ -117,6 +118,7 @@ export function TestAttemptsTableCard({ testAttemptsState }: TestAttemptsTableCa
                       {/* Checkbox */}
                       <td className="py-3 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
+                          aria-label="Select row"
                           type="checkbox"
                           checked={isChecked}
                           onChange={(e) => toggleSelectRow(attempt.id, e)}
@@ -236,6 +238,7 @@ export function TestAttemptsTableCard({ testAttemptsState }: TestAttemptsTableCa
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
+                          aria-label="More actions"
                           onClick={() =>
                             setOpenActionMenuId(openActionMenuId === attempt.id ? null : attempt.id)
                           }

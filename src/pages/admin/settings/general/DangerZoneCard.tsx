@@ -20,7 +20,7 @@ export function DangerZoneCard({ settings }: DangerZoneCardProps) {
             <h2 className="text-base font-bold text-rose-600 dark:text-rose-400 leading-tight">
               Danger Zone
             </h2>
-            <p className="text-xs text-rose-500/80 dark:text-rose-400/80 mt-0.5">
+            <p className="text-xs text-rose-700 dark:text-rose-400/80 mt-0.5">
               These actions are irreversible. Please be careful.
             </p>
           </div>

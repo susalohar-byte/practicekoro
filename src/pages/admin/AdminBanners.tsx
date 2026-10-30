@@ -59,6 +59,7 @@ export const AdminBanners: React.FC = () => {
       {/* Hidden File Input for Image Replacement */}
       <input
         ref={fileUploadInputRef}
+        aria-label="Upload banner image"
         type="file"
         accept="image/*"
         className="hidden"

@@ -23,6 +23,7 @@ export function BlogPostPreviewModal({ blogState }: BlogPostPreviewModalProps) {
                 <span className="text-xs text-slate-400 font-mono">/{previewPost.slug}</span>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => setPreviewPost(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >

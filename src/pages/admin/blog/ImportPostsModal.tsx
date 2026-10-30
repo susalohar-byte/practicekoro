@@ -60,6 +60,7 @@ export const ImportPostsModal: React.FC<ImportPostsModalProps> = ({ onClose, onI
             <h2 className="text-base font-bold text-slate-900">Import Blog Posts</h2>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
           >

@@ -56,6 +56,7 @@ export function ExamTableRow({ qb, e, index }: ExamTableRowProps) {
       {/* Checkbox */}
       <td className="py-3.5 px-3 text-center" onClick={(evt) => evt.stopPropagation()}>
         <input
+          aria-label="Select row"
           type="checkbox"
           checked={isChecked}
           onChange={(evt) => toggleSelectRow(e.id, evt as unknown as React.MouseEvent)}

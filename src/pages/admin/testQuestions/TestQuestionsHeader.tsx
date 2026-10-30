@@ -92,6 +92,7 @@ export function TestQuestionsHeader({
                     Switch Test:
                   </span>
                   <select
+                    aria-label="Switch test"
                     value={currentTestId}
                     onChange={(e) => handleSelectTest(e.target.value)}
                     style={{

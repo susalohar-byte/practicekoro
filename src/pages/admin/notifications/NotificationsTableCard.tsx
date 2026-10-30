@@ -50,6 +50,7 @@ export function NotificationsTableCard({ notificationsState }: NotificationsTabl
               <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 tracking-wider">
                 <th className="py-3 px-3 w-8 text-center">
                   <input
+                    aria-label="Select all rows"
                     type="checkbox"
                     checked={
                       selectedIds.length > 0 && selectedIds.length === filteredNotifications.length
@@ -108,6 +109,7 @@ export function NotificationsTableCard({ notificationsState }: NotificationsTabl
                           onClick={(e) => handleToggleRow(row.id, e)}
                         >
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => {}}
@@ -222,6 +224,7 @@ export function NotificationsTableCard({ notificationsState }: NotificationsTabl
                         >
                           <div className="relative inline-block text-left">
                             <button
+                              aria-label="More actions"
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -373,6 +376,7 @@ export function NotificationsTableCard({ notificationsState }: NotificationsTabl
 
             <div className="relative ml-2">
               <select
+                aria-label="Rows per page"
                 value={rowsPerPage}
                 onChange={(e) => {
                   setRowsPerPage(Number(e.target.value));

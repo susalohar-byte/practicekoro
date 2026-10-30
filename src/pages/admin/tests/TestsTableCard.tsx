@@ -108,6 +108,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                 <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#070D1E]/60 text-slate-700 dark:text-slate-300 font-bold text-xs">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={pagedTests.length > 0 && selectedTestIds.size === pagedTests.length}
                       onChange={toggleSelectAll}
@@ -165,6 +166,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                         {/* Checkbox */}
                         <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={isChecked}
                             onChange={(e) => toggleSelectTest(t.id, e)}
@@ -259,6 +261,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
+                            aria-label="More actions"
                             type="button"
                             onClick={() =>
                               setOpenActionMenuId(openActionMenuId === t.id ? null : t.id)
@@ -379,6 +382,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <button
+                  aria-label="Previous page"
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -410,6 +414,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                 )}
 
                 <button
+                  aria-label="Next page"
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -421,6 +426,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
 
               {/* Page Size Dropdown */}
               <select
+                aria-label="Rows per page"
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));

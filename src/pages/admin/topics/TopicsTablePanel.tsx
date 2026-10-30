@@ -43,6 +43,7 @@ export function TopicsTablePanel({ tp }: TopicsTablePanelProps) {
                 <tr className="border-b border-slate-100 dark:border-slate-800/80 text-slate-400 font-medium">
                   <th className="py-3 px-3 w-10 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         selectedTopicIds.size > 0 &&
@@ -113,6 +114,7 @@ export function TopicsTablePanel({ tp }: TopicsTablePanelProps) {
               {/* Numbered Page Buttons */}
               <div className="flex items-center gap-1">
                 <button
+                  aria-label="Previous page"
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -144,6 +146,7 @@ export function TopicsTablePanel({ tp }: TopicsTablePanelProps) {
                 )}
 
                 <button
+                  aria-label="Next page"
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -155,6 +158,7 @@ export function TopicsTablePanel({ tp }: TopicsTablePanelProps) {
 
               {/* Page Size Dropdown */}
               <select
+                aria-label="Rows per page"
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));

@@ -25,6 +25,7 @@ export function AuditLogDetailsPanel({ al }: AuditLogDetailsPanelProps) {
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <h2 className="text-sm font-bold text-slate-900">Log Details</h2>
             <button
+              aria-label="Close"
               onClick={() => {
                 setIsDetailsPanelOpen(false);
                 setSelectedLogId('');

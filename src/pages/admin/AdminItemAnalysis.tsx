@@ -400,6 +400,7 @@ export const AdminItemAnalysis: React.FC = () => {
 
           <div>
             <select
+              aria-label="Filter by subject"
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -415,6 +416,7 @@ export const AdminItemAnalysis: React.FC = () => {
 
           <div>
             <select
+              aria-label="Filter by topic or chapter"
               value={selectedChapterId}
               onChange={(e) => setSelectedChapterId(e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -502,13 +504,13 @@ export const AdminItemAnalysis: React.FC = () => {
                         </span>
                       )}
                       {item.isHighFailure && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white flex items-center gap-1 animate-pulse">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-700 text-white flex items-center gap-1 animate-pulse">
                           <AlertTriangle className="w-3 h-3" />
                           ⚠️ {item.failureRate}% Failed (High Error Rate)
                         </span>
                       )}
                       {item.isTimeTrap && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-700 text-white flex items-center gap-1">
                           <Clock className="w-3 h-3" />⏳ {formatAvgTime(item.avgTimeSpentSeconds)}{' '}
                           Avg (Time Trap)
                         </span>

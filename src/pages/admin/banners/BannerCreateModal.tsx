@@ -39,6 +39,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
                 </p>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
@@ -54,6 +55,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
               <div>
                 <label className="block text-slate-600 font-medium mb-1">Banner Title *</label>
                 <input
+                  aria-label="Banner Title"
                   type="text"
                   required
                   placeholder="e.g. WBP Constable Special Mock Series"
@@ -68,6 +70,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
                   Description / Subtitle
                 </label>
                 <input
+                  aria-label="Description / Subtitle"
                   type="text"
                   placeholder="e.g. 50+ Full Mock Tests with Instant Rank"
                   value={newBannerData.subtitle}
@@ -86,6 +89,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
                 <div>
                   <label className="block text-slate-600 font-medium mb-1">Type</label>
                   <select
+                    aria-label="Type"
                     value={newBannerData.bannerType}
                     onChange={(e) =>
                       setNewBannerData((prev) => ({
@@ -106,6 +110,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
                 <div>
                   <label className="block text-slate-600 font-medium mb-1">Status</label>
                   <select
+                    aria-label="Status"
                     value={newBannerData.status}
                     onChange={(e) =>
                       setNewBannerData((prev) => ({
@@ -196,6 +201,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
                     </p>
                   </div>
                   <input
+                    aria-label="Optional Text Overlay"
                     type="checkbox"
                     checked={Boolean(newBannerData.showTextOverlay)}
                     onChange={(e) =>
@@ -212,6 +218,7 @@ export function BannerCreateModal({ bn }: BannerCreateModalProps) {
               <div>
                 <label className="block text-slate-600 font-medium mb-1">Target Link URL</label>
                 <input
+                  aria-label="Target Link URL"
                   type="text"
                   placeholder="/test-series/wbp"
                   value={newBannerData.linkUrl}

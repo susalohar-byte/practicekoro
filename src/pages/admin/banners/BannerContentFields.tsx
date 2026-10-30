@@ -57,6 +57,7 @@ export function BannerContentFields({ bn, editFormData }: BannerContentFieldsPro
       <div>
         <label className="block text-slate-600 font-medium mb-1">Title</label>
         <input
+          aria-label="Title"
           type="text"
           value={editFormData.title}
           onChange={(e) =>
@@ -70,6 +71,7 @@ export function BannerContentFields({ bn, editFormData }: BannerContentFieldsPro
       <div>
         <label className="block text-slate-600 font-medium mb-1">Description</label>
         <input
+          aria-label="Description"
           type="text"
           value={editFormData.description}
           onChange={(e) =>
@@ -152,6 +154,7 @@ export function BannerContentFields({ bn, editFormData }: BannerContentFieldsPro
             </p>
           </div>
           <input
+            aria-label="Optional Text Overlay"
             type="checkbox"
             checked={Boolean(editFormData.showTextOverlay)}
             onChange={(e) =>
@@ -170,6 +173,7 @@ export function BannerContentFields({ bn, editFormData }: BannerContentFieldsPro
                 Badge Text (Optional)
               </label>
               <input
+                aria-label="Badge Text (Optional)"
                 type="text"
                 value={editFormData.badgeText || ''}
                 placeholder="e.g. SPECIAL OFFER"
@@ -184,6 +188,7 @@ export function BannerContentFields({ bn, editFormData }: BannerContentFieldsPro
                 CTA Button Text (Optional)
               </label>
               <input
+                aria-label="CTA Button Text (Optional)"
                 type="text"
                 value={editFormData.ctaText || ''}
                 placeholder="e.g. Start Practicing"

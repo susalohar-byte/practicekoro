@@ -55,6 +55,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                 </p>
               </div>
               <button
+                aria-label="Close"
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -79,6 +80,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                       Exam Title *
                     </label>
                     <input
+                      aria-label="Exam Title"
                       type="text"
                       required
                       placeholder="e.g. WBP Constable"
@@ -103,6 +105,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                       Short Name
                     </label>
                     <input
+                      aria-label="Short Name"
                       type="text"
                       placeholder="e.g. WBP"
                       value={formShortName}
@@ -119,6 +122,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                       Category *
                     </label>
                     <select
+                      aria-label="Category"
                       value={formCategory}
                       onChange={(e) => setFormCategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] focus:ring-2 focus:ring-[#026BFC]/20 focus:border-[#026BFC] outline-hidden text-xs"
@@ -141,6 +145,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                       URL Slug
                     </label>
                     <input
+                      aria-label="URL Slug"
                       type="text"
                       placeholder="e.g. wbp-constable"
                       value={formSlug}
@@ -156,6 +161,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                     Full Subtitle / Board Name
                   </label>
                   <input
+                    aria-label="Full Subtitle / Board Name"
                     type="text"
                     placeholder="e.g. West Bengal Police Constable"
                     value={formSubtitle}

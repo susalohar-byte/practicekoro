@@ -45,6 +45,7 @@ export function BannerTablePanel({ bn }: BannerTablePanelProps) {
               <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-3 w-8 text-center">
                   <input
+                    aria-label="Select all rows"
                     type="checkbox"
                     className="rounded border-slate-300 text-[#026BFC] focus:ring-0"
                   />
@@ -109,6 +110,7 @@ export function BannerTablePanel({ bn }: BannerTablePanelProps) {
                       {/* Checkbox */}
                       <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
+                          aria-label="Select row"
                           type="checkbox"
                           className="rounded border-slate-300 text-[#026BFC] focus:ring-0"
                         />
@@ -249,6 +251,7 @@ export function BannerTablePanel({ bn }: BannerTablePanelProps) {
           <div className="flex items-center gap-2">
             {/* Previous Button */}
             <button
+              aria-label="Previous page"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -279,6 +282,7 @@ export function BannerTablePanel({ bn }: BannerTablePanelProps) {
 
             {/* Next Button */}
             <button
+              aria-label="Next page"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
               className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -288,6 +292,7 @@ export function BannerTablePanel({ bn }: BannerTablePanelProps) {
 
             {/* Page Size Select */}
             <select
+              aria-label="Rows per page"
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));

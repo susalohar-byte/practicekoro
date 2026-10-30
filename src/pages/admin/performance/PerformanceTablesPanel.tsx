@@ -198,6 +198,7 @@ export function PerformanceTablesPanel({ perf }: PerformanceTablesPanelProps) {
             />
             {tableSearch && (
               <button
+                aria-label="Close"
                 type="button"
                 onClick={() => setTableSearch('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
@@ -214,6 +215,7 @@ export function PerformanceTablesPanel({ perf }: PerformanceTablesPanelProps) {
             </div>
             <div className="relative">
               <select
+                aria-label="Filter by subject"
                 value={tableSubjectFilter}
                 onChange={(e) => setTableSubjectFilter(e.target.value)}
                 className="bg-white border border-[#E2E8F0] rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 pr-8 appearance-none focus:outline-none focus:border-blue-500"

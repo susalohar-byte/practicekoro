@@ -44,6 +44,7 @@ export function BlogPostDetailsDrawer({ blogState }: BlogPostDetailsDrawerProps)
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <h2 className="text-base font-bold text-slate-900">Post Details</h2>
             <button
+              aria-label="Close"
               onClick={() => {
                 setIsDrawerOpen(false);
                 setSelectedPostId(null);

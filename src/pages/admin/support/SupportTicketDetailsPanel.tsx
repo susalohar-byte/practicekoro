@@ -195,6 +195,7 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
                   </div>
 
                   <button
+                    aria-label={`Download ${att.name}`}
                     onClick={() => showToast(`Downloaded ${att.name}`)}
                     className="text-slate-400 hover:text-slate-700 p-1 rounded cursor-pointer"
                   >
@@ -224,7 +225,10 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
                   </div>
 
                   {msg.sender === 'support' && (
-                    <button className="text-slate-400 hover:text-slate-600">
+                    <button
+                      aria-label="More actions"
+                      className="text-slate-400 hover:text-slate-600"
+                    >
                       <MoreHorizontal className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -292,6 +296,7 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
               <div className="bg-slate-50/60 border-t border-slate-100 px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-400">
                   <button
+                    aria-label="Attach file"
                     type="button"
                     onClick={() => showToast('Attachment picker opened')}
                     className="hover:text-slate-700 p-1 rounded cursor-pointer"
@@ -299,6 +304,7 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
                     <Paperclip className="w-3.5 h-3.5" />
                   </button>
                   <button
+                    aria-label="Insert image"
                     type="button"
                     onClick={() => showToast('Image uploader opened')}
                     className="hover:text-slate-700 p-1 rounded cursor-pointer"
@@ -306,6 +312,7 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
                     <ImageIcon className="w-3.5 h-3.5" />
                   </button>
                   <button
+                    aria-label="Insert link"
                     type="button"
                     onClick={() => showToast('Insert link')}
                     className="hover:text-slate-700 p-1 rounded cursor-pointer"
@@ -313,6 +320,7 @@ export function SupportTicketDetailsPanel({ supportState }: SupportTicketDetails
                     <LinkIcon className="w-3.5 h-3.5" />
                   </button>
                   <button
+                    aria-label="Insert emoji"
                     type="button"
                     onClick={() => showToast('Emoji picker')}
                     className="hover:text-slate-700 p-1 rounded cursor-pointer"

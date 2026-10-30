@@ -29,6 +29,7 @@ export function CutoffFilterToolbar({ co }: CutoffFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-600 mb-1.5 block">Select Exam</label>
           <div className="relative">
             <select
+              aria-label="Select Exam"
               value={filterExam}
               onChange={(e) => setFilterExam(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pr-8 cursor-pointer"
@@ -50,6 +51,7 @@ export function CutoffFilterToolbar({ co }: CutoffFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-600 mb-1.5 block">Year</label>
           <div className="relative">
             <select
+              aria-label="Year"
               value={filterYear}
               onChange={(e) => setFilterYear(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pr-8 cursor-pointer"
@@ -71,6 +73,7 @@ export function CutoffFilterToolbar({ co }: CutoffFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-600 mb-1.5 block">Category</label>
           <div className="relative">
             <select
+              aria-label="Category"
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pr-8 cursor-pointer"
@@ -94,6 +97,7 @@ export function CutoffFilterToolbar({ co }: CutoffFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-600 mb-1.5 block">Stage</label>
           <div className="relative">
             <select
+              aria-label="Stage"
               value={filterStage}
               onChange={(e) => setFilterStage(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pr-8 cursor-pointer"

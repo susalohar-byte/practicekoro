@@ -28,6 +28,7 @@ export function TopicGroupRows({ tp, group }: TopicGroupRowsProps) {
       >
         <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
           <input
+            aria-label="Select all rows"
             type="checkbox"
             checked={
               group.topics.length > 0 && group.topics.every((t) => selectedTopicIds.has(t.id))

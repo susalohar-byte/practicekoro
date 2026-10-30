@@ -27,6 +27,7 @@ export function LiveTestMonitorModal({ live }: LiveTestMonitorModalProps) {
                 </h2>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => setIsMonitorModalOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >

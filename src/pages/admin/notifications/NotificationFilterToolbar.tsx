@@ -47,7 +47,9 @@ export function NotificationFilterToolbar({ notificationsState }: NotificationFi
             <span
               className={cn(
                 'px-2 py-0.5 rounded-full text-[11px] font-semibold',
-                activeTab === 'All' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
+                activeTab === 'All'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {tabCounts.all}
@@ -73,7 +75,7 @@ export function NotificationFilterToolbar({ notificationsState }: NotificationFi
                 'px-2 py-0.5 rounded-full text-[11px] font-semibold',
                 activeTab === 'Scheduled'
                   ? 'bg-amber-100 text-amber-700'
-                  : 'bg-slate-100 text-slate-500'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {tabCounts.scheduled}
@@ -99,7 +101,7 @@ export function NotificationFilterToolbar({ notificationsState }: NotificationFi
                 'px-2 py-0.5 rounded-full text-[11px] font-semibold',
                 activeTab === 'Sent'
                   ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-500'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {tabCounts.sent}
@@ -123,7 +125,9 @@ export function NotificationFilterToolbar({ notificationsState }: NotificationFi
             <span
               className={cn(
                 'px-2 py-0.5 rounded-full text-[11px] font-semibold',
-                activeTab === 'Drafts' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                activeTab === 'Drafts'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {tabCounts.drafts}

@@ -42,6 +42,7 @@ export function BannerFilterToolbar({ bn }: BannerFilterToolbarProps) {
         {/* All Types Dropdown */}
         <div className="w-[130px]">
           <select
+            aria-label="Filter by type"
             value={selectedTypeFilter}
             onChange={(e) => setSelectedTypeFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"
@@ -58,6 +59,7 @@ export function BannerFilterToolbar({ bn }: BannerFilterToolbarProps) {
         {/* All Status Dropdown */}
         <div className="w-[125px]">
           <select
+            aria-label="Filter by status"
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"
@@ -73,6 +75,7 @@ export function BannerFilterToolbar({ bn }: BannerFilterToolbarProps) {
         {/* All Devices Dropdown */}
         <div className="w-[130px]">
           <select
+            aria-label="Filter by device"
             value={selectedDeviceFilter}
             onChange={(e) => setSelectedDeviceFilter(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 cursor-pointer focus:outline-none focus:border-[#026BFC]"

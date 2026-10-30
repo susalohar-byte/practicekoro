@@ -37,6 +37,7 @@ export function ExamFilterToolbar({ qb }: ExamFilterToolbarProps) {
 
           {/* All Categories Dropdown */}
           <select
+            aria-label="Filter by category"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
@@ -56,6 +57,7 @@ export function ExamFilterToolbar({ qb }: ExamFilterToolbarProps) {
 
           {/* All Status Dropdown */}
           <select
+            aria-label="Filter by status"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'published' | 'draft')}
             className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"

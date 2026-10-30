@@ -46,6 +46,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Student Registration */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.studentRegistration}
+                aria-label="Student Registration"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -80,6 +83,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Mock Tests */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.mockTests}
+                aria-label="Mock Tests"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -112,6 +118,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Topic Tests */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.topicTests}
+                aria-label="Topic Tests"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -144,6 +153,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Leaderboards */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.leaderboards}
+                aria-label="Leaderboards"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -176,6 +188,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Blog / Study Notes */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.blogStudyNotes}
+                aria-label="Blog / Study Notes"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -211,6 +226,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Paid Subscriptions */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.paidSubscriptions}
+                aria-label="Paid Subscriptions"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -245,6 +263,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Coupons & Offers */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.couponsOffers}
+                aria-label="Coupons & Offers"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -277,6 +298,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Notifications */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.notifications}
+                aria-label="Notifications"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -309,6 +333,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* Referral Program */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.referralProgram}
+                aria-label="Referral Program"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"
@@ -341,6 +368,9 @@ export function FeatureTogglesCard({ settings }: FeatureTogglesCardProps) {
             {/* App Download Links */}
             <div className="flex items-center gap-3">
               <button
+                role="switch"
+                aria-checked={featureToggles.appDownloadLinks}
+                aria-label="App Download Links"
                 type="button"
                 disabled
                 title="Feature enforcement is not implemented"

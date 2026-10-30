@@ -25,7 +25,12 @@ export function ExamCategoryPills({ qb }: ExamCategoryPillsProps) {
     <>
       {/* Category Pills Bar */}
       {categories.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div
+          role="region"
+          aria-label="Exam categories"
+          tabIndex={0}
+          className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
+        >
           {categories.map((cat, idx) => (
             <div
               key={cat}

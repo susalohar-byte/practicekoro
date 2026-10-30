@@ -67,6 +67,7 @@ export function LiveTestsTablePanel({ live }: LiveTestsTablePanelProps) {
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         paginatedTests.length > 0 &&
@@ -132,6 +133,7 @@ export function LiveTestsTablePanel({ live }: LiveTestsTablePanelProps) {
                           onClick={(e) => handleToggleSelectRow(test.id, e)}
                         >
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={selectedIds.has(test.id)}
                             onChange={() => {}}
@@ -394,6 +396,7 @@ export function LiveTestsTablePanel({ live }: LiveTestsTablePanelProps) {
 
             <div className="flex items-center gap-1">
               <button
+                aria-label="Previous page"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="p-1.5 rounded-md border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600"
@@ -423,6 +426,7 @@ export function LiveTestsTablePanel({ live }: LiveTestsTablePanelProps) {
               )}
 
               <button
+                aria-label="Next page"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="p-1.5 rounded-md border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600"
@@ -433,6 +437,7 @@ export function LiveTestsTablePanel({ live }: LiveTestsTablePanelProps) {
 
             <div>
               <select
+                aria-label="Rows per page"
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));

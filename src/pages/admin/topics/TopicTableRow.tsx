@@ -43,6 +43,7 @@ export function TopicTableRow({ tp, topic, tIdx }: TopicTableRowProps) {
       {/* Checkbox */}
       <td className="py-3.5 px-3 text-center" onClick={(evt) => evt.stopPropagation()}>
         <input
+          aria-label="Select row"
           type="checkbox"
           checked={isChecked}
           onChange={(evt) => toggleSelectRow(topic.id, evt as unknown as React.MouseEvent)}
@@ -113,6 +114,7 @@ export function TopicTableRow({ tp, topic, tIdx }: TopicTableRowProps) {
       {/* Actions Menu */}
       <td className="py-3.5 px-2.5 text-center relative" onClick={(evt) => evt.stopPropagation()}>
         <button
+          aria-label="More actions"
           type="button"
           onClick={() => setOpenActionMenuId(openActionMenuId === topic.id ? null : topic.id)}
           className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

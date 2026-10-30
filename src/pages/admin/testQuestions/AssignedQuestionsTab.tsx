@@ -222,6 +222,7 @@ export function AssignedQuestionsTab({ testQuestionsState, test }: AssignedQuest
                       </label>
                       <div className="flex items-center gap-1.5 justify-end">
                         <input
+                          aria-label="Marks"
                           type="number"
                           step="0.25"
                           min="0"

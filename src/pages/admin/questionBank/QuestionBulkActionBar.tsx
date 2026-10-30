@@ -45,7 +45,7 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <button
               type="button"
               onClick={() => handleBulkStatusChange('archived')}
-              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600 cursor-pointer"
+              className="px-3 py-1.5 bg-amber-700 text-white rounded-lg text-xs font-bold hover:bg-amber-800 cursor-pointer"
             >
               Archive
             </button>

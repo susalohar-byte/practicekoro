@@ -58,8 +58,8 @@ export function WrongQuestionsTable({ data, perf }: WrongQuestionsTableProps) {
                     className={cn(
                       'w-6 h-6 rounded-full inline-flex items-center justify-center font-black text-[11px] shadow-2xs',
                       Number(q.id) === 1 && 'bg-rose-600 text-white',
-                      Number(q.id) === 2 && 'bg-rose-500 text-white',
-                      Number(q.id) === 3 && 'bg-amber-500 text-white',
+                      Number(q.id) === 2 && 'bg-rose-600 text-white',
+                      Number(q.id) === 3 && 'bg-amber-700 text-white',
                       Number(q.id) > 3 && 'bg-slate-100 text-slate-700'
                     )}
                   >
@@ -76,7 +76,7 @@ export function WrongQuestionsTable({ data, perf }: WrongQuestionsTableProps) {
                     </p>
                   )}
                   {q.chapter && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#64748B] bg-slate-100 px-1.5 py-0.5 rounded mt-1">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded mt-1">
                       <BookOpen className="w-2.5 h-2.5" />
                       {q.chapter}
                     </span>

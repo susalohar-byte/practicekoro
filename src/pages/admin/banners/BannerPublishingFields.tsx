@@ -23,6 +23,7 @@ export function BannerPublishingFields({ bn, editFormData }: BannerPublishingFie
       <div>
         <label className="block text-slate-600 font-medium mb-1">Type</label>
         <select
+          aria-label="Type"
           value={editFormData.bannerType}
           onChange={(e) =>
             setEditFormData((prev) =>
@@ -48,6 +49,7 @@ export function BannerPublishingFields({ bn, editFormData }: BannerPublishingFie
       <div>
         <label className="block text-slate-600 font-medium mb-1">Link URL</label>
         <input
+          aria-label="Link URL"
           type="text"
           value={editFormData.linkUrl}
           onChange={(e) =>
@@ -61,6 +63,7 @@ export function BannerPublishingFields({ bn, editFormData }: BannerPublishingFie
       <div>
         <label className="block text-slate-600 font-medium mb-1">Open In</label>
         <select
+          aria-label="Open In"
           value={editFormData.openIn}
           onChange={(e) =>
             setEditFormData((prev) =>
@@ -127,6 +130,7 @@ export function BannerPublishingFields({ bn, editFormData }: BannerPublishingFie
       <div>
         <label className="block text-slate-600 font-medium mb-1">Status</label>
         <select
+          aria-label="Status"
           value={editFormData.status}
           onChange={(e) =>
             setEditFormData((prev) =>
@@ -151,6 +155,7 @@ export function BannerPublishingFields({ bn, editFormData }: BannerPublishingFie
       <div>
         <label className="block text-slate-600 font-medium mb-1">Display Order</label>
         <input
+          aria-label="Display Order"
           type="number"
           value={editFormData.order}
           onChange={(e) =>

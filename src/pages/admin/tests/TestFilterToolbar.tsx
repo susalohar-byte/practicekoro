@@ -43,6 +43,7 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
 
           {/* All Exams Dropdown */}
           <select
+            aria-label="Filter by exam"
             value={selectedExamId}
             onChange={(e) => setSelectedExamId(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
@@ -57,6 +58,7 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
 
           {/* All Subjects Dropdown */}
           <select
+            aria-label="Filter by subject"
             value={selectedSubjectId}
             onChange={(e) => {
               setSelectedSubjectId(e.target.value);
@@ -74,6 +76,7 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
 
           {/* All Topics Dropdown */}
           <select
+            aria-label="Filter by topic"
             value={selectedChapterId}
             onChange={(e) => setSelectedChapterId(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
@@ -88,6 +91,7 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
 
           {/* All Status Dropdown */}
           <select
+            aria-label="Filter by status"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"

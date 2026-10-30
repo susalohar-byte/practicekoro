@@ -63,6 +63,7 @@ export function ThemeBrandingCard({ settings }: ThemeBrandingCardProps) {
               <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-2.5">
                   <input
+                    aria-label="Primary Color"
                     disabled={!canManageSettings || isSaving}
                     type="color"
                     value={primaryColor}
@@ -85,6 +86,7 @@ export function ThemeBrandingCard({ settings }: ThemeBrandingCardProps) {
               <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-2.5">
                   <input
+                    aria-label="Secondary Color"
                     disabled={!canManageSettings || isSaving}
                     type="color"
                     value={secondaryColor}
@@ -107,6 +109,7 @@ export function ThemeBrandingCard({ settings }: ThemeBrandingCardProps) {
               <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-2.5">
                   <input
+                    aria-label="Accent Color"
                     disabled={!canManageSettings || isSaving}
                     type="color"
                     value={accentColor}

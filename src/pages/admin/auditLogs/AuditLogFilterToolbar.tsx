@@ -44,6 +44,7 @@ export function AuditLogFilterToolbar({ al }: AuditLogFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-400 block mb-1">Admin</label>
           <div className="relative">
             <select
+              aria-label="Admin"
               value={filterAdmin}
               onChange={(e) => setFilterAdmin(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -64,6 +65,7 @@ export function AuditLogFilterToolbar({ al }: AuditLogFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-400 block mb-1">Action</label>
           <div className="relative">
             <select
+              aria-label="Action"
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -86,6 +88,7 @@ export function AuditLogFilterToolbar({ al }: AuditLogFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-400 block mb-1">Resource</label>
           <div className="relative">
             <select
+              aria-label="Resource"
               value={filterResource}
               onChange={(e) => setFilterResource(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -112,6 +115,7 @@ export function AuditLogFilterToolbar({ al }: AuditLogFilterToolbarProps) {
           <label className="text-[11px] font-medium text-slate-400 block mb-1">Severity</label>
           <div className="relative">
             <select
+              aria-label="Severity"
               value={filterSeverity}
               onChange={(e) => setFilterSeverity(e.target.value)}
               className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"

@@ -123,7 +123,7 @@ export const ExamRelatedTests: React.FC<{ examId: string }> = ({ examId }) => {
                         'text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0',
                         t.status === 'published'
                           ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40'
-                          : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                       )}
                     >
                       {t.status === 'published'

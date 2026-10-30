@@ -38,6 +38,7 @@ export function SubscriptionFilterToolbar({ subscriptionsState }: SubscriptionFi
         {/* All Plans */}
         <div className="relative min-w-[130px]">
           <select
+            aria-label="Filter by plan"
             value={filterPlan}
             onChange={(e) => setFilterPlan(e.target.value)}
             className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -55,6 +56,7 @@ export function SubscriptionFilterToolbar({ subscriptionsState }: SubscriptionFi
         {/* All Status */}
         <div className="relative min-w-[120px]">
           <select
+            aria-label="Filter by status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"
@@ -69,6 +71,7 @@ export function SubscriptionFilterToolbar({ subscriptionsState }: SubscriptionFi
         {/* All Payment Methods */}
         <div className="relative min-w-[160px]">
           <select
+            aria-label="Filter by payment method"
             value={filterMethod}
             onChange={(e) => setFilterMethod(e.target.value)}
             className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 bg-white pr-7 cursor-pointer focus:outline-none"

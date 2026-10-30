@@ -116,6 +116,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                           }}
                         >
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
@@ -229,6 +230,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                         >
                           <div className="relative inline-block text-left">
                             <button
+                              aria-label="More actions"
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -385,6 +387,7 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
 
               {/* Page Size Select */}
               <select
+                aria-label="Rows per page"
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));

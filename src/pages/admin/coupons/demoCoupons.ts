@@ -144,7 +144,7 @@ export const INITIAL_COUPONS: CouponRowItem[] = [
     validFrom: '01 Aug 2026',
     validUntil: '31 Aug 2026',
     status: 'Expired',
-    statusBadgeClass: 'bg-slate-100 text-slate-500',
+    statusBadgeClass: 'bg-slate-100 text-slate-600 dark:text-slate-400',
     description: 'Campaign period ended.',
   },
   {

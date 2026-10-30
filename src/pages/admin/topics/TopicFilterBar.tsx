@@ -39,6 +39,7 @@ export function TopicFilterBar({ tp }: TopicFilterBarProps) {
 
           {/* All Subjects Dropdown */}
           <select
+            aria-label="Filter by subject"
             value={selectedSubjectFilter}
             onChange={(e) => {
               setSelectedSubjectFilter(e.target.value);
@@ -59,6 +60,7 @@ export function TopicFilterBar({ tp }: TopicFilterBarProps) {
 
           {/* All Status Dropdown */}
           <select
+            aria-label="Filter by status"
             value={selectedStatusFilter}
             onChange={(e) =>
               setSelectedStatusFilter(e.target.value as 'all' | 'published' | 'draft')

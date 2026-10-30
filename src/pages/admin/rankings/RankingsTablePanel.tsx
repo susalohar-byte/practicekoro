@@ -42,7 +42,7 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
     <>
       {/* ==================== LEFT: RANKINGS TABLE ==================== */}
       <div className="flex-1 w-full min-w-0 bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Rankings table" tabIndex={0} className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
@@ -191,6 +191,7 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
+                          aria-label="More actions"
                           onClick={() =>
                             setOpenActionRank(openActionRank === student.rank ? null : student.rank)
                           }
@@ -260,6 +261,7 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
           {/* Pagination Controls */}
           <div className="flex items-center gap-1">
             <button
+              aria-label="Previous page"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="w-8 h-8 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#64748B] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -289,6 +291,7 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
             )}
 
             <button
+              aria-label="Next page"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               className="w-8 h-8 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#64748B] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
@@ -300,6 +303,7 @@ export function RankingsTablePanel({ rk }: RankingsTablePanelProps) {
           {/* Page Size Select */}
           <div className="relative">
             <select
+              aria-label="Rows per page"
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));

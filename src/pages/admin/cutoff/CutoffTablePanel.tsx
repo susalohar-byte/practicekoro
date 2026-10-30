@@ -126,6 +126,7 @@ export function CutoffTablePanel({ co }: CutoffTablePanelProps) {
                           >
                             <div className="relative inline-block text-left">
                               <button
+                                aria-label="More actions"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveMenuId(activeMenuId === row.id ? null : row.id);
@@ -201,6 +202,7 @@ export function CutoffTablePanel({ co }: CutoffTablePanelProps) {
 
             <div className="flex items-center gap-1.5">
               <button
+                aria-label="Previous page"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -241,6 +243,7 @@ export function CutoffTablePanel({ co }: CutoffTablePanelProps) {
               <span className="px-1 text-slate-400">...</span>
 
               <button
+                aria-label="Next page"
                 onClick={() => setCurrentPage((p) => p + 1)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
               >
@@ -249,6 +252,7 @@ export function CutoffTablePanel({ co }: CutoffTablePanelProps) {
 
               <div className="relative ml-2">
                 <select
+                  aria-label="Rows per page"
                   value={rowsPerPage}
                   onChange={(e) => setRowsPerPage(Number(e.target.value))}
                   className="appearance-none border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"

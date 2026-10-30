@@ -60,6 +60,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
               <tr className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-3 w-8 text-center">
                   <input
+                    aria-label="Select all rows"
                     type="checkbox"
                     checked={
                       paginatedPosts.length > 0 &&
@@ -142,6 +143,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
                         onClick={(e) => handleToggleSelectRow(post.id, e)}
                       >
                         <input
+                          aria-label="Select row"
                           type="checkbox"
                           checked={selectedIds.has(post.id)}
                           onChange={() => {}}
@@ -272,6 +274,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
                       {/* Actions Three-Dot Menu */}
                       <td className="py-3.5 px-3 text-right relative action-menu-container">
                         <button
+                          aria-label="More actions"
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveMenuId(activeMenuId === post.id ? null : post.id);
@@ -357,6 +360,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
 
           <div className="flex items-center gap-1">
             <button
+              aria-label="Previous page"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               className="p-1.5 rounded-md border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600"
@@ -386,6 +390,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
             )}
 
             <button
+              aria-label="Next page"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               className="p-1.5 rounded-md border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600"
@@ -396,6 +401,7 @@ export function BlogPostsTableCard({ blogState }: BlogPostsTableCardProps) {
 
           <div>
             <select
+              aria-label="Rows per page"
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));

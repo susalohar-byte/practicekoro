@@ -38,6 +38,7 @@ export function ExamTablePanel({ qb }: ExamTablePanelProps) {
                 <tr className="border-b border-slate-100 dark:border-slate-800/80 text-slate-400 font-medium">
                   <th className="py-3 px-3 w-10 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         selectedExamIds.size > 0 && selectedExamIds.size === pagedExams.length
@@ -83,6 +84,7 @@ export function ExamTablePanel({ qb }: ExamTablePanelProps) {
               {/* Numbered Page Buttons */}
               <div className="flex items-center gap-1">
                 <button
+                  aria-label="Previous page"
                   type="button"
                   disabled={!paginationRange.hasPreviousPage}
                   onClick={() => setCurrentPage(paginationRange.currentPage - 1)}
@@ -114,6 +116,7 @@ export function ExamTablePanel({ qb }: ExamTablePanelProps) {
                 )}
 
                 <button
+                  aria-label="Next page"
                   type="button"
                   disabled={!paginationRange.hasNextPage}
                   onClick={() => setCurrentPage(paginationRange.currentPage + 1)}
@@ -125,6 +128,7 @@ export function ExamTablePanel({ qb }: ExamTablePanelProps) {
 
               {/* Page Size Dropdown */}
               <select
+                aria-label="Rows per page"
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));

@@ -50,6 +50,7 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
               </label>
               <div className="relative">
                 <select
+                  aria-label="SMTP provider"
                   disabled={!canManageSettings || isSaving}
                   value={smtpProvider}
                   onChange={(e) => setSmtpProvider(e.target.value)}
@@ -98,6 +99,7 @@ export function SmtpSettingsCard({ settings }: SmtpSettingsCardProps) {
               </label>
               <div className="relative">
                 <select
+                  aria-label="Encryption"
                   disabled={!canManageSettings || isSaving}
                   value={smtpEncryption}
                   onChange={(e) => setSmtpEncryption(e.target.value)}

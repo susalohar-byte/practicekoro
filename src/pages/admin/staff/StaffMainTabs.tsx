@@ -31,7 +31,7 @@ export function StaffMainTabs({ st }: StaffMainTabsProps) {
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
                 activeMainTab === 'Roles & Permissions'
                   ? 'bg-blue-100 text-blue-700'
-                  : 'bg-slate-100 text-slate-500'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {stats.totalRoles}
@@ -57,7 +57,7 @@ export function StaffMainTabs({ st }: StaffMainTabsProps) {
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
                 activeMainTab === 'Admin Users'
                   ? 'bg-blue-100 text-blue-700'
-                  : 'bg-slate-100 text-slate-500'
+                  : 'bg-slate-100 text-slate-600 dark:text-slate-400'
               )}
             >
               {stats.total}

@@ -42,6 +42,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
+              aria-label="Search Student"
               type="text"
               value={searchQuery}
               onChange={(e) => {
@@ -59,6 +60,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Select Exam</label>
           <div className="relative">
             <select
+              aria-label="Select Exam"
               value={selectedExam}
               onChange={(e) => setSelectedExam(e.target.value)}
               className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7 truncate"
@@ -90,6 +92,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
           </label>
           <div className="relative">
             <select
+              aria-label="Select Subject"
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
               disabled={scopeTab === 'Live Tests'}
@@ -124,6 +127,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
           </label>
           <div className="relative">
             <select
+              aria-label="Select Test Type"
               value={selectedTestType}
               onChange={(e) => setSelectedTestType(e.target.value)}
               className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7"
@@ -147,6 +151,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
             </label>
             <div className="relative">
               <select
+                aria-label="Select Live Test"
                 value={selectedLiveTestId}
                 onChange={(e) => {
                   setSelectedLiveTestId(e.target.value);
@@ -171,6 +176,7 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
           <label className="block text-[11px] font-semibold text-[#64748B] mb-1">Time Period</label>
           <div className="relative">
             <select
+              aria-label="Time Period"
               value={timePeriod}
               onChange={(e) => setTimePeriod(e.target.value)}
               className="w-full appearance-none bg-white border border-[#E2E8F0] rounded-xl px-3 py-2 text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#2563EB] cursor-pointer pr-7"

@@ -84,6 +84,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
               {/* All Roles */}
               <div className="relative min-w-[130px]">
                 <select
+                  aria-label="Filter by role"
                   value={filterRole}
                   onChange={(e) => {
                     setFilterRole(e.target.value);
@@ -104,6 +105,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
               {/* All Status */}
               <div className="relative min-w-[120px]">
                 <select
+                  aria-label="Filter by status"
                   value={filterStatus}
                   onChange={(e) => {
                     setFilterStatus(e.target.value);
@@ -135,6 +137,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
                 <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 tracking-wider">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         selectedIds.length > 0 && selectedIds.length === filteredAdmins.length
@@ -177,6 +180,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
                           onClick={(e) => handleToggleRow(row.id, e)}
                         >
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => {}}
@@ -263,6 +267,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
                         >
                           <div className="relative inline-block text-left">
                             <button
+                              aria-label="More actions"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveMenuId(activeMenuId === row.id ? null : row.id);
@@ -373,6 +378,7 @@ export function StaffUsersTablePanel({ st }: StaffUsersTablePanelProps) {
 
               <div className="relative ml-2">
                 <select
+                  aria-label="Rows per page"
                   value={rowsPerPage}
                   onChange={(e) => {
                     setRowsPerPage(Number(e.target.value));

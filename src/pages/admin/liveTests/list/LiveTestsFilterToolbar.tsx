@@ -42,6 +42,7 @@ export function LiveTestsFilterToolbar({ live }: LiveTestsFilterToolbarProps) {
 
             {/* Exam Dropdown */}
             <select
+              aria-label="Filter by exam"
               value={examFilter}
               onChange={(e) => {
                 setExamFilter(e.target.value);
@@ -59,6 +60,7 @@ export function LiveTestsFilterToolbar({ live }: LiveTestsFilterToolbarProps) {
 
             {/* Status Dropdown */}
             <select
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -77,6 +79,7 @@ export function LiveTestsFilterToolbar({ live }: LiveTestsFilterToolbarProps) {
             <div className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg text-slate-600">
               <Calendar className="w-4 h-4 text-slate-400" />
               <input
+                aria-label="Date range"
                 type="text"
                 value={dateRangeFilter}
                 onChange={(e) => setDateRangeFilter(e.target.value)}

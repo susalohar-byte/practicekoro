@@ -52,6 +52,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
                 <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 tracking-wider">
                   <th className="py-3 px-3 w-8 text-center">
                     <input
+                      aria-label="Select all rows"
                       type="checkbox"
                       checked={
                         selectedCheckboxes.length > 0 &&
@@ -101,6 +102,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
                           onClick={(e) => handleToggleRow(row.id, e)}
                         >
                           <input
+                            aria-label="Select row"
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => {}}
@@ -204,6 +206,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
                         >
                           <div className="relative inline-block text-left">
                             <button
+                              aria-label="More actions"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveMenuId(activeMenuId === row.id ? null : row.id);
@@ -271,6 +274,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
 
             <div className="flex items-center gap-1.5">
               <button
+                aria-label="Previous page"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -311,6 +315,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
               <span className="px-1 text-slate-400">...</span>
 
               <button
+                aria-label="Next page"
                 onClick={() => setCurrentPage((p) => p + 1)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
               >
@@ -319,6 +324,7 @@ export function SubscriptionsTableCard({ subscriptionsState }: SubscriptionsTabl
 
               <div className="relative ml-2">
                 <select
+                  aria-label="Rows per page"
                   value={rowsPerPage}
                   onChange={(e) => setRowsPerPage(Number(e.target.value))}
                   className="appearance-none border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 bg-white pr-6 cursor-pointer focus:outline-none"
