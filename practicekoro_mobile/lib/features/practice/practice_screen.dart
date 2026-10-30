@@ -266,6 +266,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                                         ),
                                         suffixIcon: _searchQuery.isNotEmpty
                                             ? IconButton(
+                                                tooltip: 'Clear search',
                                                 icon: const Icon(
                                                   Icons.clear_rounded,
                                                   size: 18,
@@ -929,7 +930,7 @@ class _TopicSearchResultCard extends StatelessWidget {
                           child: const Text(
                             'Weak',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFFEF4444),
                             ),
@@ -968,7 +969,7 @@ class _TopicSearchResultCard extends StatelessWidget {
                         child: Text(
                           subjectName,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: subjectColor,
                           ),

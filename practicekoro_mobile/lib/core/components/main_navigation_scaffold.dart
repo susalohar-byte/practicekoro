@@ -94,7 +94,7 @@ class _NavItem extends StatelessWidget {
                 overflow: TextOverflow.fade,
                 softWrap: false,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: selected ? Colors.white : UI.muted,
                 ),

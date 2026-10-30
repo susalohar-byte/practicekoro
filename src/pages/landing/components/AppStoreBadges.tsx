@@ -1,4 +1,5 @@
 import React from 'react';
+import { APK_ARM64 } from './apkDownloads';
 
 interface AppBadgeProps {
   className?: string;
@@ -14,8 +15,8 @@ export const GooglePlayBadge: React.FC<AppBadgeProps> = ({ className = '', size 
 
   return (
     <a
-      href="/PracticeKoro.apk"
-      download="PracticeKoro.apk"
+      href={APK_ARM64.href}
+      download={APK_ARM64.file}
       aria-label="Download Practice Koro for Android on Google Play"
       className={`inline-flex items-center gap-2.5 bg-black hover:bg-slate-900 active:scale-95 text-white rounded-xl font-medium shadow-md transition-all border border-slate-700/60 group cursor-pointer ${sizeClasses[size]} ${className}`}
     >

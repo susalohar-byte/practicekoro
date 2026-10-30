@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, BarChart3, BookOpen, Crown } from 'lucide-react';
 import { GooglePlayBadge } from './AppStoreBadges';
+import { APK_ARM64, APK_UNIVERSAL } from './apkDownloads';
 import { Reveal, RevealGroup, fadeUp, popIn } from './Reveal';
 
 const FEATURES = [
@@ -155,6 +156,16 @@ export const AppDownloadBanner: React.FC = () => {
             >
               <GooglePlayBadge size="lg" />
             </motion.div>
+            <p className="mt-3 text-[13px] text-white/75">
+              {APK_ARM64.size}
+              <a
+                href={APK_UNIVERSAL.href}
+                download={APK_UNIVERSAL.file}
+                className="flex min-h-11 items-center underline hover:text-white"
+              >
+                পুরনো ফোনে ইনস্টল না হলে সম্পূর্ণ ভার্সন ({APK_UNIVERSAL.size})
+              </a>
+            </p>
           </RevealGroup>
         </Reveal>
       </div>

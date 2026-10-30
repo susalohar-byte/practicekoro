@@ -215,6 +215,7 @@ class _ExamListScreenState extends ConsumerState<ExamListScreen> {
               ),
               if (_query.isNotEmpty)
                 IconButton(
+                  tooltip: 'Clear search',
                   icon: const Icon(
                     Icons.close_rounded,
                     size: 20,

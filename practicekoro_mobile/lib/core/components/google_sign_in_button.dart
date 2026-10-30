@@ -176,7 +176,7 @@ class AuthOrDivider extends StatelessWidget {
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: UI.muted,
               letterSpacing: 0.5,

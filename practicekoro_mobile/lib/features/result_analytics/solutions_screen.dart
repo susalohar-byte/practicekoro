@@ -186,6 +186,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           leading: IconButton(
+            tooltip: 'Back',
             icon: const Icon(Icons.chevron_left_rounded, size: 28),
             onPressed: () {
               if (GoRouter.of(context).canPop()) {
@@ -221,6 +222,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
             appBar: AppBar(
               backgroundColor: Colors.white,
               leading: IconButton(
+                tooltip: 'Back',
                 icon: const Icon(Icons.chevron_left_rounded, size: 28),
                 onPressed: () {
                   if (GoRouter.of(context).canPop()) {
@@ -268,6 +270,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                 appBar: AppBar(
                   backgroundColor: Colors.white,
                   leading: IconButton(
+                    tooltip: 'Back',
                     icon: const Icon(Icons.chevron_left_rounded, size: 28),
                     onPressed: () {
                       if (GoRouter.of(context).canPop()) {
@@ -401,6 +404,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                 elevation: 0,
                 surfaceTintColor: Colors.transparent,
                 leading: IconButton(
+                  tooltip: 'Back',
                   icon: const Icon(
                     Icons.chevron_left_rounded,
                     size: 28,
@@ -841,7 +845,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: fg,
             ),

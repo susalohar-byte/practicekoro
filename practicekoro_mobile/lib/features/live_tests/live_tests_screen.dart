@@ -332,7 +332,7 @@ class _LiveTestCard extends StatelessWidget {
                             Text(
                               'LIVE',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
                                 letterSpacing: 0.3,
@@ -356,7 +356,7 @@ class _LiveTestCard extends StatelessWidget {
                             Text(
                               'UPCOMING',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFFD97706),
                                 letterSpacing: 0.3,
@@ -384,7 +384,7 @@ class _LiveTestCard extends StatelessWidget {
                     Text(
                       test.formattedTime,
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: palette.timeColor,
                       ),
@@ -403,7 +403,7 @@ class _LiveTestCard extends StatelessWidget {
                         Text(
                           '${test.durationMinutes} Mins',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF64748B),
                           ),
@@ -413,7 +413,7 @@ class _LiveTestCard extends StatelessWidget {
                             padding: EdgeInsets.symmetric(horizontal: 4),
                             child: Text(
                               '•',
-                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+                              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                             ),
                           ),
                           const Icon(
@@ -425,7 +425,7 @@ class _LiveTestCard extends StatelessWidget {
                           Text(
                             test.formattedParticipants!,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF64748B),
                             ),

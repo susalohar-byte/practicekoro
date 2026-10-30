@@ -312,7 +312,7 @@ class _FilterTabPill extends StatelessWidget {
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: isSelected ? Colors.white : const Color(0xFF64748B),
                   ),
@@ -441,7 +441,7 @@ class _MiniBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: color,
         ),
@@ -586,7 +586,7 @@ class _TestCard extends StatelessWidget {
                   child: Text(
                     test.normalizedCategory,
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: themeColor,
                       letterSpacing: 0.1,
@@ -648,7 +648,7 @@ class _TestCard extends StatelessWidget {
                   Text(
                     'PRO',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF92400E),
                     ),
@@ -722,7 +722,7 @@ class _MetaItem extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11.5,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
             color: Color(0xFF64748B),
           ),

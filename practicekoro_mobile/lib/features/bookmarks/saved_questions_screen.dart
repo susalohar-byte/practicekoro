@@ -185,7 +185,7 @@ class _SavedQuestionCard extends StatelessWidget {
                 const Text(
                   'Marks: 2.0',
                   style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF64748B),
                   ),
@@ -321,7 +321,7 @@ class _SavedQuestionCard extends StatelessWidget {
                           child: const Text(
                             'Correct',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF15803D),
                             ),

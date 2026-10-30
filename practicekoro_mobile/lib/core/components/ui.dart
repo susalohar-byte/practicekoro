@@ -224,7 +224,7 @@ class UI {
 
   /// Status badge text (PRO, LIVE, FREE, COMPLETED)
   static const TextStyle badge = TextStyle(
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
     height: 1.25,
@@ -294,7 +294,7 @@ class UI {
         height: 64,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
-            fontSize: 11.5,
+            fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
                 : FontWeight.w500,

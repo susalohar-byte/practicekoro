@@ -33,6 +33,7 @@ class _QuestionReviewScreenState extends ConsumerState<QuestionReviewScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const Icon(
             Icons.chevron_left_rounded,
             size: 28,
