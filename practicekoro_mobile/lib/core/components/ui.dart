@@ -385,6 +385,7 @@ class UIBrandLogo extends StatelessWidget {
         height: height,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
+        semanticLabel: 'PracticeKoro',
       ),
     );
   }
@@ -657,6 +658,7 @@ class UIIconBadge extends StatelessWidget {
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) =>
                   Icon(Icons.school_rounded, color: color),
+              excludeFromSemantics: true,
             )
           : Icon(icon, color: color, size: size * 0.52),
     );

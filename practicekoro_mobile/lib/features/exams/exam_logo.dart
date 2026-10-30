@@ -29,6 +29,7 @@ class ExamLogo extends StatelessWidget {
           fit: BoxFit.contain,
           errorBuilder: (_, _, _) =>
               UIIconBadge(Icons.account_balance_rounded, size: size),
+          excludeFromSemantics: true,
         );
 
     // 1. HTTP / HTTPS Network URL (e.g. custom logo uploaded to Supabase storage)
@@ -41,6 +42,7 @@ class ExamLogo extends StatelessWidget {
           rawUrl,
           fit: BoxFit.contain,
           errorBuilder: (_, _, _) => fallbackWidget(),
+          excludeFromSemantics: true,
         ),
       );
     }
@@ -75,6 +77,7 @@ class ExamLogo extends StatelessWidget {
           asset,
           fit: BoxFit.contain,
           errorBuilder: (_, _, _) => fallbackWidget(),
+          excludeFromSemantics: true,
         ),
       );
     }
