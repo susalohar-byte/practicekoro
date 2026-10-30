@@ -41,6 +41,7 @@ insert into fs_class (proname, class, reason) values
   ('admin_resolve_payment_alert', 'admin', null),
   ('admin_revenue_range_stats', 'admin', null),
   ('admin_save_exam_subject_topics', 'admin', null),
+  ('admin_save_popular_exam_cards', 'admin', null),
   ('admin_save_exam_topics', 'admin', null),
   ('admin_save_test_exams', 'admin', null),
   ('admin_update_app_settings', 'admin', null),
@@ -64,6 +65,7 @@ insert into fs_class (proname, class, reason) values
   ('delete_own_account', 'user', null),
   ('get_app_leaderboard', 'user', null),
   ('get_attempt_rankings', 'user', null),
+  ('record_coupon_redemption', 'user', null),
   ('get_attempt_solutions', 'user', null),
   ('get_my_subscription_purchase_options', 'user', null),
   ('get_student_exam_questions', 'user', null),
@@ -125,7 +127,7 @@ select coalesce(jsonb_object_agg(e.proname || ':' || coalesce(c.class, 'unclassi
            when 'admin' then
              (e.def ~* '(admin_scope_allowed|can_mutate_admin_record|is_management_super_admin|can_manage_support)\s*\('
                or e.def ~* 'has_role\s*\([^;]*?''admin''\s*\)'
-               or e.def ~* 'from\s+public\.profiles\s+where\s+id\s*=\s*auth\.uid\(\)\s+and\s+role\s*=\s*''admin''')
+               or e.def ~* 'from\s+public\.profiles(\s+\w+)?\s+where\s+(\w+\.)?id\s*=\s*\(?\s*(select\s+)?auth\.uid\(\)\s*\)?\s+and\s+(\w+\.)?role\s*=\s*''admin''')
              and e.def ~* 'raise\s+exception[^;]*42501'
            when 'user' then e.def ~* 'auth\.uid\(\)'
            when 'public' then e.def ~* 'is_active\s*=\s*true' and e.def ~* 'is_question_live_hidden'
