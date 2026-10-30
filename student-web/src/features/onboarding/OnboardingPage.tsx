@@ -46,7 +46,15 @@ export default function OnboardingPage() {
       </header>
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-10 px-6 md:flex-row md:gap-16">
         <div className="flex h-64 w-64 items-center justify-center md:h-96 md:w-96">
-          <img key={page.img} src={`${import.meta.env.BASE_URL}${page.img}`} alt="" aria-hidden className="h-56 w-auto object-contain md:h-80" />
+          {/* The mascot files are small (about 90px) and cut tightly from a larger
+              picture, so they are shown at a modest size and their edges fade out. */}
+          <img
+            key={page.img}
+            src={`${import.meta.env.BASE_URL}${page.img}`}
+            alt=""
+            aria-hidden
+            className="h-44 w-auto object-contain [mask-image:radial-gradient(closest-side,#000_72%,transparent)] md:h-56"
+          />
         </div>
         <div className="max-w-md text-center md:text-left" aria-live="polite">
           <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-[#0F172A] md:text-5xl">

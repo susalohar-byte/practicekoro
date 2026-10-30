@@ -111,7 +111,7 @@ export const Login: React.FC = () => {
   };
 
   const inputClass =
-    'h-[54px] w-full rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] pl-12 text-[15px] text-[#0F172A] placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
+    'h-[54px] w-full rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] pl-12 text-base text-[#0F172A] placeholder:text-slate-400 outline-none transition focus:border-[#1F5BFF] focus:ring-4 focus:ring-blue-500/10';
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0B0F1E] font-sans">
@@ -255,15 +255,15 @@ export const Login: React.FC = () => {
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[#64748B] hover:text-[#1E293B]"
+                      className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#64748B] hover:text-[#1E293B]"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
-                  <div className="mt-4 text-right">
+                  <div className="mt-1 text-right">
                     <Link
                       to="/forgot-password"
-                      className="text-[14px] font-semibold text-[#1F5BFF] hover:underline"
+                      className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[#1F5BFF] hover:underline"
                     >
                       Forgot Password?
                     </Link>
@@ -287,7 +287,7 @@ export const Login: React.FC = () => {
                 Don&apos;t have an account?{' '}
                 <a
                   href={studentPanelUrl('signup')}
-                  className="ml-1 font-bold text-[#1F5BFF] hover:underline"
+                  className="ml-1 inline-flex min-h-11 items-center font-bold text-[#1F5BFF] hover:underline"
                 >
                   Sign Up
                 </a>

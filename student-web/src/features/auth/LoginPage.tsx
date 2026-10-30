@@ -65,16 +65,16 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
-        <div className="-mt-1 mb-2 text-right">
-          <Link to="/forgot-password" className="text-[13px] font-semibold text-primary hover:underline">
+        <div className="-mt-3 mb-1 text-right">
+          <Link to="/forgot-password" className="inline-flex min-h-11 items-center text-[13px] font-semibold text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
         <SubmitButton loading={loading}>Log In</SubmitButton>
       </form>
-      <p className="mt-6 text-center text-[14px] text-[#64748B]">
+      <p className="mt-4 text-center text-[14px] text-[#64748B]">
         New to PracticeKoro?{' '}
-        <Link to="/signup" className="font-bold text-primary hover:underline">
+        <Link to="/signup" className="inline-flex min-h-11 items-center font-bold text-primary hover:underline">
           Create account
         </Link>
       </p>
