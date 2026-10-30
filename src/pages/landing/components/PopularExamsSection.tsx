@@ -9,12 +9,17 @@ interface PopularExamsSectionProps {
   onSelectExam: (exam: ExamData) => void;
 }
 
+// Same official logos as the admin panel's exam presets (/images/exams). The ?v= suffix
+// gives them a fresh URL: the October logo redesign kept the old file names, so browsers
+// and the service worker kept showing the old 40px icons from their caches.
+const presetLogo = (file: string) => `/images/exams/${file}?v=2`;
+
 export const POPULAR_EXAMS: ExamData[] = [
   {
     id: 'wbp-constable',
     name: 'WBP Constable',
     bengaliName: 'ওয়েস্ট বেঙ্গল পুলিশ কনস্টেবল ও লেডি কনস্টেবল',
-    logo: '/images/popular_exams/logo_wbp.png',
+    logo: presetLogo('logo_wbp.png'),
     badge: 'Police Recruitment',
     description:
       'পশ্চিমবঙ্গ পুলিশ রিক্রুটমেন্ট বোর্ডের (PRB) প্রিলিমিনারি ও মেইনস পরীক্ষার জন্য অধ্যায়ভিত্তিক প্রশ্ন ও পূর্ণাঙ্গ মক টেস্ট।',
@@ -41,7 +46,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'wbssc-group-cd',
     name: 'WBSSC Group C & D',
     bengaliName: 'ওয়েস্ট বেঙ্গল স্কুল সার্ভিস কমিশন গ্রুপ C & D',
-    logo: '/images/popular_exams/emblem_wbssc.png',
+    logo: presetLogo('emblem_wbssc.png'),
     badge: 'School Service',
     description:
       'স্কুল সার্ভিস কমিশনের গ্রুপ সি (করণিক) ও গ্রুপ ডি পদের জন্য নতুন সিলেবাস ভিত্তিক স্পেশাল প্র্যাকটিস সেট ও মক টেস্ট।',
@@ -63,7 +68,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'clerkship',
     name: 'Clerkship',
     bengaliName: 'WBPSC ক্লার্কশিপ রিক্রুটমেন্ট পরীক্ষা',
-    logo: '/images/popular_exams/logo_wbpsc.png',
+    logo: presetLogo('logo_wbpsc.png'),
     badge: 'PSC Bengal',
     description:
       'ওয়েস্ট বেঙ্গল পাবলিক সার্ভিস কমিশনের ক্লার্কশিপ পার্ট-১ ও পার্ট-২ পরীক্ষার জন্য সেরা প্রশ্নসংগ্রহ ও পূর্ণাঙ্গ টেস্ট সিরিজ।',
@@ -85,7 +90,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'railway',
     name: 'Railway Exams',
     bengaliName: 'RRB NTPC & Group D (বাংলা ও ইংরেজি)',
-    logo: '/images/popular_exams/logo_railway.png',
+    logo: presetLogo('logo_railway.png'),
     badge: 'RRB Eastern',
     description:
       'রেলওয়ে রিক্রুটমেন্ট বোর্ডের NTPC ও গ্রুপ ডি পরীক্ষার জন্য বাংলা ভাষায় প্রশ্নব্যাংক ও প্রিভিয়াস ইয়ার কোয়েশ্চেন।',
@@ -112,7 +117,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'ssc',
     name: 'SSC Exams',
     bengaliName: 'SSC GD Constable, MTS & CHSL',
-    logo: '/images/popular_exams/logo_ssc.png',
+    logo: presetLogo('logo_ssc.png'),
     badge: 'Staff Selection',
     description:
       'স্টাফ সিলেকশন কমিশনের জিডি কনস্টেবল ও এমটিএস বাংলা ভাষায় অনুষ্ঠিত পরীক্ষার জন্য নির্ভরযোগ্য মক টেস্ট সিরিজ।',
