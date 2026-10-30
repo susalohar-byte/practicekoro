@@ -7,7 +7,8 @@
 #
 # Resolution order for the connection string:
 #   1. DATABASE_URL env var (used verbatim)
-#   2. SUPABASE_DB_PASSWORD + SUPABASE_PROJECT_REF (pooler, ipv4-friendly)
+#   2. scripts/db-url.sh: SUPABASE_DB_PASSWORD (session pooler, password
+#      percent-encoded) or SUPABASE_DB_URL
 #
 # Requires: psql (libpq). Installs nothing.
 # ============================================================================
@@ -22,12 +23,12 @@ command -v psql >/dev/null 2>&1 || { echo "error: psql not found (brew install l
 
 if [ -n "${DATABASE_URL:-}" ]; then
   CONN="$DATABASE_URL"
-elif [ -n "${SUPABASE_DB_PASSWORD:-}" ] && [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
-  REGION="${SUPABASE_DB_REGION:-ap-south-1}"
-  CONN="postgresql://postgres:${SUPABASE_DB_PASSWORD}@aws-0-${REGION}.pooler.supabase.com:6543/postgres"
 else
-  echo "error: set DATABASE_URL, or SUPABASE_DB_PASSWORD + SUPABASE_PROJECT_REF" >&2
-  exit 2
+  CONN="$("$(dirname "$0")/db-url.sh")"
+  if [ -z "$CONN" ]; then
+    echo "error: set DATABASE_URL, SUPABASE_DB_PASSWORD or SUPABASE_DB_URL" >&2
+    exit 2
+  fi
 fi
 
 exec psql "$CONN" -v ON_ERROR_STOP=1 "$@"

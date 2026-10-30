@@ -50,17 +50,18 @@ jobs:
 
       - name: Dry run against production
         env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
+          # Session-pooler URL from SUPABASE_DB_PASSWORD (encoded for you), or
+          # SUPABASE_DB_URL as given; see scripts/db-url.sh.
+          DB_URL="$(scripts/db-url.sh)"
+          if [ -z "$DB_URL" ]; then
             # Forks and repos without the secret: say so loudly, but don't block the PR.
-            echo "::warning::Secret SUPABASE_DB_URL is not set, so the production dry run was skipped."
-            echo "Production dry run skipped: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Secret SUPABASE_DB_PASSWORD is not set, so the production dry run was skipped."
+            echo "Production dry run skipped: secret \`SUPABASE_DB_PASSWORD\` is not set." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # The CLI needs a session connection; Supavisor serves session mode on
-          # 5432 and transaction mode on 6543 of the same host.
-          DB_URL="${SUPABASE_DB_URL/:6543\//:5432/}"
           echo "::add-mask::$DB_URL"
           set +e
           supabase db push --dry-run --db-url "$DB_URL" --output-format json > plan.json
@@ -93,14 +94,15 @@ jobs:
 
       - name: Plan and apply pending migrations
         env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::warning::Secret SUPABASE_DB_URL is not set, so NOTHING was applied to production. Apply the new migrations by hand and record them (supabase/migrations/README.md)."
-            echo "Nothing applied: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+          DB_URL="$(scripts/db-url.sh)"
+          if [ -z "$DB_URL" ]; then
+            echo "::warning::Secret SUPABASE_DB_PASSWORD is not set, so NOTHING was applied to production. Apply the new migrations by hand and record them (supabase/migrations/README.md)."
+            echo "Nothing applied: secret \`SUPABASE_DB_PASSWORD\` is not set." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          DB_URL="${SUPABASE_DB_URL/:6543\//:5432/}"
           echo "::add-mask::$DB_URL"
 
           # 1. Dry run: the CLI refuses migrations older than the last recorded

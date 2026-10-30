@@ -11,14 +11,14 @@ Every `*.sql` file here is a migration. Production (`wzcmhowowoyeldfqzkeh`, Prac
 3. Merge to `main`. Job **Apply to production** (GitHub environment `production`, never two at once) runs `supabase db push`: each pending file runs in its own transaction and is recorded in `schema_migrations` only if it succeeds. Then `db-security.yml` runs the `supabase/tests/rls_security.sql` assertions against the migrated database.
 4. To retry a failed apply, fix forward with a new migration, or re-run the workflow from the Actions tab (`workflow_dispatch`).
 
-Do **not** run migrations by hand in the SQL Editor any more. If you must (an emergency), record it afterwards with `supabase migration repair --status applied <version> --db-url "$SUPABASE_DB_URL"`, otherwise the pipeline runs it again.
+Do **not** run migrations by hand in the SQL Editor any more. If you must (an emergency), record it afterwards with `supabase migration repair --status applied <version> --db-url "$(scripts/db-url.sh)"`, otherwise the pipeline runs it again.
 
 Requirements:
 
-- Repository secret `SUPABASE_DB_URL`: Supabase Dashboard → Project Settings → Database → Connection string → **Session pooler** URI with the database password filled in (percent-encode special characters). GitHub → Settings → Secrets and variables → Actions → New repository secret. Nothing is applied, and the DB checks fail, until it exists. A transaction-pooler URI (port 6543) is rewritten to the session port 5432 for the CLI.
+- Repository secret **`SUPABASE_DB_PASSWORD`**: just the database password (Supabase Dashboard → Project Settings → Database). GitHub → Settings → Secrets and variables → Actions → New repository secret. `scripts/db-url.sh` builds the session-pooler URL (`postgres.wzcmhowowoyeldfqzkeh@aws-0-ap-southeast-1.pooler.supabase.com:5432`) and percent-encodes the password, so `@ : / #` in it are fine. Nothing is applied, and the DB checks are skipped with a warning, until it exists. A full URI in `SUPABASE_DB_URL` still works when `SUPABASE_DB_PASSWORD` is not set.
 - Optional: GitHub → Settings → Environments → `production` → Required reviewers, to approve every production apply by hand.
 
-Check what production has recorded: `supabase migration list --db-url "$SUPABASE_DB_URL"`.
+Check what production has recorded: `supabase migration list --db-url "$(scripts/db-url.sh)"`.
 
 ---
 
