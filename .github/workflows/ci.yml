@@ -79,6 +79,33 @@ jobs:
             test-results/
           retention-days: 7
 
+  audit:
+    name: Dependency Audit + Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      # Shipped dependencies only; dev tooling never reaches users.
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --omit=dev --audit-level=high --prefix student-web
+      # Keys, tokens or passwords committed by this push / pull request fail the build.
+      - name: Scan new commits for secrets
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+            RANGE="HEAD~1..HEAD"
+          else
+            RANGE="$BASE..HEAD"
+          fi
+          ./gitleaks git --no-banner --redact --log-opts="$RANGE" .
+
   mobile:
     name: Mobile (Flutter)
     runs-on: ubuntu-latest
@@ -97,7 +124,7 @@ jobs:
 
   notify:
     name: Notify on Failure
-    needs: [typecheck-and-lint, test, build, e2e, mobile]
+    needs: [typecheck-and-lint, test, build, e2e, audit, mobile]
     if: failure()
     runs-on: ubuntu-latest
     steps:

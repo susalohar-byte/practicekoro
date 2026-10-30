@@ -1,0 +1,65 @@
+name: Live Health
+
+# Checks production every 15 minutes. A failed run is emailed to the repo owner
+# by GitHub, so a broken site, database or cron job is noticed without waiting
+# for a student to report it.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Website and Student Web Panel respond
+        run: |
+          fail=0
+          for url in https://practicekoro.online/ https://practicekoro.online/dashboard/; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 10 "$url" || true)"
+            echo "$url -> $code"
+            if [ "$code" != 200 ]; then
+              echo "::error::$url returned $code"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Install psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Database, cron jobs and migrations
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          DATABASE_URL="$(scripts/db-url.sh)"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::Secret SUPABASE_DB_PASSWORD is not set, so the database checks were skipped."
+            exit 0
+          fi
+          echo "::add-mask::$DATABASE_URL"
+          export DATABASE_URL
+          # One JSON row: every value must be true.
+          ./scripts/supabase-sql.sh -t -A -f supabase/tests/live_health.sql | tee health.json
+          python3 - <<'EOF'
+          import json
+          rows = [json.loads(l) for l in open('health.json') if l.strip().startswith('{')]
+          failed = {k: v for r in rows for k, v in r.items() if v is not True}
+          if not rows or failed:
+              print('::error::Live health check failed:', json.dumps(failed or 'no result'))
+              raise SystemExit(1)
+          print('All live health checks passed.')
+          EOF
