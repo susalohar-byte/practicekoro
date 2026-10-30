@@ -43,8 +43,15 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': 'off',
       'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // Test doubles and tooling scripts may use `any` for loose mocks.
+    files: ['**/*.test.{ts,tsx}', 'tests/**', 'scripts/**', 'src/test/**'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   }
 );

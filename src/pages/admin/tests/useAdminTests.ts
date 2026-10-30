@@ -117,8 +117,8 @@ export function useAdminTests() {
       setEditIconUrl(url);
       setSaveSuccessMsg('Icon uploaded and saved successfully!');
       setTimeout(() => setSaveSuccessMsg(null), 3000);
-    } catch (err: any) {
-      alert('Failed to upload icon: ' + (err?.message || 'Error'));
+    } catch (err) {
+      alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
     } finally {
       setIsUploadingDrawerIcon(false);
     }
@@ -161,7 +161,7 @@ export function useAdminTests() {
       setSelectedTest(updated);
       setSaveSuccessMsg('Changes saved successfully!');
       setTimeout(() => setSaveSuccessMsg(null), 3000);
-    } catch (err: any) {
+    } catch (err) {
       alert('Failed to save changes: ' + getErrorMessage(err, 'Save failed'));
     } finally {
       setIsSavingSettings(false);
@@ -269,7 +269,7 @@ export function useAdminTests() {
       const fullMock = tests.filter((t) => t.testType === 'full_mock').length;
       const topic = tests.filter((t) => t.testType === 'topic').length;
       const pyq = tests.filter((t) => t.testType === 'pyq').length;
-      const attemptsSum = tests.reduce((acc, t) => acc + ((t as any).attemptsCount || 0), 0);
+      const attemptsSum = tests.reduce((acc, t) => acc + (t.attemptsCount || 0), 0);
       return {
         total,
         fullMock,
@@ -355,7 +355,7 @@ export function useAdminTests() {
     }
   };
 
-  const toggleSelectTest = (id: string, e: React.MouseEvent) => {
+  const toggleSelectTest = (id: string, e: React.SyntheticEvent) => {
     e.stopPropagation();
     const next = new Set(selectedTestIds);
     if (next.has(id)) next.delete(id);

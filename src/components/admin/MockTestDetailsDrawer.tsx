@@ -62,7 +62,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
   const [isSavingQuestions, setIsSavingQuestions] = useState(false);
 
   // Analytics state
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<Awaited<ReturnType<typeof api.getTestAttempts>>>([]);
   const [isLoadingAttempts, setIsLoadingAttempts] = useState(false);
   const [isExportingAttempts, setIsExportingAttempts] = useState(false);
 
@@ -92,8 +92,8 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       setIsUploadingIcon(true);
       const uploadedUrl = await api.uploadTestIcon(file, test.id);
       setSettingsForm((prev) => ({ ...prev, iconUrl: uploadedUrl }));
-    } catch (err: any) {
-      alert('Failed to upload icon: ' + (err?.message || 'Error'));
+    } catch (err) {
+      alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
     } finally {
       setIsUploadingIcon(false);
     }

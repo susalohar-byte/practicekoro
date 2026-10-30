@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { STORAGE_KEY, PARTICIPANTS_STORAGE_KEY } from './admin.liveTests.store';
 
@@ -17,7 +18,7 @@ export function subscribeToLiveTestUpdates(callback: () => void): () => void {
     window.addEventListener('storage', handleStorage);
   }
 
-  let broadcastChannel: any = null;
+  let broadcastChannel: RealtimeChannel | null = null;
 
   if (isSupabaseConfigured) {
     try {

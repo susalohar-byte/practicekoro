@@ -7,6 +7,7 @@ import type {
   AppNotification,
   Bookmark,
   LeaderboardScope,
+  OptionLetter,
   Profile,
   RankRow,
   StudentSubscription,
@@ -17,7 +18,123 @@ import type {
   UpgradeOption,
 } from '@/types/models';
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
+type Text = string | null;
+type Numeric = number | string | null;
+
+interface PlanRow {
+  id: string;
+  name?: Text;
+  title?: Text;
+  description?: Text;
+  duration_days?: Numeric;
+  price?: Numeric;
+  original_price?: Numeric;
+  features?: unknown;
+  currency?: Text;
+  order_index?: Numeric;
+  renewal_window_days?: Numeric;
+}
+
+interface UpgradeOptionRow {
+  plan_id?: string | null;
+  plan_title?: Text;
+  duration_days?: Numeric;
+  amount?: Numeric;
+  currency?: Text;
+  new_expires_at?: Text;
+}
+
+/** get_student_subscription_details JSON payload. */
+interface SubscriptionDetailsRow {
+  has_subscription?: boolean | null;
+  is_active?: boolean | null;
+  status?: Text;
+  subscription_id?: Text;
+  plan_id?: Text;
+  plan_title?: Text;
+  duration_days?: Numeric;
+  purchased_at?: Text;
+  starts_at?: Text;
+  expires_at?: Text;
+  renewal_window_days?: Numeric;
+  upgrade_options?: UpgradeOptionRow[] | null;
+}
+
+/** create-razorpay-order Edge Function response (snake_case or camelCase keys). */
+interface RazorpayOrderResponse {
+  error?: unknown;
+  order_id?: string | null;
+  orderId?: string | null;
+  amount?: Numeric;
+  key_id?: string | null;
+  keyId?: string | null;
+  currency?: Text;
+  plan_title?: Text;
+  planTitle?: Text;
+  purchase_type?: Text;
+  purchaseType?: Text;
+  new_expires_at?: Text;
+  newExpiresAt?: Text;
+}
+
+interface SupportMessageRow {
+  id: string;
+  ticket_id: string;
+  author_name?: Text;
+  author_kind?: Text;
+  body?: Text;
+  created_at: string;
+}
+
+interface SupportTicketRow {
+  id: string;
+  subject?: Text;
+  issue?: Text;
+  category?: Text;
+  priority?: Text;
+  status?: Text;
+  resolution_notes?: Text;
+  created_at: string;
+  updated_at?: Text;
+  support_ticket_messages?: SupportMessageRow[] | null;
+  messages?: SupportMessageRow[] | null;
+}
+
+interface NotificationRow {
+  id: string;
+  title?: Text;
+  message?: Text;
+  type?: Text;
+  action_link?: Text;
+  sent_at?: Text;
+  scheduled_at?: Text;
+  created_at: string;
+  channel?: Text;
+}
+
+interface BookmarkQuestionRow {
+  id: string;
+  question_text?: Text;
+  question_bengali_text?: Text;
+  option_a?: Text;
+  option_b?: Text;
+  option_c?: Text;
+  option_d?: Text;
+  correct_option?: Text;
+  explanation?: Text;
+  explanation_bengali?: Text;
+  difficulty?: Text;
+  image_url?: Text;
+}
+
+interface BookmarkRow {
+  id: string;
+  question_id: string;
+  note?: Text;
+  created_at: string;
+  questions?: BookmarkQuestionRow | null;
+}
 
 // ---------------------------------------------------------------------------
 // Profile — public.profiles plus auth user_metadata (AuthRepository.syncProfileFromServer)
@@ -73,7 +190,7 @@ export async function fetchProfile(user: User): Promise<Profile> {
     dob: str(row.dob) ?? str(meta.dob),
     preparationStatus: str(row.preparation_status) ?? str(meta.preparation_status),
     preferredSubjects: Array.isArray(prefs) ? prefs.map(String) : [],
-    createdAt: row.created_at ?? user.created_at ?? null,
+    createdAt: (row.created_at as string | null | undefined) ?? user.created_at ?? null,
   };
 }
 
@@ -196,7 +313,7 @@ export async function fetchPlans(): Promise<SubscriptionPlan[]> {
     .eq('is_active', true)
     .order('order_index', { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((r: Row) => ({
+  return ((data ?? []) as PlanRow[]).map((r) => ({
     id: String(r.id),
     name: r.name ?? '',
     title: r.title ?? r.name ?? 'Pro Plan',
@@ -220,10 +337,10 @@ const date = (v: unknown): Date | null => {
 export async function fetchSubscription(): Promise<StudentSubscription> {
   const { data, error } = await supabase.rpc('get_student_subscription_details');
   if (error) throw error;
-  const j: Row = (data ?? {}) as Row;
+  const j = (data ?? {}) as SubscriptionDetailsRow;
   const upgrades: UpgradeOption[] = Array.isArray(j.upgrade_options)
     ? j.upgrade_options
-        .map((u: Row) => ({
+        .map((u) => ({
           planId: String(u.plan_id ?? ''),
           planTitle: u.plan_title ?? 'Pro Pass',
           durationDays: num(u.duration_days),
@@ -353,7 +470,7 @@ export async function createRazorpayOrder(planId: string): Promise<RazorpayOrder
     body: { planId },
   });
   if (error) throw await functionError(error, CHECKOUT_FALLBACK);
-  const d: Row = data ?? {};
+  const d: RazorpayOrderResponse = data ?? {};
   if (d.error) throw new AppError(String(d.error));
   const orderId = String(d.order_id ?? d.orderId ?? '');
   const amount = num(d.amount) ?? 0;
@@ -417,7 +534,7 @@ export async function fetchSupportContact(): Promise<SupportContact> {
       'general_support_hours',
     ]);
   if (error) throw error;
-  const map = new Map((data ?? []).map((r: Row) => [r.id, unwrap(r.value)]));
+  const map = new Map((data ?? []).map((r) => [r.id, unwrap(r.value)]));
   return {
     email: map.get('general_support_email') ?? null,
     whatsapp: map.get('general_support_whatsapp') ?? null,
@@ -426,7 +543,7 @@ export async function fetchSupportContact(): Promise<SupportContact> {
   };
 }
 
-function toMessage(m: Row): SupportMessage {
+function toMessage(m: SupportMessageRow): SupportMessage {
   return {
     id: String(m.id),
     ticketId: String(m.ticket_id),
@@ -437,14 +554,14 @@ function toMessage(m: Row): SupportMessage {
   };
 }
 
-const visibleMessages = (msgs: Row[]): SupportMessage[] =>
+const visibleMessages = (msgs: SupportMessageRow[]): SupportMessage[] =>
   msgs
     .filter((m) => m.author_kind !== 'internal_note')
     .map(toMessage)
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
 /** List rows carry no conversation; it is loaded per ticket by fetchTicketMessages when opened. */
-function toTicket(r: Row): SupportTicket {
+function toTicket(r: SupportTicketRow): SupportTicket {
   return {
     id: String(r.id),
     subject: r.subject ?? '',
@@ -505,7 +622,8 @@ export async function createTicket(input: {
     p_priority: 'medium',
     p_user_id: input.userId,
   });
-  if (!error && data && (data as Row).ticket) return toTicket({ ...(data as Row).ticket, support_ticket_messages: [] });
+  const created = data as { ticket?: SupportTicketRow | null } | null;
+  if (!error && created?.ticket) return toTicket({ ...created.ticket, support_ticket_messages: [] });
   // Same fallback as the app: a direct insert, which RLS allows for the student's own ticket.
   const { data: row, error: insertError } = await supabase
     .from('support_tickets')
@@ -549,9 +667,9 @@ export async function fetchNotifications(): Promise<AppNotification[]> {
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
-  return (data ?? [])
-    .filter((r: Row) => !r.channel || ['in_app', 'all', 'push', 'app'].includes(String(r.channel)))
-    .map((r: Row) => ({
+  return ((data ?? []) as NotificationRow[])
+    .filter((r) => !r.channel || ['in_app', 'all', 'push', 'app'].includes(String(r.channel)))
+    .map((r) => ({
       id: String(r.id),
       title: r.title ?? '',
       message: r.message ?? '',
@@ -593,7 +711,8 @@ export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((r: Row) => {
+  // The embed is many-to-one at runtime; the untyped client's parser guesses an array.
+  return ((data ?? []) as unknown as BookmarkRow[]).map((r) => {
     if (r.questions) {
       const q = r.questions;
       writeSavedQuestion(userId, {
@@ -611,7 +730,7 @@ export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
         marks: 1,
         negativeMarks: 0.25,
         selected: null,
-        correct: (q.correct_option as any) || 'A',
+        correct: (q.correct_option as OptionLetter | null) || 'A',
         isCorrect: false,
         marksAwarded: 0,
         explanation: q.explanation || null,

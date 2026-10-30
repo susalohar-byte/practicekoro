@@ -2,7 +2,7 @@ import { csvCell } from '@/utils/csvExport';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
-import type { LiveTest, LiveTestParticipant } from '@/types';
+import type { Exam, LiveTest, LiveTestParticipant, Subject } from '@/types';
 import {
   type RankingStudent,
   aggregateLiveParticipants,
@@ -34,8 +34,8 @@ export function useAdminRankings() {
   const latestRankingsRequest = useRef(0);
 
   // Dynamic dropdown data loaded from database
-  const [dbExams, setDbExams] = useState<any[]>([]);
-  const [dbSubjects, setDbSubjects] = useState<any[]>([]);
+  const [dbExams, setDbExams] = useState<Exam[]>([]);
+  const [dbSubjects, setDbSubjects] = useState<Subject[]>([]);
   const [dbLiveTests, setDbLiveTests] = useState<LiveTest[]>([]);
   const dbLiveTestsRef = useRef<LiveTest[]>([]);
   // Read once per page load and shared by every live leaderboard request: the live test list
@@ -89,7 +89,7 @@ export function useAdminRankings() {
         console.error('Failed to load subjects for ranking filters:', err);
         return [];
       }),
-      loadLiveTestsOnce().catch((err: any) => {
+      loadLiveTestsOnce().catch((err: unknown) => {
         console.error('Failed to load live tests for ranking filters:', err);
         return [];
       }),
@@ -174,7 +174,7 @@ export function useAdminRankings() {
             }
             if (targetExam !== 'All Exams') {
               liveTestsToFetch = (liveTestsToFetch || []).filter((lt) => {
-                const ex = ((lt as any)?.examName || lt.examTitle || '').toLowerCase();
+                const ex = (lt.examTitle || '').toLowerCase();
                 const title = (lt.title || '').toLowerCase();
                 const q = targetExam.toLowerCase();
                 return ex === q || title.includes(q);
@@ -365,7 +365,7 @@ export function useAdminRankings() {
   const filteredDbLiveTests = useMemo(() => {
     if (selectedExam === 'All Exams') return dbLiveTests;
     return dbLiveTests.filter((lt) => {
-      const ex = ((lt as any)?.examName || lt.examTitle || '').toLowerCase();
+      const ex = (lt.examTitle || '').toLowerCase();
       const title = (lt.title || '').toLowerCase();
       const q = selectedExam.toLowerCase();
       return ex === q || title.includes(q);

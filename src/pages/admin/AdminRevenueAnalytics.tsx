@@ -902,7 +902,7 @@ export const AdminRevenueAnalytics: React.FC = () => {
               </div>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
                 className="px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none"
               >
                 <option value="all">All Status</option>

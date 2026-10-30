@@ -1,5 +1,6 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { LiveTestParticipant } from '@/types';
+import type { Tables } from '@/types/database.generated';
 import {
   APP_SETTINGS_PARTICIPANTS_ID,
   getStoredParticipations,
@@ -253,9 +254,13 @@ export async function recordLiveTestSubmission(
         .eq('id', userId)
         .maybeSingle();
       if (profile) {
-        fullName = (profile as any).full_name || undefined;
-        avatarUrl = (profile as any).avatar_url || undefined;
-        district = (profile as any).district || undefined;
+        const profileRow = profile as Pick<
+          Tables<'profiles'>,
+          'full_name' | 'avatar_url' | 'district'
+        >;
+        fullName = profileRow.full_name || undefined;
+        avatarUrl = profileRow.avatar_url || undefined;
+        district = profileRow.district || undefined;
       }
     } catch {
       // Ignore profile fetch error

@@ -2,6 +2,14 @@ import { readCompleteQuery } from '@/services/domains/admin.reporting';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { MockTest, TestSeries, TestSeriesAnalytics } from '@/types';
 import { localTests } from '@/services/domains/localStore';
+import type { Tables } from '@/types/database.generated';
+import type { TestWithRefsRow } from './catalog.tests';
+
+/** A `test_series` row with its exam and test summaries embedded. */
+type TestSeriesJoinRow = Tables<'test_series'> & {
+  exams: Pick<Tables<'exams'>, 'id' | 'title' | 'category' | 'slug'> | null;
+  tests: Pick<Tables<'tests'>, 'id' | 'test_type' | 'is_active' | 'status'>[] | null;
+};
 
 /** Section of the student catalog API: student test series & series analytics (split from domains/catalog.ts, same behaviour). */
 export const catalogSeriesApi = {
@@ -33,16 +41,16 @@ export const catalogSeriesApi = {
       return query;
     });
 
-    return data.map((item: any) => {
+    return (data as TestSeriesJoinRow[]).map((item) => {
       const rawTests = Array.isArray(item.tests) ? item.tests : [];
       const activeTests = rawTests.filter(
-        (t: any) => t.is_active !== false && (t.status === 'published' || !t.status)
+        (t) => t.is_active !== false && (t.status === 'published' || !t.status)
       );
       const count = activeTests.length;
-      const fullMockCount = activeTests.filter((t: any) => t.test_type === 'full_mock').length;
-      const pyqTestCount = activeTests.filter((t: any) => t.test_type === 'pyq').length;
+      const fullMockCount = activeTests.filter((t) => t.test_type === 'full_mock').length;
+      const pyqTestCount = activeTests.filter((t) => t.test_type === 'pyq').length;
       const topicTestCount = activeTests.filter(
-        (t: any) =>
+        (t) =>
           t.test_type === 'topic' ||
           t.test_type === 'chapter_mock' ||
           t.test_type === 'subject_mock'
@@ -99,9 +107,9 @@ export const catalogSeriesApi = {
       return [];
     }
 
-    return data
-      .filter((item: any) => !item.is_live_only)
-      .map((item: any) => ({
+    return (data as TestWithRefsRow[])
+      .filter((item) => !item.is_live_only)
+      .map((item) => ({
         id: item.id,
         examId: item.exam_id,
         subjectId: item.subject_id ?? undefined,
@@ -111,7 +119,7 @@ export const catalogSeriesApi = {
         title: item.title,
         slug: item.slug,
         description: item.description ?? undefined,
-        testType: item.test_type,
+        testType: item.test_type as MockTest['testType'],
         year: item.year ? Number(item.year) : undefined,
         paperName: item.paper_name ?? undefined,
         shift: item.shift ?? undefined,

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Exam, PopularExamCard } from '@/types';
 import { api } from '@/services/api';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
 export const PRESET_GRADIENTS = [
@@ -185,8 +186,8 @@ export const PopularExamEditModal: React.FC<PopularExamEditModalProps> = ({
         isActive,
       });
       onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to save popular exam card');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to save popular exam card'));
     } finally {
       setIsSaving(false);
     }

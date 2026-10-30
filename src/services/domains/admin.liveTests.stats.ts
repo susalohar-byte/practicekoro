@@ -4,6 +4,13 @@ import { localTestQuestions } from '@/services/domains/localStore';
 import type { LiveTest, LiveTestParticipant } from '@/types';
 import { getLiveTestById } from './admin.liveTests.read';
 import { fetchRemoteParticipations } from './admin.liveTests.participants';
+import type { Tables } from '@/types/database.generated';
+
+type LiveWindowAttemptRow = Pick<
+  Tables<'test_attempts'>,
+  'id' | 'user_id' | 'score' | 'accuracy' | 'time_spent_seconds' | 'end_time' | 'created_at'
+>;
+type LiveProfileRow = Pick<Tables<'profiles'>, 'id' | 'full_name' | 'avatar_url' | 'district'>;
 
 /**
  * Deterministic Leaderboard Ranking:
@@ -265,7 +272,9 @@ export async function getLiveTestLeaderboard(
 
         if (!attemptsErr && Array.isArray(attemptsData) && attemptsData.length > 0) {
           const userIds = Array.from(
-            new Set(attemptsData.map((a: any) => String(a.user_id)).filter(Boolean))
+            new Set(
+              (attemptsData as LiveWindowAttemptRow[]).map((a) => String(a.user_id)).filter(Boolean)
+            )
           );
 
           const profilesMap = new Map<
@@ -279,7 +288,7 @@ export async function getLiveTestLeaderboard(
                 .select('id, full_name, avatar_url, district')
                 .in('id', userIds);
               if (Array.isArray(profData)) {
-                for (const pr of profData as any[]) {
+                for (const pr of profData as LiveProfileRow[]) {
                   profilesMap.set(String(pr.id), {
                     fullName: pr.full_name || undefined,
                     avatarUrl: pr.avatar_url || undefined,
@@ -292,7 +301,7 @@ export async function getLiveTestLeaderboard(
             }
           }
 
-          for (const att of attemptsData as any[]) {
+          for (const att of attemptsData as LiveWindowAttemptRow[]) {
             const uId = String(att.user_id);
             const prof = profilesMap.get(uId);
             const existing = candidatesByUserId.get(uId);

@@ -1,6 +1,22 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Exam, Subject, Chapter } from '@/types';
 import type { ChapterRow, SubjectRow } from '@/services/domains/localStore';
+import type { Tables } from '@/types/database.generated';
+
+type ExamRow = Pick<
+  Tables<'exams'>,
+  | 'id'
+  | 'title'
+  | 'slug'
+  | 'description'
+  | 'category'
+  | 'icon_name'
+  | 'banner_url'
+  | 'order_index'
+  | 'is_active'
+>;
+/** A `chapters` row; older cached rows may still carry the camelCase `iconName`. */
+type LegacyChapterRow = ChapterRow & { iconName?: string | null };
 
 /** Section of the student catalog API: daily content, leaderboard, exams, subjects & chapters (split from domains/catalog.ts, same behaviour). */
 export const catalogContentApi = {
@@ -91,7 +107,7 @@ export const catalogContentApi = {
       );
     }
 
-    return (data as any[]).map((item) => ({
+    return (data as ExamRow[]).map((item) => ({
       id: item.id,
       title: item.title,
       slug: item.slug,
@@ -195,13 +211,13 @@ export const catalogContentApi = {
         .order('order_index', { ascending: true });
 
       if (error || !data || data.length === 0) return [];
-      return (data as ChapterRow[]).map((item) => ({
+      return (data as LegacyChapterRow[]).map((item) => ({
         id: item.id,
         subjectId: item.subject_id,
         name: item.name,
         slug: item.slug,
         description: item.description ?? undefined,
-        iconName: (item as any).icon_name || (item as any).iconName || undefined,
+        iconName: item.icon_name || item.iconName || undefined,
         orderIndex: item.order_index,
         isActive: item.is_active,
       }));
@@ -223,13 +239,13 @@ export const catalogContentApi = {
         .eq('is_active', true)
         .order('order_index', { ascending: true });
       if (error || !data || data.length === 0) return [];
-      return (data as ChapterRow[]).map((item) => ({
+      return (data as LegacyChapterRow[]).map((item) => ({
         id: item.id,
         subjectId: item.subject_id,
         name: item.name,
         slug: item.slug,
         description: item.description ?? undefined,
-        iconName: (item as any).icon_name || (item as any).iconName || undefined,
+        iconName: item.icon_name || item.iconName || undefined,
         parentId: item.parent_id ?? undefined,
         orderIndex: item.order_index,
         isActive: item.is_active,

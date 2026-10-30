@@ -5,7 +5,7 @@
  * This drops route transition latency from ~300ms to 0ms (instant render).
  */
 
-const routeLoaders: Record<string, () => Promise<any>> = {
+const routeLoaders: Record<string, () => Promise<unknown>> = {
   '/admin': () => import('@/pages/admin/AdminDashboard'),
   '/admin/question-bank': () => import('@/pages/admin/AdminQuestionBank'),
   '/admin/questions': () => import('@/pages/admin/AdminQuestionBank'),
@@ -83,7 +83,7 @@ export function preloadCoreAdminRoutes(): void {
   };
 
   if ('requestIdleCallback' in window) {
-    (window as any).requestIdleCallback(run, { timeout: 2500 });
+    window.requestIdleCallback(run, { timeout: 2500 });
   } else {
     setTimeout(run, 1200);
   }

@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Award,
 } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { PRESET_LOGOS } from './liveTestsUtils';
 import { toast } from './useAdminLiveTests';
@@ -395,8 +396,8 @@ export const CreateEditLiveTestModal: React.FC<CreateEditLiveTestModalProps> = (
                               initialData?.id || 'new'
                             );
                             setLogo(uploadedUrl);
-                          } catch (err: any) {
-                            toast.error('Failed to upload logo: ' + (err?.message || 'Error'));
+                          } catch (err) {
+                            toast.error('Failed to upload logo: ' + getErrorMessage(err, 'Error'));
                           } finally {
                             setIsUploadingLogo(false);
                           }

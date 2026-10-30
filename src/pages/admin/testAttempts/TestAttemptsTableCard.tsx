@@ -119,7 +119,7 @@ export function TestAttemptsTableCard({ testAttemptsState }: TestAttemptsTableCa
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => toggleSelectRow(attempt.id, e as any)}
+                          onChange={(e) => toggleSelectRow(attempt.id, e)}
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
                       </td>

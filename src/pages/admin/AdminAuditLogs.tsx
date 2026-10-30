@@ -62,7 +62,7 @@ export interface AuditLogItem {
   device?: string;
   location?: string;
   severity: AuditSeverity;
-  jsonData?: Record<string, any>;
+  jsonData?: Record<string, unknown>;
 }
 
 // Initial 12 audit log records strictly matching screenshot media_1791202483715.jpg

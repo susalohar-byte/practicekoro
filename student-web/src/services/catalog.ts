@@ -5,7 +5,135 @@ import type { Exam, HeroBanner, LiveTest, MockTest, Subject, Topic } from '@/typ
 // Catalog reads mirror CatalogRepository in the Flutter app, without its offline sample
 // catalog: the web panel shows only what the admin has published.
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
+
+/** A PostgREST `relation(count)` embed. */
+type CountRel = { count: number | null }[] | null;
+
+// Row shapes for the columns each mapper reads. The client is untyped, so every field is
+// optional and nullable; the mappers fall back to defaults exactly as before.
+type Text = string | null;
+type Numeric = number | string | null;
+
+export interface ExamRow {
+  id: string | number;
+  title?: Text;
+  name?: Text;
+  slug?: Text;
+  short_name?: Text;
+  subtitle?: Text;
+  category?: Text;
+  description?: Text;
+  icon_name?: Text;
+  banner_url?: Text;
+  order_index?: Numeric;
+  tests?: CountRel;
+}
+
+export interface SubjectRow {
+  id: string | number;
+  exam_id?: Text;
+  name?: Text;
+  name_english?: Text;
+  name_bengali?: Text;
+  name_bn?: Text;
+  slug?: Text;
+  icon_name?: Text;
+  order_index?: Numeric;
+  chapters?: CountRel;
+  tests?: CountRel;
+}
+
+export interface TopicRow {
+  id: string | number;
+  subject_id?: Text;
+  title?: Text;
+  name?: Text;
+  title_bengali?: Text;
+  name_bn?: Text;
+  slug?: Text;
+  tests?: CountRel;
+}
+
+export interface TestRow {
+  id: string | number;
+  exam_id?: Text;
+  subject_id?: Text;
+  chapter_id?: Text;
+  test_series_id?: Text;
+  title?: Text;
+  description?: Text;
+  total_questions?: Numeric;
+  duration_minutes?: Numeric;
+  total_marks?: Numeric;
+  negative_marking?: Numeric;
+  passing_marks?: Numeric;
+  is_premium?: boolean | null;
+  is_pro?: boolean | null;
+  test_type?: Text;
+  category?: Text;
+  year?: Numeric;
+  paper_name?: Text;
+  shift?: Text;
+  exam_date?: Text;
+  icon_url?: Text;
+  order_index?: Numeric;
+  created_at?: Text;
+  is_live_only?: boolean | null;
+}
+
+interface LiveTestParentRow {
+  id?: string | number | null;
+  title?: Text;
+  exam_id?: Text;
+  duration_minutes?: Numeric;
+  total_questions?: Numeric;
+  total_marks?: Numeric;
+  negative_marking?: Numeric;
+  exams?: { title?: Text } | null;
+}
+
+export interface LiveTestRow {
+  id: string | number;
+  test_id?: string | number | null;
+  title?: Text;
+  exam_id?: Text;
+  exam_title?: Text;
+  status?: Text;
+  start_at?: Text;
+  scheduled_start_time?: Text;
+  scheduled_end_time?: Text;
+  registration_deadline?: Text;
+  duration_minutes?: Numeric;
+  total_questions?: Numeric;
+  total_marks?: Numeric;
+  negative_marking?: Numeric;
+  enrolled_count?: Numeric;
+  logo?: Text;
+  exam_logo?: Text;
+  ranking_enabled?: boolean | null;
+  subscription_required?: boolean | null;
+  instructions?: Text;
+  tests?: LiveTestParentRow | LiveTestParentRow[] | null;
+}
+
+interface HeroBannerRow {
+  id?: string | number | null;
+  title?: Text;
+  subtitle?: Text;
+  badge_text?: Text;
+  image_url?: Text;
+  mobile_image_url?: Text;
+  banner_type?: Text;
+  show_text_overlay?: boolean | null;
+  primary_cta_text?: Text;
+  primary_cta_link?: Text;
+  placement?: Text;
+  starts_at?: Text;
+  expires_at?: Text;
+  is_active?: boolean | null;
+  display_order?: Numeric;
+}
 
 function countOf(rel: unknown): number {
   if (Array.isArray(rel) && rel.length > 0 && typeof rel[0] === 'object' && rel[0]) {
@@ -24,7 +152,7 @@ export function normalizeCategory(raw: string | null | undefined): string {
   return raw;
 }
 
-export function toExam(r: Row): Exam {
+export function toExam(r: ExamRow): Exam {
   return {
     id: String(r.id),
     title: r.title ?? r.name ?? '',
@@ -63,7 +191,7 @@ function inferBengaliName(name: string): string {
   return name;
 }
 
-export function toSubject(r: Row): Subject {
+export function toSubject(r: SubjectRow): Subject {
   const en = r.name_english ?? r.name ?? '';
   const bn = (r.name_bengali ?? r.name_bn ?? '').trim();
   return {
@@ -80,7 +208,7 @@ export function toSubject(r: Row): Subject {
 }
 
 /** TopicModel.fromJson — splits "Indus Valley (সিন্ধু সভ্যতা)" into English + Bengali. */
-export function toTopic(r: Row): Topic {
+export function toTopic(r: TopicRow): Topic {
   const raw: string = r.title ?? r.name ?? '';
   let title = raw;
   let bn: string | null = r.title_bengali ?? r.name_bn ?? null;
@@ -101,7 +229,7 @@ export function toTopic(r: Row): Topic {
   };
 }
 
-export function toTest(r: Row): MockTest {
+export function toTest(r: TestRow): MockTest {
   return {
     id: String(r.id),
     examId: r.exam_id ?? null,
@@ -236,9 +364,10 @@ function parseDate(v: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function toLiveTest(r: Row): LiveTest {
-  const t: Row | null = r.tests && typeof r.tests === 'object' && !Array.isArray(r.tests) ? r.tests : null;
-  const exam: Row | null = t?.exams && typeof t.exams === 'object' ? t.exams : null;
+export function toLiveTest(r: LiveTestRow): LiveTest {
+  const t: LiveTestParentRow | null =
+    r.tests && typeof r.tests === 'object' && !Array.isArray(r.tests) ? r.tests : null;
+  const exam: { title?: Text } | null = t?.exams && typeof t.exams === 'object' ? t.exams : null;
   const duration = num(r.duration_minutes) ?? num(t?.duration_minutes) ?? 0;
   const start = parseDate(r.scheduled_start_time ?? r.start_at);
   const end =
@@ -292,7 +421,8 @@ export async function fetchLiveTests(examId?: string | null): Promise<LiveTest[]
   const { data, error } = await q.order('start_at', { ascending: true });
   if (error) throw error;
   const now = new Date();
-  return (data ?? []).map(toLiveTest).filter((t) => isLiveNow(t, now) || isUpcoming(t, now));
+  // The embed is many-to-one at runtime; the untyped client's parser guesses an array.
+  return ((data ?? []) as unknown as LiveTestRow[]).map(toLiveTest).filter((t) => isLiveNow(t, now) || isUpcoming(t, now));
 }
 
 /** Home hero banners the admin configured (`hero_banners`; RLS returns only live rows). */
@@ -307,7 +437,7 @@ export async function fetchHomeBanners(): Promise<HeroBanner[]> {
     .order('display_order', { ascending: true });
   if (error) throw error;
   const now = new Date();
-  return ((data ?? []) as Row[])
+  return ((data ?? []) as unknown as HeroBannerRow[])
     .filter((b) => {
       if (b.is_active !== true) return false;
       const placement = (b.placement ?? '').toString().trim() || 'home_hero';

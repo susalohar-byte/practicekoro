@@ -3,6 +3,16 @@ import { notifyExamsUpdated } from '@/lib/dataSync';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localQuestions, localTestQuestions, localTests } from '@/services/domains/localStore';
 import type { TestQuestionAssignment } from '@/types';
+import type { Tables } from '@/types/database.generated';
+
+type NamedRef = { id: string; name: string } | null;
+/** A `test_questions` row with its question (and the question's subject/chapter) embedded. */
+type TestQuestionJoinRow = Pick<
+  Tables<'test_questions'>,
+  'question_id' | 'question_order' | 'marks' | 'negative_marks'
+> & {
+  questions: (Tables<'questions'> & { subjects: NamedRef; chapters: NamedRef }) | null;
+};
 
 /** Section of the admin API: testQuestions (split from domains/admin.ts, same behaviour). */
 // --------------------------------------------------------------------------
@@ -66,8 +76,9 @@ export async function getTestAssignedQuestions(testId: string): Promise<TestQues
     return [];
   }
 
-  return data.map((item: any) => {
-    const q = item.questions as any;
+  // The untyped client infers `questions` as an array; a to-one embed is a single object.
+  return (data as unknown as TestQuestionJoinRow[]).map((item) => {
+    const q = item.questions;
     return {
       questionId: item.question_id,
       questionOrder: item.question_order,

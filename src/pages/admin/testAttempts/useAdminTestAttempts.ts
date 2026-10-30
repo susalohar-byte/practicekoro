@@ -233,7 +233,7 @@ export function useAdminTestAttempts() {
     }
   };
 
-  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
+  const toggleSelectRow = (id: string, e: React.SyntheticEvent) => {
     e.stopPropagation();
     const next = new Set(selectedRowIds);
     if (next.has(id)) {

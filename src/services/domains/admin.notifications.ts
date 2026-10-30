@@ -2,6 +2,9 @@ import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localNotifications, syncLocalScheduledNotifications } from '@/services/domains/localStore';
 import type { NotificationItem } from '@/types';
+import type { Tables } from '@/types/database.generated';
+
+type NotificationRow = Tables<'notifications'>;
 
 /** Section of the admin API: notifications (split from domains/admin.ts, same behaviour). */
 // --------------------------------------------------------------------------
@@ -18,7 +21,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
 
     // Page through all rows: a single request is capped by the API max-rows limit.
     const PAGE_SIZE = 1000;
-    const rows: any[] = [];
+    const rows: NotificationRow[] = [];
     for (let from = 0; ; from += PAGE_SIZE) {
       const { data, error } = await supabase
         .from('notifications')
@@ -31,7 +34,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
       rows.push(...page);
       if (page.length < PAGE_SIZE) break;
     }
-    return rows.map((d: any) => ({
+    return rows.map((d) => ({
       ...mapNotification(d),
       createdBy: d.created_by || undefined,
     }));
@@ -121,14 +124,14 @@ export const adminNotificationsApi = {
   deleteNotification,
 };
 
-function mapNotification(d: any): NotificationItem {
+function mapNotification(d: NotificationRow): NotificationItem {
   return {
     id: d.id,
     title: d.title,
     message: d.message,
     targetAudience: d.target_audience,
     channel: d.channel,
-    status: d.status,
+    status: d.status as NotificationItem['status'],
     sentAt: d.sent_at || undefined,
     scheduledAt: d.scheduled_at || undefined,
     createdAt: d.created_at,
@@ -147,7 +150,7 @@ function notificationPayload(n: Partial<NotificationItem>) {
     actionLink: 'action_link',
     type: 'type',
   })) {
-    if (key in n) p[column] = (n as any)[key];
+    if (key in n) p[column] = n[key as keyof NotificationItem];
   }
   if (n.status === 'sent') {
     p.sent_at = n.sentAt || new Date().toISOString();

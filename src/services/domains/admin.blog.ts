@@ -20,8 +20,38 @@ const BLOG_POST_COLUMNS =
   'published_at, scheduled_at, created_at, updated_at, seo_title, seo_description, ' +
   'seo_keywords, tags';
 
+/** The `public.blog_posts` columns listed in `BLOG_POST_COLUMNS`. */
+export interface BlogPostRow {
+  id: string | number;
+  title: string | null;
+  slug: string | null;
+  excerpt: string | null;
+  content: string | null;
+  category: string | null;
+  author: string | null;
+  author_role: string | null;
+  author_avatar: string | null;
+  status: string | null;
+  is_featured: boolean | null;
+  thumbnail: string | null;
+  views: number | string | null;
+  unique_views: number | string | null;
+  likes: number | string | null;
+  comments: number | string | null;
+  shares: number | string | null;
+  read_time: string | null;
+  published_at: string | null;
+  scheduled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_keywords: string | null;
+  tags: string[] | null;
+}
+
 /** A `blog_posts` row as the admin's `BlogPost` (same shape the JSON list used). */
-export function mapBlogPostRow(row: any): BlogPost {
+export function mapBlogPostRow(row: BlogPostRow): BlogPost {
   return {
     id: String(row.id),
     title: row.title ?? '',
@@ -671,7 +701,7 @@ export const adminBlogApi = {
     if (!isSupabaseConfigured) return loadStoredBlogPosts();
     const { data, error } = await supabase
       .from('blog_posts')
-      .select(BLOG_POST_COLUMNS)
+      .select<string, BlogPostRow>(BLOG_POST_COLUMNS)
       .order('seq', { ascending: true });
     if (error) throw new Error(error.message);
     if (!Array.isArray(data)) throw new Error('Invalid blog content storage.');

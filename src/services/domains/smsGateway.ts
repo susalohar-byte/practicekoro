@@ -86,7 +86,8 @@ export async function checkFast2SmsBalance(apiKey: string): Promise<Fast2SmsBala
       success: false,
       message: 'Unexpected balance response from Fast2SMS.',
     };
-  } catch (err: any) {
+  } catch (caught) {
+    const err = caught as { name?: string; message: string };
     // If CORS or network blocks browser direct call, return graceful diagnostics
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
       return {
@@ -152,7 +153,7 @@ export async function sendFast2Sms(options: {
 
   try {
     const numbersParam = validNumbers.join(',');
-    const payload: Record<string, any> = {
+    const payload: Record<string, string | number> = {
       route: route === 'dlt' ? 'dlt' : route === 'otp' ? 'otp' : 'q',
       message: message.trim(),
       language: 'english',
@@ -199,7 +200,8 @@ export async function sendFast2Sms(options: {
       message: `Fast2SMS Gateway Error: ${errorMsg}`,
       error: errorMsg,
     };
-  } catch (err: any) {
+  } catch (caught) {
+    const err = caught as { name?: string; message?: string } | null;
     // Handle CORS browser restrictions with mock fallback if called directly in browser
     if (err?.name === 'TypeError' && err?.message?.includes('fetch')) {
       return {

@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { AdminDashboardV2Stats, Exam, MockTest } from '@/types';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
 import { PaymentHealthCard } from '@/components/admin/PaymentHealthCard';
@@ -57,7 +58,9 @@ export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminDashboardV2Stats | null>(null);
   const [dbExams, setDbExams] = useState<Exam[]>([]);
   const [dbTests, setDbTests] = useState<MockTest[]>([]);
-  const [dbLeaderboard, setDbLeaderboard] = useState<any[]>([]);
+  const [dbLeaderboard, setDbLeaderboard] = useState<
+    Awaited<ReturnType<typeof api.getDashboardLeaderboard>>
+  >([]);
   const [periodData, setPeriodData] = useState<DashboardPeriod | null>(null);
   const [chartPeriods, setChartPeriods] = useState<{
     growth: DashboardPeriod;
@@ -140,11 +143,11 @@ export const AdminDashboard: React.FC = () => {
       setExamAttemptCounts(counts);
       setSnapshotLabel(bounds.label);
       setIsStale(false);
-    } catch (err: any) {
+    } catch (err) {
       if (currentRequestId === requestIdRef.current) {
         console.error('AdminDashboard data fetch failed:', err);
         setLoadError(
-          `Failed to load dashboard data. Backend did not respond. ${err?.message || 'Please retry.'}`
+          `Failed to load dashboard data. Backend did not respond. ${getErrorMessage(err, 'Please retry.')}`
         );
         setIsStale(true);
       }
@@ -461,7 +464,7 @@ export const AdminDashboard: React.FC = () => {
     return sortedTests.slice(0, 5).map((test, idx) => ({
       id: test.id,
       title: test.title,
-      exam: test.examTitle || (test as any).examName || 'Mock Test',
+      exam: test.examTitle || 'Mock Test',
       attempts: `${(test.attemptsCount || 0).toLocaleString('en-IN')} attempts`,
       iconBg: colors[idx % colors.length],
       iconUrl: test.iconUrl,
