@@ -133,9 +133,15 @@ Statuses were checked against production `supabase_migrations.schema_migrations`
 | `20261029100100_fk_indexes_and_duplicate_index.sql`              | Indexes for 32 unindexed foreign keys; drop duplicate idx_subscriptions_user                                                       | **APPLIED (SQL Editor)** |
 | `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                        | **APPLIED (SQL Editor)** |
 | `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                               | **APPLIED (SQL Editor)** |
-| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                |       **PENDING**        |
-| `20261029150000_remove_audiobooks.sql`                           | Remove the unused Audiobook feature: drops the 5 audiobook tables and their RPCs (destructive)                                     |       **PENDING**        |
-| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners.image_url / mobile_image_url                                                              |       **PENDING**        |
+| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                | **APPLIED (SQL Editor)** |
+| `20261029110000_definer_function_hardening.sql`                  | SECURITY DEFINER function hardening                                                                                                | **APPLIED (SQL Editor)** |
+| `20261029120000_small_db_hardening.sql`                          | Duplicate index, cutoff_records policy split, payment_gateways role check                                                          | **APPLIED (SQL Editor)** |
+| `20261029130000_app_settings_lists_to_tables.sql`                | app_settings lists become real tables: hero_banners, blog_posts, popular exam / test series cards                                  | **APPLIED (SQL Editor)** |
+| `20261029140000_private_schema_rls_helpers.sql`                  | Move RLS-only SECURITY DEFINER helpers into the unexposed private schema                                                           | **APPLIED (SQL Editor)** |
+| `20261029150000_remove_audiobooks.sql`                           | Remove the unused Audiobook feature: drops the 5 audiobook tables and their RPCs (destructive)                                     | **APPLIED (SQL Editor)** |
+| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners.image_url / mobile_image_url                                                              | **APPLIED (SQL Editor)** |
+| `20261029170000_coupon_title.sql`                                | Nullable coupons.title for the admin coupon form                                                                                   | **APPLIED (SQL Editor)** |
+| `20261030090000_restore_backup_privileges.sql`                   | Restore function/table privileges lost in the project move; anon loses server-only RPCs and unused write grants                    | **APPLIED (SQL Editor)** |
 
 ---
 
