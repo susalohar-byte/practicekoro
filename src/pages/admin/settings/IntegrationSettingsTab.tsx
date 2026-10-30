@@ -133,7 +133,7 @@ export function IntegrationSettingsTab({ settings }: IntegrationSettingsTabProps
                 </label>
                 <select
                   value={fast2smsRoute}
-                  onChange={(e) => setFast2smsRoute(e.target.value as any)}
+                  onChange={(e) => setFast2smsRoute(e.target.value as typeof fast2smsRoute)}
                   className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="q">Quick (Standard Transactional / Promotional)</option>

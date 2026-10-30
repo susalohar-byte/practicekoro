@@ -70,8 +70,7 @@ export function mapLiveParticipantToRankingStudent(
   const rawScore = Number(participant.score || 0);
   const rawAcc = Number(participant.accuracy || 0);
   const testTitle = liveTest?.title || 'Live Test';
-  const examName =
-    (liveTest as any)?.examName || liveTest?.examTitle || liveTest?.test?.examTitle || 'Live Exam';
+  const examName = liveTest?.examTitle || liveTest?.test?.examTitle || 'Live Exam';
   const totalQ = liveTest?.totalQuestions || (rawScore > 0 ? 100 : 0);
 
   return {
@@ -186,11 +185,7 @@ export function aggregateLiveParticipants(
       avgScore,
       lastActive: formatRankingTimeAgo(latestCompleted),
       subjectPerformance: sortedTests.slice(0, 3).map((t, idx) => ({
-        subject:
-          (t.liveTest as any)?.examName ||
-          t.liveTest?.examTitle ||
-          t.liveTest?.title ||
-          'Live Test',
+        subject: t.liveTest?.examTitle || t.liveTest?.title || 'Live Test',
         scorePercent: Math.round(t.score),
         barColor: LIVE_SUBJECT_COLORS[idx % LIVE_SUBJECT_COLORS.length],
       })),

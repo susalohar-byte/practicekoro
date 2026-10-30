@@ -426,6 +426,9 @@ export interface MockTest {
   topicName?: string;
   testSeriesTitle?: string;
   attemptsCount?: number;
+  /** Optional admin display fields; shown only when a loader provides them. */
+  avgScore?: number;
+  updatedAt?: string;
 }
 
 export interface Question {
@@ -858,7 +861,7 @@ export interface ProcessRefundResponse {
   status?: string;
   revokedSubscription?: boolean;
   error?: string;
-  gatewayResponse?: any;
+  gatewayResponse?: unknown;
 }
 
 export interface AdminBatch {
@@ -1068,7 +1071,7 @@ export interface AdminAuditLog {
   entityType: string;
   entityId?: string;
   entityName?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   createdAt: string;
 }

@@ -182,13 +182,14 @@ export async function getExamRelatedTests(examId: string): Promise<ExamRelatedTe
   if (!isSupabaseConfigured) return [];
 
   const [primary, assoc, mappedTopics] = await Promise.all([
+    // The untyped client parses to-one embeds as arrays; at runtime they are objects.
     readCompleteQuery(() =>
       supabase
         .from('tests')
         .select(TEST_COLUMNS, { count: 'exact' })
         .eq('exam_id', examId)
         .order('id', { ascending: true })
-    ) as Promise<TestRow[]>,
+    ) as unknown as Promise<TestRow[]>,
     readCompleteQuery(() =>
       supabase
         .from('test_exams')
@@ -236,11 +237,12 @@ export async function getExamRelatedTests(examId: string): Promise<ExamRelatedTe
     const rows: TestRow[] = [];
     for (let i = 0; i < ids.length; i += BATCH) {
       const slice = ids.slice(i, i + BATCH);
+      // The untyped client parses to-one embeds as arrays; at runtime they are objects.
       const page = (await readCompleteQuery(() => {
         let q = supabase.from('tests').select(TEST_COLUMNS, { count: 'exact' }).in(column, slice);
         if (column === 'chapter_id') q = q.in('test_type', ['topic', 'chapter_mock']);
         return q.order('id', { ascending: true });
-      })) as TestRow[];
+      })) as unknown as TestRow[];
       rows.push(...page);
     }
     return rows;

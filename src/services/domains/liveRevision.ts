@@ -1,5 +1,6 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { LiveTest, TestSeries } from '@/types';
+import type { Tables } from '@/types/database.generated';
 import {
   getActiveLiveTest,
   getLiveTests,
@@ -8,6 +9,9 @@ import {
 } from './admin.liveTests';
 
 export type { LiveTest, LiveTestStatus } from '@/types';
+
+/** A `test_series` row with its `exams:exam_id(title)` join. */
+type FeaturedSeriesRow = Tables<'test_series'> & { exams: { title: string | null } | null };
 
 export const liveRevisionApi = {
   async getFeaturedLiveTest(): Promise<LiveTest | null> {
@@ -33,7 +37,7 @@ export const liveRevisionApi = {
         .order('order_index', { ascending: true })
         .limit(8);
       if (error) return [];
-      return (data || []).map((r: any) => ({
+      return ((data || []) as FeaturedSeriesRow[]).map((r) => ({
         id: String(r.id),
         examId: String(r.exam_id),
         title: String(r.title),

@@ -4,7 +4,7 @@ import {
   isSupabaseConfigured,
   isDemoModeEnabled,
 } from '@/lib/supabase';
-import type { Database } from '@/types/database';
+import type { Database, Json } from '@/types/database';
 import { invalidateApiCache } from '@/services/apiCache';
 import type {
   UserProfile,
@@ -17,6 +17,8 @@ import type {
 } from '@/types';
 import { getAdminPermissions } from '@/types';
 
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+
 type ProfileRow = Database['public']['Tables']['profiles']['Row'] & {
   admin_role?: string | null;
   account_status?: 'active' | 'inactive';
@@ -25,7 +27,7 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'] & {
   gender?: string | null;
   category?: string | null;
   dob?: string | null;
-  preferred_subjects?: any;
+  preferred_subjects?: Json | null;
   preparation_status?: string | null;
 };
 
@@ -49,7 +51,24 @@ const PROFILE_COLUMNS =
 // repeat on tab focus and on mount alongside initAuth().
 const SAME_USER_EVENTS = new Set(['TOKEN_REFRESHED', 'SIGNED_IN', 'INITIAL_SESSION']);
 
-type AuthUserLike = { id: string; email?: string; user_metadata?: Record<string, any> };
+/** Profile fields the app reads from Supabase Auth `user_metadata` (OAuth + sign-up data). */
+interface AuthUserMetadata {
+  full_name?: string;
+  name?: string;
+  avatar_url?: string;
+  picture?: string;
+  district?: string;
+  state?: string;
+  gender?: string;
+  category?: string;
+  dob?: string;
+  target_exam_id?: string;
+  target_exam_title?: string;
+  preferred_subjects?: unknown;
+  preparation_status?: string;
+}
+
+type AuthUserLike = { id: string; email?: string; user_metadata?: AuthUserMetadata };
 
 const resolveUserProfile = async (supabaseUser: AuthUserLike): Promise<UserProfile> => {
   try {
@@ -491,7 +510,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (isSupabaseConfigured && isUuid) {
-        const fullPayload: Record<string, any> = {
+        const fullPayload: ProfileUpdate = {
           full_name: updatedFullName,
           phone: updatedPhone || null,
           avatar_url: updatedAvatarUrl || null,
@@ -521,7 +540,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn(
             'Notice: Demographic columns not yet in profiles schema cache. Retrying basic profile update and saving full details to auth metadata.'
           );
-          const basicPayload: Record<string, any> = {
+          const basicPayload: ProfileUpdate = {
             full_name: updatedFullName,
             phone: updatedPhone || null,
             avatar_url: updatedAvatarUrl || null,

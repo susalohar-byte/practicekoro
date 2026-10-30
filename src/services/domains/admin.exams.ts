@@ -32,12 +32,10 @@ export async function getExamContentCounts(): Promise<
       };
 
       if (!isSupabaseConfigured) {
-        const commonTopicCount = localTests.filter(
-          (t) => classify((t as any).testType) === 'topic'
-        ).length;
+        const commonTopicCount = localTests.filter((t) => classify(t.testType) === 'topic').length;
 
         for (const t of localTests) {
-          const kind = classify((t as any).testType);
+          const kind = classify(t.testType);
           if (kind && kind !== 'topic') bump(t.examId, kind);
         }
         for (const e of localExams) {
@@ -160,8 +158,8 @@ export async function getAllAdminExams(): Promise<Exam[]> {
           category: item.category,
           iconName: item.icon_name,
           bannerUrl: item.banner_url ?? undefined,
-          shortName: (item as any).short_name ?? undefined,
-          subtitle: (item as any).subtitle ?? undefined,
+          shortName: item.short_name ?? undefined,
+          subtitle: item.subtitle ?? undefined,
           orderIndex: item.order_index,
           isActive: item.is_active,
           fullMockCount: fullMock,
@@ -196,8 +194,8 @@ export async function getExamById(id: string): Promise<Exam | null> {
     category: row.category,
     iconName: row.icon_name,
     bannerUrl: row.banner_url ?? undefined,
-    shortName: (row as any).short_name ?? undefined,
-    subtitle: (row as any).subtitle ?? undefined,
+    shortName: row.short_name ?? undefined,
+    subtitle: row.subtitle ?? undefined,
     orderIndex: row.order_index,
     isActive: row.is_active,
   };
@@ -289,8 +287,10 @@ export async function updateExam(id: string, updates: Partial<Exam>): Promise<Ex
     shortName: 'short_name',
     subtitle: 'subtitle',
   };
-  for (const [key, column] of Object.entries(fields))
-    if ((updates as any)[key] !== undefined) payload[column] = (updates as any)[key];
+  for (const [key, column] of Object.entries(fields)) {
+    const value = (updates as Record<string, unknown>)[key];
+    if (value !== undefined) payload[column] = value;
+  }
   requireSavedRow(
     await supabase.from('exams').update(payload).eq('id', id).select('id').maybeSingle(),
     id
@@ -367,7 +367,25 @@ const POPULAR_EXAM_CARD_COLUMNS =
   'id, exam_id, title, slug, route, tests_count, card_badge, card_gradient_start, ' +
   'card_gradient_end, card_arrow_color, card_bg_image, card_emblem_url, order_index, is_active';
 
-function mapPopularExamCardRow(row: any): PopularExamCard {
+/** A `popular_exam_cards` row (table not in the generated types). */
+interface PopularExamCardRow {
+  id: string;
+  exam_id: string | null;
+  title: string | null;
+  slug: string | null;
+  route: string | null;
+  tests_count: string | null;
+  card_badge: string | null;
+  card_gradient_start: string | null;
+  card_gradient_end: string | null;
+  card_arrow_color: string | null;
+  card_bg_image: string | null;
+  card_emblem_url: string | null;
+  order_index: number | null;
+  is_active: boolean | null;
+}
+
+function mapPopularExamCardRow(row: PopularExamCardRow): PopularExamCard {
   return {
     id: String(row.id),
     examId: row.exam_id ?? undefined,
@@ -394,7 +412,8 @@ export async function getPopularExams(): Promise<PopularExamCard[]> {
       .select(POPULAR_EXAM_CARD_COLUMNS)
       .order('order_index', { ascending: true });
     if (error) throw error;
-    const parsed = (data || []).map(mapPopularExamCardRow);
+    // A concatenated column list defeats the select parser, so the row type is asserted here.
+    const parsed = ((data || []) as unknown as PopularExamCardRow[]).map(mapPopularExamCardRow);
     if (parsed.length === 0) return await attachPopularExamCounts(DEFAULT_POPULAR_EXAMS);
     try {
       if (typeof localStorage !== 'undefined') {

@@ -167,7 +167,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={(e) => toggleSelectTest(t.id, e as any)}
+                            onChange={(e) => toggleSelectTest(t.id, e)}
                             className="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700"
                           />
                         </td>

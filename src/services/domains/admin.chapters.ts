@@ -149,8 +149,10 @@ export async function updateChapter(id: string, input: Partial<Chapter>): Promis
     isActive: 'is_active',
   };
   const payload: Record<string, unknown> = {};
-  for (const [k, c] of Object.entries(fields))
-    if ((input as any)[k] !== undefined) payload[c] = (input as any)[k];
+  for (const [k, c] of Object.entries(fields)) {
+    const value = (input as Record<string, unknown>)[k];
+    if (value !== undefined) payload[c] = value;
+  }
   // An empty description clears the stored value.
   if (input.description !== undefined) payload.description = input.description || null;
   const d = requireSavedRow(

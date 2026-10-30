@@ -65,8 +65,8 @@ export function RankingsFilterToolbar({ rk }: RankingsFilterToolbarProps) {
             >
               <option value="All Exams">All Exams</option>
               {dbExams.map((ex) => (
-                <option key={ex.id} value={ex.title || ex.name}>
-                  {ex.title || ex.name}
+                <option key={ex.id} value={ex.title}>
+                  {ex.title}
                 </option>
               ))}
               {dbExams.length === 0 && (

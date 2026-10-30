@@ -1,9 +1,14 @@
 // Loads Razorpay Checkout (checkout.js) on demand. The order is created and verified by the
 // project's Edge Functions; the browser only ever holds the public key id.
 
+/** Payload of Checkout's `payment.failed` event (only the fields the app reads). */
+export interface RazorpayFailureResponse {
+  error?: { description?: string };
+}
+
 declare global {
   interface Window {
-    Razorpay?: new (options: Record<string, unknown>) => { open: () => void; on: (event: string, cb: (r: any) => void) => void };
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void; on: (event: string, cb: (response: RazorpayFailureResponse) => void) => void };
   }
 }
 

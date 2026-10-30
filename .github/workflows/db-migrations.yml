@@ -22,10 +22,10 @@ permissions:
 
 env:
   SUPABASE_CLI_VERSION: 2.115.0
-  # Highest version applied by hand before this pipeline existed. A pending
-  # migration at or below it was never recorded and must be backfilled, not
-  # re-run (see supabase/migrations/README.md).
-  BACKFILL_FLOOR: '20261029110000'
+  # Highest version applied by hand before this pipeline existed (all of them
+  # are recorded in the new project wzcmhowowoyeldfqzkeh). A pending migration
+  # at or below it must be recorded, not re-run (see supabase/migrations/README.md).
+  BACKFILL_FLOOR: '20261030090000'
 
 jobs:
   plan:
@@ -53,8 +53,10 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_URL is not available to this run."
-            exit 1
+            # Forks and repos without the secret: say so loudly, but don't block the PR.
+            echo "::warning::Secret SUPABASE_DB_URL is not set, so the production dry run was skipped."
+            echo "Production dry run skipped: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
           # The CLI needs a session connection; Supavisor serves session mode on
           # 5432 and transaction mode on 6543 of the same host.
@@ -94,8 +96,9 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_URL is not set."
-            exit 1
+            echo "::warning::Secret SUPABASE_DB_URL is not set, so NOTHING was applied to production. Apply the new migrations by hand and record them (supabase/migrations/README.md)."
+            echo "Nothing applied: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
           DB_URL="${SUPABASE_DB_URL/:6543\//:5432/}"
           echo "::add-mask::$DB_URL"

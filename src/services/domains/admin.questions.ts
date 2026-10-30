@@ -18,6 +18,10 @@ import {
   localChapters,
 } from '@/services/domains/localStore';
 import type { Question } from '@/types';
+import type { FilterableQuery } from './queryFilters';
+
+/** A raw `questions` row as read by `mapQuestionRow`, keyed by its id for paging. */
+type QuestionRow = Parameters<typeof mapQuestionRow>[0] & { id: string };
 
 function enrichQuestionWithTaxonomy(q: Question): Question {
   // Names from the demo taxonomy only fill gaps in demo mode; live rows carry their own.
@@ -140,7 +144,7 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
       .eq('test_id', filters.testId);
 
     if (tqError) throw new Error(tqError.message);
-    testQuestionIds = tqData?.map((r: any) => r.question_id) || [];
+    testQuestionIds = tqData?.map((r: { question_id: string }) => r.question_id) || [];
     if (testQuestionIds.length === 0) {
       return [];
     }
@@ -148,7 +152,7 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
 
   // PostgREST caps a single response at 1000 rows, so read every page with a
   // stable order (created_at desc, id desc) until the server returns an empty page.
-  const rows = await loadAllPages<any>(async (limit, offset) => {
+  const rows = await loadAllPages<QuestionRow>(async (limit, offset) => {
     let query = supabase
       .from('questions')
       .select(ADMIN_QUESTION_COLUMNS)
@@ -160,10 +164,10 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
     if (error) {
       throw new Error(error.message);
     }
-    return (data || []) as any[];
+    return (data || []) as QuestionRow[];
   }, 1000);
 
-  return rows.map((q: any) => mapQuestionRow(q));
+  return rows.map((q) => mapQuestionRow(q));
 }
 
 /**
@@ -171,11 +175,11 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
  * question-list query). `testId` is resolved by callers into id lists or
  * counts because it needs a junction pre-query.
  */
-function applyQuestionListFilters(
-  query: any,
+function applyQuestionListFilters<Q extends FilterableQuery>(
+  query: Q,
   filters: AdminQuestionFilters | undefined,
   testQuestionIds: string[] | null
-): any {
+): Q {
   if (testQuestionIds && testQuestionIds.length > 0) {
     query = query.in('id', testQuestionIds);
   } else if (!filters?.includeLiveOnly) {
@@ -227,7 +231,7 @@ async function resolveTestQuestionIds(testId: string): Promise<string[]> {
     .eq('test_id', testId);
 
   if (tqError) throw new Error(tqError.message);
-  return tqData?.map((r: any) => r.question_id) || [];
+  return tqData?.map((r: { question_id: string }) => r.question_id) || [];
 }
 
 /**
@@ -330,7 +334,7 @@ export async function getAdminQuestionsPaged(
   }
 
   return {
-    questions: (data || []).map((q: any) => mapQuestionRow(q)),
+    questions: ((data || []) as QuestionRow[]).map((q) => mapQuestionRow(q)),
     total: count ?? (data ? data.length : 0),
   };
 }
@@ -351,7 +355,7 @@ export async function getAdminQuestionsByIds(ids: string[]): Promise<Question[]>
       .select(ADMIN_QUESTION_COLUMNS)
       .in('id', unique.slice(i, i + CHUNK));
     if (error) throw new Error(error.message);
-    out.push(...(data || []).map((q: any) => mapQuestionRow(q)));
+    out.push(...((data || []) as QuestionRow[]).map((q) => mapQuestionRow(q)));
   }
   return out;
 }
@@ -456,7 +460,7 @@ export async function getAdminQuestionsForTestContext(
   if (!isSupabaseConfigured) return getAllAdminQuestions();
   const type = ctx.testType;
   const examPattern = ctx.examTitle ? searchOrFilterValue(ctx.examTitle) : '';
-  const rows = await loadAllPages<any>(async (limit, offset) => {
+  const rows = await loadAllPages<QuestionRow>(async (limit, offset) => {
     let query = supabase
       .from('questions')
       .select(ADMIN_QUESTION_COLUMNS)
@@ -484,9 +488,9 @@ export async function getAdminQuestionsForTestContext(
     }
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data || []) as any[];
+    return (data || []) as QuestionRow[];
   }, 1000);
-  return rows.map((q: any) => mapQuestionRow(q));
+  return rows.map((q) => mapQuestionRow(q));
 }
 
 export async function getQuestionById(id: string): Promise<Question | null> {

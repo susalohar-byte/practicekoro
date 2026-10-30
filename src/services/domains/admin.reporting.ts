@@ -1,6 +1,7 @@
 import { isSupabaseConfigured, supabaseRuntime as supabase } from '@/lib/supabase';
 import { withApiCache } from '@/services/apiCache';
 import type { AdminDashboardV2Stats, DateRangeRevenueStats } from '@/types';
+import type { Tables } from '@/types/database.generated';
 import {
   getDateRangeBounds,
   getKolkataDateString,
@@ -10,9 +11,29 @@ import {
   type DateRangeBounds,
 } from './admin.dashboard';
 
+/** A select query that can be paged with `.range()`; `Row` is inferred from the query. */
+export interface PageableQuery<Row> {
+  range(
+    from: number,
+    to: number
+  ): PromiseLike<{
+    data: Row[] | null;
+    error: { message: string } | null;
+    count: number | null;
+  }>;
+}
+
+/**
+ * The row type of a paged query. A column list built at runtime cannot be parsed by the
+ * client (it reports `GenericStringError`), so those rows are `unknown` to the caller.
+ */
+export type PagedRow<Row> = Row extends { error: true } ? unknown : Row;
+
 /** Every read is authorized by the caller's Supabase session/RLS; never a service key. */
-export async function readCompleteQuery(build: () => any): Promise<any[]> {
-  const rows: any[] = [];
+export async function readCompleteQuery<Row>(
+  build: () => PageableQuery<Row>
+): Promise<PagedRow<Row>[]> {
+  const rows: PagedRow<Row>[] = [];
   const seen = new Set<string>();
   let offset = 0;
   let expected = 0;
@@ -30,12 +51,13 @@ export async function readCompleteQuery(build: () => any): Promise<any[]> {
     }
     offset += data.length;
     for (const row of data) {
-      const key = row && row.id != null ? String(row.id) : null;
+      const id = (row as { id?: unknown } | null)?.id;
+      const key = row && id != null ? String(id) : null;
       if (key !== null) {
         if (seen.has(key)) continue;
         seen.add(key);
       }
-      rows.push(row);
+      rows.push(row as PagedRow<Row>);
     }
   } while (offset < expected);
   return rows;
@@ -77,24 +99,67 @@ export function getEarliestReportingEvent(
     p_all_payment_statuses: allPaymentStatuses,
   });
 }
+// Reporting rows: only the columns each browser-fallback query selects.
+export type ReportProfileRow = Pick<Tables<'profiles'>, 'id' | 'created_at'> &
+  Partial<Pick<Tables<'profiles'>, 'full_name' | 'district'>>;
+export type ReportAttemptRow = Pick<
+  Tables<'test_attempts'>,
+  'id' | 'user_id' | 'test_id' | 'status' | 'created_at'
+> &
+  Partial<Pick<Tables<'test_attempts'>, 'score' | 'total_marks'>>;
+/** The owning attempt of an answer (`test_attempts!inner(user_id)`). */
+type AnswerOwner = { user_id: string } | { user_id: string }[] | null;
+export type ReportAnswerRow = Pick<
+  Tables<'attempt_answers'>,
+  'id' | 'selected_option' | 'created_at'
+> & { test_attempts?: AnswerOwner };
+/** `PAYMENT_REVENUE_COLUMNS`; `requires_refund` is the text `raw_response->>requires_refund`. */
+export type PaymentRevenueRow = Pick<
+  Tables<'payments'>,
+  'id' | 'amount' | 'refund_amount' | 'status' | 'created_at'
+> & { requires_refund: string | null };
+/** The fields `netPaymentAmount` reads. */
+export interface NetPaymentInput {
+  status: string;
+  amount: number;
+  refund_amount?: number | null;
+  requires_refund?: string | boolean | null;
+}
+
+/** An untyped select on the runtime client; filters (eq, gte, in, …) return this same type. */
+const selectRows = (table: string, columns: string) =>
+  supabase.from(table).select(columns, { count: 'exact' });
+type RowsQuery = ReturnType<typeof selectRows>;
+const selectCount = (table: string) =>
+  supabase.from(table).select('*', { count: 'exact', head: true });
+type CountQuery = ReturnType<typeof selectCount>;
+
 const paiseToRupees = (paise: unknown) => Math.round(Number(paise || 0)) / 100;
 const toRange = (startMs: number, endMs: number) => ({
   start: new Date(startMs).toISOString(),
   end: new Date(endMs).toISOString(),
 });
 
-function rows(table: string, columns: string, filter: (q: any) => any = (q) => q) {
+/** `Row` names the columns `columns` selects (a runtime column list is not parsed). */
+function rows<Row>(
+  table: string,
+  columns: string,
+  filter: (q: RowsQuery) => RowsQuery = (q) => q
+): Promise<Row[]> {
   return readCompleteQuery(() => {
-    let query = supabase.from(table).select(columns, { count: 'exact' });
+    let query = selectRows(table, columns);
     query =
       table === 'test_exams'
         ? query.order('test_id', { ascending: true }).order('exam_id', { ascending: true })
         : query.order('id', { ascending: true });
     return filter(query);
-  });
+  }) as Promise<Row[]>;
 }
-async function count(table: string, filter: (q: any) => any = (q) => q): Promise<number> {
-  const r = await filter(supabase.from(table).select('*', { count: 'exact', head: true }));
+async function count(
+  table: string,
+  filter: (q: CountQuery) => CountQuery = (q) => q
+): Promise<number> {
+  const r = await filter(selectCount(table));
   if (r.error) throw new Error(r.error.message);
   if (typeof r.count !== 'number') throw new Error(`${table} count was not confirmed.`);
   return r.count;
@@ -103,7 +168,7 @@ const PAYMENT_REVENUE_COLUMNS =
   'id, amount, refund_amount, status, created_at, requires_refund:raw_response->>requires_refund';
 const within = (value: string, b: DateRangeBounds) =>
   Date.parse(value) >= Date.parse(b.startIso) && Date.parse(value) <= Date.parse(b.endIso);
-export function netPaymentAmount(p: any): number {
+export function netPaymentAmount(p: NetPaymentInput): number {
   // Pending and failed payments retain nothing; refunded ones keep any unrefunded remainder.
   if (p.status !== 'completed' && p.status !== 'refunded') return 0;
   // Captured after the purchase stopped being eligible: access was never granted and
@@ -133,10 +198,10 @@ export interface DashboardPeriod {
 }
 export function aggregateDashboardPeriod(
   b: DateRangeBounds,
-  profiles: any[],
-  attempts: any[],
-  answers: any[],
-  payments: any[]
+  profiles: ReportProfileRow[],
+  attempts: ReportAttemptRow[],
+  answers: ReportAnswerRow[],
+  payments: PaymentRevenueRow[]
 ): DashboardPeriod {
   const summarize = (range: DateRangeBounds) => {
     const a = attempts.filter((r) => within(r.created_at, range));
@@ -279,21 +344,23 @@ export async function getDashboardPeriodData(b: DateRangeBounds): Promise<Dashbo
   const fromServer = await getDashboardPeriodFromServer(b);
   if (fromServer) return fromServer;
   const start = b.prevStartIso || b.startIso;
-  const filter = (q: any) => q.gte('created_at', start).lte('created_at', b.endIso);
+  const filter = (q: RowsQuery) => q.gte('created_at', start).lte('created_at', b.endIso);
   const [p, studentRows, a, r, m] = await Promise.all([
-    rows('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
-    rows('profiles', 'id', (q) => q.eq('role', 'student')),
-    rows('test_attempts', 'id, user_id, test_id, status, created_at', filter),
-    rows('attempt_answers', 'id, selected_option, created_at, test_attempts!inner(user_id)', (q) =>
-      filter(q.not('selected_option', 'is', null))
+    rows<ReportProfileRow>('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
+    rows<{ id: string }>('profiles', 'id', (q) => q.eq('role', 'student')),
+    rows<ReportAttemptRow>('test_attempts', 'id, user_id, test_id, status, created_at', filter),
+    rows<ReportAnswerRow>(
+      'attempt_answers',
+      'id, selected_option, created_at, test_attempts!inner(user_id)',
+      (q) => filter(q.not('selected_option', 'is', null))
     ),
-    rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
+    rows<PaymentRevenueRow>('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
       filter(q.in('status', ['completed', 'refunded']))
     ),
   ]);
   // Student reporting excludes staff/admin test runs, matching the Analytics aggregation.
-  const students = new Set(studentRows.map((s) => s.id));
-  const owner = (x: any) =>
+  const students = new Set<string | undefined>(studentRows.map((s) => s.id));
+  const owner = (x: ReportAnswerRow) =>
     (Array.isArray(x.test_attempts) ? x.test_attempts[0] : x.test_attempts)?.user_id;
   return aggregateDashboardPeriod(
     b,
@@ -364,11 +431,13 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
           count('profiles', (q) => q.eq('role', 'student')),
           count('exams'),
           count('questions'),
-          rows('tests', 'id, test_type'),
-          rows('subscriptions', 'id, user_id', (q) =>
-            q.eq('status', 'active').gt('expires_at', now.toISOString())
+          rows<Pick<Tables<'tests'>, 'id' | 'test_type'>>('tests', 'id, test_type'),
+          rows<Pick<Tables<'subscriptions'>, 'id' | 'user_id'>>(
+            'subscriptions',
+            'id, user_id',
+            (q) => q.eq('status', 'active').gt('expires_at', now.toISOString())
           ),
-          rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
+          rows<PaymentRevenueRow>('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
             q.in('status', ['completed', 'refunded'])
           ),
           getDashboardPeriodData(getDateRangeBounds('Last 30 Days')),
@@ -415,8 +484,10 @@ export async function getDashboardOverview(): Promise<AdminDashboardV2Stats> {
 /** Active, unexpired subscriptions grouped by plan id. Empty without a backend. */
 export async function getActiveSubscriptionCountsByPlan(): Promise<Record<string, number>> {
   if (!isSupabaseConfigured) return {};
-  const subs = await rows('subscriptions', 'id, plan_id', (q) =>
-    q.eq('status', 'active').gt('expires_at', new Date().toISOString())
+  const subs = await rows<Pick<Tables<'subscriptions'>, 'id' | 'plan_id'>>(
+    'subscriptions',
+    'id, plan_id',
+    (q) => q.eq('status', 'active').gt('expires_at', new Date().toISOString())
   );
   const counts: Record<string, number> = {};
   for (const sub of subs) {
@@ -474,7 +545,7 @@ function buildRevenueRange(
   return {
     startDate: startDay,
     endDate: endDay,
-    preset: preset as any,
+    preset: preset as DateRangeRevenueStats['preset'],
     label: b.label,
     totalRevenue,
     totalTransactions: transactions,
@@ -558,12 +629,12 @@ export async function getAuthoritativeRevenueRange(
   }
   const fromServer = await getRevenueRangeFromServer(b, preset);
   if (fromServer) return fromServer;
-  const filter = (q: any) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
+  const filter = (q: RowsQuery) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
   const [payments, profiles] = await Promise.all([
-    rows('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
+    rows<PaymentRevenueRow>('payments', PAYMENT_REVENUE_COLUMNS, (q) =>
       filter(q.in('status', ['completed', 'refunded']))
     ),
-    rows('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
+    rows<ReportProfileRow>('profiles', 'id, created_at', (q) => filter(q.eq('role', 'student'))),
   ]);
   const earliest = [...payments, ...profiles].map((r) => Date.parse(r.created_at));
   const paymentDays = new Map<string, { cents: number; transactions: number }>();
@@ -597,26 +668,38 @@ export async function getAuthoritativeRevenueRange(
 
 export async function getDashboardSystemActivity(b: DateRangeBounds) {
   if (!isSupabaseConfigured) return [];
-  const latest = async (table: string, columns: string, filter: (q: any) => any = (q) => q) => {
-    const r = await filter(
-      supabase
-        .from(table)
-        .select(columns)
-        .gte('created_at', b.startIso)
-        .lte('created_at', b.endIso)
-        .order('created_at', { ascending: false })
-        .limit(20)
-    );
+  const selectLatest = (table: string, columns: string) =>
+    supabase
+      .from(table)
+      .select(columns)
+      .gte('created_at', b.startIso)
+      .lte('created_at', b.endIso)
+      .order('created_at', { ascending: false })
+      .limit(20);
+  type LatestQuery = ReturnType<typeof selectLatest>;
+  const latest = async <Row>(
+    table: string,
+    columns: string,
+    filter: (q: LatestQuery) => LatestQuery = (q) => q
+  ) => {
+    const r = await filter(selectLatest(table, columns));
     if (r.error) throw new Error(r.error.message);
     if (!Array.isArray(r.data)) throw new Error('Activity response was not confirmed.');
-    return r.data as any[];
+    return r.data as Row[];
   };
   const [payments, subs, profiles, tests, exams] = await Promise.all([
-    latest('payments', 'id, amount, status, created_at', (q) => q.eq('status', 'completed')),
-    latest('subscriptions', 'id, status, created_at'),
-    latest('profiles', 'id, created_at', (q) => q.eq('role', 'student')),
-    latest('tests', 'id, title, created_at'),
-    latest('exams', 'id, title, created_at'),
+    latest<Pick<Tables<'payments'>, 'id' | 'amount' | 'status' | 'created_at'>>(
+      'payments',
+      'id, amount, status, created_at',
+      (q) => q.eq('status', 'completed')
+    ),
+    latest<Pick<Tables<'subscriptions'>, 'id' | 'status' | 'created_at'>>(
+      'subscriptions',
+      'id, status, created_at'
+    ),
+    latest<ReportProfileRow>('profiles', 'id, created_at', (q) => q.eq('role', 'student')),
+    latest<Pick<Tables<'tests'>, 'id' | 'title' | 'created_at'>>('tests', 'id, title, created_at'),
+    latest<Pick<Tables<'exams'>, 'id' | 'title' | 'created_at'>>('exams', 'id, title, created_at'),
   ]);
   return [
     ...payments.map((p) => ({
@@ -656,8 +739,8 @@ export async function getDashboardExamAttemptCounts(
 ): Promise<Record<string, number>> {
   if (!isSupabaseConfigured) return {};
   const [tests, links] = await Promise.all([
-    rows('tests', 'id, exam_id'),
-    rows('test_exams', 'test_id, exam_id'),
+    rows<Pick<Tables<'tests'>, 'id' | 'exam_id'>>('tests', 'id, exam_id'),
+    rows<Pick<Tables<'test_exams'>, 'test_id' | 'exam_id'>>('test_exams', 'test_id, exam_id'),
   ]);
   const pairs = new Set<string>();
   const totals: Record<string, number> = {};
@@ -681,10 +764,13 @@ export async function getDashboardLeaderboard(b: DateRangeBounds) {
   if (!isSupabaseConfigured) return [];
   // The deployed student leaderboard only accepts a lower bound. Do not silently
   // present it as an end-bounded historical leaderboard.
-  const attempts = await rows(
-    'test_attempts',
-    'id, user_id, score, total_marks, status, created_at',
-    (q) => q.gte('created_at', b.startIso).lte('created_at', b.endIso).eq('status', 'completed')
+  const attempts = await rows<
+    Pick<
+      Tables<'test_attempts'>,
+      'id' | 'user_id' | 'score' | 'total_marks' | 'status' | 'created_at'
+    >
+  >('test_attempts', 'id, user_id, score, total_marks, status, created_at', (q) =>
+    q.gte('created_at', b.startIso).lte('created_at', b.endIso).eq('status', 'completed')
   );
   const users: Record<string, { total: number; n: number }> = {};
   for (const a of attempts)
@@ -695,10 +781,10 @@ export async function getDashboardLeaderboard(b: DateRangeBounds) {
     }
   const ids = Object.keys(users);
   if (!ids.length) return [];
-  const profiles: any[] = [];
+  const profiles: ReportProfileRow[] = [];
   for (let i = 0; i < ids.length; i += 100)
     profiles.push(
-      ...(await rows('profiles', 'id, full_name, district', (q) =>
+      ...(await rows<ReportProfileRow>('profiles', 'id, full_name, district', (q) =>
         q.eq('role', 'student').in('id', ids.slice(i, i + 100))
       ))
     );

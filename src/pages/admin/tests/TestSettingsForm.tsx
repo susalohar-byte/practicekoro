@@ -2,6 +2,7 @@ import { CheckCircle2, Trash2, Upload } from 'lucide-react';
 import type { MockTest } from '@/types';
 import { api } from '@/services/api';
 import { Button } from '@/components/common/Button';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { renderRowIcon } from './testRowIcon';
 import type { AdminTestsState } from './useAdminTests';
@@ -109,8 +110,8 @@ export function TestSettingsForm({ testsState, selectedTest }: TestSettingsFormP
                     setIsUploadingDrawerIcon(true);
                     const uploadedUrl = await api.uploadTestIcon(file, selectedTest.id);
                     setEditIconUrl(uploadedUrl);
-                  } catch (err: any) {
-                    alert('Failed to upload icon: ' + (err?.message || 'Error'));
+                  } catch (err) {
+                    alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
                   } finally {
                     setIsUploadingDrawerIcon(false);
                   }
@@ -208,7 +209,7 @@ export function TestSettingsForm({ testsState, selectedTest }: TestSettingsFormP
           </label>
           <select
             value={editStatus}
-            onChange={(e) => setEditStatus(e.target.value as any)}
+            onChange={(e) => setEditStatus(e.target.value as MockTest['status'])}
             className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
           >
             <option value="published">Published</option>

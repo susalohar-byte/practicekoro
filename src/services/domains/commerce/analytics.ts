@@ -69,10 +69,14 @@ export const analyticsApi = {
       try {
         // Head-only counts: nothing but the totals crosses the wire (previously every row of
         // `tests`, `questions` and `test_attempts` was downloaded just to be counted).
-        const headCount = async (table: string, apply: (q: any) => any = (q) => q) => {
-          const { count } = await apply(
-            supabase.from(table as any).select('id', { count: 'exact', head: true })
-          );
+        const countQuery = (table: string) =>
+          supabase.from(table).select('id', { count: 'exact', head: true });
+        type CountQuery = ReturnType<typeof countQuery>;
+        const headCount = async (
+          table: string,
+          apply: (q: CountQuery) => CountQuery = (q) => q
+        ) => {
+          const { count } = await apply(countQuery(table));
           return count ?? 0;
         };
         const [

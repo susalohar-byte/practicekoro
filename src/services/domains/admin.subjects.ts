@@ -63,12 +63,12 @@ export async function getAllAdminSubjects(examId?: string): Promise<Subject[]> {
         ? Number(item.chapters[0].count)
         : 0;
     return {
-      createdAt: (item as any).created_at,
-      updatedAt: (item as any).updated_at,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
       id: item.id,
       examId: item.exam_id ?? undefined,
       name: item.name,
-      category: (item as any).category ?? undefined,
+      category: item.category ?? undefined,
       slug: item.slug,
       description: item.description ?? undefined,
       iconName: item.icon_name,
@@ -100,12 +100,12 @@ export async function getSubjectById(id: string): Promise<Subject | null> {
       : 0;
 
   return {
-    createdAt: (row as any).created_at,
-    updatedAt: (row as any).updated_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
     id: row.id,
     examId: row.exam_id ?? undefined,
     name: row.name,
-    category: (row as any).category ?? undefined,
+    category: row.category ?? undefined,
     slug: row.slug,
     description: row.description ?? undefined,
     iconName: row.icon_name,
@@ -175,7 +175,7 @@ export async function createSubject(subjectData: Omit<Subject, 'id'>): Promise<S
     id: data.id,
     examId: data.exam_id ?? undefined,
     name: data.name,
-    category: (data as any).category ?? undefined,
+    category: data.category ?? undefined,
     slug: data.slug,
     description: data.description ?? undefined,
     iconName: data.icon_name,
@@ -248,7 +248,7 @@ export async function updateSubject(id: string, updates: Partial<Subject>): Prom
     id: data.id,
     examId: data.exam_id ?? undefined,
     name: data.name,
-    category: (data as any).category ?? undefined,
+    category: data.category ?? undefined,
     slug: data.slug,
     description: data.description ?? undefined,
     iconName: data.icon_name,
@@ -298,8 +298,8 @@ export async function getSubjectReportingData(): Promise<SubjectReportingData> {
     read('test_attempts', 'id,test_id,status,score,total_marks,correct_count,wrong_count'),
   ]);
   return {
-    questions: q.status === 'fulfilled' ? q.value : null,
-    attempts: a.status === 'fulfilled' ? a.value : null,
+    questions: q.status === 'fulfilled' ? (q.value as SubjectReportingData['questions']) : null,
+    attempts: a.status === 'fulfilled' ? (a.value as SubjectReportingData['attempts']) : null,
     warnings: [
       ...(q.status === 'rejected'
         ? [`Question counts unavailable: ${q.reason?.message || 'Read failed'}`]

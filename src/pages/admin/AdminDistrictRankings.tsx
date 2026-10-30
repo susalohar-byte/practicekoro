@@ -86,8 +86,7 @@ export const AdminDistrictRankings: React.FC = () => {
     api
       .getAllAdminExams()
       .then((list) => {
-        if (isMounted)
-          setExams((list || []).map((e: any) => ({ id: e.id, title: e.title || e.id })));
+        if (isMounted) setExams((list || []).map((e) => ({ id: e.id, title: e.title || e.id })));
       })
       .catch((err) => {
         // The exam filter is optional; rankings still load for all exams.

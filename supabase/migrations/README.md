@@ -1,13 +1,13 @@
 # Supabase Migrations
 
-Every `*.sql` file here is a migration. Production (`prycanbnxuihxhskallw`) records the ones it has applied in `supabase_migrations.schema_migrations`; **that table is the source of truth**, not this README.
+Every `*.sql` file here is a migration. Production (`wzcmhowowoyeldfqzkeh`, PracticeKoro 2.0; the old project `prycanbnxuihxhskallw` is inactive) records the ones it has applied in `supabase_migrations.schema_migrations`; **that table is the source of truth**, not this README.
 
 ---
 
 ## 1. How migrations reach production (automatic)
 
 1. Create the file with `supabase migration new <snake_case_name>`, so it is named `<YYYYMMDDHHMMSS>_<name>.sql` with a version later than every existing one. Write it idempotently (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`).
-2. Open a pull request. `.github/workflows/db-migrations.yml` (job **Dry run**) checks the filenames, runs `supabase db push --dry-run` against production and lists the migrations the merge will apply. It fails if that list contains anything the PR did not add, or anything at or below version `20261029110000` (hand-applied before this pipeline; see section 2).
+2. Open a pull request. `.github/workflows/db-migrations.yml` (job **Dry run**) checks the filenames, runs `supabase db push --dry-run` against production and lists the migrations the merge will apply. It fails if that list contains anything the PR did not add, or anything at or below version `20261030090000` (hand-applied before this pipeline; see section 2).
 3. Merge to `main`. Job **Apply to production** (GitHub environment `production`, never two at once) runs `supabase db push`: each pending file runs in its own transaction and is recorded in `schema_migrations` only if it succeeds. Then `db-security.yml` runs the `supabase/tests/rls_security.sql` assertions against the migrated database.
 4. To retry a failed apply, fix forward with a new migration, or re-run the workflow from the Actions tab (`workflow_dispatch`).
 
@@ -27,6 +27,8 @@ Check what production has recorded: `supabase migration list --db-url "$SUPABASE
 Eight migrations were run in the SQL Editor and never recorded, so `supabase db push` would refuse to run (or would run them again). Before the first apply, run **`supabase/rollout/2026-10-29-backfill-migration-history.sql` once in the SQL Editor**. It first checks that each migration's objects exist (and aborts, recording nothing, if one is missing), then inserts one row per version (`version`, `name`, `created_by = 'sql-editor-backfill-2026-10-29'`) into `supabase_migrations.schema_migrations`. It runs no migration SQL and is safe to re-run.
 
 Versions: `20261024124339`, `20261024150000`, `20261029090000`, `20261029100000`, `20261029100100`, `20261029100200`, `20261029100300`, `20261029110000`.
+
+Status: **done.** In the new project (`wzcmhowowoyeldfqzkeh`, restored from the 2026-10-29 backup) every file up to `20261030090000` is recorded in `schema_migrations`; migrations `20261029120000`–`20261030090000` were run by hand on 2026-10-29/30 and recorded at the same time. The empty marker row `20261025090000` (left by another tool for the renamed `20261025075148`) was removed so that `supabase db push` matches the files.
 
 ---
 
@@ -160,13 +162,14 @@ A record of how each file reached production, checked against `schema_migrations
 | `20261029100200_admin_item_analysis_rpc.sql`                     | admin_item_analysis RPC: per-question aggregates for Item Analysis (egress)                                                             | **APPLIED (SQL Editor, backfill)** |
 | `20261029100300_public_blog_rpcs.sql`                            | public_blog_summaries / public_blog_post RPCs for the landing page and blog (egress)                                                    | **APPLIED (SQL Editor, backfill)** |
 | `20261029110000_definer_function_hardening.sql`                  | SECURITY DEFINER hardening: has_role / account_is_active self-only, revoke unused RPC grants                                            | **APPLIED (SQL Editor, backfill)** |
-| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                |            **APPLIED**             |
-| `20261029120000_small_db_hardening.sql`                          | Small DB hardening: indexes, schema isolation and permissions                                                                      |            **APPLIED**             |
-| `20261029130000_app_settings_lists_to_tables.sql`                 | Move app_settings JSON arrays to relational tables (hero banners, tickers, payment gateways)                                       |            **APPLIED**             |
-| `20261029140000_private_schema_rls_helpers.sql`                  | Move definer helper functions to private schema                                                                                    |            **APPLIED**             |
-| `20261029150000_remove_audiobooks.sql`                           | Remove unused audiobooks feature (drop tables and RPCs)                                                                           |            **APPLIED**             |
-| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners table                                                                                     |            **APPLIED**             |
-| `20261029170000_coupon_title.sql`                                | Add title column to coupons table                                                                                                  |            **APPLIED**             |
+| `20261029105000_database_architecture_hardening.sql`             | Live contest answer leak fix, app_settings whitelist, coupon protection, cross-device bookmarks, missing FK indexes                     |            **APPLIED**             |
+| `20261029120000_small_db_hardening.sql`                          | Small DB hardening: indexes, schema isolation and permissions                                                                           |            **APPLIED**             |
+| `20261029130000_app_settings_lists_to_tables.sql`                | Move app_settings JSON arrays to relational tables (hero banners, tickers, payment gateways)                                            |            **APPLIED**             |
+| `20261029140000_private_schema_rls_helpers.sql`                  | Move definer helper functions to private schema                                                                                         |            **APPLIED**             |
+| `20261029150000_remove_audiobooks.sql`                           | Remove unused audiobooks feature (drop tables and RPCs)                                                                                 |            **APPLIED**             |
+| `20261029160000_hero_banners_inline_image_guard.sql`             | Reject new base64 images in hero_banners table                                                                                          |            **APPLIED**             |
+| `20261029170000_coupon_title.sql`                                | Add title column to coupons table                                                                                                       |            **APPLIED**             |
+| `20261030090000_restore_backup_privileges.sql`                   | Restore function/table privileges lost in the project move; anon loses server-only RPCs and unused write grants                         |            **APPLIED**             |
 
 ---
 

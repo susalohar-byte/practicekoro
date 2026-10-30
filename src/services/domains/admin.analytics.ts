@@ -1,4 +1,5 @@
 import { supabaseRuntime as supabase } from '@/lib/supabase';
+import type { Tables } from '@/types/database.generated';
 import type {
   DateRangePreset,
   PlatformAnalyticsData,
@@ -40,7 +41,69 @@ export function analyticsRange(
   }
   return getDateRangeBounds(names[preset] || 'Last 30 Days', start, end);
 }
-const inRange = (r: any, b: DateRangeBounds) =>
+// Rows the browser-fallback aggregation reads (the columns each query selects).
+export interface AnalyticsProfileRow {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+  created_at: string;
+  district?: string | null;
+  gender?: string | null;
+}
+export interface AnalyticsAttemptRow {
+  id: string;
+  user_id: string;
+  status: string;
+  score: number | null;
+  created_at: string;
+}
+interface NamedRef {
+  id?: string;
+  name: string;
+}
+export interface AnalyticsQuestionRow {
+  id?: string;
+  question_text: string | null;
+  question_bengali_text?: string | null;
+  difficulty?: string | null;
+  subject_id: string | null;
+  chapter_id: string | null;
+  subjects?: NamedRef | NamedRef[] | null;
+  chapters?: NamedRef | NamedRef[] | null;
+}
+export interface AnalyticsAnswerRow {
+  id: string;
+  attempt_id?: string;
+  question_id: string;
+  selected_option: string | null;
+  is_correct: boolean | null;
+  created_at: string;
+  /** The owning attempt (`test_attempts!inner(user_id)`). */
+  test_attempts?: { user_id: string } | { user_id: string }[] | null;
+  questions?: AnalyticsQuestionRow | AnalyticsQuestionRow[] | null;
+}
+export interface AnalyticsPaymentRow {
+  id?: string;
+  user_id?: string;
+  amount: number;
+  refund_amount?: number | null;
+  status: string;
+  created_at: string;
+}
+export interface AnalyticsSubscriptionRow {
+  id?: string;
+  user_id: string;
+  status: string;
+  expires_at: string;
+}
+
+/** An untyped select on the runtime client; filters (eq, gte, …) return this same type. */
+const selectAnalyticsRows = (table: string, columns: string) =>
+  supabase.from(table).select(columns, { count: 'exact' }).order('id', { ascending: true });
+type AnalyticsQuery = ReturnType<typeof selectAnalyticsRows>;
+
+const inRange = (r: { created_at: string }, b: DateRangeBounds) =>
   Date.parse(r.created_at) >= Date.parse(b.startIso) &&
   Date.parse(r.created_at) <= Date.parse(b.endIso);
 const rate = (correct: number, total: number) =>
@@ -55,28 +118,36 @@ export async function getAuthoritativeAnalytics(
   const b = analyticsRange(preset, start, end);
   const fromServer = await getAnalyticsFromServer(b);
   if (fromServer) return fromServer;
-  const read = (table: string, columns: string, filter: (q: any) => any = (q) => q) =>
-    readCompleteQuery(() =>
-      filter(
-        supabase.from(table).select(columns, { count: 'exact' }).order('id', { ascending: true })
-      )
-    );
-  const dated = (q: any) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
+  /** `Row` names the columns `columns` selects (a runtime column list is not parsed). */
+  const read = <Row>(
+    table: string,
+    columns: string,
+    filter: (q: AnalyticsQuery) => AnalyticsQuery = (q) => q
+  ) => readCompleteQuery(() => filter(selectAnalyticsRows(table, columns))) as Promise<Row[]>;
+  const dated = (q: AnalyticsQuery) => q.gte('created_at', b.startIso).lte('created_at', b.endIso);
   const readProfiles = async () => {
     try {
-      return await read('profiles', 'id,full_name,email,role,created_at,district,gender', (q) =>
-        q.eq('role', 'student')
+      return await read<AnalyticsProfileRow>(
+        'profiles',
+        'id,full_name,email,role,created_at,district,gender',
+        (q) => q.eq('role', 'student')
       );
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught as { message?: string } | null;
       console.warn('Profiles query with gender failed, trying without gender:', err?.message);
       try {
-        return await read('profiles', 'id,full_name,email,role,created_at,district', (q) =>
-          q.eq('role', 'student')
+        return await read<AnalyticsProfileRow>(
+          'profiles',
+          'id,full_name,email,role,created_at,district',
+          (q) => q.eq('role', 'student')
         );
-      } catch (err2: any) {
+      } catch (caught2) {
+        const err2 = caught2 as { message?: string } | null;
         console.warn('Profiles query with district failed, trying minimal:', err2?.message);
-        return await read('profiles', 'id,full_name,email,role,created_at', (q) =>
-          q.eq('role', 'student')
+        return await read<AnalyticsProfileRow>(
+          'profiles',
+          'id,full_name,email,role,created_at',
+          (q) => q.eq('role', 'student')
         );
       }
     }
@@ -85,18 +156,24 @@ export async function getAuthoritativeAnalytics(
   const month = getDateRangeBounds('This Month');
   const [profiles, attempts, answers, payments, subscriptions, monthPayments] = await Promise.all([
     readProfiles(),
-    read('test_attempts', 'id,user_id,status,score,created_at', dated),
-    read(
+    read<AnalyticsAttemptRow>('test_attempts', 'id,user_id,status,score,created_at', dated),
+    read<AnalyticsAnswerRow>(
       'attempt_answers',
       'id,attempt_id,question_id,selected_option,is_correct,created_at,test_attempts!inner(user_id),questions(id,question_text,question_bengali_text,difficulty,subject_id,chapter_id,subjects:subjects!questions_subject_id_fkey(id,name),chapters:chapters!questions_chapter_id_fkey(id,name))',
       (q) => dated(q).not('selected_option', 'is', null)
     ),
-    read('payments', 'id,user_id,amount,refund_amount,status,created_at', dated),
-    read('subscriptions', 'id,user_id,status,expires_at', (q) =>
+    read<AnalyticsPaymentRow>(
+      'payments',
+      'id,user_id,amount,refund_amount,status,created_at',
+      dated
+    ),
+    read<AnalyticsSubscriptionRow>('subscriptions', 'id,user_id,status,expires_at', (q) =>
       q.eq('status', 'active').gt('expires_at', new Date().toISOString())
     ),
-    read('payments', 'id,user_id,amount,refund_amount,status,created_at', (q) =>
-      q.gte('created_at', month.startIso).lte('created_at', month.endIso)
+    read<AnalyticsPaymentRow>(
+      'payments',
+      'id,user_id,amount,refund_amount,status,created_at',
+      (q) => q.gte('created_at', month.startIso).lte('created_at', month.endIso)
     ),
   ]);
   return aggregateAnalytics(b, profiles, attempts, answers, payments, subscriptions, monthPayments);
@@ -314,18 +391,19 @@ export function assembleServerAnalytics(
 
 export function aggregateAnalytics(
   b: DateRangeBounds,
-  profiles: any[],
-  attempts: any[],
-  answers: any[],
-  payments: any[],
-  subscriptions: any[],
+  profiles: AnalyticsProfileRow[],
+  attempts: AnalyticsAttemptRow[],
+  answers: AnalyticsAnswerRow[],
+  payments: AnalyticsPaymentRow[],
+  subscriptions: AnalyticsSubscriptionRow[],
   /** Payments of the current Kolkata calendar month, independent of the selected range. */
-  monthPayments: any[] = []
+  monthPayments: AnalyticsPaymentRow[] = []
 ): PlatformAnalyticsData {
   profiles = profiles.filter((p) => p.role === 'student');
-  const students = new Map(profiles.map((p) => [p.id, p]));
+  // Keyed lookups also receive a missing owner (undefined), which is simply not found.
+  const students = new Map<string | undefined, AnalyticsProfileRow>(profiles.map((p) => [p.id, p]));
   attempts = attempts.filter((a) => students.has(a.user_id) && inRange(a, b));
-  const owner = (a: any) =>
+  const owner = (a: AnalyticsAnswerRow) =>
     (Array.isArray(a.test_attempts) ? a.test_attempts[0] : a.test_attempts)?.user_id;
   answers = answers.filter(
     (a) => a.selected_option != null && students.has(owner(a)) && inRange(a, b)
@@ -384,7 +462,8 @@ export function aggregateAnalytics(
     { subjectId: string; subjectName: string; totalQuestionsAttempted: number; correct: number }
   >();
   for (const a of answers) {
-    const e = entry(owner(a));
+    // Answers were filtered to known students above, so the owner is always present.
+    const e = entry(owner(a)!);
     e.questionsAttempted++;
     if (a.is_correct === true) e.correctCount++;
     const q = Array.isArray(a.questions) ? a.questions[0] : a.questions;
@@ -396,10 +475,11 @@ export function aggregateAnalytics(
       questionMap.set(a.question_id, {
         questionId: a.question_id,
         questionText: q.question_text || 'Question text unavailable',
-        questionBengaliText: q.question_bengali_text,
+        // A null column passes through unchanged, as before.
+        questionBengaliText: q.question_bengali_text as string | undefined,
         subjectName: subject?.name || 'Subject unavailable',
         chapterName: chapter?.name || 'Topic unavailable',
-        difficulty: q.difficulty,
+        difficulty: q.difficulty as string | undefined,
         totalAttempts: 0,
         wrongCount: 0,
         failureRate: 0,
@@ -451,7 +531,10 @@ export function aggregateAnalytics(
     b.isAllTime && !dated.length
       ? []
       : generateChartBuckets(new Date(chartStart).toISOString(), b.endIso, 8);
-  const bucketRows = (rows: any[], k: (typeof buckets)[number]) =>
+  const bucketRows = <Row extends { created_at: string }>(
+    rows: Row[],
+    k: (typeof buckets)[number]
+  ) =>
     rows.filter(
       (r) => Date.parse(r.created_at) >= k.startMs && Date.parse(r.created_at) <= k.endMs
     );
@@ -599,16 +682,16 @@ export interface AdminDistrictRankingRow {
 }
 
 /** Look up rows by id in fixed-size batches so `.in()` never builds an oversized URL. */
-async function selectInChunks(table: string, columns: string, ids: string[]): Promise<any[]> {
+async function selectInChunks<Row>(table: string, columns: string, ids: string[]): Promise<Row[]> {
   const CHUNK = 200;
-  const out: any[] = [];
+  const out: Row[] = [];
   for (let i = 0; i < ids.length; i += CHUNK) {
     const { data, error } = await supabase
       .from(table)
       .select(columns)
       .in('id', ids.slice(i, i + CHUNK));
     if (error) throw new Error(error.message);
-    out.push(...(data || []));
+    out.push(...((data || []) as Row[]));
   }
   return out;
 }
@@ -651,8 +734,8 @@ async function getAdminDistrictRankingsDirectFallback(
       ),
     ]);
     const validTestIds = new Set<string>();
-    testsDirect.forEach((t: any) => validTestIds.add(t.id));
-    testsAssoc.forEach((t: any) => validTestIds.add(t.test_id));
+    testsDirect.forEach((t) => validTestIds.add(t.id));
+    testsAssoc.forEach((t) => validTestIds.add(t.test_id));
     filteredAttempts = attempts.filter((a) => validTestIds.has(a.test_id));
   }
 
@@ -660,10 +743,12 @@ async function getAdminDistrictRankingsDirectFallback(
 
   // 3. User IDs and Profile lookup (chunked so the request URL stays within limits)
   const userIds = Array.from(new Set(filteredAttempts.map((a) => a.user_id))).filter(Boolean);
-  const profiles = await selectInChunks('profiles', 'id, full_name, district, role', userIds);
+  const profiles = await selectInChunks<
+    Pick<Tables<'profiles'>, 'id' | 'full_name' | 'district' | 'role'>
+  >('profiles', 'id, full_name, district, role', userIds);
 
   const profileMap = new Map<string, { fullName: string; district: string }>();
-  profiles.forEach((p: any) => {
+  profiles.forEach((p) => {
     if (p.role === 'student' || !p.role) {
       profileMap.set(p.id, {
         fullName: p.full_name || 'Aspirant',
@@ -682,8 +767,12 @@ async function getAdminDistrictRankingsDirectFallback(
   );
   const testMarksMap = new Map<string, number>();
   if (testsNeedingMarks.length > 0) {
-    const testRows = await selectInChunks('tests', 'id, total_marks', testsNeedingMarks);
-    testRows.forEach((t: any) => {
+    const testRows = await selectInChunks<Pick<Tables<'tests'>, 'id' | 'total_marks'>>(
+      'tests',
+      'id, total_marks',
+      testsNeedingMarks
+    );
+    testRows.forEach((t) => {
       if (t.total_marks) testMarksMap.set(t.id, Number(t.total_marks));
     });
   }
@@ -803,6 +892,16 @@ async function getAdminDistrictRankingsDirectFallback(
   return rows;
 }
 
+/** A row of the `get_admin_district_rankings` RPC (numeric columns may arrive as text). */
+interface DistrictRankingRpcRow {
+  district: string | null;
+  student_count: number | string | null;
+  attempts_count: number | string | null;
+  avg_percentage: number | string | null;
+  top_student_name: string | null;
+  top_student_score: number | string | null;
+}
+
 /** Real district aggregates from completed student attempts (admin-only RPC with fallback). */
 export async function getAdminDistrictRankings(
   params: { examId?: string | null; fromIso?: string | null; toIso?: string | null } = {}
@@ -819,7 +918,7 @@ export async function getAdminDistrictRankings(
 
   if (!error) {
     if (!Array.isArray(data)) throw new Error('District rankings returned an invalid response.');
-    return data.map((r: any) => ({
+    return (data as DistrictRankingRpcRow[]).map((r) => ({
       district: String(r.district || 'Not specified'),
       studentCount: Number(r.student_count || 0),
       attemptsCount: Number(r.attempts_count || 0),

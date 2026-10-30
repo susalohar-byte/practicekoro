@@ -200,9 +200,19 @@ export interface NormalizedActivityItem {
   timestamp: string;
 }
 
+/** The audit-log fields the activity feed reads (a subset of `AdminAuditLog`). */
+export interface ActivityAuditLog {
+  id?: string;
+  action?: string;
+  entityId?: string;
+  adminName?: string;
+  createdAt: string;
+  details?: Record<string, unknown>;
+}
+
 export function normalizeActivityItems(
   rpcActivities: AdminActivityItem[] = [],
-  auditLogs: any[] = []
+  auditLogs: ActivityAuditLog[] = []
 ): NormalizedActivityItem[] {
   const items: NormalizedActivityItem[] = [];
   const seenIds = new Set<string>();
@@ -286,7 +296,9 @@ export function normalizeActivityItems(
       id: logId,
       category,
       title: log.action || 'Activity',
-      desc: log.details?.description || `${log.adminName || 'Staff'} performed ${log.action}`,
+      desc:
+        (log.details?.description as string | undefined) ||
+        `${log.adminName || 'Staff'} performed ${log.action}`,
       time: formattedTime,
       timestamp: log.createdAt,
     });

@@ -1,5 +1,14 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { MockTest, Question, StudentTestQuestion } from '@/types';
+import type { Tables } from '@/types/database.generated';
+
+/** A `tests` row with its exam, subject, chapter and series names embedded. */
+export type TestWithRefsRow = Tables<'tests'> & {
+  exams?: { title: string } | null;
+  subjects?: { name: string } | null;
+  chapters?: { name: string } | null;
+  test_series?: { title: string } | null;
+};
 
 /** Section of the student catalog API: test listing, exam associations & test questions (split from domains/catalog.ts, same behaviour). */
 export const catalogTestsApi = {
@@ -245,7 +254,7 @@ export const catalogTestsApi = {
       .maybeSingle();
     if (error) throw new Error(error.message || 'Test details could not be loaded');
     if (!data) return null;
-    const row = data as any;
+    const row = data as TestWithRefsRow;
     return {
       id: row.id,
       examId: row.exam_id ?? undefined,
@@ -255,7 +264,7 @@ export const catalogTestsApi = {
       title: row.title,
       slug: row.slug,
       description: row.description ?? undefined,
-      testType: row.test_type,
+      testType: row.test_type as MockTest['testType'],
       year: 'year' in row && row.year ? Number(row.year) : undefined,
       paperName: row.paper_name ?? undefined,
       shift: row.shift ?? undefined,
@@ -269,7 +278,7 @@ export const catalogTestsApi = {
       isPremium: row.is_premium,
       orderIndex: row.order_index,
       isActive: row.is_active,
-      status: row.status || 'published',
+      status: (row.status || 'published') as MockTest['status'],
       examTitle: row.exams?.title || undefined,
       subjectName: row.subjects?.name || undefined,
       chapterName: row.chapters?.name || undefined,

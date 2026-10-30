@@ -4,6 +4,9 @@ import { localExamCategories } from '@/services/domains/localStore';
 import { STANDARD_EXAM_CATEGORIES } from './examCategoryDefaults';
 import type { ExamCategory } from '@/types';
 
+/** A category persisted in demo localStorage: a bare name (legacy) or a category object. */
+type StoredExamCategory = string | Partial<ExamCategory>;
+
 /** Section of the admin API: examCategories (split from domains/admin.ts, same behaviour). */
 // --------------------------------------------------------------------------
 // EXAM CATEGORIES (DATABASE BACKED WITH LOCAL FALLBACK & ORDER PERSISTENCE)
@@ -89,7 +92,7 @@ export function getLocalExamCategoriesWithPersistence(): ExamCategory[] {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           if (parsed.length === 0) return [];
-          const hasLegacy = parsed.some((item: any) => {
+          const hasLegacy = parsed.some((item: StoredExamCategory | null) => {
             const name = typeof item === 'string' ? item : item?.name;
             return name && LEGACY_EXAM_CATEGORY_NAMES.has(name.toLowerCase());
           });
@@ -100,7 +103,7 @@ export function getLocalExamCategoriesWithPersistence(): ExamCategory[] {
             );
             return [...localExamCategories].sort((a, b) => a.orderIndex - b.orderIndex);
           }
-          return parsed.map((item: any, index: number) => {
+          return parsed.map((item: StoredExamCategory, index: number) => {
             if (typeof item === 'string') {
               const existing = localExamCategories.find(
                 (c) => c.name.toLowerCase() === item.toLowerCase()
@@ -374,7 +377,7 @@ export async function deleteExamCategory(idOrName: string): Promise<boolean> {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const filtered = parsed.filter((item: any) => {
+          const filtered = parsed.filter((item: StoredExamCategory) => {
             const name = typeof item === 'string' ? item : item.name;
             const id = typeof item === 'string' ? '' : item.id;
             return (

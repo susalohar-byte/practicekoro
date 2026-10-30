@@ -29,7 +29,7 @@ export function SupportTicketList({ supportState }: SupportTicketListProps) {
         <div className="relative">
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="appearance-none bg-white text-xs text-slate-600 font-medium pr-6 pl-2 py-1 rounded-lg cursor-pointer focus:outline-none"
           >
             <option value="Latest">Sort by: Latest</option>

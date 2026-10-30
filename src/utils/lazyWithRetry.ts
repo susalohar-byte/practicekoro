@@ -48,6 +48,7 @@ export function clearChunkReloadGuard(): void {
  * prevent infinite reload loops, and reloads the window to pull down the fresh index.html
  * and latest chunk manifests. Upon any successful module load, the guard is cleared.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- mirrors React.lazy's own `ComponentType<any>` bound; narrower bounds reject components with props
 export function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> {

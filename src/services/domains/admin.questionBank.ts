@@ -3,6 +3,7 @@ import { loadAllPages } from '@/utils/loadAllPages';
 import type { Question } from '@/types';
 import { mapQuestionRow } from './admin.shared';
 import { ADMIN_QUESTION_COLUMNS, searchOrFilterValue } from './admin.questions';
+import type { FilterableQuery } from './queryFilters';
 
 /**
  * Admin Question Bank list query, run on the server (one page at a time plus head counts)
@@ -145,7 +146,10 @@ export function matchesQuestionBankQuery(q: Question, query: QuestionBankQuery):
 }
 
 /** Applies the query to a Supabase `questions` select. Callers check `questionBankQueryIsEmpty`. */
-function applyQuestionBankQuery(builder: any, query: QuestionBankQuery): any {
+function applyQuestionBankQuery<Q extends FilterableQuery>(
+  builder: Q,
+  query: QuestionBankQuery
+): Q {
   let q = builder.eq('is_live_only', query.liveOnly);
   if (query.liveOnly && query.questionIds) q = q.in('id', query.questionIds);
 
@@ -223,7 +227,7 @@ export async function getQuestionBankPage(
   builder = applyQuestionBankQuery(builder, query).range(from, from + size - 1);
   const { data, error, count } = await builder;
   if (error) throw new Error(error.message);
-  const rows = (data || []) as any[];
+  const rows = (data || []) as Parameters<typeof mapQuestionRow>[0][];
   return { questions: rows.map((r) => mapQuestionRow(r)), total: count ?? rows.length };
 }
 
@@ -252,10 +256,9 @@ export async function getQuestionBankStats(): Promise<QuestionBankStats> {
   if (!isSupabaseConfigured) {
     throw new Error('getQuestionBankStats requires a configured backend.');
   }
-  const count = async (apply: (b: any) => any): Promise<number> => {
-    const { count: n, error } = await apply(
-      supabase.from('questions').select('id', { count: 'exact', head: true })
-    );
+  const count = async (apply: <Q extends FilterableQuery>(b: Q) => Q): Promise<number> => {
+    const head = supabase.from('questions').select('id', { count: 'exact', head: true });
+    const { count: n, error } = await apply(head);
     if (error) throw new Error(error.message);
     return n ?? 0;
   };

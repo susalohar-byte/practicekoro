@@ -6,6 +6,70 @@ import {
   localTests,
 } from '@/services/domains/localStore';
 import type { LiveTest, LiveTestParticipant, MockTest } from '@/types';
+import type { Tables } from '@/types/database.generated';
+
+/** A `tests` row as selected by `LIVE_SOURCE_TEST_COLUMNS` (exam embedded). */
+export type SourceTestRow = Partial<Tables<'tests'>> & {
+  exams?: { id?: string; title?: string | null } | null;
+};
+
+/**
+ * What `enrichLiveTest` accepts: a stored `LiveTest`, a `live_tests` row (snake_case), or a
+ * draft built by the schedule/update flows. Legacy demo keys are read as fallbacks.
+ */
+export interface LiveTestSource {
+  id?: string;
+  testId?: string;
+  test_id?: string;
+  test?: MockTest | null;
+  examId?: string;
+  exam_id?: string;
+  examTitle?: string;
+  status?: string | null;
+  startAt?: string;
+  start_at?: string;
+  scheduledStartTime?: string;
+  scheduled_start_time?: string | null;
+  scheduledEndTime?: string;
+  scheduled_end_time?: string | null;
+  registrationDeadline?: string | null;
+  registration_deadline?: string | null;
+  durationMinutes?: number;
+  duration_minutes?: number;
+  isPublished?: boolean;
+  is_published?: boolean;
+  rankingEnabled?: boolean;
+  ranking_enabled?: boolean;
+  subscriptionRequired?: boolean;
+  subscription_required?: boolean;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  customTitle?: string;
+  title?: string | null;
+  testTitle?: string;
+  enrolledCount?: number;
+  enrolled_count?: number;
+  participantsCount?: number;
+  participants_count?: number;
+  totalQuestions?: number;
+  total_questions?: number;
+  totalMarks?: number;
+  total_marks?: number;
+  negativeMarking?: number;
+  negative_marking?: number;
+  instructions?: string | null;
+  logo?: string | null;
+  examLogo?: string;
+  exam_logo?: string | null;
+  bgImageUrl?: string;
+  bg_image_url?: string;
+  cardBgImage?: string;
+  card_bg_image?: string;
+  backgroundImage?: string;
+  background_image?: string;
+}
 
 /**
  * Service domain for Live Tests Management & Student Participation
@@ -88,7 +152,7 @@ export function saveStoredParticipations(list: LiveTestParticipant[]): void {
 
 /** Helper to derive status based on schedule */
 export function deriveLiveTestStatus(
-  status: string,
+  status: string | null | undefined,
   startAtStr: string,
   durationMinutes: number
 ): LiveTest['status'] {
@@ -154,13 +218,13 @@ export function toDbStatusFields(status: string): { status: string; isPublished?
 }
 
 /** Map a Supabase `tests` row into a `MockTest` object */
-export function mapRowToMockTest(row: any): MockTest {
+export function mapRowToMockTest(row: SourceTestRow): MockTest {
   return {
     id: String(row.id),
     title: String(row.title || 'Mock Test'),
     slug: String(row.slug || row.id),
     description: row.description ?? undefined,
-    testType: row.test_type || 'full_mock',
+    testType: (row.test_type || 'full_mock') as MockTest['testType'],
     // Stored values only: a fresh paper really has 0 questions (no placeholder numbers).
     durationMinutes: Number(row.duration_minutes ?? 0),
     totalQuestions: Number(row.total_questions ?? 0),
@@ -214,7 +278,7 @@ export async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string
         .in('id', uniqueIds);
 
       if (!error && Array.isArray(data)) {
-        for (const row of data as any[]) {
+        for (const row of data as SourceTestRow[]) {
           map.set(String(row.id), mapRowToMockTest(row));
         }
       }
@@ -227,7 +291,7 @@ export async function fetchSourceTestsMap(testIds: string[]): Promise<Map<string
 }
 
 /** Format / enrich live test with source test data */
-export function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest {
+export function enrichLiveTest(lt: LiveTestSource, sourceTest?: MockTest | null): LiveTest {
   const test =
     sourceTest ||
     lt.test ||
@@ -347,7 +411,7 @@ export function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest 
       lt.examLogo ||
       lt.exam_logo ||
       exam?.iconName ||
-      (exam as any)?.icon_name ||
+      (exam as { icon_name?: string } | undefined)?.icon_name ||
       test?.iconUrl ||
       undefined,
     examLogo:
@@ -355,7 +419,7 @@ export function enrichLiveTest(lt: any, sourceTest?: MockTest | null): LiveTest 
       lt.examLogo ||
       lt.exam_logo ||
       exam?.iconName ||
-      (exam as any)?.icon_name ||
+      (exam as { icon_name?: string } | undefined)?.icon_name ||
       test?.iconUrl ||
       undefined,
     bgImageUrl: parsedBgImage,
