@@ -2,6 +2,9 @@ name: DB Security Assertions
 
 on:
   workflow_dispatch:
+  # Called by db-migrations.yml after it applies migrations to production, so
+  # the assertions run against the migrated schema (not racing the apply).
+  workflow_call:
   pull_request:
     paths:
       - 'supabase/migrations/**'
@@ -9,7 +12,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/**'
       - 'supabase/tests/**'
 
 permissions:
@@ -30,24 +32,38 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
+          # Without the secret this job used to report "passed" (`| tee` hid the
+          # exit code and zero rows were read). Now it says it was skipped, and
+          # with the secret any psql error or missing row fails the job.
+          set -o pipefail
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::Secret SUPABASE_DB_URL is not set (repo Settings > Secrets and variables > Actions), so the assertions were skipped."
+            echo "DB security assertions skipped: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           chmod +x scripts/supabase-sql.sh
           ./scripts/supabase-sql.sh -f supabase/tests/rls_security.sql -t -A | tee rls-results.json
           # Per-function exposure checks (search_path, anon allow-list, caller checks, private helpers)
           ./scripts/supabase-sql.sh -f supabase/tests/function_security.sql -t -A | tee function-results.json
-          # Every assertion in every JSON row must be true
+          # Every assertion in every JSON row must be true, and there must be rows
           python3 - <<'EOF'
           import json, sys
           ok = True
+          rows = 0
           lines = open('rls-results.json').readlines() + open('function-results.json').readlines()
           for line in lines:
               line = line.strip()
               if not line.startswith('{'):
                   continue
               row = json.loads(line)
+              rows += 1
               failed = {k: v for k, v in row.items() if v is not True}
               if failed:
                   ok = False
                   print('FAILED ASSERTIONS:', json.dumps(failed, indent=2))
+          if rows == 0:
+              print('No assertion rows were read from supabase/tests/*.sql.')
+              ok = False
           if not ok:
               sys.exit(1)
           print('All DB security assertions passed.')

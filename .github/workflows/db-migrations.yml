@@ -1,0 +1,128 @@
+name: DB Migrations
+
+# Pull request: dry-run against production and list what the merge would apply.
+# Push to main:  apply pending migrations to production, then run the RLS assertions.
+# The source of truth for "applied" is supabase_migrations.schema_migrations in
+# production; the Supabase CLI compares it with supabase/migrations/*.sql.
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*.sql'
+      - '.github/workflows/db-migrations.yml'
+      - 'scripts/check-pending-migrations.py'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_CLI_VERSION: 2.115.0
+  # Highest version applied by hand before this pipeline existed (all of them
+  # are recorded in the new project wzcmhowowoyeldfqzkeh). A pending migration
+  # at or below it must be recorded, not re-run (see supabase/migrations/README.md).
+  BACKFILL_FLOOR: '20261030090000'
+
+jobs:
+  plan:
+    name: Dry run (pull request)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lint migration filenames
+        run: |
+          git diff --name-only --diff-filter=A --no-renames \
+            "origin/${{ github.base_ref }}...HEAD" -- 'supabase/migrations/*.sql' > added.txt
+          echo "Migrations added by this PR:"; cat added.txt
+          python3 scripts/check-pending-migrations.py lint supabase/migrations --new-files added.txt
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Dry run against production
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            # Forks and repos without the secret: say so loudly, but don't block the PR.
+            echo "::warning::Secret SUPABASE_DB_URL is not set, so the production dry run was skipped."
+            echo "Production dry run skipped: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # The CLI needs a session connection; Supavisor serves session mode on
+          # 5432 and transaction mode on 6543 of the same host.
+          DB_URL="${SUPABASE_DB_URL/:6543\//:5432/}"
+          echo "::add-mask::$DB_URL"
+          set +e
+          supabase db push --dry-run --db-url "$DB_URL" --output-format json > plan.json
+          rc=$?
+          set -e
+          python3 scripts/check-pending-migrations.py plan plan.json \
+            --floor "$BACKFILL_FLOOR" --added added.txt
+          exit $rc
+
+  apply:
+    name: Apply to production
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment in repo settings to approve
+    # every production apply by hand.
+    environment: production
+    # Never two applies at once; a queued run waits instead of being cancelled.
+    concurrency:
+      group: db-migrations-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint migration filenames
+        run: python3 scripts/check-pending-migrations.py lint supabase/migrations
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Plan and apply pending migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::warning::Secret SUPABASE_DB_URL is not set, so NOTHING was applied to production. Apply the new migrations by hand and record them (supabase/migrations/README.md)."
+            echo "Nothing applied: secret \`SUPABASE_DB_URL\` is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          DB_URL="${SUPABASE_DB_URL/:6543\//:5432/}"
+          echo "::add-mask::$DB_URL"
+
+          # 1. Dry run: the CLI refuses migrations older than the last recorded
+          #    one (no --include-all), and the floor check refuses anything that
+          #    was applied by hand and never recorded.
+          set +e
+          supabase db push --dry-run --db-url "$DB_URL" --output-format json > plan.json
+          rc=$?
+          set -e
+          python3 scripts/check-pending-migrations.py plan plan.json --floor "$BACKFILL_FLOOR"
+          [ "$rc" -eq 0 ] || exit "$rc"
+
+          if python3 -c 'import json,sys; sys.exit(0 if json.load(open("plan.json"))["migrations"] else 1)'; then
+            # 2. Apply. Each file runs in its own transaction and is recorded in
+            #    schema_migrations only if it succeeds; a failure stops the push.
+            supabase db push --db-url "$DB_URL" --yes
+          else
+            echo "Production is up to date; nothing to apply."
+          fi
+
+  rls-assertions:
+    name: RLS/security assertions after apply
+    needs: apply
+    uses: ./.github/workflows/db-security.yml
+    secrets: inherit
