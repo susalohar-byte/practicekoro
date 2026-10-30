@@ -130,17 +130,23 @@ export const TestimonialsSection: React.FC = () => {
           </AnimatePresence>
         </Reveal>
 
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-4 flex items-center justify-center">
           {Array.from({ length: POSITIONS }, (_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setStart(idx)}
               aria-label={`Show reviews ${idx + 1}`}
-              className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                start === idx ? 'w-7 bg-[#1A5CFF]' : 'w-2.5 bg-[#C9D2EC] hover:bg-[#A9B5D9]'
-              }`}
-            />
+              aria-current={start === idx}
+              // The dot stays small; the button around it is a full 44px touch target.
+              className="group flex h-11 min-w-11 items-center justify-center px-1 cursor-pointer"
+            >
+              <span
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  start === idx ? 'w-7 bg-[#1A5CFF]' : 'w-2.5 bg-[#C9D2EC] group-hover:bg-[#A9B5D9]'
+                }`}
+              />
+            </button>
           ))}
         </div>
       </div>

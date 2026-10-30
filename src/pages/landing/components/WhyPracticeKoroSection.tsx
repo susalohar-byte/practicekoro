@@ -49,7 +49,7 @@ export const WhyPracticeKoroSection: React.FC = () => {
           subtitle="পরীক্ষার প্রস্তুতি এখন আরও গুছানো, আরও কার্যকরী।"
         />
 
-        <RevealGroup className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
+        <RevealGroup className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
           {FEATURES.map((feature) => (
             <motion.div
               key={feature.title}

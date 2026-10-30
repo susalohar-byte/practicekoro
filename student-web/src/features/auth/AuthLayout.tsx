@@ -133,7 +133,7 @@ export function PasswordField(props: Omit<FieldProps, 'icon' | 'type'>) {
         type="button"
         onClick={() => setShow((s) => !s)}
         aria-label={show ? 'Hide password' : 'Show password'}
-        className="absolute right-2 top-[34px] flex h-9 w-9 items-center justify-center rounded-full text-[#94A3B8] hover:text-ink"
+        className="absolute right-1 top-[30px] flex h-11 w-11 items-center justify-center rounded-full text-[#94A3B8] hover:text-ink"
       >
         {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
       </button>

@@ -72,9 +72,9 @@ export default function SignUpPage() {
         <PasswordField label="Confirm password" name="confirm" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} error={errors.confirm} />
         <SubmitButton loading={loading}>Create Account</SubmitButton>
       </form>
-      <p className="mt-6 text-center text-[14px] text-[#64748B]">
+      <p className="mt-4 text-center text-[14px] text-[#64748B]">
         Already have an account?{' '}
-        <Link to="/login" className="font-bold text-primary hover:underline">
+        <Link to="/login" className="inline-flex min-h-11 items-center font-bold text-primary hover:underline">
           Log in
         </Link>
       </p>

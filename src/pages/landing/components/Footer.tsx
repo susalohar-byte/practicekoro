@@ -119,7 +119,7 @@ export const Footer: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.name}
-                  className={`w-9 h-9 ${social.rounded} ${social.bg} flex items-center justify-center text-white hover:scale-110 transition-transform`}
+                  className={`w-11 h-11 ${social.rounded} ${social.bg} flex items-center justify-center text-white hover:scale-110 transition-transform`}
                 >
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden>
                     <path d={social.path} />
@@ -131,13 +131,13 @@ export const Footer: React.FC = () => {
 
           <motion.div variants={fadeUp}>
             <h3 className="text-[15px] font-semibold text-white">Quick Links</h3>
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-3 text-sm">
               {QUICK_LINKS.map((link) => (
                 <li key={link.name}>
                   <a
                     href={link.href}
                     onClick={(e) => scrollTo(e, link.href)}
-                    className="hover:text-white transition-colors"
+                    className="inline-flex min-h-11 items-center hover:text-white transition-colors"
                   >
                     {link.name}
                   </a>
@@ -148,16 +148,22 @@ export const Footer: React.FC = () => {
 
           <motion.div variants={fadeUp}>
             <h3 className="text-[15px] font-semibold text-white">Support</h3>
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-3 text-sm">
               {SUPPORT_LINKS.map((link) => (
                 <li key={link.name}>
                   {/* The deletion page is a static file, so it needs a full page load */}
                   {link.external ? (
-                    <a href={link.to} className="hover:text-white transition-colors">
+                    <a
+                      href={link.to}
+                      className="inline-flex min-h-11 items-center hover:text-white transition-colors"
+                    >
                       {link.name}
                     </a>
                   ) : (
-                    <Link to={link.to} className="hover:text-white transition-colors">
+                    <Link
+                      to={link.to}
+                      className="inline-flex min-h-11 items-center hover:text-white transition-colors"
+                    >
                       {link.name}
                     </Link>
                   )}
