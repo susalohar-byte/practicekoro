@@ -8,11 +8,17 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 // The hero plays its entrance on load: each block rises in shortly after the one before
 const heroContainer: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.14, delayChildren: 0.25 } },
+  show: { transition: { staggerChildren: 0.1 } },
 };
 const heroItem: Variants = {
   hidden: { opacity: 0, y: 30, filter: 'blur(6px)' },
   show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: EASE } },
+};
+// The headline is the largest thing on screen, so it is visible from the first
+// frame (no fade) and only settles into place; fading it in delayed first paint.
+const heroHeadline: Variants = {
+  hidden: { y: 14 },
+  show: { y: 0, transition: { duration: 0.5, ease: EASE } },
 };
 
 interface HeroSectionProps {
@@ -28,9 +34,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
       {/* Student studying at his desk, fading into the dark backdrop behind the headline.
           Phones get a smaller copy of the photo. */}
       <motion.div
-        initial={{ scale: 1.12, opacity: 0 }}
+        initial={{ scale: 1.08, opacity: 0.4 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 1.8, ease: EASE }}
+        transition={{ duration: 1, ease: EASE }}
         className="absolute inset-x-0 top-0 origin-top h-[420px] sm:h-[max(46vw,520px)] max-h-[760px] bg-[url('/images/landing/hero_student_room_sm.webp')] sm:bg-[url('/images/landing/hero_student_room.webp')] bg-cover bg-[34%_30%] sm:bg-[center_35%]"
         style={{
           maskImage: 'linear-gradient(to bottom, #000 60%, rgba(0,0,0,0.45) 82%, transparent 100%)',
@@ -52,7 +58,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
         className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-[340px] sm:pt-[min(calc(max(46vw,520px)-110px),650px)] pb-16 sm:pb-24 text-center"
       >
         <h1 className="font-['Li_Subha_Letterpress_Unicode','Anek_Bangla',sans-serif] text-[36px] sm:text-[50px] lg:text-[56px] leading-[1.15] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85),0_0_8px_rgba(0,0,0,0.6)]">
-          <motion.span variants={heroItem} className="block">
+          <motion.span variants={heroHeadline} className="block">
             স্বপ্নের{' '}
             <motion.span
               className="inline-block text-[#FFD43B]"
@@ -68,7 +74,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchVideo }) => {
               সরকারি চাকরির
             </motion.span>
           </motion.span>
-          <motion.span variants={heroItem} className="block">
+          <motion.span variants={heroHeadline} className="block">
             প্রস্তুতি হোক{' '}
             <span className="relative inline-block">
               সহজ
