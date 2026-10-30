@@ -1,5 +1,5 @@
 /**
- * Production stand-in for the demo engine's data modules (mockData.ts and
+ * Production stand-in for the demo engine's data modules (mockData/index.ts and
  * domains/localStore.ts). vite.config.ts swaps it in for every build that is
  * not a demo build, so the fake exams, tests, payments and students never ship.
  *
@@ -38,7 +38,7 @@ export const localPayments = none();
 export const localStudents = none();
 export const localItemAnalysisStore = none();
 
-// mockData.ts
+// mockData/index.ts
 export const MOCK_STUDENT_USER = null as unknown as UserProfile;
 export const MOCK_ADMIN_USER = null as unknown as UserProfile;
 export const MOCK_EXAMS = none();

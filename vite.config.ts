@@ -6,7 +6,10 @@ import path from 'node:path';
 // when VITE_ENABLE_DEMO_MODE is on, but localStore fills its stores at load
 // time, so the bundler kept ~150 kB of it in every production build. Outside
 // demo builds both modules resolve to src/services/demoDataStub.ts instead.
-const DEMO_DATA_MODULES = ['/src/services/mockData.ts', '/src/services/domains/localStore.ts'];
+const DEMO_DATA_MODULES = [
+  '/src/services/mockData/index.ts',
+  '/src/services/domains/localStore.ts',
+];
 
 function stubDemoDataOutsideDemoBuilds(demoMode: boolean): Plugin {
   const stub = path.resolve(import.meta.dirname, './src/services/demoDataStub.ts');
