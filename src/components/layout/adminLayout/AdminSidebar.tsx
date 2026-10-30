@@ -13,7 +13,7 @@ export const AdminSidebar: React.FC<{ layout: AdminLayoutState }> = ({ layout })
     <aside
       className={cn(
         'fixed inset-y-0 left-0 z-50 bg-[#0A1024] text-slate-100 border-r border-[#152146] flex flex-col justify-between shadow-2xl transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none dark will-change-[width,transform] transform-gpu',
-        'lg:sticky lg:top-0 lg:h-screen lg:overflow-visible lg:translate-x-0 relative',
+        'lg:sticky lg:top-0 lg:h-screen lg:overflow-visible lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         isCollapsed ? 'lg:w-[72px] w-64' : 'lg:w-[260px] w-64'
       )}
