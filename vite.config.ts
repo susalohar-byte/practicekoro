@@ -26,12 +26,76 @@ function stubDemoDataOutsideDemoBuilds(demoMode: boolean): Plugin {
   };
 }
 
+// main.tsx loads the app with dynamic imports (after the env check), App then
+// lazy-loads the landing page, and the page then asks for the hero photo: four
+// round trips one after another before anything shows, each slow on shared
+// hosting. Listing those files in index.html lets the browser fetch them all
+// in the first round, in parallel with the entry script.
+function preloadFirstScreen(): Plugin {
+  const LANDING = 'src/pages/landing/LandingPage.tsx';
+  return {
+    name: 'preload-first-screen',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const bundle = ctx.bundle;
+        const entry = ctx.chunk;
+        if (!bundle || !entry) return;
+        const chunks = Object.values(bundle).filter((c) => c.type === 'chunk');
+        const landing = chunks.find((c) => c.facadeModuleId?.endsWith(LANDING));
+        const seen = new Set<string>([entry.fileName, ...entry.imports]);
+        const files: string[] = [];
+        const visit = (file: string) => {
+          if (seen.has(file)) return;
+          seen.add(file);
+          files.push(file);
+          const chunk = bundle[file];
+          if (chunk?.type === 'chunk') chunk.imports.forEach(visit);
+        };
+        entry.dynamicImports.forEach(visit);
+        if (landing) visit(landing.fileName);
+        return [
+          ...files.map((file) => ({
+            tag: 'link',
+            attrs: { rel: 'modulepreload', crossorigin: true, href: `/${file}` },
+            injectTo: 'head' as const,
+          })),
+          // Same breakpoint (sm, 640px) as the hero and login backgrounds.
+          {
+            tag: 'link',
+            attrs: {
+              rel: 'preload',
+              as: 'image',
+              href: '/images/landing/hero_student_room_sm.webp',
+              media: '(max-width: 639px)',
+              fetchpriority: 'high',
+            },
+            injectTo: 'head' as const,
+          },
+          {
+            tag: 'link',
+            attrs: {
+              rel: 'preload',
+              as: 'image',
+              href: '/images/landing/hero_student_room.webp',
+              media: '(min-width: 640px)',
+              fetchpriority: 'high',
+            },
+            injectTo: 'head' as const,
+          },
+        ];
+      },
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const demoMode =
     (process.env.VITE_ENABLE_DEMO_MODE ?? loadEnv(mode, process.cwd()).VITE_ENABLE_DEMO_MODE) ===
     'true';
   return {
-    plugins: [react(), stubDemoDataOutsideDemoBuilds(demoMode)],
+    plugins: [react(), stubDemoDataOutsideDemoBuilds(demoMode), preloadFirstScreen()],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),
