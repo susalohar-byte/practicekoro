@@ -121,6 +121,13 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # analyze and test never touch Gradle, so an Android build break (e.g. a plugin
+      # needing a higher minSdk) only showed up when building the release APK by hand.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: flutter build apk --debug --target-platform android-arm64
 
   notify:
     name: Notify on Failure
