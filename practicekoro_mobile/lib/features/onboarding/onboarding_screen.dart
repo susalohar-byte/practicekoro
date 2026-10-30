@@ -138,6 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
                               size: 54,
                             ),
                           ),
+                          excludeFromSemantics: true,
                         ),
                       ),
                     ),
@@ -168,6 +169,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ],
                         ),
                       ),
+                      semanticLabel: 'PracticeKoro',
                     ),
                   ],
                 ),
@@ -340,7 +342,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ],
                         ),
-                        child: InkWell(
+                        child: Semantics(
+                          button: true,
+                          label: 'Next',
+                          child: InkWell(
                           onTap: _onArrowPressed,
                           customBorder: const CircleBorder(),
                           splashColor: Colors.white.withValues(alpha: 0.25),
@@ -352,6 +357,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               size: 26,
                             ),
                           ),
+                        ),
                         ),
                       ),
                     ),

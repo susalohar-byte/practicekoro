@@ -147,6 +147,7 @@ class HomeScreen extends ConsumerWidget {
                                       size: 22,
                                     ),
                                   ),
+                                  semanticLabel: 'PracticeKoro',
                                 ),
                               ),
                             ),
@@ -388,6 +389,7 @@ class HomeScreen extends ConsumerWidget {
                                           const CustomPaint(
                                         painter: _ExamsForYouSwooshPainter(),
                                       ),
+                                      excludeFromSemantics: true,
                                     ),
                                   ),
                                 ],
@@ -800,6 +802,7 @@ class _HomeLiveTestCard extends StatelessWidget {
                       size: 26,
                       color: palette.accentColor,
                     ),
+                    excludeFromSemantics: true,
                   ),
                 ),
               ),
@@ -2053,7 +2056,12 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
               fit: StackFit.expand,
               children: [
                 // Banner Image (Network URL, Base64 memory image, or Asset fallback)
-                _buildBannerImage(banner),
+                Semantics(
+                  image: true,
+                  label: banner.bannerType == 'full_image' ? banner.title : null,
+                  excludeSemantics: true,
+                  child: _buildBannerImage(banner),
+                ),
 
                 // Text Overlay (if enabled by admin)
                 if (banner.showTextOverlay)

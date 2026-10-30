@@ -42,7 +42,10 @@ class UserAvatar extends ConsumerWidget {
 
     final badgeSize = (size * 0.32).clamp(20.0, 32.0);
 
-    return GestureDetector(
+    return Semantics(
+      button: onEdit != null || onTap != null,
+      label: 'Profile photo',
+      child: GestureDetector(
       onTap: onEdit ?? onTap,
       child: Stack(
         clipBehavior: Clip.none,
@@ -96,7 +99,10 @@ class UserAvatar extends ConsumerWidget {
             Positioned(
               right: -2,
               bottom: -2,
-              child: GestureDetector(
+              child: Semantics(
+                button: true,
+                label: 'Change profile photo',
+                child: GestureDetector(
                 onTap: onEdit ?? () => showAvatarPickerSheet(context, ref),
                 child: Container(
                   width: badgeSize,
@@ -120,9 +126,11 @@ class UserAvatar extends ConsumerWidget {
                   ),
                 ),
               ),
+              ),
             ),
         ],
       ),
+    ),
     );
   }
 
@@ -151,7 +159,10 @@ class UserAvatar extends ConsumerWidget {
       // 2. Network URL (Google avatar or Supabase storage public URL)
       if (url.startsWith('http://') || url.startsWith('https://')) {
         // Saved on the phone's disk, so the photo is not downloaded each time.
-        return CachedNetworkImage(
+        return Semantics(
+          image: true,
+          label: 'Profile photo',
+          child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
           width: size,
@@ -174,6 +185,7 @@ class UserAvatar extends ConsumerWidget {
               ),
             );
           },
+        ),
         );
       }
 
@@ -185,6 +197,7 @@ class UserAvatar extends ConsumerWidget {
           width: size,
           height: size,
           errorBuilder: (_, _, _) => _buildFallback(initial),
+          semanticLabel: 'Profile photo',
         );
       }
     }
@@ -210,6 +223,7 @@ class UserAvatar extends ConsumerWidget {
           ),
         ),
       ),
+      semanticLabel: 'Profile photo',
     );
   }
 }

@@ -485,14 +485,21 @@ class ProfileHeader extends ConsumerWidget {
             ),
 
             // Top-right Edit button
+            // The 36px button sits in a 48px touch area (6px padding); the offset
+            // shrinks by the same 6px so the button stays where it was.
             Positioned(
-              top: 14,
-              right: 14,
+              top: 8,
+              right: 8,
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
+                child: Semantics(
+                  button: true,
+                  label: 'Edit profile',
+                  child: InkWell(
                   onTap: onEdit,
                   borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                  padding: const EdgeInsets.all(6),
                   child: Ink(
                     width: 36,
                     height: 36,
@@ -506,6 +513,8 @@ class ProfileHeader extends ConsumerWidget {
                       color: Color(0xFF1D4ED8),
                     ),
                   ),
+                  ),
+                ),
                 ),
               ),
             ),
@@ -556,7 +565,10 @@ class ProfileHeader extends ConsumerWidget {
                           Positioned(
                             right: 0,
                             bottom: 0,
-                            child: GestureDetector(
+                            child: Semantics(
+                              button: true,
+                              label: 'Change profile photo',
+                              child: GestureDetector(
                               onTap: () => showAvatarPickerSheet(context, ref),
                               child: Container(
                                 width: 28,
@@ -582,6 +594,7 @@ class ProfileHeader extends ConsumerWidget {
                                   size: 14,
                                 ),
                               ),
+                            ),
                             ),
                           ),
                         ],

@@ -291,7 +291,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                               ),
                             ),
                             const SizedBox(width: 10),
-                            InkWell(
+                            Semantics(
+                              button: true,
+                              label: 'Filter subjects',
+                              child: InkWell(
                               onTap: () => _showFilterSheet(context),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
@@ -316,6 +319,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                                   size: 22,
                                 ),
                               ),
+                            ),
                             ),
                           ],
                         ),

@@ -305,6 +305,7 @@ class _LiveTestCard extends StatelessWidget {
                       size: 28,
                       color: palette.accentColor,
                     ),
+                    excludeFromSemantics: true,
                   ),
                 ),
               ),

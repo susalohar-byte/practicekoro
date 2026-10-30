@@ -1262,6 +1262,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                                 Color(0xFF0158FC),
                                 BlendMode.srcIn,
                               ),
+                              excludeFromSemantics: true,
                             ),
                           ),
                           Expanded(
