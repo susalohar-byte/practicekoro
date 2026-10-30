@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { setUpQueryCache } from '@/lib/queryCache';
 import { initMonitoring } from '@/lib/monitoring';
 import App from './App';
@@ -26,15 +27,17 @@ const queryClient = new QueryClient({
 void setUpQueryCache(queryClient).finally(() =>
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
     </StrictMode>
   )
 );
