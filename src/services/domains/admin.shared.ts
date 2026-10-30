@@ -1,10 +1,22 @@
 import type { Question } from '@/types';
+import type { Tables } from '@/types/database.generated';
+
+type NameJoin = { name: string | null } | { name: string | null }[] | null;
+
+/** A `questions` row (timestamps optional), optionally with the `subjects` / `chapters` name joins. */
+export type QuestionRow = Omit<Tables<'questions'>, 'created_at' | 'updated_at'> & {
+  subjects?: NameJoin;
+  chapters?: NameJoin;
+};
+
+/** Name from a to-one join; an array-shaped join has no `.name`, as before. */
+const joinName = (j: NameJoin | undefined) => (Array.isArray(j) ? undefined : j?.name || undefined);
 
 /** Maps a raw Supabase `questions` row (with subject/chapter join) to the app Question model. */
-export function mapQuestionRow(q: any): Question {
+export function mapQuestionRow(q: QuestionRow): Question {
   return {
     id: q.id,
-    tags: Array.isArray(q.tags) ? q.tags : [],
+    tags: Array.isArray(q.tags) ? (q.tags as string[]) : [],
     section: q.section || undefined,
     subtopic: q.subtopic || undefined,
     chapterId: q.chapter_id ?? q.topic_id ?? undefined,
@@ -33,9 +45,9 @@ export function mapQuestionRow(q: any): Question {
     isActive: q.is_active,
     isLiveOnly: Boolean(q.is_live_only),
     status: (q.status as 'active' | 'archived' | 'draft') || 'active',
-    subjectName: q.subjects?.name || undefined,
-    chapterName: q.chapters?.name || undefined,
-    topicName: q.chapters?.name || undefined,
+    subjectName: joinName(q.subjects),
+    chapterName: joinName(q.chapters),
+    topicName: joinName(q.chapters),
   };
 }
 

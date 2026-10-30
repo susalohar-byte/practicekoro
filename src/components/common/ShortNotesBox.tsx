@@ -37,7 +37,7 @@ export function parseShortNotePoints(text: string): string[] {
   if ((raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('{') && raw.endsWith('}'))) {
     try {
       const parsed = JSON.parse(raw);
-      let list: any[] = [];
+      let list: unknown[] = [];
       if (Array.isArray(parsed)) {
         list = parsed;
       } else if (parsed && typeof parsed === 'object') {

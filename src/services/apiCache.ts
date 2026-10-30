@@ -11,7 +11,7 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-const memoryCache = new Map<string, CacheEntry<any>>();
+const memoryCache = new Map<string, CacheEntry<unknown>>();
 // Bumped on every invalidation so a request that started before it cannot repopulate the cache.
 let generation = 0;
 
@@ -22,7 +22,8 @@ export function getCached<T>(key: string, ttlMs = 60_000): T | null {
     memoryCache.delete(key);
     return null;
   }
-  return entry.data;
+  // Each key is only ever written by the caller that reads it, so the stored type is T.
+  return entry.data as T;
 }
 
 export function setCached<T>(key: string, data: T): void {

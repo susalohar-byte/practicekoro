@@ -2,6 +2,7 @@ import { csvCell } from '@/utils/csvExport';
 import { loadAllPages } from '@/utils/loadAllPages';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { AdminAuditLog, AdminRole, AdminStaffMember, UserProfile } from '@/types';
+import type { Tables } from '@/types/database.generated';
 import { localAuditLogs, localStaffUsers } from '@/services/domains/localStore';
 
 export interface CreateAuditLogInput {
@@ -9,7 +10,7 @@ export interface CreateAuditLogInput {
   entityType: string;
   entityId?: string;
   entityName?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   adminUser?: UserProfile | null;
 }
 
@@ -105,18 +106,19 @@ export async function getAdminAuditLogs(
     const { data, error, count } = await query;
     if (error) throw new Error(error.message);
     if (data) {
-      const mapped: AdminAuditLog[] = data.map((row: any) => ({
+      const mapped: AdminAuditLog[] = (data as Tables<'admin_audit_logs'>[]).map((row) => ({
         id: row.id,
-        adminId: row.admin_id,
+        // Nullable columns pass through unchanged (null, not undefined), as before.
+        adminId: row.admin_id as string | undefined,
         adminEmail: row.admin_email,
-        adminName: row.admin_name,
+        adminName: row.admin_name as string | undefined,
         adminRole: row.admin_role as AdminAuditLog['adminRole'],
         action: row.action,
         entityType: row.entity_type,
-        entityId: row.entity_id,
-        entityName: row.entity_name,
-        details: row.details || {},
-        ipAddress: row.ip_address,
+        entityId: row.entity_id as string | undefined,
+        entityName: row.entity_name as string | undefined,
+        details: (row.details || {}) as Record<string, unknown>,
+        ipAddress: row.ip_address as string | undefined,
         createdAt: row.created_at,
       }));
       return { logs: mapped, total: count || mapped.length };
@@ -202,6 +204,21 @@ export function exportAuditLogsToCsv(logs: AdminAuditLog[]): void {
 /**
  * Get list of staff users (admins, content writers, support agents)
  */
+/** The `profiles` columns `getStaffMembers` selects. */
+type StaffProfileRow = Pick<
+  Tables<'profiles'>,
+  | 'id'
+  | 'email'
+  | 'full_name'
+  | 'avatar_url'
+  | 'phone'
+  | 'role'
+  | 'admin_role'
+  | 'account_status'
+  | 'created_at'
+  | 'updated_at'
+>;
+
 export async function getStaffMembers(): Promise<AdminStaffMember[]> {
   if (isSupabaseConfigured) {
     return loadAllPages(async (limit, offset) => {
@@ -215,7 +232,7 @@ export async function getStaffMembers(): Promise<AdminStaffMember[]> {
         .order('id')
         .range(offset, offset + limit - 1);
       if (error) throw new Error(error.message);
-      return (data || []).map((row: any) => ({
+      return ((data || []) as StaffProfileRow[]).map((row) => ({
         id: row.id,
         email: row.email || '',
         fullName: row.full_name || 'Staff Member',
@@ -223,7 +240,7 @@ export async function getStaffMembers(): Promise<AdminStaffMember[]> {
         phone: row.phone || undefined,
         role: 'admin' as const,
         adminRole: row.admin_role as AdminRole,
-        accountStatus: row.account_status,
+        accountStatus: row.account_status as AdminStaffMember['accountStatus'],
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));

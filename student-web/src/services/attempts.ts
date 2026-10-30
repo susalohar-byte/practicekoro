@@ -15,14 +15,87 @@ import { OPTION_LETTERS } from '@/types/models';
 // Server-graded tests, same RPC contract as AttemptRepository in the Flutter app.
 // Questions arrive without answer keys; the server grades and reveals answers afterwards.
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
+type Text = string | null;
+type Numeric = number | string | null;
+
+/** A question as returned by get_student_exam_questions / get_attempt_solutions. */
+interface QuestionRow extends Row {
+  id: string | number;
+  imageUrl?: Text;
+}
+
+interface StartAttemptRow {
+  attempt_id?: string | null;
+  start_time?: string | null;
+  duration_minutes?: Numeric;
+}
+
+interface AttemptTestRow {
+  id?: string | null;
+  title?: Text;
+  exam_id?: Text;
+  test_type?: Text;
+  total_marks?: Numeric;
+  duration_minutes?: Numeric;
+  is_live_only?: boolean | null;
+}
+
+interface AttemptResultRow {
+  score?: Numeric;
+  total_marks?: Numeric;
+  percentage?: Numeric;
+  accuracy?: Numeric;
+  rank?: Numeric;
+  total_candidates?: Numeric;
+  percentile?: Numeric;
+  passed?: boolean | null;
+}
+
+interface AttemptRow {
+  id: string;
+  test_id: string;
+  score?: Numeric;
+  total_marks?: Numeric;
+  accuracy?: Numeric;
+  correct_count?: Numeric;
+  wrong_count?: Numeric;
+  skipped_count?: Numeric;
+  time_spent_seconds?: Numeric;
+  end_time?: Text;
+  created_at: string;
+  rank?: Numeric;
+  percentile?: Numeric;
+  tests?: AttemptTestRow | AttemptTestRow[] | null;
+  test_results?: AttemptResultRow | AttemptResultRow[] | null;
+}
+
+interface InProgressAttemptRow {
+  id: string;
+  test_id: string;
+  start_time: string;
+  tests?: AttemptTestRow | AttemptTestRow[] | null;
+}
+
+interface RankingScopeRow {
+  id?: Text;
+  name?: Text;
+  rank?: Numeric;
+  participants?: Numeric;
+}
+
+interface AttemptRankingsRow {
+  testSeries?: RankingScopeRow | null;
+  district?: RankingScopeRow | null;
+  westBengal?: RankingScopeRow | null;
+}
 
 function letter(v: unknown): OptionLetter | null {
   const s = (v ?? '').toString().trim().toUpperCase();
   return (OPTION_LETTERS as string[]).includes(s) ? (s as OptionLetter) : null;
 }
 
-function toQuestion(r: Row, i: number): Question {
+function toQuestion(r: QuestionRow, i: number): Question {
   const en = (r.questionText ?? '').toString();
   const bn = (r.questionBengaliText ?? '').toString().trim();
   return {
@@ -45,13 +118,13 @@ function toQuestion(r: Row, i: number): Question {
 export async function fetchQuestions(testId: string): Promise<Question[]> {
   const { data, error } = await supabase.rpc('get_student_exam_questions', { p_test_id: testId });
   if (error) throw error;
-  return ((data as Row[]) ?? []).map(toQuestion);
+  return ((data as QuestionRow[]) ?? []).map(toQuestion);
 }
 
 export async function startAttempt(testId: string): Promise<ServerAttempt> {
   const { data, error } = await supabase.rpc('start_test_attempt', { p_test_id: testId });
   if (error) throw error;
-  const r = (data ?? {}) as Row;
+  const r = (data ?? {}) as StartAttemptRow;
   const started = r.start_time ? new Date(r.start_time) : null;
   if (!r.attempt_id || !started || Number.isNaN(started.getTime())) {
     throw new AppError('The test could not be started. Please retry.');
@@ -109,9 +182,9 @@ export async function submitAttempt(
 const ATTEMPT_COLUMNS =
   'id, test_id, status, score, total_marks, accuracy, correct_count, wrong_count, skipped_count, time_spent_seconds, start_time, end_time, created_at, rank, percentile, tests(title, exam_id, test_type, total_marks, is_live_only), test_results(score, total_marks, percentage, accuracy, rank, total_candidates, percentile, passed)';
 
-function toAttempt(r: Row): Attempt {
-  const t: Row = (Array.isArray(r.tests) ? r.tests[0] : r.tests) ?? {};
-  const res: Row = (Array.isArray(r.test_results) ? r.test_results[0] : r.test_results) ?? {};
+function toAttempt(r: AttemptRow): Attempt {
+  const t: AttemptTestRow = (Array.isArray(r.tests) ? r.tests[0] : r.tests) ?? {};
+  const res: AttemptResultRow = (Array.isArray(r.test_results) ? r.test_results[0] : r.test_results) ?? {};
   const score = num(res.score) ?? num(r.score) ?? 0;
   const total = num(res.total_marks) || num(r.total_marks) || num(t.total_marks) || 0;
   const correct = num(r.correct_count) ?? 0;
@@ -175,8 +248,8 @@ export async function fetchInProgressAttempts(userId: string): Promise<
     .order('start_time', { ascending: false })
     .limit(10);
   if (error) throw error;
-  return (data ?? []).map((r: Row) => {
-    const t: Row = (Array.isArray(r.tests) ? r.tests[0] : r.tests) ?? {};
+  return ((data ?? []) as InProgressAttemptRow[]).map((r) => {
+    const t: AttemptTestRow = (Array.isArray(r.tests) ? r.tests[0] : r.tests) ?? {};
     return {
       id: String(r.id),
       testId: String(r.test_id),
@@ -190,10 +263,10 @@ export async function fetchInProgressAttempts(userId: string): Promise<
 export async function fetchAttemptRankings(attemptId: string): Promise<AttemptRankings | null> {
   const { data, error } = await supabase.rpc('get_attempt_rankings', { p_attempt_id: attemptId });
   if (error) throw error;
-  const r = (data ?? {}) as Row;
-  const ts: Row = r.testSeries ?? {};
-  const d: Row = r.district ?? {};
-  const wb: Row = r.westBengal ?? {};
+  const r = (data ?? {}) as AttemptRankingsRow;
+  const ts: RankingScopeRow = r.testSeries ?? {};
+  const d: RankingScopeRow = r.district ?? {};
+  const wb: RankingScopeRow = r.westBengal ?? {};
   return {
     testSeries: {
       id: ts.id ?? null,
@@ -209,7 +282,7 @@ export async function fetchAttemptRankings(attemptId: string): Promise<AttemptRa
 export async function fetchSolutions(attemptId: string): Promise<SolutionQuestion[]> {
   const { data, error } = await supabase.rpc('get_attempt_solutions', { p_attempt_id: attemptId });
   if (error) throw error;
-  return ((data as Row[]) ?? []).map((r, i) => ({
+  return ((data as QuestionRow[]) ?? []).map((r, i) => ({
     ...toQuestion(r, i),
     selected: letter(r.selectedOption),
     correct: letter(r.correctOption),

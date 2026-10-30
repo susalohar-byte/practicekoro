@@ -1,13 +1,14 @@
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-export function requireSavedRow(
-  result: { data: any; error: { message: string } | null },
+export function requireSavedRow<T>(
+  result: { data: T; error: { message: string } | null },
   id?: string
-): any {
+): NonNullable<T> {
   if (result.error) throw new Error(result.error.message);
-  if (!result.data?.id || (id !== undefined && result.data.id !== id))
+  const saved = result.data as { id?: unknown } | null | undefined;
+  if (!saved?.id || (id !== undefined && saved.id !== id))
     throw new Error('No matching record was saved. Refresh and check your permissions.');
-  return result.data;
+  return result.data as NonNullable<T>;
 }
 export function requireSuccess<T>(result: T): T {
   if (

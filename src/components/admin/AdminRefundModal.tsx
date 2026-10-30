@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/services/api';
 import type { AdminPaymentRow, ProcessRefundRequest } from '@/types';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
 interface AdminRefundModalProps {
@@ -137,9 +138,9 @@ const RefundModalContent: React.FC<
 
       onRefundSuccess(updatedPaymentRow);
       onClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Refund processing error:', err);
-      setErrorMessage(err.message || 'Refund processing failed. Please check parameters.');
+      setErrorMessage(getErrorMessage(err, 'Refund processing failed. Please check parameters.'));
     } finally {
       setIsSubmitting(false);
     }

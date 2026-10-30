@@ -24,6 +24,31 @@ import type {
   TestQuestionAssignment,
 } from '@/types';
 import type { QuestionRow } from '@/services/domains/localStore';
+import type { Tables } from '@/types/database.generated';
+import type { TestWithRefsRow } from './catalog.tests';
+
+/** A `test_attempts` row, optionally with the student's profile embedded. */
+type AttemptWithProfileRow = Tables<'test_attempts'> & {
+  profiles?: { full_name: string | null; email: string | null } | null;
+};
+
+/** One attempt on a test, as listed in the admin test details drawer and export. */
+export interface AdminTestAttemptSummary {
+  id: string;
+  rank: number;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  score: number;
+  totalMarks: number;
+  accuracy: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  timeSpentSeconds: number;
+  status: string;
+  createdAt: string;
+}
 
 /** Section of the admin API: tests (split from domains/admin.ts, same behaviour). */
 // --------------------------------------------------------------------------
@@ -119,7 +144,7 @@ async function fetchAdminTests(filter?: {
     return [];
   }
 
-  return data.map((row: any) => ({
+  return (data as TestWithRefsRow[]).map((row) => ({
     id: row.id,
     iconUrl: row.icon_url || undefined,
     examId: row.exam_id ?? undefined,
@@ -129,7 +154,7 @@ async function fetchAdminTests(filter?: {
     title: row.title,
     slug: row.slug,
     description: row.description ?? undefined,
-    testType: row.test_type,
+    testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
     shift: row.shift ?? undefined,
@@ -206,7 +231,7 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  const row = data as any;
+  const row = data as TestWithRefsRow;
   return {
     id: row.id,
     iconUrl: row.icon_url || undefined,
@@ -217,7 +242,7 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
     title: row.title,
     slug: row.slug,
     description: row.description ?? undefined,
-    testType: row.test_type,
+    testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
     shift: row.shift ?? undefined,
@@ -357,7 +382,7 @@ export async function createTest(
     }
   }
 
-  const row = data as any;
+  const row = data as TestWithRefsRow;
   if (testData.iconUrl && row.icon_url !== testData.iconUrl)
     throw new Error('The backend did not confirm the saved test icon.');
   notifyExamsUpdated();
@@ -377,7 +402,7 @@ export async function createTest(
     title: row.title,
     slug: row.slug,
     description: row.description ?? undefined,
-    testType: row.test_type,
+    testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
     shift: row.shift ?? undefined,
@@ -481,7 +506,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
     await catalogApi.syncTestExamAssociations(id, updates.associatedExamIds);
   }
 
-  const row = data as any;
+  const row = data as TestWithRefsRow;
   if (updates.iconUrl !== undefined && (row.icon_url || '') !== (updates.iconUrl || ''))
     throw new Error('The backend did not confirm the saved test icon.');
   notifyExamsUpdated();
@@ -495,7 +520,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
     title: row.title,
     slug: row.slug,
     description: row.description ?? undefined,
-    testType: row.test_type,
+    testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
     shift: row.shift ?? undefined,
@@ -601,7 +626,7 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
   return newTest;
 }
 
-export async function getTestAttempts(testId: string): Promise<any[]> {
+export async function getTestAttempts(testId: string): Promise<AdminTestAttemptSummary[]> {
   if (!isSupabaseConfigured) {
     return [];
   }
@@ -616,19 +641,19 @@ export async function getTestAttempts(testId: string): Promise<any[]> {
         .order('score', { ascending: false })
         .order('id', { ascending: true })
     );
-  let data: any[] = [];
+  let data: AttemptWithProfileRow[] = [];
   let error: unknown = null;
   try {
-    data = await readAttempts(
+    data = (await readAttempts(
       'id, user_id, score, total_marks, accuracy, correct_count, wrong_count, skipped_count, time_spent_seconds, status, created_at, profiles(full_name, email)'
-    );
+    )) as AttemptWithProfileRow[];
   } catch (err) {
     error = err;
   }
 
   if (error) {
     const fallbackData = await readAttempts('*');
-    return fallbackData.map((d: any, idx: number) => ({
+    return (fallbackData as AttemptWithProfileRow[]).map((d, idx) => ({
       id: d.id,
       rank: idx + 1,
       userId: d.user_id,
@@ -646,7 +671,7 @@ export async function getTestAttempts(testId: string): Promise<any[]> {
     }));
   }
 
-  return (data || []).map((d: any, idx: number) => ({
+  return (data || []).map((d, idx) => ({
     id: d.id,
     rank: idx + 1,
     userId: d.user_id,
@@ -861,8 +886,9 @@ export async function validateTestForPublish(testId: string): Promise<PublishVal
     return { isValid: false, errors };
   }
 
-  tqData.forEach((item: any, idx: number) => {
-    const q = item.questions as QuestionRow | null;
+  // The untyped client infers the embed as an array; a to-one embed is a single object.
+  (tqData as unknown as { questions: QuestionRow | null }[]).forEach((item, idx) => {
+    const q = item.questions;
     if (!q) {
       errors.push(`Question #${idx + 1} data is missing from question bank.`);
     } else {
@@ -940,7 +966,7 @@ async function getQuestionIdsUsedByTests(testIds: string[]): Promise<Set<string>
         .in('test_id', testIds.slice(i, i + CHUNK))
         .order('id', { ascending: true })
     );
-    for (const r of rows) used.add(String(r.question_id));
+    for (const r of rows as { question_id: string }[]) used.add(String(r.question_id));
   }
   return used;
 }

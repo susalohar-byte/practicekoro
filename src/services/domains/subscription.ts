@@ -249,7 +249,7 @@ export const subscriptionApi = {
             blockedMessage = body.error;
           }
         }
-      } catch (invokeErr: any) {
+      } catch (invokeErr) {
         console.warn('Edge function invoke failed, no insecure fallback:', invokeErr);
       }
 

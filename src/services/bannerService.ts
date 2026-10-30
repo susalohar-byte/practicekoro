@@ -158,7 +158,38 @@ export const HERO_BANNER_COLUMNS =
   'banner_type, show_text_overlay, theme_gradient, target_audience, placement, starts_at, ' +
   'expires_at, click_count, is_active, display_order, created_at, updated_at';
 
-export function mapSupabaseRowToBanner(row: any): HeroBanner {
+/** A `public.hero_banners` row as selected by `HERO_BANNER_COLUMNS`. */
+interface HeroBannerRow {
+  id: string | number;
+  badge_text?: string | null;
+  title?: string | null;
+  highlight_word?: string | null;
+  subtitle?: string | null;
+  primary_cta_text?: string | null;
+  primary_cta_link?: string | null;
+  secondary_cta_text?: string | null;
+  secondary_cta_link?: string | null;
+  feature_pills?: string[] | string | null;
+  image_url?: string | null;
+  mobile_image_url?: string | null;
+  banner_type?: 'full_image' | 'text_overlay' | null;
+  show_text_overlay?: boolean | null;
+  theme_gradient?: string | null;
+  target_audience?: string | null;
+  placement?: string | null;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  click_count?: number | string | null;
+  is_active?: boolean | null;
+  display_order?: number | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/** A banner from local storage or a content mutation: app (camelCase) or row (snake_case) keys. */
+type StoredBannerInput = Partial<HeroBanner> & Partial<HeroBannerRow>;
+
+export function mapSupabaseRowToBanner(row: HeroBannerRow): HeroBanner {
   return {
     id: String(row.id),
     badgeText: row.badge_text || '',
@@ -197,7 +228,7 @@ export function mapSupabaseRowToBanner(row: any): HeroBanner {
   };
 }
 
-function sanitizeBanner(item: any, index: number): HeroBanner {
+function sanitizeBanner(item: StoredBannerInput, index: number): HeroBanner {
   return {
     id: String(item.id || `banner-${Date.now()}-${index}`),
     badgeText: typeof item.badgeText === 'string' ? item.badgeText : item.badge_text || '',
@@ -338,7 +369,8 @@ export const bannerService = {
       .order('created_at', { ascending: true });
     if (error) throw new Error(error.message);
     if (!Array.isArray(data)) throw new Error('Invalid banner storage.');
-    return data.map(mapSupabaseRowToBanner);
+    // The concatenated column list defeats the client's select parser, so name the row shape here.
+    return (data as unknown as HeroBannerRow[]).map(mapSupabaseRowToBanner);
   },
 
   /**

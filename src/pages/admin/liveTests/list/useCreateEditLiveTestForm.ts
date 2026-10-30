@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '@/services/api';
 import { isoToLocalDateTimeParts, localDateTimeToIso } from '@/services/domains/admin.liveTests';
-import type { Exam, LiveTest } from '@/types';
+import type { Exam, LiveTest, LiveTestStatus } from '@/types';
 import { PRESET_LOGOS, getDefaultStartDate } from './liveTestsUtils';
 import { toast } from './useAdminLiveTests';
 
@@ -163,7 +163,7 @@ export function useCreateEditLiveTestForm({
           totalMarks: Number(totalMarks),
           negativeMarking: Number(negativeMarking),
           rankingEnabled,
-          status: status as any,
+          status: status as LiveTestStatus,
         });
       } else {
         // Creates the Live Test's own paper (hidden Full Mock) and a Draft event for it.

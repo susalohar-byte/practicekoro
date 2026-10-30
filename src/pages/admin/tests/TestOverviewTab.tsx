@@ -76,8 +76,8 @@ export function TestOverviewTab({ testsState, selectedTest }: TestOverviewTabPro
           </div>
           <div className="min-w-0">
             <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-              {(selectedTest as any).attemptsCount
-                ? (selectedTest as any).attemptsCount.toLocaleString('en-IN')
+              {selectedTest.attemptsCount
+                ? selectedTest.attemptsCount.toLocaleString('en-IN')
                 : '0'}
             </span>
             <span className="text-[9.5px] text-slate-400 block truncate">Total Attempts</span>
@@ -91,9 +91,7 @@ export function TestOverviewTab({ testsState, selectedTest }: TestOverviewTabPro
           </div>
           <div className="min-w-0">
             <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
-              {(selectedTest as any).avgScore
-                ? `${Math.round((selectedTest as any).avgScore)}%`
-                : '—'}
+              {selectedTest.avgScore ? `${Math.round(selectedTest.avgScore)}%` : '—'}
             </span>
             <span className="text-[9.5px] text-slate-400 block truncate">Avg. Score</span>
           </div>
@@ -179,8 +177,8 @@ export function TestOverviewTab({ testsState, selectedTest }: TestOverviewTabPro
 
           <span className="text-slate-400">Created At</span>
           <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-            {(selectedTest as any).createdAt
-              ? new Date((selectedTest as any).createdAt).toLocaleDateString('en-GB', {
+            {selectedTest.createdAt
+              ? new Date(selectedTest.createdAt).toLocaleDateString('en-GB', {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric',
@@ -190,8 +188,8 @@ export function TestOverviewTab({ testsState, selectedTest }: TestOverviewTabPro
 
           <span className="text-slate-400">Last Updated</span>
           <span className="font-semibold text-slate-800 dark:text-slate-200 text-right">
-            {(selectedTest as any).updatedAt
-              ? new Date((selectedTest as any).updatedAt).toLocaleDateString('en-GB', {
+            {selectedTest.updatedAt
+              ? new Date(selectedTest.updatedAt).toLocaleDateString('en-GB', {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric',

@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@/lib/errors';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { parseSettingValue } from './admin.shared';
+import type { Tables } from '@/types/database.generated';
 import {
   localAppSettings,
   localItemAnalysisStore,
@@ -47,7 +48,7 @@ export async function getAppSettings(
   if (error) throw new Error(error.message);
   if (!Array.isArray(data)) throw new Error('Settings response was not confirmed.');
 
-  const mapped = data.map((d: any) => ({
+  const mapped = (data as Tables<'app_settings'>[]).map((d) => ({
     id: d.id,
     category: d.category,
     key: d.key,
@@ -440,7 +441,33 @@ interface ItemAnalysisRow {
   timed_count: number;
   option_counts: { A: number; B: number; C: number; D: number };
   /** Same shape as the old questions -> subjects/chapters -> exams embed. */
-  question: any;
+  question: ItemAnalysisQuestion | null;
+}
+
+interface ItemAnalysisExam {
+  id: string;
+  title: string;
+}
+interface ItemAnalysisSubject {
+  id: string;
+  name: string;
+  exams: ItemAnalysisExam | null;
+}
+/** The question embed inside an `admin_item_analysis` row (columns of `questions`). */
+interface ItemAnalysisQuestion {
+  question_text: string;
+  question_bengali_text: string | null;
+  subject_id: string | null;
+  chapter_id: string | null;
+  difficulty: string | null;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: 'A' | 'B' | 'C' | 'D';
+  explanation: string | null;
+  subjects: ItemAnalysisSubject | null;
+  chapters: { name: string; subjects: ItemAnalysisSubject | null } | null;
 }
 
 /**
@@ -533,7 +560,8 @@ export async function getItemAnalysis(
           questionBengali: s.qInfo?.question_bengali_text || undefined,
           subjectId: s.qInfo?.subject_id || subject?.id,
           subjectName: subject?.name || 'General Subject',
-          chapterId: s.qInfo?.chapter_id,
+          // A null chapter passes through unchanged, as before.
+          chapterId: s.qInfo?.chapter_id as string | undefined,
           chapterName: s.qInfo?.chapters?.name || 'Topic Chapter',
           examId: exam?.id,
           examTitle: exam?.title,

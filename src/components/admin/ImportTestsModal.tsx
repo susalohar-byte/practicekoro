@@ -3,10 +3,11 @@ import { X, Upload, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { api } from '@/services/api';
 import { parseCsvRaw } from '@/utils/csvParser';
+import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import { FileDropZone } from '@/components/common/FileDropZone';
-import type { Exam, Subject, Chapter } from '@/types';
+import type { Exam, Subject, Chapter, MockTest } from '@/types';
 
 interface ImportTestsModalProps {
   isOpen: boolean;
@@ -135,7 +136,7 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
 
         if (!row.title) continue;
 
-        const testType = (row.testtype as any) || 'full_mock';
+        const testType = (row.testtype as MockTest['testType']) || 'full_mock';
         let foundExamId: string | undefined;
         let foundSubId: string | undefined;
         let foundChapId: string | undefined;
@@ -207,9 +208,9 @@ export const ImportTestsModal: React.FC<ImportTestsModalProps> = ({
       if (failures.length > 0) {
         setError(`${failures.length} row(s) could not be imported.`);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Import failed:', err);
-      setError(err?.message || 'Failed to import tests. Please check CSV format.');
+      setError(getErrorMessage(err, 'Failed to import tests. Please check CSV format.'));
     } finally {
       setIsProcessing(false);
       if (createdCount > 0) onImportComplete();

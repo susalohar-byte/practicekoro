@@ -2,24 +2,33 @@ import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabas
 import { localSupportTickets } from '@/services/domains/localStore';
 import { loadAllPages } from '@/utils/loadAllPages';
 import type { SupportTicketItem, SupportTicketMessage } from '@/types';
-export const mapSupportMessage = (d: any): SupportTicketMessage => ({
+import type { Tables } from '@/types/database.generated';
+
+/** The `support_ticket_messages` columns in `SUPPORT_MESSAGE_COLUMNS`. */
+type SupportMessageRow = Omit<Tables<'support_ticket_messages'>, 'author_id'>;
+/** The `support_tickets` columns in `SUPPORT_TICKET_COLUMNS`, optionally with its messages. */
+type SupportTicketRow = Tables<'support_tickets'> & {
+  support_ticket_messages?: SupportMessageRow[] | null;
+};
+
+export const mapSupportMessage = (d: SupportMessageRow): SupportTicketMessage => ({
   id: d.id,
   ticketId: d.ticket_id,
   authorName: d.author_name,
-  authorKind: d.author_kind,
+  authorKind: d.author_kind as SupportTicketMessage['authorKind'],
   body: d.body,
   createdAt: d.created_at,
 });
-export const mapSupportTicket = (d: any): SupportTicketItem => ({
+export const mapSupportTicket = (d: SupportTicketRow): SupportTicketItem => ({
   id: d.id,
   userId: d.user_id || undefined,
   studentName: d.student_name || 'Student',
   studentEmail: d.student_email || '',
   subject: d.subject,
   issue: d.issue,
-  category: d.category,
-  priority: d.priority,
-  status: d.status,
+  category: d.category as SupportTicketItem['category'],
+  priority: d.priority as SupportTicketItem['priority'],
+  status: d.status as SupportTicketItem['status'],
   assignedTo: d.assigned_to || undefined,
   resolutionNotes: d.resolution_notes || undefined,
   createdAt: d.created_at,
@@ -50,12 +59,15 @@ export async function getSupportTickets(
   const limit = Math.max(1, Math.min(options.limit ?? SUPPORT_TICKETS_LIMIT, 1000));
   const { data, error } = await supabase
     .from('support_tickets')
-    .select(SUPPORT_TICKET_COLUMNS)
+    .select<string, SupportTicketRow>(SUPPORT_TICKET_COLUMNS)
     .order('created_at', { ascending: false })
     .order('id')
     .limit(limit);
   if (error) throw new Error(error.message);
-  return ((data || []) as any[]).map((d) => ({ ...mapSupportTicket(d), messages: undefined }));
+  return (data || []).map((d) => ({
+    ...mapSupportTicket(d),
+    messages: undefined,
+  }));
 }
 
 /** The messages (replies and internal notes) of one ticket, oldest first. */
@@ -65,12 +77,12 @@ export async function getSupportTicketMessages(ticketId: string): Promise<Suppor
   }
   const { data, error } = await supabase
     .from('support_ticket_messages')
-    .select(SUPPORT_MESSAGE_COLUMNS)
+    .select<string, SupportMessageRow>(SUPPORT_MESSAGE_COLUMNS)
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: true })
     .order('id');
   if (error) throw new Error(error.message);
-  return ((data || []) as any[]).map(mapSupportMessage);
+  return (data || []).map(mapSupportMessage);
 }
 export async function updateSupportTicket(
   id: string,

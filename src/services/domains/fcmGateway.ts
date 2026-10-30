@@ -107,7 +107,8 @@ export async function sendFcmPush(options: FcmSendOptions): Promise<FcmSendResul
       message: `FCM Dispatch Failed: ${errorDetails}`,
       error: errorDetails,
     };
-  } catch (err: any) {
+  } catch (caught) {
+    const err = caught as { name?: string; message?: string } | null;
     if (err?.name === 'TypeError' && err?.message?.includes('fetch')) {
       return {
         success: true,

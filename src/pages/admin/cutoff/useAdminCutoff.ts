@@ -1,4 +1,4 @@
-import type { Exam } from '@/types';
+import type { Exam, RecruitmentStage, StudentCategoryCode } from '@/types';
 import { requireSuccess } from '@/services/domains/admin.mutations';
 import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '@/services/api';
@@ -265,9 +265,9 @@ export function useAdminCutoff() {
         examId: exam.id,
         examTitle: exam.title,
         year: Number(formYear),
-        stage: formStage as any,
+        stage: formStage as RecruitmentStage,
         cutoffType: existing?.cutoffType || 'OFFICIAL',
-        category: dbCategory as any,
+        category: dbCategory as StudentCategoryCode,
         gender: dbGender,
         district: existing?.district || 'ALL',
         scoreType: existing?.scoreType || 'raw_marks',

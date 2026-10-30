@@ -9,6 +9,11 @@ import {
   enrichLiveTest,
   sortLiveTests,
 } from './admin.liveTests.store';
+import type { LiveTestSource, SourceTestRow } from './admin.liveTests.store';
+import type { FilterableQuery } from './queryFilters';
+
+/** A `live_tests` row as selected by `LIVE_TEST_COLUMNS` (source paper embedded). */
+type LiveTestQueryRow = LiveTestSource & { tests?: SourceTestRow | null };
 
 /**
  * After a Live Test change: keep the local copy (localStorage + in-memory + window event) and
@@ -37,11 +42,13 @@ export async function syncLiveTestsToRemote(list: LiveTest[]): Promise<void> {
 }
 
 /** Reads `live_tests` with explicit columns (source paper embedded), narrowed by `apply`. */
-async function queryLiveTests(apply: (q: any) => any = (q) => q): Promise<LiveTest[]> {
+async function queryLiveTests(
+  apply: <Q extends FilterableQuery>(q: Q) => Q = (q) => q
+): Promise<LiveTest[]> {
   const q = apply(supabase.from('live_tests').select(LIVE_TEST_COLUMNS).order('start_at'));
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  return ((data || []) as any[]).map((r) =>
+  return ((data || []) as LiveTestQueryRow[]).map((r) =>
     enrichLiveTest(r, r.tests ? mapRowToMockTest(r.tests) : null)
   );
 }
