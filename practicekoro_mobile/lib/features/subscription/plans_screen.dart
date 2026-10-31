@@ -98,15 +98,18 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Available Packages',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: UI.text,
-                        letterSpacing: -0.2,
+                    const Expanded(
+                      child: Text(
+                        'Available Packages',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: UI.text,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,

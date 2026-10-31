@@ -145,13 +145,16 @@ class GoogleSignInButton extends StatelessWidget {
                 children: [
                   const GoogleLogo(size: 20),
                   const SizedBox(width: 12),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                      letterSpacing: -0.1,
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                        letterSpacing: -0.1,
+                      ),
                     ),
                   ),
                 ],
@@ -171,15 +174,19 @@ class AuthOrDivider extends StatelessWidget {
     return Row(
       children: [
         const Expanded(child: Divider(color: UI.line, thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: UI.muted,
-              letterSpacing: 0.5,
+        Flexible(
+          flex: 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: UI.muted,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ),

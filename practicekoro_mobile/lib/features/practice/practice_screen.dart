@@ -934,7 +934,7 @@ class _TopicSearchResultCard extends StatelessWidget {
                           child: const Text(
                             'Weak',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFFEF4444),
                             ),

@@ -957,17 +957,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
                                         size: 16,
                                       ),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        blocked
-                                            ? 'Pass already active'
-                                            : plan.isFree
-                                                ? 'Free Plan (No payment needed)'
-                                                : upgrade != null
-                                                    ? 'Upgrade for ${_rupees(payable)}'
-                                                    : 'Pay ${_rupees(payable)} Now',
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
+                                      Flexible(
+                                        child: Text(
+                                          blocked
+                                              ? 'Pass already active'
+                                              : plan.isFree
+                                                  ? 'Free Plan (No payment needed)'
+                                                  : upgrade != null
+                                                      ? 'Upgrade for ${_rupees(payable)}'
+                                                      : 'Pay ${_rupees(payable)} Now',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1301,13 +1304,16 @@ class _PriceRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: UI.textSoft,
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: UI.textSoft,
+            ),
           ),
         ),
+        const SizedBox(width: 12),
         Text(
           value,
           style: TextStyle(

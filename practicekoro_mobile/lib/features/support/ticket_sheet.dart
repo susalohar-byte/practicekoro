@@ -158,12 +158,14 @@ class _CreateTicketSheetState extends ConsumerState<CreateTicketSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Raise a Support Ticket',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: UI.text,
+                  const Expanded(
+                    child: Text(
+                      'Raise a Support Ticket',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: UI.text,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -486,7 +488,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                     child: Text(
                       _ticket.displayStatus.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: statusColor,
                       ),
@@ -557,7 +559,7 @@ class _TicketDetailSheetState extends ConsumerState<TicketDetailSheet> {
                             child: Text(
                               _ticket.category,
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: UI.primary,
                               ),

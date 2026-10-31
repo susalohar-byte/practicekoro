@@ -61,6 +61,7 @@ class ExamLogo extends StatelessWidget {
               bytes,
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => fallbackWidget(),
+              excludeFromSemantics: true,
             ),
           );
         }

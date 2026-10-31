@@ -586,7 +586,7 @@ class _TestCard extends StatelessWidget {
                   child: Text(
                     test.normalizedCategory,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: themeColor,
                       letterSpacing: 0.1,

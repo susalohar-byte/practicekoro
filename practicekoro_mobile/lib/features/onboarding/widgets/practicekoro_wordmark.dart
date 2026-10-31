@@ -17,44 +17,48 @@ class PracticeKoroWordmark extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Practice$secondWord',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: fontSize,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.6,
-                height: 1.1,
+      // Shrinks on narrow phones with a large system font instead of overflowing.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
+                  height: 1.1,
+                ),
+                children: [
+                  const TextSpan(
+                    text: 'Practice',
+                    style: TextStyle(
+                      color: Color(0xFF0F172A), // Dark navy
+                    ),
+                  ),
+                  TextSpan(
+                    text: secondWord,
+                    style: const TextStyle(
+                      color: Color(0xFF0158FC), // Vibrant PracticeKoro Brand Blue
+                    ),
+                  ),
+                ],
               ),
-              children: [
-                const TextSpan(
-                  text: 'Practice',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A), // Dark navy
-                  ),
-                ),
-                TextSpan(
-                  text: secondWord,
-                  style: const TextStyle(
-                    color: Color(0xFF0158FC), // Vibrant PracticeKoro Brand Blue
-                  ),
-                ),
-              ],
             ),
-          ),
-          // Playful golden sunburst rays at top-right
-          Transform.translate(
-            offset: Offset(fontSize * 0.08, -fontSize * 0.14),
-            child: CustomPaint(
-              size: Size(fontSize * 0.65, fontSize * 0.65),
-              painter: _SunburstRaysPainter(),
+            // Playful golden sunburst rays at top-right
+            Transform.translate(
+              offset: Offset(fontSize * 0.08, -fontSize * 0.14),
+              child: CustomPaint(
+                size: Size(fontSize * 0.65, fontSize * 0.65),
+                painter: _SunburstRaysPainter(),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

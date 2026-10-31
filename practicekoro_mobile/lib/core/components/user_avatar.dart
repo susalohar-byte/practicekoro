@@ -149,6 +149,7 @@ class UserAvatar extends ConsumerWidget {
               width: size,
               height: size,
               errorBuilder: (_, _, _) => _buildFallback(initial),
+              semanticLabel: 'Profile photo',
             );
           }
         } catch (_) {
