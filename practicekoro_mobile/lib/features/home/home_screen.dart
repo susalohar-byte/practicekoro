@@ -139,6 +139,7 @@ class HomeScreen extends ConsumerWidget {
                                   width: 38,
                                   height: 38,
                                   fit: BoxFit.cover,
+                                  excludeFromSemantics: true,
                                   errorBuilder: (_, _, _) => Container(
                                     color: const Color(0xFF005CFD),
                                     child: const Icon(
@@ -313,7 +314,7 @@ class HomeScreen extends ConsumerWidget {
                                 const Text(
                                   'Rank',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFFB45309),
                                     letterSpacing: 0.3,
@@ -348,57 +349,64 @@ class HomeScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            const Text(
-                              'Exams ',
-                              style: TextStyle(
-                                fontSize: 16.5,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF01114E),
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                            IntrinsicWidth(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    'for You',
-                                    style: TextStyle(
-                                      fontSize: 16.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF016BFC),
-                                      letterSpacing: -0.3,
-                                    ),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                const Text(
+                                  'Exams ',
+                                  style: TextStyle(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF01114E),
+                                    letterSpacing: -0.3,
                                   ),
-                                  const SizedBox(height: 1.5),
-                                  SizedBox(
-                                    height: 4.5,
-                                    child: Image.asset(
-                                      'assets/images/exams_for_you_underline.webp',
-                                      fit: BoxFit.fill,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          const CustomPaint(
-                                        painter: _ExamsForYouSwooshPainter(),
+                                ),
+                                IntrinsicWidth(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'for You',
+                                        style: TextStyle(
+                                          fontSize: 16.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF016BFC),
+                                          letterSpacing: -0.3,
+                                        ),
                                       ),
-                                      excludeFromSemantics: true,
-                                    ),
+                                      const SizedBox(height: 1.5),
+                                      SizedBox(
+                                        height: 4.5,
+                                        child: Image.asset(
+                                          'assets/images/exams_for_you_underline.webp',
+                                          fit: BoxFit.fill,
+                                          errorBuilder: (context, error, stackTrace) =>
+                                              const CustomPaint(
+                                            painter: _ExamsForYouSwooshPainter(),
+                                          ),
+                                          excludeFromSemantics: true,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => context.go('/exams'),
                       child: Container(
@@ -465,14 +473,17 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Live Test',
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
+                    const Expanded(
+                      child: Text(
+                        'Live Test',
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => context.push('/live-tests'),
                       child: Container(
@@ -620,14 +631,17 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Recent Result',
-                      style: TextStyle(
-                        fontSize: 16.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
+                    const Expanded(
+                      child: Text(
+                        'Recent Result',
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => context.go('/results'),
                       child: const Row(
@@ -759,215 +773,219 @@ class _HomeLiveTestCard extends StatelessWidget {
     final cardWidth =
         (screenWidth > 600 ? 285.0 : (screenWidth - 36) * 0.78).clamp(270.0, 300.0);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: cardWidth,
-          height: 122,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: palette.borderColor, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: palette.accentColor.withValues(alpha: 0.07),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 3D Thumbnail on pastel background
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: palette.thumbBg,
-                  borderRadius: BorderRadius.circular(14),
+    // Cards in this carousel have a fixed size, so text stops growing at 1.1x.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: cardWidth,
+            height: 122,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: palette.borderColor, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: palette.accentColor.withValues(alpha: 0.07),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-                child: Center(
-                  child: Image.asset(
-                    palette.iconAsset,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => Icon(
-                      Icons.quiz_outlined,
-                      size: 26,
-                      color: palette.accentColor,
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 3D Thumbnail on pastel background
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: palette.thumbBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      palette.iconAsset,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.quiz_outlined,
+                        size: 26,
+                        color: palette.accentColor,
+                      ),
+                      excludeFromSemantics: true,
                     ),
-                    excludeFromSemantics: true,
                   ),
                 ),
-              ),
-              const SizedBox(width: 11),
+                const SizedBox(width: 11),
 
-              // Content Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Status Badge
-                    if (test.isLive)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.sensors_rounded,
-                              size: 11,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 3),
-                            Text(
-                              'LIVE',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                // Content Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Status Badge
+                      if (test.isLive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.sensors_rounded,
+                                size: 11,
                                 color: Colors.white,
-                                letterSpacing: 0.3,
                               ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 11,
-                              color: Color(0xFFD97706),
-                            ),
-                            SizedBox(width: 3),
-                            Text(
-                              'UPCOMING',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                              SizedBox(width: 3),
+                              Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.schedule_rounded,
+                                size: 11,
                                 color: Color(0xFFD97706),
-                                letterSpacing: 0.3,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 3),
-
-                    // Test Title
-                    Text(
-                      test.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-
-                    // Scheduled Time
-                    Text(
-                      test.formattedTime,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: palette.timeColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Metadata Row + Circular Action Button
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.access_time_rounded,
-                          size: 12,
-                          color: Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${test.durationMinutes} Mins',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
+                              SizedBox(width: 3),
+                              Text(
+                                'UPCOMING',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFD97706),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        if (test.formattedParticipants != null) ...[
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              '•',
-                              style: TextStyle(
-                                color: Color(0xFF94A3B8),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
+                      const SizedBox(height: 3),
+
+                      // Test Title
+                      Text(
+                        test.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+
+                      // Scheduled Time
+                      Text(
+                        test.formattedTime,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: palette.timeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Metadata Row + Circular Action Button
+                      Row(
+                        children: [
                           const Icon(
-                            Icons.group_outlined,
-                            size: 13,
+                            Icons.access_time_rounded,
+                            size: 12,
                             color: Color(0xFF64748B),
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            test.formattedParticipants!,
+                            '${test.durationMinutes} Mins',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF64748B),
                             ),
                           ),
+                          if (test.formattedParticipants != null) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                '•',
+                                style: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.group_outlined,
+                              size: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              test.formattedParticipants!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: palette.accentColor,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
                         ],
-                        const Spacer(),
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: palette.accentColor,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 13,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2093,7 +2111,7 @@ class _HeroBannerSectionState extends ConsumerState<_HeroBannerSection> {
                               child: Text(
                                 banner.badgeText!.toUpperCase(),
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1E293B),
                                   letterSpacing: 0.4,

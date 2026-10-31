@@ -240,7 +240,7 @@ class _TrendChart extends StatelessWidget {
                           Text(
                             '${a.percentage.round()}',
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: UI.muted,
                             ),

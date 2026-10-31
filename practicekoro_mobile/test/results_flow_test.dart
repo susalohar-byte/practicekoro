@@ -355,6 +355,37 @@ void main() {
       expect(find.textContaining('GK Topic Test'), findsWidgets);
     });
 
+    testWidgets('ResultsHistoryScreen fits a small phone at double font size',
+        (tester) async {
+      tester.view.physicalSize = const Size(750, 1624); // 375 x 812
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
+            rankingRepositoryProvider.overrideWith(
+              (ref) => _FakeRanking(ref, _leaderboard),
+            ),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2.0)),
+              child: child!,
+            ),
+            home: const Scaffold(body: ResultsHistoryScreen()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A RenderFlex overflow is reported as an exception in tests.
+      expect(tester.takeException(), isNull);
+      expect(find.text('My Results'), findsOneWidget);
+    });
+
     testWidgets('ResultsHistoryScreen shows empty states, not invented numbers',
         (tester) async {
       bigScreen(tester);

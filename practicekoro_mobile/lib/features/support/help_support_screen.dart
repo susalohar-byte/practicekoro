@@ -181,7 +181,7 @@ class HelpSupportScreen extends ConsumerWidget {
                   'TICKET DESK',
                   style: TextStyle(
                     color: Color(0xFF4F46E5),
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -215,7 +215,7 @@ class HelpSupportScreen extends ConsumerWidget {
                   'FAST REPLY',
                   style: TextStyle(
                     color: Color(0xFF1E7E34),
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -509,7 +509,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: fg,
         ),

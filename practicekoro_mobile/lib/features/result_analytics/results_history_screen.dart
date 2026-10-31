@@ -237,12 +237,16 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
           ),
         ),
         InkWell(
@@ -498,35 +502,39 @@ class _RankPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            for (var i = 0; i < items.length; i++) ...[
-              _RankPreviewRow(item: items[i]),
-              if (i < items.length - 1)
-                const Divider(
-                  height: 1,
-                  thickness: 0.8,
-                  color: Color(0xFFF1F5F9),
-                ),
+    return Semantics(
+      button: true,
+      label: 'Open rank list',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
             ],
-          ],
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                _RankPreviewRow(item: items[i]),
+                if (i < items.length - 1)
+                  const Divider(
+                    height: 1,
+                    thickness: 0.8,
+                    color: Color(0xFFF1F5F9),
+                  ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -591,29 +599,38 @@ class _RankPreviewRow extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Score and Rank
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                item.scoreDisplay,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                ),
+          // Capped and scaled down so a large system font cannot push the row
+          // off the screen.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 104),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    item.scoreDisplay,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    'Rank #${item.rank}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isMe
+                          ? const Color(0xFF0158FC)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 1),
-              Text(
-                'Rank #${item.rank}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isMe
-                      ? const Color(0xFF0158FC)
-                      : const Color(0xFF64748B),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

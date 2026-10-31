@@ -330,7 +330,7 @@ class _TopicTestItemCard extends StatelessWidget {
                     Text(
                       '${attempt!.percentage.round()}%',
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF059669),
                       ),

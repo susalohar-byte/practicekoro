@@ -1289,14 +1289,17 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            color: isBold ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              color: isBold ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+            ),
           ),
         ),
+        const SizedBox(width: 12),
         Text(
           value,
           style: TextStyle(
@@ -1418,7 +1421,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: accentColor,
                   ),
@@ -1468,7 +1471,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: color.withValues(alpha: 0.8),
             ),
@@ -1681,7 +1684,7 @@ class _MetricBadge extends StatelessWidget {
           Text(
             subtitle!,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Color(0xFF94A3B8),
             ),

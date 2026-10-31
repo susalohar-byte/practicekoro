@@ -321,7 +321,7 @@ class _SavedQuestionCard extends StatelessWidget {
                           child: const Text(
                             'Correct',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF15803D),
                             ),

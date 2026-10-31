@@ -793,26 +793,32 @@ class UIShortcut extends StatelessWidget {
     return UICard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      child: SizedBox(
-        height: 78,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            UIIconBadge(icon, color: color, size: 40),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: UI.caption.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: UI.textSoft,
-                height: 1.2,
+      // Shortcuts sit three to a row, so the label stops growing at 1.3x; the
+      // card grows past 78 rather than clipping it.
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 78),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              UIIconBadge(icon, color: color, size: 40),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: UI.caption.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: UI.textSoft,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

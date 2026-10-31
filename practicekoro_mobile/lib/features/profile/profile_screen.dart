@@ -684,16 +684,19 @@ class ProfileHeader extends ConsumerWidget {
                                 : const Color(0xFF0158FC),
                           ),
                           const SizedBox(width: 5),
-                          Text(
-                            isComplete
-                                ? 'Profile Complete'
-                                : 'Profile $percent% Complete',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isComplete
-                                  ? const Color(0xFF15803D)
-                                  : const Color(0xFF0158FC),
+                          Flexible(
+                            child: Text(
+                              isComplete
+                                  ? 'Profile Complete'
+                                  : 'Profile $percent% Complete',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isComplete
+                                    ? const Color(0xFF15803D)
+                                    : const Color(0xFF0158FC),
+                              ),
                             ),
                           ),
                         ],

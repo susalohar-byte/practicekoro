@@ -137,6 +137,7 @@ class _AuthScaffold extends StatelessWidget {
                             child: Image.asset(
                               'assets/images/logo-circle.webp',
                               fit: BoxFit.contain,
+                              semanticLabel: 'PracticeKoro logo',
                               errorBuilder: (_, _, _) => Image.asset(
                                 'assets/images/logo-transparent.webp',
                                 fit: BoxFit.contain,
