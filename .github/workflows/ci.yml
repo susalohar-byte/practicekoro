@@ -54,7 +54,10 @@ jobs:
       - run: npm ci
       # npm run build also builds the Student Web Panel into dist/dashboard
       - run: npm ci --prefix student-web
+      # No browser or Supabase .env here, so the crawler pages (scripts/prerender.mjs) are left out
       - run: npm run build
+        env:
+          PRERENDER: skip
 
   e2e:
     name: E2E Tests

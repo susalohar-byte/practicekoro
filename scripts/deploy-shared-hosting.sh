@@ -65,6 +65,10 @@ if [ ! -f "dist/index.html" ]; then
   echo "ERROR: dist/index.html missing after build." >&2
   exit 1
 fi
+if [ ! -f "dist/_prerender/index.html" ]; then
+  echo "ERROR: dist/_prerender/ missing — search and AI crawlers would get an empty page." >&2
+  exit 1
+fi
 if [ ! -f "dist/.htaccess" ]; then
   echo "ERROR: dist/.htaccess missing — SPA fallback + HTTPS + caching would break." >&2
   exit 1

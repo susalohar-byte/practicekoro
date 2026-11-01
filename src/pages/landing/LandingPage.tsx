@@ -45,6 +45,21 @@ export const LandingPage: React.FC = () => {
           />
           <meta property="og:type" content="website" />
           <link rel="canonical" href="https://practicekoro.online/" />
+          {/* Organization and WebSite live in index.html; the plans' Offers come from PricingSection */}
+          <script type="application/ld+json">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebPage',
+              '@id': 'https://practicekoro.online/#webpage',
+              url: 'https://practicekoro.online/',
+              name: 'Practice Koro | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions',
+              inLanguage: 'bn-IN',
+              isPartOf: { '@id': 'https://practicekoro.online/#website' },
+              about: { '@id': 'https://practicekoro.online/#organization' },
+              primaryImageOfPage:
+                'https://practicekoro.online/images/landing/hero_student_room.webp',
+            })}
+          </script>
         </Helmet>
 
         {/* 1. Header & Navigation matching reference */}
