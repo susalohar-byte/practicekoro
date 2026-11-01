@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { RevealGroup, popIn, hoverLift } from './Reveal';
@@ -71,6 +72,31 @@ export const PricingSection: React.FC = () => {
 
   return (
     <section id="pricing" className="scroll-mt-24 py-8 sm:py-12">
+      {/* Offers are built from the same plans shown on the page, so they never drift from the admin's prices */}
+      {plans && plans.length > 0 && (
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              '@id': 'https://practicekoro.online/#webapp',
+              name: 'Practice Koro',
+              url: 'https://practicekoro.online/',
+              applicationCategory: 'EducationalApplication',
+              operatingSystem: 'Web browser',
+              inLanguage: ['bn', 'en'],
+              publisher: { '@id': 'https://practicekoro.online/#organization' },
+              offers: plans.map((plan) => ({
+                '@type': 'Offer',
+                name: plan.title,
+                price: String(plan.price),
+                priceCurrency: plan.currency || 'INR',
+                url: 'https://practicekoro.online/#pricing',
+              })),
+            })}
+          </script>
+        </Helmet>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <SectionHeading
           icon={Crown}

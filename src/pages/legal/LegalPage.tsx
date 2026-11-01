@@ -46,6 +46,19 @@ export const LegalPage: React.FC<{ document: LegalDocument }> = ({ document: doc
         <title>{`${doc.title} | Practice Koro`}</title>
         <meta name="description" content={doc.summary} />
         <link rel="canonical" href={`https://practicekoro.online/${doc.slug}`} />
+        {doc.slug === 'contact' && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'ContactPage',
+              '@id': 'https://practicekoro.online/contact#webpage',
+              url: 'https://practicekoro.online/contact',
+              name: `${doc.title} | Practice Koro`,
+              isPartOf: { '@id': 'https://practicekoro.online/#website' },
+              about: { '@id': 'https://practicekoro.online/#organization' },
+            })}
+          </script>
+        )}
       </Helmet>
 
       <header className="bg-white border-b border-slate-200/70">
