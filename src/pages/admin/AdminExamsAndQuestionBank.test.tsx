@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminExams } from './AdminExams';
 import { AdminQuestionBank } from './AdminQuestionBank';
@@ -332,6 +332,37 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     await waitFor(() => {
       expect(screen.queryByText(/3 selected/i)).toBeNull();
     });
+  });
+
+  it('shows each question with its options, the correct one in green', async () => {
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    const correct = await screen.findByText('Kolkata');
+    const correctBox = correct.parentElement as HTMLElement;
+    expect(correctBox.className).toMatch(/emerald/);
+    expect(within(correctBox).getByLabelText('Correct answer')).toBeInTheDocument();
+
+    const wrongBox = screen.getByText('Siliguri').parentElement as HTMLElement;
+    expect(wrongBox.className).not.toMatch(/emerald/);
+  });
+
+  it('keeps the details panel in view while the question list scrolls', async () => {
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByText('পশ্চিমবঙ্গের রাজধানী কী?'));
+
+    const heading = await screen.findByText('Question Details');
+    const panel = heading.closest('.lg\\:sticky') as HTMLElement;
+    expect(panel).not.toBeNull();
+    expect(panel.querySelector('.lg\\:overflow-y-auto')).not.toBeNull();
   });
 
   it('pages the bank on the server and still selects every matching question', async () => {
