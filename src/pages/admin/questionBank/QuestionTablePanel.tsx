@@ -45,17 +45,18 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
   } = qb;
   return (
     <>
-      {/* LEFT COLUMN: QUESTION DATA TABLE */}
+      {/* LEFT COLUMN: QUESTION DATA TABLE. On large screens the box stays in view and the
+          questions scroll inside it; the header row and pagination stay visible. */}
       <div
         className={cn(
-          'transition-all duration-300',
+          'transition-all duration-300 lg:sticky lg:top-4',
           activeQuestion ? 'lg:col-span-8' : 'lg:col-span-12'
         )}
       >
-        <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
+        <div className="lg:flex lg:flex-col lg:max-h-[calc(100vh-2rem)] bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto lg:overflow-y-auto lg:flex-1 lg:min-h-0">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#F8FAFC] dark:bg-[#070D1E] border-b border-slate-200/80 dark:border-slate-800">
+              <thead className="sticky top-0 z-10 bg-[#F8FAFC] dark:bg-[#070D1E] border-b border-slate-200/80 dark:border-slate-800">
                 <tr className="text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-3 w-8">
                     <input
