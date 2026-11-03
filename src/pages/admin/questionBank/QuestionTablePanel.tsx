@@ -8,12 +8,15 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from 'lucide-react';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import { requireSuccess } from '@/services/domains/admin.mutations';
 import { getPageNumbers } from '@/utils/pagination';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
+
+const OPTION_KEYS = ['A', 'B', 'C', 'D'] as const;
 
 export interface QuestionTablePanelProps {
   qb: AdminQuestionBankState;
@@ -131,16 +134,47 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                           {questionNumber}
                         </td>
 
-                        {/* Question Bengali / English Preview */}
-                        <td className="py-3 px-4 max-w-[240px]">
+                        {/* Question with its options; the correct option is green */}
+                        <td className="py-3 px-4 min-w-[320px] max-w-[460px]">
                           <p
                             className={cn(
-                              'truncate text-slate-900 dark:text-slate-100 font-medium',
+                              'text-slate-900 dark:text-slate-100 font-medium leading-relaxed',
                               bengaliFontClass(q.questionBengaliText || q.questionText)
                             )}
                           >
                             {q.questionBengaliText || q.questionText}
                           </p>
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {OPTION_KEYS.map((key) => {
+                              const text = q[`option${key}`];
+                              if (!text) return null;
+                              const isCorrect = q.correctOption === key;
+                              return (
+                                <div
+                                  key={key}
+                                  className={cn(
+                                    'flex items-start gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] leading-snug',
+                                    isCorrect
+                                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 font-semibold dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                      : 'border-slate-200 text-slate-600 font-normal dark:border-slate-700 dark:text-slate-300'
+                                  )}
+                                >
+                                  <span className="font-bold shrink-0">{key}.</span>
+                                  <span
+                                    className={cn('min-w-0 break-words', bengaliFontClass(text))}
+                                  >
+                                    {text}
+                                  </span>
+                                  {isCorrect && (
+                                    <Check
+                                      className="w-3.5 h-3.5 shrink-0 ml-auto text-emerald-600 dark:text-emerald-400"
+                                      aria-label="Correct answer"
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </td>
 
                         {/* Mode Badge */}
