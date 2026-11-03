@@ -350,6 +350,20 @@ describe('AdminQuestionBank Selection UI Updates', () => {
     expect(wrongBox.className).not.toMatch(/emerald/);
   });
 
+  it('keeps the question list box in view and scrolls the questions inside it', async () => {
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    const table = (await screen.findByText('Kolkata')).closest('table') as HTMLElement;
+    const scroller = table.parentElement as HTMLElement;
+    expect(scroller.className).toMatch(/lg:overflow-y-auto/);
+    expect(table.closest('.lg\\:sticky')).not.toBeNull();
+    expect(table.querySelector('thead')?.className).toMatch(/sticky/);
+  });
+
   it('keeps the details panel in view while the question list scrolls', async () => {
     render(
       <MemoryRouter>
