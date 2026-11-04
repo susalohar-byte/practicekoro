@@ -34,6 +34,12 @@ export function useQuestionImport({
   // By Exam import: the exam for rows that do not name one (TXT files / pasted questions)
   const [importExam, setImportExam] = useState('');
   const [importPasteText, setImportPasteText] = useState('');
+  // By Subject import: the subject and topic the uploaded / pasted questions go into
+  const [importSubjectId, setImportSubjectId] = useState('');
+  const [importTopicId, setImportTopicId] = useState('');
+  const importSubject = subjects.find((s) => s.id === importSubjectId);
+  const importTopicOptions = topics.filter((t) => t.subjectId === importSubjectId);
+  const importTopic = importTopicOptions.find((t) => t.id === importTopicId);
   const [parsedImportQuestions, setParsedImportQuestions] = useState<Question[]>([]);
   const [importPreviewStats, setImportPreviewStats] = useState<{
     total: number;
@@ -101,11 +107,13 @@ export function useQuestionImport({
         });
 
         const activeSubject =
-          selectedSubjectFilter !== 'all' ? findSubject(selectedSubjectFilter) : undefined;
+          importSubject ??
+          (selectedSubjectFilter !== 'all' ? findSubject(selectedSubjectFilter) : undefined);
         const activeTopic =
-          selectedTopicFilter !== 'all'
+          importTopic ??
+          (selectedTopicFilter !== 'all'
             ? findTopic(selectedTopicFilter, activeSubject?.id)
-            : undefined;
+            : undefined);
 
         parsedTxt.valid.forEach((q) => {
           const base: Question = {
@@ -321,9 +329,29 @@ export function useQuestionImport({
   const importNeedsExam =
     importMode === 'exam' && !importExam && parsedImportQuestions.some((q) => !q.sourceExam);
 
+  // By Subject rows without their own subject and topic go into the subject and topic chosen in
+  // the import box (a CSV row that names a different subject keeps its own).
+  const importNeedsTopic =
+    importMode === 'subject' &&
+    (!importSubject || !importTopic) &&
+    parsedImportQuestions.some((q) => !q.subjectId || !(q.topicId || q.chapterId));
+  const placeInImportTopic = (q: Question): Question => {
+    if (!importSubject || !importTopic) return q;
+    if (q.subjectId && (q.subjectId !== importSubject.id || q.topicId || q.chapterId)) return q;
+    return {
+      ...q,
+      subjectId: importSubject.id,
+      subjectName: importSubject.name,
+      topicId: importTopic.id,
+      chapterId: importTopic.id,
+      topicName: importTopic.name,
+      chapterName: importTopic.name,
+    };
+  };
+
   // Execute Real Bulk Import with controlled concurrency, real IDs and error retention
   const handleExecuteImport = async () => {
-    if (!parsedImportQuestions.length || isImporting || importNeedsExam) return;
+    if (!parsedImportQuestions.length || isImporting || importNeedsExam || importNeedsTopic) return;
     setIsImporting(true);
     try {
       const toImport =
@@ -331,7 +359,7 @@ export function useQuestionImport({
           ? parsedImportQuestions.map((q) =>
               q.sourceExam ? q : { ...q, sourceExam: importExam || undefined }
             )
-          : parsedImportQuestions;
+          : parsedImportQuestions.map(placeInImportTopic);
       const batch = await runConfirmedBatch(toImport, (q) => api.createQuestion(q));
       setQuestions((prev) => [...batch.results.map((r) => r.value), ...prev]);
       setParsedImportQuestions(batch.failures.map((f) => f.input));
@@ -362,6 +390,12 @@ export function useQuestionImport({
     setImportExam,
     importPasteText,
     setImportPasteText,
+    importSubjectId,
+    setImportSubjectId,
+    importTopicId,
+    setImportTopicId,
+    importTopicOptions,
+    importNeedsTopic,
     importFile,
     setImportFile,
     setParsedImportQuestions,
