@@ -128,7 +128,7 @@ class CatalogRepository {
   Future<List<Map<String, dynamic>>> _cachedFetch(
     String key,
     Duration maxAge,
-    PostgrestTransformBuilder<List<Map<String, dynamic>>> Function(
+    FutureOr<List<Map<String, dynamic>>> Function(
       SupabaseClient db,
     )
     query, {
@@ -159,7 +159,7 @@ class CatalogRepository {
   /// [CatalogUnavailable] so screens show an error with retry, never
   /// invented content.
   Future<List<Map<String, dynamic>>> _fetch(
-    PostgrestTransformBuilder<List<Map<String, dynamic>>> Function(
+    FutureOr<List<Map<String, dynamic>>> Function(
       SupabaseClient db,
     )
     query,
@@ -167,7 +167,8 @@ class CatalogRepository {
     final db = _supabase;
     if (db == null) throw const CatalogUnavailable();
     try {
-      return await query(db).timeout(_timeout);
+      final res = await query(db);
+      return res;
     } catch (_) {
       throw const CatalogUnavailable();
     }
@@ -191,11 +192,89 @@ class CatalogRepository {
     final res = await _cachedFetch(
       'exams',
       _catalogMaxAge,
-      (db) => db
-          .from('exams')
-          .select('*, tests(count)')
-          .eq('is_active', true)
-          .order('order_index', ascending: true),
+      (db) async {
+        final exams = await db
+            .from('exams')
+            .select('*, tests(count)')
+            .eq('is_active', true)
+            .order('order_index', ascending: true);
+
+        // Enhance with comprehensive test counts from test_exams and exam_topics
+        try {
+          final extras = await Future.wait([
+            db.from('test_exams').select('exam_id, test_id'),
+            db.from('exam_topics').select('exam_id, topic_id'),
+            db.from('tests').select('id, exam_id, chapter_id').eq('is_active', true),
+          ]);
+          final teRows = (extras[0] as List?) ?? [];
+          final etRows = (extras[1] as List?) ?? [];
+          final allTests = (extras[2] as List?) ?? [];
+
+          final testsByAssoc = <String, Set<String>>{};
+          for (final r in teRows) {
+            if (r is Map && r['exam_id'] != null && r['test_id'] != null) {
+              final exId = r['exam_id'].toString();
+              testsByAssoc.putIfAbsent(exId, () => <String>{}).add(r['test_id'].toString());
+            }
+          }
+
+          final topicsByExam = <String, Set<String>>{};
+          for (final r in etRows) {
+            if (r is Map && r['exam_id'] != null && r['topic_id'] != null) {
+              final exId = r['exam_id'].toString();
+              topicsByExam.putIfAbsent(exId, () => <String>{}).add(r['topic_id'].toString());
+            }
+          }
+
+          final testsByTopic = <String, List<String>>{};
+          for (final t in allTests) {
+            if (t is Map && t['chapter_id'] != null && t['id'] != null) {
+              final chapId = t['chapter_id'].toString();
+              testsByTopic.putIfAbsent(chapId, () => <String>[]).add(t['id'].toString());
+            }
+          }
+
+          final enhanced = <Map<String, dynamic>>[];
+          for (final raw in exams) {
+            final e = Map<String, dynamic>.from(raw);
+            final exId = e['id']?.toString() ?? '';
+            final slug = e['slug']?.toString() ?? '';
+            final testIds = <String>{};
+
+            for (final t in allTests) {
+              if (t is Map &&
+                  (t['exam_id']?.toString() == exId ||
+                      (slug.isNotEmpty && t['exam_id']?.toString() == slug))) {
+                testIds.add(t['id'].toString());
+              }
+            }
+            if (testsByAssoc.containsKey(exId)) {
+              testIds.addAll(testsByAssoc[exId]!);
+            }
+            if (slug.isNotEmpty && testsByAssoc.containsKey(slug)) {
+              testIds.addAll(testsByAssoc[slug]!);
+            }
+            final allTopics = <String>{
+              if (topicsByExam.containsKey(exId)) ...topicsByExam[exId]!,
+              if (slug.isNotEmpty && topicsByExam.containsKey(slug))
+                ...topicsByExam[slug]!,
+            };
+            for (final topId in allTopics) {
+              if (testsByTopic.containsKey(topId)) {
+                testIds.addAll(testsByTopic[topId]!);
+              }
+            }
+
+            if (testIds.isNotEmpty) {
+              e['total_tests'] = testIds.length;
+            }
+            enhanced.add(e);
+          }
+          return enhanced;
+        } catch (_) {
+          return exams;
+        }
+      },
       forceRefresh: forceRefresh,
     );
     final list = res.map((e) => ExamModel.fromJson(e)).toList();
@@ -347,19 +426,142 @@ class CatalogRepository {
   }
 
   Future<List<MockTestModel>> getMockTests([String? examId]) async {
-    final hasExam = examId != null && examId.isNotEmpty;
-    final cacheKey = hasExam ? examId : 'all';
+    final cleanExamId = examId?.trim();
+    final hasExam = cleanExamId != null && cleanExamId.isNotEmpty;
+    final cacheKey = hasExam ? cleanExamId : 'all';
     if (_mockTestsCache.containsKey(cacheKey)) {
       return _mockTestsCache[cacheKey]!;
     }
 
     final res = await _cachedFetch('mock_tests:$cacheKey', _catalogMaxAge, (
       db,
-    ) {
-      var query = db.from('tests').select();
-      if (hasExam) query = query.eq('exam_id', examId);
-      return query.eq('is_active', true).order('created_at', ascending: true);
+    ) async {
+      if (!hasExam) {
+        return db
+            .from('tests')
+            .select()
+            .eq('is_active', true)
+            .order('order_index', ascending: true)
+            .order('created_at', ascending: true);
+      }
+
+      // Collect candidate identifiers for the exam (id and slug)
+      final candidateIds = <String>{cleanExamId};
+      if (_examsCache != null) {
+        for (final e in _examsCache!) {
+          if (e.id == cleanExamId || (e.slug.isNotEmpty && e.slug == cleanExamId)) {
+            candidateIds.add(e.id);
+            if (e.slug.isNotEmpty) candidateIds.add(e.slug);
+          }
+        }
+      }
+
+      // 1. Direct tests where exam_id matches
+      final direct = await db
+          .from('tests')
+          .select()
+          .inFilter('exam_id', candidateIds.toList())
+          .eq('is_active', true)
+          .order('order_index', ascending: true);
+
+      final testMap = <String, Map<String, dynamic>>{};
+      for (final r in direct) {
+        final map = Map<String, dynamic>.from(r);
+        testMap[map['id'].toString()] = map;
+      }
+
+      // 2. Associated tests via test_exams and mapped topics via exam_topics
+      try {
+        final extras = await Future.wait([
+          db.from('test_exams').select('test_id').inFilter('exam_id', candidateIds.toList()),
+          db.from('exam_topics').select('topic_id').inFilter('exam_id', candidateIds.toList()),
+        ]);
+
+        final assocRows = (extras[0] as List?) ?? [];
+        final topicRows = (extras[1] as List?) ?? [];
+
+        final assocIds = <String>[];
+        for (final r in assocRows) {
+          if (r is Map && r['test_id'] != null) {
+            final tid = r['test_id'].toString();
+            if (!testMap.containsKey(tid) && !assocIds.contains(tid)) {
+              assocIds.add(tid);
+            }
+          }
+        }
+
+        final topicIds = <String>[];
+        for (final r in topicRows) {
+          if (r is Map && r['topic_id'] != null) {
+            final topId = r['topic_id'].toString();
+            if (!topicIds.contains(topId)) {
+              topicIds.add(topId);
+            }
+          }
+        }
+
+        final fetchers = <Future<List<dynamic>>>[];
+        if (assocIds.isNotEmpty) {
+          for (var i = 0; i < assocIds.length; i += 100) {
+            final chunk = assocIds.sublist(
+              i,
+              (i + 100 > assocIds.length) ? assocIds.length : i + 100,
+            );
+            fetchers.add(
+              db
+                  .from('tests')
+                  .select()
+                  .inFilter('id', chunk)
+                  .eq('is_active', true)
+                  .order('order_index', ascending: true),
+            );
+          }
+        }
+
+        if (topicIds.isNotEmpty) {
+          for (var i = 0; i < topicIds.length; i += 100) {
+            final chunk = topicIds.sublist(
+              i,
+              (i + 100 > topicIds.length) ? topicIds.length : i + 100,
+            );
+            fetchers.add(
+              db
+                  .from('tests')
+                  .select()
+                  .inFilter('chapter_id', chunk)
+                  .eq('is_active', true)
+                  .order('order_index', ascending: true),
+            );
+          }
+        }
+
+        if (fetchers.isNotEmpty) {
+          final fetchedLists = await Future.wait(fetchers);
+          for (final list in fetchedLists) {
+            for (final r in list) {
+              final map = (r is Map<String, dynamic>)
+                  ? r
+                  : (r as Map).map((k, v) => MapEntry(k.toString(), v));
+              testMap[map['id'].toString()] = map;
+            }
+          }
+        }
+      } catch (_) {
+        // Fall back gracefully to direct tests if junction tables fail
+      }
+
+      final combined = testMap.values.toList();
+      combined.sort((a, b) {
+        final orderA = (a['order_index'] as num?)?.toInt() ?? 0;
+        final orderB = (b['order_index'] as num?)?.toInt() ?? 0;
+        if (orderA != orderB) return orderA.compareTo(orderB);
+        final dateA = a['created_at']?.toString() ?? '';
+        final dateB = b['created_at']?.toString() ?? '';
+        return dateA.compareTo(dateB);
+      });
+      return combined;
     });
+
     // Live Test papers open from the Live Test only, never from the mock list.
     final list = res
         .where((e) => e['is_live_only'] != true)

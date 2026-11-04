@@ -27,7 +27,9 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
   @override
   Widget build(BuildContext context) {
     final exams = ref.watch(examsProvider).asData?.value ?? const <ExamModel>[];
-    final matches = exams.where((e) => e.id == widget.examId);
+    final matches = exams.where(
+      (e) => e.id == widget.examId || (e.slug.isNotEmpty && e.slug == widget.examId),
+    );
     final exam = matches.isEmpty ? null : matches.first;
     final testsAsync = ref.watch(mockTestsProvider(widget.examId));
     final firstTest = testsAsync.asData?.value.firstOrNull;
@@ -84,7 +86,7 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                 exam: exam,
                 title: examTitle,
                 logo: firstTest?.examLogo,
-                totalTestsCount: testsAsync.asData?.value.length ?? 0,
+                totalTestsCount: testsAsync.asData?.value.length ?? exam?.effectiveTotalTests ?? 0,
               ),
               const SizedBox(height: 16),
               testsAsync.when(

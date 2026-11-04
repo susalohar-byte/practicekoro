@@ -322,7 +322,69 @@ export async function fetchExamTests(examId: string): Promise<MockTest[]> {
     .order('order_index', { ascending: true })
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data ?? []).map(toTest).filter((t) => !t.isLiveOnly);
+  const direct = (data ?? []).map(toTest).filter((t) => !t.isLiveOnly);
+
+  // Associated tests via test_exams and mapped topics via exam_topics
+  try {
+    const [assocRes, topicRes] = await Promise.all([
+      supabase.from('test_exams').select('test_id').eq('exam_id', examId),
+      supabase.from('exam_topics').select('topic_id').eq('exam_id', examId),
+    ]);
+
+    const directIds = new Set(direct.map((t) => t.id));
+    const assocIds = ((assocRes.data ?? []) as { test_id: string }[])
+      .map((r) => r.test_id)
+      .filter((id) => !directIds.has(id));
+    const topicIds = ((topicRes.data ?? []) as { topic_id: string }[])
+      .map((r) => r.topic_id);
+
+    const extraPromises: PromiseLike<{ data: any; error: any }>[] = [];
+    if (assocIds.length > 0) {
+      for (let i = 0; i < assocIds.length; i += 100) {
+        extraPromises.push(
+          Promise.resolve(
+            supabase
+              .from('tests')
+              .select(TEST_COLUMNS)
+              .in('id', assocIds.slice(i, i + 100))
+              .eq('is_active', true)
+              .order('order_index', { ascending: true })
+          )
+        );
+      }
+    }
+
+    if (topicIds.length > 0) {
+      for (let i = 0; i < topicIds.length; i += 100) {
+        extraPromises.push(
+          Promise.resolve(
+            supabase
+              .from('tests')
+              .select(TEST_COLUMNS)
+              .in('chapter_id', topicIds.slice(i, i + 100))
+              .eq('is_active', true)
+              .order('order_index', { ascending: true })
+          )
+        );
+      }
+    }
+
+    if (extraPromises.length > 0) {
+      const extraResults = await Promise.all(extraPromises);
+      for (const res of extraResults) {
+        for (const item of ((res?.data ?? []) as TestRow[]).map(toTest)) {
+          if (!item.isLiveOnly && !directIds.has(item.id)) {
+            directIds.add(item.id);
+            direct.push(item);
+          }
+        }
+      }
+    }
+  } catch (_) {
+    // Keep direct tests if junction tables fail or are not mocked
+  }
+
+  return direct;
 }
 
 /** Every published test (used by PYQ, Search and Practice). */
