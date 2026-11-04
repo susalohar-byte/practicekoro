@@ -85,27 +85,25 @@ export function FaqSearchAccordion({
                   </button>
                 </h3>
 
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={panelId}
-                      role="region"
-                      key="answer"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{
-                        height: { duration: 0.32, ease: EASE },
-                        opacity: { duration: 0.25, ease: EASE },
-                      }}
-                      className="overflow-hidden"
-                    >
-                      <p className="px-6 pb-6 text-[15px] sm:text-base leading-relaxed text-slate-500">
-                        {item.answer}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <motion.div
+                  id={panelId}
+                  role="region"
+                  aria-hidden={!isOpen}
+                  initial={false}
+                  animate={{
+                    height: isOpen ? 'auto' : 0,
+                    opacity: isOpen ? 1 : 0,
+                  }}
+                  transition={{
+                    height: { duration: 0.32, ease: EASE },
+                    opacity: { duration: 0.25, ease: EASE },
+                  }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-6 pb-6 text-[15px] sm:text-base leading-relaxed text-slate-500">
+                    {item.answer}
+                  </p>
+                </motion.div>
               </motion.div>
             );
           })}

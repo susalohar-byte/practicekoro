@@ -152,6 +152,7 @@ final appRouter = GoRouter(
                   pageBuilder: (context, state) => NoTransitionPage(
                     child: SolutionsScreen(
                       attemptId: state.pathParameters['attemptId']!,
+                      testId: state.uri.queryParameters['testId'],
                       initialIndex: int.tryParse(state.uri.queryParameters['initialIndex'] ?? '') ?? 0,
                     ),
                   ),
@@ -161,6 +162,7 @@ final appRouter = GoRouter(
                   pageBuilder: (context, state) => NoTransitionPage(
                     child: SolutionsScreen(
                       attemptId: state.pathParameters['attemptId']!,
+                      testId: state.uri.queryParameters['testId'],
                       initialIndex: int.tryParse(state.uri.queryParameters['initialIndex'] ?? '') ?? 0,
                     ),
                   ),
@@ -214,6 +216,25 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => SolutionsScreen(
         attemptId: state.pathParameters['attemptId']!,
+        testId: state.uri.queryParameters['testId'],
+        initialIndex: int.tryParse(state.uri.queryParameters['initialIndex'] ?? '') ?? 0,
+      ),
+    ),
+    GoRoute(
+      path: '/solution/:attemptId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => SolutionsScreen(
+        attemptId: state.pathParameters['attemptId']!,
+        testId: state.uri.queryParameters['testId'],
+        initialIndex: int.tryParse(state.uri.queryParameters['initialIndex'] ?? '') ?? 0,
+      ),
+    ),
+    GoRoute(
+      path: '/review/:attemptId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => SolutionsScreen(
+        attemptId: state.pathParameters['attemptId']!,
+        testId: state.uri.queryParameters['testId'],
         initialIndex: int.tryParse(state.uri.queryParameters['initialIndex'] ?? '') ?? 0,
       ),
     ),

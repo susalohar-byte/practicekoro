@@ -88,6 +88,7 @@ class AttemptRepository {
     required Map<String, String> answers,
     required Set<String> marked,
     required int seconds,
+    List<QuestionModel>? questions,
   }) async {
     final payload = formatAnswersPayload(answers);
     final res =
@@ -134,6 +135,8 @@ class AttemptRepository {
       'completed_at': DateTime.now().toIso8601String(),
       'user_answers': answers,
       'marked': marked.toList(),
+      if (questions != null && questions.isNotEmpty)
+        'questions': questions.map((q) => q.toJson()).toList(),
       // Real server figures only; absent when the server has none.
       if (_int(wb?['rank']) != null) 'rank': _int(wb?['rank']),
       if (_int(wb?['participants']) != null)
@@ -150,26 +153,89 @@ class AttemptRepository {
   }
 
   /// Questions with the answer key plus the student's picks (after submit).
+  /// Multi-tier fallback guarantees the solutions screen never gets stuck loading.
   Future<(List<QuestionModel>, Map<String, String>)> solutions(
     String attemptId,
     String testId,
   ) async {
-    final rows = await _call(
-      () =>
-          _db.rpc('get_attempt_solutions', params: {'p_attempt_id': attemptId}),
-    );
-    final list = (rows as List).cast<Map<String, dynamic>>();
-    return (
-      [
-        for (final (i, r) in list.indexed)
-          _question(r, testId, i, withAnswers: true),
-      ],
-      {
-        for (final r in list)
-          if (r['selectedOption'] != null)
-            r['id'].toString(): r['selectedOption'].toString(),
-      },
-    );
+    final cleanAttemptId = attemptId.trim();
+    final isUuid = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    ).hasMatch(cleanAttemptId);
+
+    // Tier 1: Authoritative server RPC for valid UUID attempts with active auth session
+    if (isUuid && supabaseClient != null && const AuthRepository().session != null) {
+      try {
+        final rows = await _call(
+          () => _db.rpc('get_attempt_solutions', params: {'p_attempt_id': cleanAttemptId}),
+        );
+        if (rows is List && rows.isNotEmpty) {
+          final list = <Map<String, dynamic>>[];
+          for (final item in rows) {
+            if (item is Map) {
+              list.add(item.map((k, v) => MapEntry(k.toString(), v)));
+            }
+          }
+          if (list.isNotEmpty) {
+            return (
+              [
+                for (final (i, r) in list.indexed)
+                  _question(r, testId, i, withAnswers: true),
+              ],
+              {
+                for (final r in list)
+                  if (r['selectedOption'] != null || r['selected_option'] != null)
+                    r['id'].toString():
+                        (r['selectedOption'] ?? r['selected_option']).toString(),
+              },
+            );
+          }
+        }
+      } catch (_) {
+        // Fall through to local cache or question catalog
+      }
+    }
+
+    // Tier 2: Check LocalStorageService for this attempt's saved questions & answers
+    final saved = LocalStorageService.getSavedAttempt(cleanAttemptId);
+    final savedAnswers = <String, String>{};
+    if (saved != null) {
+      final rawAnswers = saved['user_answers'];
+      if (rawAnswers is Map) {
+        for (final e in rawAnswers.entries) {
+          savedAnswers[e.key.toString()] = e.value.toString();
+        }
+      }
+      final rawQuestions = saved['questions'];
+      if (rawQuestions is List && rawQuestions.isNotEmpty) {
+        final loaded = <QuestionModel>[];
+        for (final qJson in rawQuestions) {
+          if (qJson is Map<String, dynamic>) {
+            loaded.add(QuestionModel.fromJson(qJson));
+          } else if (qJson is Map) {
+            loaded.add(QuestionModel.fromJson(
+              qJson.map((k, v) => MapEntry(k.toString(), v)),
+            ));
+          }
+        }
+        if (loaded.isNotEmpty) {
+          return (loaded, savedAnswers);
+        }
+      }
+    }
+
+    // Tier 3: Fetch questions for this testId directly
+    if (testId.trim().isNotEmpty && supabaseClient != null) {
+      try {
+        final testQs = await questions(testId.trim());
+        if (testQs.isNotEmpty) {
+          return (testQs, savedAnswers);
+        }
+      } catch (_) {}
+    }
+
+    // Tier 4: If no questions found anywhere, throw AttemptFailure
+    throw const AttemptFailure('Could not load solutions.');
   }
 
   /// The student's finished server attempts, newest first.
@@ -220,13 +286,22 @@ class AttemptRepository {
     int index, {
     required bool withAnswers,
   }) {
-    final english = r['questionText']?.toString() ?? '';
-    final bengali = r['questionBengaliText']?.toString();
-    final correct = r['correctOption']?.toString();
+    final english = r['questionText']?.toString() ??
+        r['question_text']?.toString() ??
+        r['text_english']?.toString() ??
+        '';
+    final bengali = r['questionBengaliText']?.toString() ??
+        r['question_bengali_text']?.toString() ??
+        r['text_bengali']?.toString();
+    final correct = r['correctOption']?.toString() ??
+        r['correct_option']?.toString();
     return QuestionModel(
-      id: r['id'].toString(),
+      id: (r['id'] ?? r['question_id'] ?? 'q_$index').toString(),
       testId: testId,
-      questionNumber: (r['questionOrder'] as num?)?.toInt() ?? index + 1,
+      questionNumber: (r['questionOrder'] as num?)?.toInt() ??
+          (r['question_order'] as num?)?.toInt() ??
+          (r['question_number'] as num?)?.toInt() ??
+          index + 1,
       textEnglish: english,
       textBengali: (bengali == null || bengali.trim().isEmpty)
           ? english
@@ -237,14 +312,18 @@ class AttemptRepository {
           OptionModel(
             id: l,
             label: l,
-            text: r['option$l']?.toString() ?? '',
-            isCorrect: withAnswers && correct == l,
+            text: r['option$l']?.toString() ??
+                r['option_${l.toLowerCase()}']?.toString() ??
+                '',
+            isCorrect: withAnswers && correct != null && correct.trim().toUpperCase() == l,
           ),
       ],
-      explanationEnglish: r['explanation']?.toString(),
-      explanationBengali: r['explanationBengali']?.toString(),
-      marks: _num(r['marks']) ?? 1,
-      negativeMarks: _num(r['negativeMarks']) ?? 0,
+      explanationEnglish: r['explanation']?.toString() ??
+          r['explanation_english']?.toString(),
+      explanationBengali: r['explanationBengali']?.toString() ??
+          r['explanation_bengali']?.toString(),
+      marks: _num(r['marks']) ?? _num(r['default_marks']) ?? _num(r['marksAwarded']) ?? 1.0,
+      negativeMarks: _num(r['negativeMarks']) ?? _num(r['negative_marks']) ?? _num(r['default_negative_marks']) ?? 0.0,
       subjectName: r['subjectName']?.toString() ??
           r['subject_name']?.toString() ??
           r['subject']?.toString(),

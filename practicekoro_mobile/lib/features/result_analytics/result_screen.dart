@@ -401,7 +401,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       const SizedBox(height: 24),
 
       // View Answer Button
-      _buildViewAnswerButton(context, a.id),
+      _buildViewAnswerButton(context, a.id, a.testId),
     ];
   }
 
@@ -597,7 +597,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         },
       ),
       const SizedBox(height: 24),
-      _buildViewAnswerButton(context, a.id),
+      _buildViewAnswerButton(context, a.id, a.testId),
     ];
   }
 
@@ -1242,16 +1242,19 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ),
       ),
       const SizedBox(height: 24),
-      _buildViewAnswerButton(context, a.id),
+      _buildViewAnswerButton(context, a.id, a.testId),
     ];
   }
 
   // ==========================================
   // SHARED SUB-WIDGETS & HELPERS
   // ==========================================
-  Widget _buildViewAnswerButton(BuildContext context, String attemptId) {
+  Widget _buildViewAnswerButton(BuildContext context, String attemptId, [String? testId]) {
+    final route = (testId != null && testId.trim().isNotEmpty)
+        ? '/solutions/$attemptId?testId=${testId.trim()}'
+        : '/solutions/$attemptId';
     return ElevatedButton(
-      onPressed: () => context.push('/solutions/$attemptId'),
+      onPressed: () => context.push(route),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF0158FC),
         foregroundColor: Colors.white,

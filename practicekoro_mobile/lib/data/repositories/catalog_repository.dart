@@ -432,10 +432,53 @@ class CatalogRepository {
     if (cached != null) {
       return TestAttemptModel.fromJson(_withoutSimulatedRanking(cached));
     }
-    // Attempts made on another phone exist only on the server.
-    final server = await const AttemptRepository().history();
-    final row = server.where((r) => r['id'] == attemptId).firstOrNull;
-    if (row != null) return TestAttemptModel.fromJson(row);
+
+    // Direct fetch from Supabase if connected
+    final client = _supabase;
+    if (client != null && client.auth.currentSession != null) {
+      try {
+        final row = await client
+            .from('test_attempts')
+            .select(
+              'id, test_id, score, total_marks, accuracy, correct_count, '
+              'wrong_count, skipped_count, time_spent_seconds, end_time, '
+              'created_at, rank, percentile, tests(title)',
+            )
+            .eq('id', attemptId)
+            .maybeSingle();
+        if (row != null) {
+          final mapped = {
+            'id': row['id'].toString(),
+            'source': 'server',
+            'test_id': row['test_id'],
+            'test_title': (row['tests'] as Map?)?['title'] ?? 'Test',
+            'score': _num(row['score']),
+            'total_marks': _num(row['total_marks']),
+            'percentage': (_num(row['total_marks']) ?? 0) > 0
+                ? (_num(row['score'])! / _num(row['total_marks'])! * 100)
+                : 0,
+            'accuracy': _num(row['accuracy']),
+            'correct_count': row['correct_count'],
+            'wrong_count': row['wrong_count'],
+            'skipped_count': row['skipped_count'],
+            'time_spent_seconds': row['time_spent_seconds'],
+            'completed_at': row['end_time'] ?? row['created_at'],
+            if (_int(row['rank']) != null) 'rank': _int(row['rank']),
+            if (_num(row['percentile']) != null)
+              'percentile': _num(row['percentile']),
+          };
+          return TestAttemptModel.fromJson(mapped);
+        }
+      } catch (_) {}
+    }
+
+    // Attempts made on another phone exist in history.
+    try {
+      final server = await const AttemptRepository().history();
+      final row = server.where((r) => r['id'] == attemptId).firstOrNull;
+      if (row != null) return TestAttemptModel.fromJson(row);
+    } catch (_) {}
+
     throw const AttemptFailure('This result is not available.');
   }
 
@@ -471,6 +514,11 @@ class CatalogRepository {
     attempts.sort((a, b) => b.completedAt.compareTo(a.completedAt));
     return attempts;
   }
+
+  static double? _num(Object? v) =>
+      v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '');
+  static int? _int(Object? v) =>
+      v is num ? v.toInt() : int.tryParse(v?.toString() ?? '');
 
   /// Device-only attempts cannot know other candidates' scores. Older app
   /// versions saved simulated ranks, cutoffs and leaderboards; never show them.

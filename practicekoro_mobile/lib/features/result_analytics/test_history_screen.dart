@@ -173,7 +173,7 @@ class _AttemptCard extends StatelessWidget {
                   'Solutions',
                   icon: Icons.menu_book_outlined,
                   height: 42,
-                  onPressed: () => context.push('/solutions/${a.id}'),
+                  onPressed: () => context.push('/solutions/${a.id}?testId=${a.testId}'),
                 ),
               ),
               const SizedBox(width: 10),

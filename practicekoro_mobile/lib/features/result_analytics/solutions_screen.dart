@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/components/ui.dart';
 import '../../data/datasources/local_storage.dart';
+import '../../data/models/attempt_model.dart';
 import '../../data/models/question_model.dart';
 import '../../data/repositories/attempt_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
@@ -20,11 +21,13 @@ final testSolutionsProvider = FutureProvider.family<
 
 class SolutionsScreen extends ConsumerStatefulWidget {
   final String attemptId;
+  final String? testId;
   final int initialIndex;
 
   const SolutionsScreen({
     super.key,
     required this.attemptId,
+    this.testId,
     this.initialIndex = 0,
   });
 
@@ -172,15 +175,107 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
     return isCorrect ? _QOutcome.correct : _QOutcome.incorrect;
   }
 
+  Widget _buildLoadingScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(
+            Icons.chevron_left_rounded,
+            size: 28,
+            color: Color(0xFF0F172A),
+          ),
+          onPressed: () {
+            if (GoRouter.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.go('/results/detail/${widget.attemptId}');
+            }
+          },
+        ),
+        title: const Text(
+          'View Answer',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0158FC)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading questions & solutions...',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final attemptAsync = ref.watch(testAttemptProvider(widget.attemptId));
 
     return attemptAsync.when(
-      loading: () => const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      loading: () => _buildLoadingScaffold(context),
+      error: (_, _) => Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            tooltip: 'Back',
+            icon: const Icon(Icons.chevron_left_rounded, size: 28),
+            onPressed: () {
+              if (GoRouter.of(context).canPop()) {
+                context.pop();
+              } else {
+                context.go('/results/detail/${widget.attemptId}');
+              }
+            },
+          ),
+          title: const Text('View Answer'),
+        ),
+        body: Center(
+          child: UIMessage.error(
+            onAction: () => ref.invalidate(testAttemptProvider(widget.attemptId)),
+          ),
+        ),
       ),
+      data: (attempt) => _buildSolutionsContent(context, attempt),
+    );
+  }
+
+  Widget _buildSolutionsContent(
+    BuildContext context,
+    TestAttemptModel attempt,
+  ) {
+    final effectiveTestId = (widget.testId != null && widget.testId!.isNotEmpty)
+        ? widget.testId!
+        : attempt.testId;
+
+    final solutionsAsync = ref.watch(
+      testSolutionsProvider((attemptId: widget.attemptId, testId: effectiveTestId)),
+    );
+
+    return solutionsAsync.when(
+      loading: () => _buildLoadingScaffold(context),
       error: (_, _) => Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
@@ -201,201 +296,116 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
         body: Center(
           child: UIMessage.error(
             message: 'Could not load solutions.',
-            onAction: () =>
-                ref.invalidate(testAttemptProvider(widget.attemptId)),
+            onAction: () => ref.invalidate(
+              testSolutionsProvider(
+                (attemptId: widget.attemptId, testId: effectiveTestId),
+              ),
+            ),
           ),
         ),
       ),
-      data: (attempt) {
-        final testId = attempt.testId;
-        final solutionsAsync = ref.watch(
-          testSolutionsProvider((attemptId: widget.attemptId, testId: testId)),
+      data: (solutionsData) {
+        return _renderViewAnswerPage(
+          context: context,
+          attempt: attempt,
+          solutionsData: solutionsData,
         );
+      },
+    );
+  }
 
-        return solutionsAsync.when(
-          loading: () => const Scaffold(
-            backgroundColor: Color(0xFFF8FAFC),
-            body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          ),
-          error: (_, _) => Scaffold(
-            backgroundColor: const Color(0xFFF8FAFC),
-            appBar: AppBar(
-              backgroundColor: Colors.white,
-              leading: IconButton(
-                tooltip: 'Back',
-                icon: const Icon(Icons.chevron_left_rounded, size: 28),
-                onPressed: () {
-                  if (GoRouter.of(context).canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/results/detail/${widget.attemptId}');
-                  }
-                },
-              ),
-              title: const Text('View Answer'),
-            ),
-            body: Center(
-              child: UIMessage.error(
-                message: 'Could not load solutions.',
-                onAction: () => ref.invalidate(
-                  testSolutionsProvider(
-                      (attemptId: widget.attemptId, testId: testId)),
-                ),
-              ),
-            ),
-          ),
-          data: (solutionsData) {
-            final rawQuestions = solutionsData.$1;
-            final serverAnswers = solutionsData.$2;
+  Widget _renderViewAnswerPage({
+    required BuildContext context,
+    required TestAttemptModel attempt,
+    required (List<QuestionModel>, Map<String, String>) solutionsData,
+  }) {
+    final rawQuestions = solutionsData.$1;
+    final serverAnswers = solutionsData.$2;
 
-            // Merge attempt.userAnswers with server-recorded answers
-            final Map<String, dynamic> combinedAnswers = {
-              ...attempt.userAnswers,
-              ...serverAnswers,
-            };
-
-            final int attemptTotal = attempt.correctCount +
-                attempt.wrongCount +
-                attempt.skippedCount;
-            final int totalCount = (rawQuestions.isNotEmpty &&
-                    rawQuestions.length >= attemptTotal)
-                ? rawQuestions.length
-                : (attemptTotal > 0
-                    ? attemptTotal
-                    : (rawQuestions.isNotEmpty ? rawQuestions.length : 20));
-
-            if (totalCount == 0) {
-              return Scaffold(
-                backgroundColor: const Color(0xFFF8FAFC),
-                appBar: AppBar(
-                  backgroundColor: Colors.white,
-                  leading: IconButton(
-                    tooltip: 'Back',
-                    icon: const Icon(Icons.chevron_left_rounded, size: 28),
-                    onPressed: () {
-                      if (GoRouter.of(context).canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/results/detail/${widget.attemptId}');
-                      }
-                    },
-                  ),
-                  title: const Text('View Answer'),
-                ),
-                body: const Center(
-                  child: Text(
-                    'No questions available for this test.',
-                    style: TextStyle(color: Color(0xFF64748B)),
-                  ),
-                ),
-              );
-            }
-
-            // Materialize questions list
-            final List<QuestionModel> questions = List.generate(totalCount, (i) {
-              if (i < rawQuestions.length) return rawQuestions[i];
-              if (rawQuestions.isEmpty) {
-                return QuestionModel(
-                  id: 'q_${i + 1}',
-                  questionNumber: i + 1,
-                  subjectName: 'General Knowledge',
-                  textEnglish: 'Question ${i + 1}',
-                  textBengali: 'প্রশ্ন ${i + 1}',
-                  options: [
-                    OptionModel(
-                      id: 'opt_${i + 1}_a',
-                      label: 'A',
-                      text: 'Option A',
-                      textBengali: 'অপশন A',
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_b',
-                      label: 'B',
-                      text: 'Option B',
-                      textBengali: 'অপশন B',
-                      isCorrect: true,
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_c',
-                      label: 'C',
-                      text: 'Option C',
-                      textBengali: 'অপশন C',
-                    ),
-                    OptionModel(
-                      id: 'opt_${i + 1}_d',
-                      label: 'D',
-                      text: 'Option D',
-                      textBengali: 'অপশন D',
-                    ),
-                  ],
-                  explanationEnglish:
-                      'Official explanation for Question ${i + 1}.',
-                  explanationBengali: '${i + 1} নম্বর প্রশ্নের ব্যাখ্যা।',
-                );
+    if (rawQuestions.isEmpty) {
+      final effectiveTestId = (widget.testId != null && widget.testId!.isNotEmpty)
+          ? widget.testId!
+          : attempt.testId;
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            tooltip: 'Back',
+            icon: const Icon(Icons.chevron_left_rounded, size: 28),
+            onPressed: () {
+              if (GoRouter.of(context).canPop()) {
+                context.pop();
+              } else {
+                context.go('/results/detail/${widget.attemptId}');
               }
-              final tmpl = rawQuestions[i % rawQuestions.length];
-              return QuestionModel(
-                id: 'q_${i + 1}',
-                questionNumber: i + 1,
-                subjectName: tmpl.subjectName,
-                textEnglish: tmpl.textEnglish,
-                textBengali: tmpl.textBengali,
-                options: [
-                  for (final opt in tmpl.options)
-                    OptionModel(
-                      id: 'opt_${i + 1}_${opt.label.toLowerCase()}',
-                      label: opt.label,
-                      text: opt.text,
-                      textBengali: opt.textBengali,
-                      isCorrect: opt.isCorrect,
-                    ),
-                ],
-                explanationEnglish: tmpl.explanationEnglish,
-                explanationBengali: tmpl.explanationBengali,
-                marks: tmpl.marks,
-                negativeMarks: tmpl.negativeMarks,
-              );
-            });
+            },
+          ),
+          title: const Text('View Answer'),
+        ),
+        body: Center(
+          child: UIMessage.error(
+            message: 'No questions available for this test.',
+            onAction: () => ref.invalidate(
+              testSolutionsProvider(
+                (attemptId: widget.attemptId, testId: effectiveTestId),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
-            final safeIndex = _currentIndex.clamp(0, questions.length - 1);
-            final q = questions[safeIndex];
-            final questionNumber = safeIndex + 1;
-            final isBookmarked = LocalStorageService.isBookmarked(q.id);
+    // Merge attempt.userAnswers with server-recorded answers
+    final Map<String, dynamic> combinedAnswers = {
+      ...attempt.userAnswers,
+      ...serverAnswers,
+    };
 
-            final userChoice =
-                _getUserChoice(q, safeIndex, combinedAnswers);
-            final currentOutcome =
-                _getOutcome(q, safeIndex, combinedAnswers);
+    final List<QuestionModel> questions = rawQuestions;
+    final int totalCount = questions.length;
 
-            final correctOpt = q.options.firstWhere(
-              (o) => o.isCorrect,
-              orElse: () => q.options.first,
-            );
+    final safeIndex = _currentIndex.clamp(0, questions.length - 1);
+    final q = questions[safeIndex];
+    final questionNumber = safeIndex + 1;
+    final isBookmarked = LocalStorageService.isBookmarked(q.id);
 
-            final subject = q.subjectName ?? 'General Knowledge';
+    final userChoice =
+        _getUserChoice(q, safeIndex, combinedAnswers);
+    final currentOutcome =
+        _getOutcome(q, safeIndex, combinedAnswers);
 
-            // Summary metrics for the top bar
-            int correctTotal = 0;
-            int wrongTotal = 0;
-            int skippedTotal = 0;
-            if (attempt.correctCount > 0 ||
-                attempt.wrongCount > 0 ||
-                attempt.skippedCount > 0) {
-              correctTotal = attempt.correctCount;
-              wrongTotal = attempt.wrongCount;
-              skippedTotal = attempt.skippedCount;
-            } else {
-              for (var i = 0; i < totalCount; i++) {
-                final outcome = _getOutcome(questions[i], i, combinedAnswers);
-                if (outcome == _QOutcome.correct) {
-                  correctTotal++;
-                } else if (outcome == _QOutcome.incorrect) {
-                  wrongTotal++;
-                } else {
-                  skippedTotal++;
-                }
-              }
-            }
+    final correctOpt = q.options.firstWhere(
+      (o) => o.isCorrect,
+      orElse: () => q.options.isNotEmpty
+          ? q.options.first
+          : const OptionModel(id: 'A', label: 'A', text: '', isCorrect: true),
+    );
+
+    final subject = q.subjectName ?? 'General Knowledge';
+
+    // Summary metrics for the top bar
+    int correctTotal = 0;
+    int wrongTotal = 0;
+    int skippedTotal = 0;
+    if (attempt.correctCount > 0 ||
+        attempt.wrongCount > 0 ||
+        attempt.skippedCount > 0) {
+      correctTotal = attempt.correctCount;
+      wrongTotal = attempt.wrongCount;
+      skippedTotal = attempt.skippedCount;
+    } else {
+      for (var i = 0; i < totalCount; i++) {
+        final outcome = _getOutcome(questions[i], i, combinedAnswers);
+        if (outcome == _QOutcome.correct) {
+          correctTotal++;
+        } else if (outcome == _QOutcome.incorrect) {
+          wrongTotal++;
+        } else {
+          skippedTotal++;
+        }
+      }
+    }
 
             return Scaffold(
               backgroundColor: const Color(0xFFF8FAFC),
@@ -670,10 +680,6 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                 ),
               ),
             );
-          },
-        );
-      },
-    );
   }
 
   /// Top scrollable horizontal question number navigator bar

@@ -30,11 +30,66 @@ async function launchBrowser() {
 }
 
 const shell = readFileSync(join('dist', 'index.html'), 'utf8');
-const server = await preview({ preview: { port: 4179, strictPort: true }, logLevel: 'warn' });
-const origin = 'http://localhost:4179';
-const browser = await launchBrowser();
+
+function writeFallbackPrerender(shellHtml) {
+  mkdirSync(OUT_DIR, { recursive: true });
+  const metaPerRoute = {
+    '': {
+      title: 'Practice Koro | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions',
+      canonical: 'https://practicekoro.online/',
+    },
+    blog: {
+      title: 'Blog | Practice Koro',
+      canonical: 'https://practicekoro.online/blog',
+    },
+    contact: {
+      title: 'Contact Us | Practice Koro',
+      canonical: 'https://practicekoro.online/contact',
+    },
+    privacy: {
+      title: 'Privacy Policy | Practice Koro',
+      canonical: 'https://practicekoro.online/privacy',
+    },
+    terms: {
+      title: 'Terms of Service | Practice Koro',
+      canonical: 'https://practicekoro.online/terms',
+    },
+    refund: {
+      title: 'Refund Policy | Practice Koro',
+      canonical: 'https://practicekoro.online/refund',
+    },
+  };
+
+  for (const route of ROUTES) {
+    const meta = metaPerRoute[route] || {
+      title: 'Practice Koro',
+      canonical: `https://practicekoro.online/${route}`,
+    };
+    let html = shellHtml;
+    if (meta.title) {
+      html = html.replace(/<title>.*?<\/title>/s, `<title>${meta.title}</title>`);
+    }
+    if (meta.canonical) {
+      html = html.replace(
+        /<link rel="canonical" href=".*?" \/>/,
+        `<link rel="canonical" href="${meta.canonical}" />`
+      );
+    }
+    const file = join(OUT_DIR, `${route || 'index'}.html`);
+    writeFileSync(file, html);
+    console.log(`  /${route} -> ${file} (static fallback shell)`);
+  }
+  console.log(`Generated fallback prerender for ${ROUTES.length} routes.`);
+}
+
+let server = null;
+let browser = null;
 
 try {
+  server = await preview({ preview: { port: 4179, strictPort: true }, logLevel: 'warn' });
+  const origin = 'http://localhost:4179';
+  browser = await launchBrowser();
+
   mkdirSync(OUT_DIR, { recursive: true });
   // A crawler is a first-time visitor: no saved theme, no session, no cached data.
   const context = await browser.newContext({
@@ -107,10 +162,16 @@ try {
     console.log(`  /${route} -> ${file} (${words} words)`);
     await page.close();
   }
+  console.log(`Prerendered ${ROUTES.length} pages into ${OUT_DIR}/`);
+} catch (err) {
+  console.warn(
+    `Prerender headless browser failed (${err.message}). Using static route prerender fallback.`
+  );
+  writeFallbackPrerender(shell);
 } finally {
-  await browser.close();
-  // Idle keep-alive sockets would otherwise hold the preview server (and the build) open
-  server.httpServer.closeAllConnections?.();
-  await new Promise((resolve) => server.httpServer.close(resolve));
+  if (browser) await browser.close();
+  if (server) {
+    server.httpServer.closeAllConnections?.();
+    await new Promise((resolve) => server.httpServer.close(resolve));
+  }
 }
-console.log(`Prerendered ${ROUTES.length} pages into ${OUT_DIR}/`);

@@ -39,31 +39,22 @@ export function PlatformRuntimeSettings() {
   // react-helmet-async lets the last-registered instance win, so page titles and descriptions
   // (landing, blog articles, policies) then override these defaults instead of the reverse.
   if (!hasLoadedSettings) return <Helmet />;
-  const title = values.title || `${appName} | Mock Test & Practice Platform`;
+  const title =
+    values.title ||
+    `${appName} | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions`;
   const description =
     values.description ||
-    `${appName} - Bengal's Premier Competitive Exam Mock Test & Practice Platform`;
+    'পশ্চিমবঙ্গের সরকারি চাকরির (WBP Constable, WBSSC, Clerkship, Railway, SSC) সেরা মক টেস্ট, বিষয়ভিত্তিক অনুশীলন, বিগত বছরের প্রশ্নপত্র ও সমাধান।';
+  const siteName = values.title ? appName : appName === 'PracticeKoro' ? 'Practice Koro' : appName;
   return (
     <Helmet>
       <title>{title}</title>
       <meta name="description" content={description} />
       <meta property="og:title" content={title} />
-      <meta
-        property="og:description"
-        content={
-          values.description ||
-          "Smart practice for West Bengal's competitive exams — mock tests, PYQs & topic-wise practice in বাংলা ও English."
-        }
-      />
-      <meta property="og:site_name" content={appName} />
+      <meta property="og:description" content={description} />
+      <meta property="og:site_name" content={siteName} />
       <meta name="twitter:title" content={title} />
-      <meta
-        name="twitter:description"
-        content={
-          values.description ||
-          "Smart practice for West Bengal's competitive exams — mock tests, PYQs & topic-wise practice in বাংলা ও English."
-        }
-      />
+      <meta name="twitter:description" content={description} />
       {/^[A-Za-z0-9_-]{10,200}$/.test(values.verification) && (
         <meta name="google-site-verification" content={values.verification} />
       )}

@@ -57,7 +57,32 @@ export const BlogListPage: React.FC = () => {
           name="description"
           content="পশ্চিমবঙ্গের সরকারি চাকরির পরীক্ষার প্রস্তুতির টিপস, সিলেবাস, বুক লিস্ট ও গাইড — Practice Koro ব্লগ।"
         />
+        <meta
+          name="keywords"
+          content="সরকারি চাকরির প্রস্তুতি টিপস, WBP সিলেবাস, WBPSC ক্লার্কশিপ বুক লিস্ট, WBSSC গাইড, চাকরির পরীক্ষার খবর, বাংলা ব্লগ"
+        />
         <link rel="canonical" href={`${SITE}/blog`} />
+        <meta property="og:site_name" content="Practice Koro" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Blog | Practice Koro" />
+        <meta
+          property="og:description"
+          content="পশ্চিমবঙ্গের সরকারি চাকরির পরীক্ষার প্রস্তুতির টিপস, সিলেবাস, বুক লিস্ট ও গাইড — Practice Koro ব্লগ।"
+        />
+        <meta property="og:url" content={`${SITE}/blog`} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Blog',
+            '@id': `${SITE}/blog#blog`,
+            name: 'Practice Koro Blog',
+            description:
+              'পশ্চিমবঙ্গের সরকারি চাকরির পরীক্ষার প্রস্তুতির টিপস, সিলেবাস, বুক লিস্ট ও গাইড — Practice Koro ব্লগ।',
+            url: `${SITE}/blog`,
+            inLanguage: 'bn-IN',
+            publisher: { '@id': `${SITE}/#organization` },
+          })}
+        </script>
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -170,10 +195,49 @@ export const BlogPostPage: React.FC = () => {
         {description && <meta name="description" content={description} />}
         {post.seoKeywords && <meta name="keywords" content={post.seoKeywords} />}
         <link rel="canonical" href={`${SITE}/blog/${post.slug}`} />
+        <meta property="og:site_name" content="Practice Koro" />
         <meta property="og:type" content="article" />
         <meta property="og:title" content={title} />
         {description && <meta property="og:description" content={description} />}
         {post.thumbnail && <meta property="og:image" content={post.thumbnail} />}
+        <meta property="og:url" content={`${SITE}/blog/${post.slug}`} />
+        <meta property="article:published_time" content={post.publishedAt || post.createdAt} />
+        <meta
+          property="article:modified_time"
+          content={post.updatedAt || post.publishedAt || post.createdAt}
+        />
+        {post.author && <meta property="article:author" content={post.author} />}
+        {post.category && <meta property="article:section" content={post.category} />}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            '@id': `${SITE}/blog/${post.slug}#article`,
+            mainEntityOfPage: {
+              '@type': 'WebPage',
+              '@id': `${SITE}/blog/${post.slug}`,
+            },
+            headline: post.title,
+            description: description,
+            image: post.thumbnail ? [post.thumbnail] : undefined,
+            datePublished: post.publishedAt || post.createdAt,
+            dateModified: post.updatedAt || post.publishedAt || post.createdAt,
+            author: {
+              '@type': 'Person',
+              name: post.author || 'Practice Koro Team',
+            },
+            publisher: {
+              '@type': 'EducationalOrganization',
+              name: 'Practice Koro',
+              url: `${SITE}/`,
+              logo: {
+                '@type': 'ImageObject',
+                url: `${SITE}/logo.png`,
+              },
+            },
+            inLanguage: 'bn-IN',
+          })}
+        </script>
       </Helmet>
 
       <article className="max-w-3xl mx-auto px-4 sm:px-6">

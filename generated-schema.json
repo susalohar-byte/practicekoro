@@ -1,0 +1,100 @@
+{
+  "sitewide_index_html": {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "EducationalOrganization",
+        "@id": "https://practicekoro.online/#organization",
+        "name": "Practice Koro",
+        "alternateName": "PracticeKoro",
+        "url": "https://practicekoro.online/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://practicekoro.online/logo.png",
+          "width": 1024,
+          "height": 373
+        },
+        "email": "support@practicekoro.online",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@practicekoro.online",
+          "availableLanguage": ["bn", "en"],
+          "areaServed": "IN"
+        },
+        "areaServed": {
+          "@type": "State",
+          "name": "West Bengal"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://practicekoro.online/#website",
+        "url": "https://practicekoro.online/",
+        "name": "Practice Koro",
+        "alternateName": "PracticeKoro",
+        "inLanguage": "bn-IN",
+        "publisher": { "@id": "https://practicekoro.online/#organization" }
+      }
+    ]
+  },
+  "homepage_only": {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://practicekoro.online/#webpage",
+        "url": "https://practicekoro.online/",
+        "name": "Practice Koro | পশ্চিমবঙ্গের সরকারি চাকরির প্রস্তুতি — Mock Test, PYQ & Solutions",
+        "description": "পশ্চিমবঙ্গের সরকারি চাকরির (WBP Constable, WBSSC, Clerkship, Railway, SSC) মক টেস্ট, বিষয়ভিত্তিক অনুশীলন, বিগত বছরের প্রশ্নপত্র ও সমাধান।",
+        "inLanguage": "bn-IN",
+        "isPartOf": { "@id": "https://practicekoro.online/#website" },
+        "about": { "@id": "https://practicekoro.online/#organization" },
+        "primaryImageOfPage": "https://practicekoro.online/images/landing/hero_student_room.webp"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://practicekoro.online/#webapp",
+        "name": "Practice Koro",
+        "url": "https://practicekoro.online/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web browser",
+        "inLanguage": ["bn", "en"],
+        "description": "Mock tests, topic-wise practice, previous year questions and detailed solutions for West Bengal government job exams (WBP Constable, WBSSC Group C & D, WBPSC Clerkship, Railway, SSC).",
+        "publisher": { "@id": "https://practicekoro.online/#organization" },
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free Plan",
+            "price": "0",
+            "priceCurrency": "INR",
+            "url": "https://practicekoro.online/#pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "6-Months Pro Pass",
+            "price": "99",
+            "priceCurrency": "INR",
+            "url": "https://practicekoro.online/#pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "1-Year All-Access Pro Pass",
+            "price": "299",
+            "priceCurrency": "INR",
+            "url": "https://practicekoro.online/#pricing"
+          }
+        ]
+      }
+    ]
+  },
+  "contact_page_only": {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "@id": "https://practicekoro.online/contact#webpage",
+    "url": "https://practicekoro.online/contact",
+    "name": "Contact Us | Practice Koro",
+    "isPartOf": { "@id": "https://practicekoro.online/#website" },
+    "about": { "@id": "https://practicekoro.online/#organization" }
+  }
+}

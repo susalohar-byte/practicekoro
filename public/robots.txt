@@ -1,4 +1,6 @@
-# Public pages: the landing page and the policy pages
+# Practice Koro (practicekoro.online)
+# Search engine & AI citation crawler directives
+
 User-agent: *
 Allow: /
 Disallow: /admin
@@ -6,5 +8,21 @@ Disallow: /login
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /dashboard/
+
+# Search and Citation AI Bots (Explicitly Allowed)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
 
 Sitemap: https://practicekoro.online/sitemap.xml

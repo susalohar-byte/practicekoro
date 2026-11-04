@@ -1,0 +1,30 @@
+# Practice Koro
+
+> Practice Koro (https://practicekoro.online/) is West Bengal's premier competitive examination practice platform, offering full-length mock tests, chapter-wise question banks, previous years' question (PYQ) solutions, and real-time performance analytics in Bengali (বাংলা) and English.
+
+## About Practice Koro
+Practice Koro is specifically designed for aspirants preparing for West Bengal government recruitment exams. The platform replicates real exam interfaces with official timer countdowns, board-specific negative marking rules, instant bilingual explanations, and district-level ranking across all 23 districts of West Bengal.
+
+## Competitive Exams Covered
+- **WBP Constable & Lady Constable**: West Bengal Police Recruitment Board (PRB) preliminary and mains mock tests. Format: 85 questions, 85 marks, 60 minutes duration, 1/4 (0.25) negative marking. Syllabus includes General Awareness & GK, Elementary Mathematics, English, and Reasoning.
+- **WBSSC Group C & Group D**: West Bengal School Service Commission clerk and peon/group D mock tests. Format: 60 questions, 60 marks, 60 minutes duration. Syllabus includes General Knowledge, Current Affairs, Arithmetic, and General English.
+- **WBPSC Clerkship**: Public Service Commission West Bengal Clerkship Part-I and Part-II tests. Format: 100 questions, 100 marks (English 30, General Studies 40, Arithmetic 30), 90 minutes duration, 0.25 negative marking.
+- **Railway RRB NTPC & Group D**: Non-Technical Popular Categories and Group D in Bengali and English. Format: 100 questions, 90 minutes, 1/3 negative marking.
+- **SSC GD & MTS**: Staff Selection Commission General Duty Constable and Multi-Tasking Staff tests in Bengali.
+- **Primary TET & WBP Sub-Inspector (SI)**: Teacher Eligibility Test and Police Sub-Inspector test series.
+
+## Key Platform Features
+- **Official Exam Pattern & Negative Marking**: Mock tests follow the exact duration, section order, and negative marking of corresponding recruitment boards (PRB, WBPSC, WBSSC, RRB, SSC).
+- **Comprehensive Explanations & Notes**: Every question includes step-by-step conceptual reasoning, shortcut math tricks, and revision notes in Bengali and English.
+- **District-Level Performance Ranking**: Real-time rank, percentile, and district-wise comparison across West Bengal.
+- **Previous Years' Questions (PYQ)**: Solved papers from 2018–2026 with detailed explanations.
+- **Android App & Web Panel**: Seamless practice on Android smartphones (Practice Koro APK) and desktop/tablet browsers (https://practicekoro.online/).
+
+## Key Platform URLs
+- Website Home: https://practicekoro.online/
+- Subscription & Pricing Plans: https://practicekoro.online/#pricing
+- Blog & Exam Strategy Guides: https://practicekoro.online/blog
+- Help & Support: https://practicekoro.online/contact
+- Privacy Policy: https://practicekoro.online/privacy
+- Terms of Service: https://practicekoro.online/terms
+- Refund Policy: https://practicekoro.online/refund

@@ -151,6 +151,7 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
           answers: Map.of(_answers),
           marked: Set.of(_marked),
           seconds: _secondsSpent,
+          questions: questions,
         );
         ref.invalidate(testAttemptProvider(id));
         ref.invalidate(attemptHistoryProvider);
@@ -225,6 +226,7 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
       'completed_at': DateTime.now().toIso8601String(),
       'user_answers': _answers,
       'marked': _marked.toList(),
+      'questions': questions.map((q) => q.toJson()).toList(),
       if (district.isNotEmpty) 'district': district,
       if (caste.isNotEmpty) 'user_caste': caste,
     });

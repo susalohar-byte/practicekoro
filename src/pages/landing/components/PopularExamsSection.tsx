@@ -191,6 +191,12 @@ export const PopularExamsSection: React.FC<PopularExamsSectionProps> = ({ onSele
               <h3 className="mt-3 text-[15px] sm:text-[17px] font-bold text-[#0B1B4F] leading-snug whitespace-pre-line">
                 {CARD_TITLES[exam.id] ?? exam.name}
               </h3>
+              <p className="mt-1 text-xs text-slate-500 font-medium">{exam.badge}</p>
+              <span className="sr-only">
+                {exam.bengaliName}. {exam.description} সময়: {exam.pattern.duration}, মোট প্রশ্ন:{' '}
+                {exam.pattern.questions}, মোট নম্বর: {exam.pattern.marks}, নেগেটিভ মার্কিং:{' '}
+                {exam.pattern.negativeMarking}। বিষয়সমূহ: {exam.subjects.join(', ')}।
+              </span>
               <span className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-[#EAF1FF] text-[#1A5CFF] flex items-center justify-center group-hover:bg-[#1A5CFF] group-hover:text-white group-hover:translate-x-0.5 transition-all">
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
