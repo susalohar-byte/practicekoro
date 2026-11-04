@@ -18,6 +18,8 @@ export interface QuestionBankHeaderProps {
 export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
   const {
     isLoading,
+    activeUploadMode,
+    setImportMode,
     setImportPreviewStats,
     setImportFile,
     setParsedImportQuestions,
@@ -56,6 +58,8 @@ export function QuestionBankHeader({ qb }: QuestionBankHeaderProps) {
               setImportPreviewStats(null);
               setImportFile(null);
               setParsedImportQuestions([]);
+              // Opens in the mode picked on the page (By Subject goes straight to subject/topic).
+              if (activeUploadMode === 'subject') setImportMode('subject');
               setIsImportModalOpen(true);
             }}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0A1024] text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors shadow-2xs cursor-pointer"
