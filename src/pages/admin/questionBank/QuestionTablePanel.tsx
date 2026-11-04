@@ -8,12 +8,15 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from 'lucide-react';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import { requireSuccess } from '@/services/domains/admin.mutations';
 import { getPageNumbers } from '@/utils/pagination';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
+
+const OPTION_KEYS = ['A', 'B', 'C', 'D'] as const;
 
 export interface QuestionTablePanelProps {
   qb: AdminQuestionBankState;
@@ -42,17 +45,18 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
   } = qb;
   return (
     <>
-      {/* LEFT COLUMN: QUESTION DATA TABLE */}
+      {/* LEFT COLUMN: QUESTION DATA TABLE. On large screens the box stays in view and the
+          questions scroll inside it; the header row and pagination stay visible. */}
       <div
         className={cn(
-          'transition-all duration-300',
+          'transition-all duration-300 lg:sticky lg:top-4',
           activeQuestion ? 'lg:col-span-8' : 'lg:col-span-12'
         )}
       >
-        <div className="bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
+        <div className="lg:flex lg:flex-col lg:max-h-[calc(100vh-2rem)] bg-white dark:bg-[#0A1024] border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto lg:overflow-y-auto lg:flex-1 lg:min-h-0">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#F8FAFC] dark:bg-[#070D1E] border-b border-slate-200/80 dark:border-slate-800">
+              <thead className="sticky top-0 z-10 bg-[#F8FAFC] dark:bg-[#070D1E] border-b border-slate-200/80 dark:border-slate-800">
                 <tr className="text-slate-500 dark:text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                   <th className="py-3 px-3 w-8">
                     <input
@@ -131,16 +135,47 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                           {questionNumber}
                         </td>
 
-                        {/* Question Bengali / English Preview */}
-                        <td className="py-3 px-4 max-w-[240px]">
+                        {/* Question with its options; the correct option is green */}
+                        <td className="py-3 px-4 min-w-[320px] max-w-[460px]">
                           <p
                             className={cn(
-                              'truncate text-slate-900 dark:text-slate-100 font-medium',
+                              'text-slate-900 dark:text-slate-100 font-medium leading-relaxed',
                               bengaliFontClass(q.questionBengaliText || q.questionText)
                             )}
                           >
                             {q.questionBengaliText || q.questionText}
                           </p>
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {OPTION_KEYS.map((key) => {
+                              const text = q[`option${key}`];
+                              if (!text) return null;
+                              const isCorrect = q.correctOption === key;
+                              return (
+                                <div
+                                  key={key}
+                                  className={cn(
+                                    'flex items-start gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] leading-snug',
+                                    isCorrect
+                                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 font-semibold dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                      : 'border-slate-200 text-slate-600 font-normal dark:border-slate-700 dark:text-slate-300'
+                                  )}
+                                >
+                                  <span className="font-bold shrink-0">{key}.</span>
+                                  <span
+                                    className={cn('min-w-0 break-words', bengaliFontClass(text))}
+                                  >
+                                    {text}
+                                  </span>
+                                  {isCorrect && (
+                                    <Check
+                                      className="w-3.5 h-3.5 shrink-0 ml-auto text-emerald-600 dark:text-emerald-400"
+                                      aria-label="Correct answer"
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </td>
 
                         {/* Mode Badge */}
