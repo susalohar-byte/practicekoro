@@ -102,6 +102,7 @@ vi.mock('@/services/api', () => ({
     getSubjects: vi.fn().mockResolvedValue([]),
     getExamMappingCounts: vi.fn().mockResolvedValue({}),
     bulkDeleteQuestions: vi.fn(),
+    createQuestion: vi.fn(),
     logAdminActivity: vi.fn(),
   },
 }));
@@ -564,5 +565,80 @@ describe('AdminExams Drag & Drop Reordering Execution', () => {
         { id: 'cat_tet', name: 'Teaching (TET / SLST)', orderIndex: 3 },
       ]);
     });
+  });
+});
+
+describe('AdminQuestionBank upload by subject and topic', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setBank([]);
+    (api.getAllAdminSubjects as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 's1', name: 'History' },
+      { id: 's2', name: 'Geography' },
+    ]);
+    (api.getAllAdminChapters as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 't1', name: 'Mughal Empire', subjectId: 's1', slug: 'mughal', orderIndex: 1 },
+      { id: 't2', name: 'Rivers', subjectId: 's2', slug: 'rivers', orderIndex: 1 },
+    ]);
+    (api.getAllAdminExams as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (api.getAllAdminTests as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (api.createQuestion as ReturnType<typeof vi.fn>).mockImplementation(
+      async (q: Record<string, unknown>) => ({ ...q, id: 'saved-1' })
+    );
+  });
+
+  it('picks a subject, then one of its topics, and uploads pasted questions there', async () => {
+    render(
+      <MemoryRouter>
+        <AdminQuestionBank />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByText('By Subject'));
+    fireEvent.click(await screen.findByText('Upload questions to a subject topic'));
+    const modal = (await screen.findByText('Import Questions (Bulk TXT / CSV)')).closest(
+      '.rounded-3xl'
+    ) as HTMLElement;
+
+    const subject = within(modal).getByLabelText('Subject') as HTMLSelectElement;
+    const topic = within(modal).getByLabelText('Topic') as HTMLSelectElement;
+    expect(topic.disabled).toBe(true);
+    fireEvent.change(subject, { target: { value: 's1' } });
+
+    // Only the chosen subject's topics are offered.
+    const topicNames = Array.from(topic.options).map((o) => o.textContent);
+    expect(topicNames).toContain('Mughal Empire');
+    expect(topicNames).not.toContain('Rivers');
+
+    fireEvent.change(within(modal).getByPlaceholderText(/Question text/), {
+      target: {
+        value:
+          '1. Who founded the Mughal Empire?\n(a) Babur\n(b) Akbar\n(c) Humayun\n(d) Aurangzeb\n\nসঠিক উত্তর: (a) Babur',
+      },
+    });
+    fireEvent.click(within(modal).getByText('Preview Pasted Questions'));
+
+    // Without a topic the import stays blocked.
+    const importButton = await within(modal).findByText('Import Valid Questions (1)');
+    expect(within(modal).getByText(/Select the subject and topic above/)).toBeInTheDocument();
+    expect((importButton as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(topic, { target: { value: 't1' } });
+    expect((importButton as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(importButton);
+
+    await waitFor(() => expect(api.createQuestion).toHaveBeenCalledTimes(1));
+    expect(api.createQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionText: 'Who founded the Mughal Empire?',
+        correctOption: 'A',
+        uploadMode: 'subject',
+        subjectId: 's1',
+        subjectName: 'History',
+        topicId: 't1',
+        chapterId: 't1',
+        topicName: 'Mughal Empire',
+      })
+    );
   });
 });

@@ -17,6 +17,11 @@ export function UploadModeSelector({ qb }: UploadModeSelectorProps) {
     liveTests,
     selectedLiveTestFilter,
     setSelectedLiveTestFilter,
+    setImportMode,
+    setImportPreviewStats,
+    setImportFile,
+    setParsedImportQuestions,
+    setIsImportModalOpen,
   } = qb;
   return (
     <>
@@ -140,6 +145,27 @@ export function UploadModeSelector({ qb }: UploadModeSelectorProps) {
           </div>
         </div>
       </div>
+
+      {activeUploadMode === 'subject' && (
+        <div className="flex flex-wrap items-center gap-2 -mt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setImportPreviewStats(null);
+              setImportFile(null);
+              setParsedImportQuestions([]);
+              setImportMode('subject');
+              setIsImportModalOpen(true);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold cursor-pointer shadow-2xs"
+          >
+            Upload questions to a subject topic
+          </button>
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            Pick a subject, then a topic, then upload a file or paste questions.
+          </span>
+        </div>
+      )}
 
       {activeUploadMode === 'live' && (
         <div className="flex flex-wrap items-center gap-2 -mt-2">

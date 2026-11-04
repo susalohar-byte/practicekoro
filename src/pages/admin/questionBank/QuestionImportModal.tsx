@@ -22,6 +22,13 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     setImportPasteText,
     handlePreviewPastedQuestions,
     importNeedsExam,
+    subjects,
+    importSubjectId,
+    setImportSubjectId,
+    importTopicId,
+    setImportTopicId,
+    importTopicOptions,
+    importNeedsTopic,
     downloadTemplate,
     importFile,
     processImportFile,
@@ -151,6 +158,59 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               </div>
             )}
 
+            {/* By Subject: the subject, then one of its topics, that the questions go into */}
+            {importMode === 'subject' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Subject:
+                  </label>
+                  <select
+                    aria-label="Subject"
+                    value={importSubjectId}
+                    onChange={(e) => {
+                      setImportSubjectId(e.target.value);
+                      setImportTopicId('');
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-purple-500 cursor-pointer"
+                  >
+                    <option value="">-- Select subject --</option>
+                    {subjects.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Topic:
+                  </label>
+                  <select
+                    aria-label="Topic"
+                    value={importTopicId}
+                    disabled={!importSubjectId || importTopicOptions.length === 0}
+                    onChange={(e) => setImportTopicId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-purple-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {importSubjectId ? '-- Select topic --' : 'Select a subject first'}
+                    </option>
+                    {importTopicOptions.map((topic) => (
+                      <option key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </option>
+                    ))}
+                  </select>
+                  {importSubjectId && importTopicOptions.length === 0 && (
+                    <p className="mt-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                      This subject has no topics yet. Add one in Subjects first.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Step 2: File Upload */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -188,8 +248,8 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                 buttonLabel="Browse File"
               />
 
-              {/* By Exam: paste questions directly instead of uploading a file */}
-              {importMode === 'exam' && (
+              {/* Paste questions directly instead of uploading a file (By Exam and By Subject) */}
+              {(importMode === 'exam' || importMode === 'subject') && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">
                     <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
@@ -255,6 +315,12 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
               </div>
             )}
 
+            {importNeedsTopic && (
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                Select the subject and topic above — the questions will be uploaded there.
+              </p>
+            )}
+
             {importNeedsExam && (
               <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                 Select the exam above — some questions do not name their exam.
@@ -275,7 +341,8 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   !importPreviewStats ||
                   importPreviewStats.valid === 0 ||
                   isImporting ||
-                  importNeedsExam
+                  importNeedsExam ||
+                  importNeedsTopic
                 }
                 onClick={handleExecuteImport}
                 className="px-5 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-600 text-white text-xs font-bold disabled:opacity-40 cursor-pointer shadow-xs"
