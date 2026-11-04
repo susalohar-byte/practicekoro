@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/components/ui.dart';
+import '../../core/explanation_text.dart';
 import '../../data/datasources/local_storage.dart';
 import '../../data/models/attempt_model.dart';
 import '../../data/models/question_model.dart';
@@ -375,13 +376,6 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
     final currentOutcome =
         _getOutcome(q, safeIndex, combinedAnswers);
 
-    final correctOpt = q.options.firstWhere(
-      (o) => o.isCorrect,
-      orElse: () => q.options.isNotEmpty
-          ? q.options.first
-          : const OptionModel(id: 'A', label: 'A', text: '', isCorrect: true),
-    );
-
     final subject = q.subjectName ?? 'General Knowledge';
 
     // Summary metrics for the top bar
@@ -561,7 +555,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                           const SizedBox(height: 12),
 
                           // 4. Explanation Section (Matching Screenshot)
-                          _buildExplanationCard(q, correctOpt),
+                          _buildExplanationCard(q),
                         ],
                       ),
                     ),
@@ -1140,23 +1134,10 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
   /// - "Explanation" title
   /// - Dropdown chevron icon to expand / collapse
   /// - Dark circular bullets with line-by-line breakdown when expanded
-  Widget _buildExplanationCard(QuestionModel q, OptionModel correctOpt) {
+  Widget _buildExplanationCard(QuestionModel q) {
     final key = q.id.isNotEmpty ? q.id : _currentIndex.toString();
     final isExpanded = !_collapsedExplanations.contains(key);
-    final hasBengali = (q.explanationBengali ?? '').trim().isNotEmpty;
-    final hasEnglish = (q.explanationEnglish ?? '').trim().isNotEmpty;
-
-    final explanationText = hasBengali
-        ? q.explanationBengali!
-        : (hasEnglish
-            ? q.explanationEnglish!
-            : 'সঠিক উত্তরটি অফিসিয়াল উত্তরপত্র অনুযায়ী "${correctOpt.label}. ${correctOpt.textBengali ?? correctOpt.text}"।');
-
-    final lines = explanationText
-        .split(RegExp(r'\n+|\r+'))
-        .map((l) => l.trim())
-        .where((l) => l.isNotEmpty)
-        .toList();
+    final sections = explanationSections(q);
 
     return Container(
       decoration: BoxDecoration(
@@ -1263,54 +1244,58 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final line in lines)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, right: 10),
-                            child: SvgPicture.asset(
-                              'assets/icons/arrow_bullet.svg',
-                              width: 14,
-                              height: 14,
-                              colorFilter: const ColorFilter.mode(
-                                Color(0xFF0158FC),
-                                BlendMode.srcIn,
-                              ),
-                              excludeFromSemantics: true,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              line.startsWith('•') || line.startsWith('-')
-                                  ? line.substring(1).trim()
-                                  : line,
-                              style: UI.explanation.copyWith(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF0F172A),
-                                height: 1.55,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (hasEnglish &&
-                      hasBengali &&
-                      q.explanationEnglish != q.explanationBengali) ...[
-                    const SizedBox(height: 4),
+                  if (sections.isEmpty)
                     Text(
-                      q.explanationEnglish!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF475569),
-                        fontStyle: FontStyle.italic,
-                        height: 1.4,
+                      'এই প্রশ্নের ব্যাখ্যা এখনো যোগ করা হয়নি।',
+                      style: UI.explanation.copyWith(
+                        fontSize: 14,
+                        color: const Color(0xFF64748B),
+                        height: 1.5,
                       ),
                     ),
+                  for (final (i, lines) in sections.indexed) ...[
+                    if (i > 0)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: Color(0xFFE0E7FF),
+                        ),
+                      ),
+                    for (final line in lines)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, right: 10),
+                              child: SvgPicture.asset(
+                                'assets/icons/arrow_bullet.svg',
+                                width: 14,
+                                height: 14,
+                                colorFilter: const ColorFilter.mode(
+                                  Color(0xFF0158FC),
+                                  BlendMode.srcIn,
+                                ),
+                                excludeFromSemantics: true,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                line,
+                                style: UI.explanation.copyWith(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF0F172A),
+                                  height: 1.55,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ],
               ),

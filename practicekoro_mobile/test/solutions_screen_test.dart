@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:practicekoro_mobile/core/explanation_text.dart';
 import 'package:practicekoro_mobile/data/models/attempt_model.dart';
 import 'package:practicekoro_mobile/data/models/question_model.dart';
 import 'package:practicekoro_mobile/data/repositories/catalog_repository.dart';
@@ -281,6 +282,129 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(SvgPicture), findsWidgets);
+    });
+  });
+
+  group('Question bank explanations', () {
+    test('explanationLines reads every stored shape', () {
+      expect(explanationLines(r'প্রথম লাইন\nদ্বিতীয় লাইন'),
+          ['প্রথম লাইন', 'দ্বিতীয় লাইন']);
+      expect(explanationLines('এক<br>দুই<br/>তিন'), ['এক', 'দুই', 'তিন']);
+      expect(explanationLines('<p>• এক</p><p>- দুই</p>'), ['এক', 'দুই']);
+      expect(explanationLines('["এক", "দুই"]'), ['এক', 'দুই']);
+      expect(explanationLines('  '), isEmpty);
+      expect(explanationLines(null), isEmpty);
+    });
+
+    test('explanationSections keeps the original and the short notes', () {
+      const q = QuestionModel(
+        id: 'q',
+        questionNumber: 1,
+        textEnglish: 'Q',
+        textBengali: 'Q',
+        options: [],
+        explanationEnglish: 'মূল ব্যাখ্যা\nদ্বিতীয় লাইন',
+        explanationBengali: '• শর্ট নোট ১\n• শর্ট নোট ২',
+      );
+      expect(explanationSections(q), [
+        ['মূল ব্যাখ্যা', 'দ্বিতীয় লাইন'],
+        ['শর্ট নোট ১', 'শর্ট নোট ২'],
+      ]);
+      const same = QuestionModel(
+        id: 'q2',
+        questionNumber: 1,
+        textEnglish: 'Q',
+        textBengali: 'Q',
+        options: [],
+        explanationEnglish: 'একই',
+        explanationBengali: '• একই',
+      );
+      expect(explanationSections(same), [
+        ['একই'],
+      ]);
+    });
+
+    Future<void> pumpOne(WidgetTester tester, QuestionModel q) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final attempt = TestAttemptModel(
+        id: 'att_expl',
+        testId: 'test_expl',
+        testTitle: 'Explanation Test',
+        score: 0,
+        totalMarks: 2,
+        accuracy: 0,
+        percentage: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        skippedCount: 1,
+        timeSpentSeconds: 60,
+        completedAt: DateTime.now(),
+        userAnswers: const {},
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            testAttemptProvider('att_expl').overrideWith((ref) async => attempt),
+            testSolutionsProvider(
+              (attemptId: 'att_expl', testId: 'test_expl'),
+            ).overrideWith(
+              (ref) async => ([q], const <String, String>{}),
+            ),
+          ],
+          child: const MaterialApp(home: SolutionsScreen(attemptId: 'att_expl')),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    const options = [
+      OptionModel(id: 'A', label: 'A', text: 'ক', isCorrect: true),
+      OptionModel(id: 'B', label: 'B', text: 'খ'),
+    ];
+
+    testWidgets('View Answer shows the full original explanation and notes',
+        (tester) async {
+      await pumpOne(
+        tester,
+        const QuestionModel(
+          id: 'q_full',
+          questionNumber: 1,
+          textEnglish: 'প্রশ্ন',
+          textBengali: 'প্রশ্ন',
+          options: options,
+          explanationEnglish:
+              r'মূল ব্যাখ্যার প্রথম লাইন\nমূল ব্যাখ্যার দ্বিতীয় লাইন',
+          explanationBengali: '• শর্ট নোট এক\n• শর্ট নোট দুই',
+        ),
+      );
+      for (final line in [
+        'মূল ব্যাখ্যার প্রথম লাইন',
+        'মূল ব্যাখ্যার দ্বিতীয় লাইন',
+        'শর্ট নোট এক',
+        'শর্ট নোট দুই',
+      ]) {
+        expect(find.text(line), findsOneWidget);
+      }
+      expect(find.textContaining(r'\n'), findsNothing);
+    });
+
+    testWidgets('No explanation shows an honest note, not a made-up answer',
+        (tester) async {
+      await pumpOne(
+        tester,
+        const QuestionModel(
+          id: 'q_none',
+          questionNumber: 1,
+          textEnglish: 'প্রশ্ন',
+          textBengali: 'প্রশ্ন',
+          options: options,
+        ),
+      );
+      expect(find.text('এই প্রশ্নের ব্যাখ্যা এখনো যোগ করা হয়নি।'), findsOneWidget);
+      expect(find.textContaining('অফিসিয়াল উত্তরপত্র'), findsNothing);
     });
   });
 }
