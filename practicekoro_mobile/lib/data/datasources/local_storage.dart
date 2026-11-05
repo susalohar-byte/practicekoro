@@ -296,6 +296,31 @@ class LocalStorageService {
     await _prefs?.setString('saved_support_tickets', jsonEncode(tickets));
   }
 
+  /// Answers picked in an unfinished server attempt, so leaving and reopening
+  /// the test keeps them (the server returns the attempt, not its answers).
+  static Map<String, String> getRunnerAnswers(String attemptId) {
+    final raw = _prefs?.getString('runner_answers_$attemptId');
+    if (raw == null) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        return decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  static Future<void> saveRunnerAnswers(
+    String attemptId,
+    Map<String, String> answers,
+  ) async {
+    await _prefs?.setString('runner_answers_$attemptId', jsonEncode(answers));
+  }
+
+  static Future<void> clearRunnerAnswers(String attemptId) async {
+    await _prefs?.remove('runner_answers_$attemptId');
+  }
+
   /// Removes everything tied to the signed-in student (profile, cached
   /// results, bookmarks) so the next account on this phone starts clean.
   static Future<void> clearAccountData() async {
@@ -309,6 +334,9 @@ class LocalStorageService {
       'user_caste',
       'user_dob',
       'user_avatar',
+      'user_custom_avatar',
+      'user_google_avatar',
+      'saved_support_tickets',
       'user_rank',
       'bookmarks',
       'is_pro',
@@ -319,6 +347,7 @@ class LocalStorageService {
     for (final key in prefs.getKeys().toList()) {
       if (keys.contains(key) ||
           key.startsWith('attempt_') ||
+          key.startsWith('runner_answers_') ||
           key.startsWith('saved_q_')) {
         await prefs.remove(key);
       }

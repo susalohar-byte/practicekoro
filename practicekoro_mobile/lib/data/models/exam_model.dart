@@ -69,11 +69,12 @@ class ExamModel {
     final s = slug.toLowerCase();
     final i = id.toLowerCase();
     final t = title.toLowerCase();
-    if (s.contains('wbp') || i.contains('wbp') || t.contains('wbp') || t.contains('police')) {
-      return 'West Bengal Police';
-    }
+    // WBPSC first: "wbpsc" also contains "wbp".
     if (s.contains('wbpsc') || i.contains('wbpsc') || t.contains('wbpsc') || t.contains('psc')) {
       return 'West Bengal Public Service Commission';
+    }
+    if (s.contains('wbp') || i.contains('wbp') || t.contains('wbp') || t.contains('police')) {
+      return 'West Bengal Police';
     }
     if (s.contains('wbssc') || i.contains('wbssc') || t.contains('group c') || t.contains('group d')) {
       return 'School Service Commission';

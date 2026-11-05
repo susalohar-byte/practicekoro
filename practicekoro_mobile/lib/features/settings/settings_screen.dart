@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/components/ui.dart';
+import '../../data/repositories/account_reset.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 
@@ -13,14 +14,14 @@ const privacyPolicyUrl = 'https://practicekoro.online/privacy';
 const accountDeletionUrl = 'https://practicekoro.online/account-deletion/';
 const appVersionLabel = 'PracticeKoro · Version 1.0.8';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _reminder = false;
 
   @override
@@ -75,7 +76,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (!ok) return;
     await const AuthRepository().signOut();
-    if (mounted) context.go('/login');
+    if (!mounted) return;
+    resetAccountProviders(ref);
+    context.go('/login');
   }
 
   Future<void> _deleteAccount() async {
@@ -127,6 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await const AuthRepository().deleteAccount();
       if (!mounted) return;
+      resetAccountProviders(ref);
       Navigator.of(context, rootNavigator: true).pop(); // dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

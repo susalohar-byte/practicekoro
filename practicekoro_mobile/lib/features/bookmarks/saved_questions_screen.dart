@@ -183,9 +183,9 @@ class _SavedQuestionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Marks: 2.0',
-                  style: TextStyle(
+                Text(
+                  'Marks: ${question.marks}',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF64748B),
