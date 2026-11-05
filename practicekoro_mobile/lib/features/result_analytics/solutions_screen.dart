@@ -14,11 +14,17 @@ enum _QOutcome { correct, incorrect, skipped }
 
 /// Questions with the server's answer key plus the student's picks. A failure
 /// shows an error with retry; there is no offline answer key to fall back on.
+/// No automatic retries: Riverpod's default retries would keep the page on a
+/// spinner for a long time before the reason (for example a Live Test still
+/// running) is shown. The error screen has its own Try again button.
 final testSolutionsProvider = FutureProvider.family<
     (List<QuestionModel>, Map<String, String>),
-    ({String attemptId, String testId})>((ref, arg) {
-  return const AttemptRepository().solutions(arg.attemptId, arg.testId);
-});
+    ({String attemptId, String testId})>(
+  (ref, arg) {
+    return const AttemptRepository().solutions(arg.attemptId, arg.testId);
+  },
+  retry: (_, _) => null,
+);
 
 class SolutionsScreen extends ConsumerStatefulWidget {
   final String attemptId;

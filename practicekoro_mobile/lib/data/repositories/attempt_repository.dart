@@ -170,7 +170,10 @@ class AttemptRepository {
     if (isUuid && supabaseClient != null && const AuthRepository().session != null) {
       try {
         final rows = await _call(
-          () => _db.rpc('get_attempt_solutions', params: {'p_attempt_id': cleanAttemptId}),
+          // A hung request ends in an error with Try again, not an endless spinner.
+          () => _db
+              .rpc('get_attempt_solutions', params: {'p_attempt_id': cleanAttemptId})
+              .timeout(const Duration(seconds: 25)),
         );
         if (rows is List && rows.isNotEmpty) {
           final list = <Map<String, dynamic>>[];
