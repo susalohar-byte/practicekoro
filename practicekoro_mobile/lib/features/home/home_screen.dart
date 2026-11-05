@@ -97,6 +97,7 @@ class HomeScreen extends ConsumerWidget {
             ref.invalidate(homeBannersProvider);
             ref.invalidate(attemptHistoryProvider);
             ref.invalidate(_inProgressTopicsProvider);
+            ref.invalidate(liveTestsProvider(null));
           },
           child: ListView(
             padding: const EdgeInsets.only(bottom: 96),

@@ -35,6 +35,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
   SubscriptionPlanModel? _currentPlan;
   SubscriptionOrderModel? _currentOrder;
 
+  /// Expiry of the pass the student already had when this payment started.
+  /// An upgrade starts with an active pass, so "a pass is active" alone does
+  /// not prove this payment went through: the expiry must move past this.
+  DateTime? _expiryBeforePayment;
+
+  /// Set once the success dialog is shown, so the poll, the resume check and
+  /// the Razorpay callback never show it twice.
+  bool _settled = false;
+
+  bool _activatedByThisPayment(StudentSubscriptionModel model) {
+    if (!model.isCurrentlyActive) return false;
+    final before = _expiryBeforePayment;
+    if (before == null) return true;
+    final after = model.expiresAt;
+    return after != null && after.isAfter(before);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -111,9 +128,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
     try {
       final repo = ref.read(subscriptionRepositoryProvider);
       final result = await repo.loadStudentSubscription();
-      if (!mounted) return false;
+      if (!mounted || _settled) return _settled;
 
-      if (result.model.isCurrentlyActive) {
+      if (_activatedByThisPayment(result.model)) {
+        _settled = true;
         debugPrint(
           'Active subscription confirmed via background sync: ${result.model.planTitle}',
         );
@@ -167,9 +185,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
           plan: plan,
           ref: ref,
         );
-    if (!mounted) return;
+    if (!mounted || _settled) return;
 
     if (result.success) {
+      _settled = true;
       await LocalStorageService.setIsPro(true);
       if (!mounted) return;
       setState(() {
@@ -203,13 +222,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
     debugPrint(
       'Razorpay Payment Error: code=${response.code}, message=${response.message}',
     );
-    if (!mounted) return;
+    if (!mounted || _settled) return;
 
-    // Check if the payment actually succeeded (e.g., student completed in UPI app and returned)
+    // Check if the payment actually succeeded (e.g., student completed in UPI app and returned).
+    // A cancelled payment charged nothing, so there is nothing to check.
     try {
+      if (response.code == Razorpay.PAYMENT_CANCELLED) throw const _NotChecked();
       final repo = ref.read(subscriptionRepositoryProvider);
       final check = await repo.loadStudentSubscription();
-      if (check.model.isCurrentlyActive) {
+      if (!mounted || _settled) return;
+      if (_activatedByThisPayment(check.model)) {
+        _settled = true;
         await LocalStorageService.setIsPro(true);
         final profile = ref.read(studentProfileProvider);
         if (!profile.isPro) {
@@ -359,6 +382,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
     }
 
     setState(() => _isProcessing = true);
+    _settled = false;
+    final existing = ref.read(studentSubscriptionProvider).value;
+    _expiryBeforePayment =
+        (existing?.isCurrentlyActive ?? false) ? existing?.expiresAt : null;
 
     try {
       final repo = ref.read(subscriptionRepositoryProvider);
@@ -736,7 +763,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen>
       body: plansAsync.when(
         data: (plans) {
           final matches = plans.where((p) => p.id == widget.planId);
-          final plan = matches.isNotEmpty ? matches.first : plans.firstOrNull;
+          // Never fall back to another plan: that would charge for one the
+          // student did not choose.
+          final plan = matches.firstOrNull;
 
           if (plan == null) {
             return const Center(
@@ -1137,8 +1166,10 @@ class _BillingBreakdownCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final upgrade = this.upgrade;
     if (upgrade != null) return _buildUpgrade(upgrade);
-    final original = plan.originalPrice ?? (plan.price * 2);
-    final discount = (original - plan.price).toInt();
+    // MRP and discount rows only when the plan really has a higher original price.
+    final original = plan.originalPrice;
+    final hasDiscount = original != null && original > plan.price;
+    final discount = hasDiscount ? (original - plan.price).toInt() : 0;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1159,17 +1190,19 @@ class _BillingBreakdownCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _PriceRow(
-            label: 'Plan MRP',
-            value: '₹${original.toInt()}',
-          ),
-          const SizedBox(height: 8),
-          _PriceRow(
-            label: 'Special Offer Discount',
-            value: '-₹$discount',
-            valueColor: UI.success,
-          ),
-          const SizedBox(height: 8),
+          if (hasDiscount) ...[
+            _PriceRow(
+              label: 'Plan MRP',
+              value: '₹${original.toInt()}',
+            ),
+            const SizedBox(height: 8),
+            _PriceRow(
+              label: 'Special Offer Discount',
+              value: '-₹$discount',
+              valueColor: UI.success,
+            ),
+            const SizedBox(height: 8),
+          ],
           const _PriceRow(
             label: 'Platform & Processing Fee',
             value: 'FREE',
@@ -1328,3 +1361,8 @@ class _PriceRow extends StatelessWidget {
 }
 
 /// Payment method selector (UPI, Card, NetBanking)
+
+/// Skips the activation check for a payment the student cancelled.
+class _NotChecked implements Exception {
+  const _NotChecked();
+}

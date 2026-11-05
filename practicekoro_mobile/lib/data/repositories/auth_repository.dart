@@ -23,16 +23,17 @@ SupabaseClient? get supabaseClient {
 }
 
 /// Columns of `public.profiles` a student may edit (role/status are server-owned).
+/// Only real columns: one unknown column fails the whole update. `profiles`
+/// has no `custom_avatar_url` (a custom photo goes into `avatar_url`) and no
+/// `block` (the block lives in auth metadata).
 const _editableProfileColumns = {
   'full_name',
   'phone',
   'avatar_url',
-  'custom_avatar_url',
   'target_exam_id',
   'target_exam_title',
   'state',
   'district',
-  'block',
   'gender',
   'category',
   'dob',
@@ -289,9 +290,6 @@ class AuthRepository {
           }
           if (profile['district'] != null) {
             basicUpdate['district'] = profile['district'];
-          }
-          if (profile['block'] != null) {
-            basicUpdate['block'] = profile['block'];
           }
           await client.from('profiles').update(basicUpdate).eq('id', uid);
         } catch (basicErr) {

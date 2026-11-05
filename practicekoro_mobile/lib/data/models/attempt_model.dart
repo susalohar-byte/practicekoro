@@ -103,7 +103,9 @@ class TestAttemptModel {
       skippedCount: (json['skipped_count'] as num?)?.toInt() ?? 0,
       timeSpentSeconds: (json['time_spent_seconds'] as num?)?.toInt() ?? 0,
       completedAt: json['completed_at'] != null
-          ? DateTime.tryParse(json['completed_at'].toString()) ?? DateTime.now()
+          // Server times are UTC; show them in the phone's local time.
+          ? DateTime.tryParse(json['completed_at'].toString())?.toLocal() ??
+                DateTime.now()
           : DateTime.now(),
       userAnswers: () {
         final raw = json['user_answers'];

@@ -351,9 +351,12 @@ class _ChapterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final testsLabel = '${topic.totalTests > 0 ? topic.totalTests : 8} Tests';
+    // Real counts only: a topic without published tests says so.
+    final testsLabel = topic.totalTests > 0
+        ? '${topic.totalTests} Tests'
+        : 'No tests yet';
     final completed = isTopicCompleted(topic);
-    final ratioText = '${topic.completedTests > 0 ? topic.completedTests : 0}/${topic.totalTests > 0 ? topic.totalTests : 8}';
+    final ratioText = '${topic.completedTests}/${topic.totalTests}';
 
     return InkWell(
       onTap: onTap,

@@ -853,7 +853,9 @@ class _PlanCard extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                '★ BEST VALUE · SAVE ${plan.discountPercentage}%',
+                plan.discountPercentage > 0
+                    ? '★ BEST VALUE · SAVE ${plan.discountPercentage}%'
+                    : '★ BEST VALUE',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,

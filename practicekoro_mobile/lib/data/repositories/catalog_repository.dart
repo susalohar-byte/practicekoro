@@ -167,7 +167,11 @@ class CatalogRepository {
     final db = _supabase;
     if (db == null) throw const CatalogUnavailable();
     try {
-      final res = await query(db);
+      // A hung request must fail so the saved copy (or retry) is shown,
+      // never an endless loader. Several queries can run in one closure.
+      final res = await Future.sync(
+        () => query(db),
+      ).timeout(const Duration(seconds: 20));
       return res;
     } catch (_) {
       throw const CatalogUnavailable();

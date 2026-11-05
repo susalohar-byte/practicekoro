@@ -47,35 +47,44 @@ class LiveTestModel {
     this.instructions,
   });
 
-  /// True if test is currently in progress
-  bool get isLive {
+  bool get _isClosed {
     final s = status.toLowerCase();
-    if (s == 'cancelled' || s == 'ended' || s == 'completed') return false;
-    if (s == 'live') return true;
-
-    final start = scheduledStartTime ?? startAt;
-    if (start == null) return false;
-
-    final now = DateTime.now();
-    final end = scheduledEndTime ?? start.add(Duration(minutes: durationMinutes));
-    return now.isAfter(start) && now.isBefore(end);
+    return s == 'cancelled' || s == 'ended' || s == 'completed';
   }
 
-  /// True if test is scheduled for future
-  bool get isUpcoming {
-    if (isLive) return false;
-    final s = status.toLowerCase();
-    if (s == 'cancelled' || s == 'ended' || s == 'completed') return false;
-    if (s == 'upcoming') return true;
-
+  /// End of the live window. Nothing moves the stored status to "ended" when
+  /// time runs out, so the window is always worked out from the times.
+  DateTime? get _end {
     final start = scheduledStartTime ?? startAt;
-    if (start == null) return true;
+    if (start == null) return scheduledEndTime;
+    return scheduledEndTime ??
+        start.add(Duration(minutes: durationMinutes < 1 ? 1 : durationMinutes));
+  }
+
+  /// True while the live window is open.
+  bool get isLive {
+    if (_isClosed) return false;
+    final now = DateTime.now();
+    final start = scheduledStartTime ?? startAt;
+    final end = _end;
+    if (end != null && now.isAfter(end)) return false;
+    // "Start Live Now" sets status to live before the scheduled start.
+    if (status.toLowerCase() == 'live') return true;
+    return start != null && !now.isBefore(start);
+  }
+
+  /// True if the test has not started yet.
+  bool get isUpcoming {
+    if (_isClosed || isLive) return false;
+    final start = scheduledStartTime ?? startAt;
+    if (start == null) return status.toLowerCase() == 'upcoming';
     return DateTime.now().isBefore(start);
   }
 
   /// Human-readable scheduled time display
   String get formattedTime {
-    final start = scheduledStartTime ?? startAt;
+    // Server times are UTC; show the phone's local time and date.
+    final start = (scheduledStartTime ?? startAt)?.toLocal();
     if (start == null) {
       return isLive ? 'Live Now' : 'Schedule Announced Soon';
     }
