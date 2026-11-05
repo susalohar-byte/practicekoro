@@ -277,7 +277,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
 
     return solutionsAsync.when(
       loading: () => _buildLoadingScaffold(context),
-      error: (_, _) => Scaffold(
+      error: (e, _) => Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -296,7 +296,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
         ),
         body: Center(
           child: UIMessage.error(
-            message: 'Could not load solutions.',
+            message: e is AttemptFailure ? e.message : 'Could not load solutions.',
             onAction: () => ref.invalidate(
               testSolutionsProvider(
                 (attemptId: widget.attemptId, testId: effectiveTestId),
