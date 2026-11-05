@@ -14,7 +14,8 @@ try {
     CREATE SCHEMA auth;
     CREATE TABLE public.current_uid(id uuid);
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.current_uid $$;
-    CREATE FUNCTION public.has_role(p_user_id uuid, p_role text) RETURNS boolean
+    CREATE SCHEMA private;
+    CREATE FUNCTION private.has_role(p_user_id uuid, p_role text) RETURNS boolean
       LANGUAGE sql AS $$ SELECT false $$;
     CREATE TABLE public.subjects(id text PRIMARY KEY, name text);
     CREATE TABLE public.chapters(id text PRIMARY KEY, name text);
@@ -60,7 +61,7 @@ try {
       ('l1', 'live', now() - interval '10 minutes', 60, 'upcoming', true),
       ('l2', 'ended', now() - interval '2 days', 60, 'upcoming', true);
   `);
-  await db.exec(migration('20261105100000_fix_attempt_solutions_live_guard.sql'));
+  await db.exec(migration('20261105110000_attempt_solutions_private_has_role.sql'));
 
   const solutions = async (id) =>
     (await db.query(`SELECT public.get_attempt_solutions('${id}') AS r`)).rows[0].r;
