@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:practicekoro_mobile/core/explanation_text.dart';
 import 'package:practicekoro_mobile/data/models/attempt_model.dart';
 import 'package:practicekoro_mobile/data/models/question_model.dart';
+import 'package:practicekoro_mobile/data/repositories/attempt_repository.dart';
 import 'package:practicekoro_mobile/data/repositories/catalog_repository.dart';
 import 'package:practicekoro_mobile/features/result_analytics/solutions_screen.dart';
 
@@ -406,5 +407,38 @@ void main() {
       expect(find.text('এই প্রশ্নের ব্যাখ্যা এখনো যোগ করা হয়নি।'), findsOneWidget);
       expect(find.textContaining('অফিসিয়াল উত্তরপত্র'), findsNothing);
     });
+  });
+
+  testWidgets('A refused solutions call shows the server reason', (tester) async {
+    final attempt = TestAttemptModel(
+      id: 'att_live',
+      testId: 'test_live',
+      testTitle: 'Live Test',
+      score: 0,
+      totalMarks: 2,
+      accuracy: 0,
+      percentage: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      skippedCount: 1,
+      timeSpentSeconds: 60,
+      completedAt: DateTime.now(),
+      userAnswers: const {},
+    );
+    const reason =
+        'এই Live Test-এর উত্তর ও ব্যাখ্যা Live Test শেষ হওয়ার পরে দেখা যাবে।';
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          testAttemptProvider('att_live').overrideWith((ref) async => attempt),
+          testSolutionsProvider(
+            (attemptId: 'att_live', testId: 'test_live'),
+          ).overrideWith((ref) async => throw const AttemptFailure(reason)),
+        ],
+        child: const MaterialApp(home: SolutionsScreen(attemptId: 'att_live')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(reason), findsOneWidget);
   });
 }
