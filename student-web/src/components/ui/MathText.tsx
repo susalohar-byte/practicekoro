@@ -8,13 +8,32 @@ type Segment = { text: string } | { tex: string; display: boolean; raw: string }
 // "$5 and $10" stay ordinary text.
 const DELIMITED_MATH = /(\$\$[\s\S]+?\$\$|\$(?=\S)(?:\\.|[^$\n])+?(?<=\S)\$(?!\d)|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\))/g;
 
+// Plain-text fractions typed without LaTeX: "6 1/3" (mixed) and "2/3", in ASCII or Bengali digits.
+// Dates such as 15/08/2024 and decimals such as 1.5/2 are left alone.
+const PLAIN_FRACTION = /(?<![\d০-৯/.])(?:([\d০-৯]{1,3})[ \t]+)?([\d০-৯]{1,3})\/([\d০-৯]{1,3})(?![\d০-৯/.])/g;
+
+const texNumber = (digits: string) => (/^\d+$/.test(digits) ? digits : `\\text{${digits}}`);
+
+function splitFractions(value: string, segments: Segment[]) {
+  let cursor = 0;
+  for (const match of value.matchAll(PLAIN_FRACTION)) {
+    const [raw, whole, num, den] = match;
+    const start = match.index ?? 0;
+    if (start > cursor) segments.push({ text: value.slice(cursor, start) });
+    const frac = `\\frac{${texNumber(num)}}{${texNumber(den)}}`;
+    segments.push({ tex: whole ? `${texNumber(whole)}${frac}` : frac, display: false, raw });
+    cursor = start + raw.length;
+  }
+  if (cursor < value.length) segments.push({ text: value.slice(cursor) });
+}
+
 export function splitMath(value: string): Segment[] {
   const segments: Segment[] = [];
   let cursor = 0;
   for (const match of value.matchAll(DELIMITED_MATH)) {
     const raw = match[0];
     const start = match.index ?? 0;
-    if (start > cursor) segments.push({ text: value.slice(cursor, start) });
+    if (start > cursor) splitFractions(value.slice(cursor, start), segments);
     const wide = raw.startsWith('$$') || raw.startsWith('\\[') || raw.startsWith('\\(');
     segments.push({
       tex: wide ? raw.slice(2, -2) : raw.slice(1, -1),
@@ -23,7 +42,7 @@ export function splitMath(value: string): Segment[] {
     });
     cursor = start + raw.length;
   }
-  if (cursor < value.length) segments.push({ text: value.slice(cursor) });
+  if (cursor < value.length) splitFractions(value.slice(cursor), segments);
   return segments;
 }
 
@@ -60,6 +79,7 @@ export function MathText({ children }: { children: string | null | undefined }) 
           displayMode: s.display,
           throwOnError: false,
           trust: false,
+          strict: 'ignore',
           maxSize: 10,
           maxExpand: 500,
           // Full-size fractions inline too, as printed in exam papers (6⅓ with a readable ⅓, not a tiny one).

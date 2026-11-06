@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/components/math_text.dart';
 import '../../core/components/ui.dart';
 import '../../core/explanation_text.dart';
 import '../../data/datasources/local_storage.dart';
@@ -213,7 +214,7 @@ class _SavedQuestionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (question.textBengali.isNotEmpty)
-                  Text(
+                  MathText(
                     question.textBengali,
                     style: UI.question.copyWith(
                       fontSize: 16,
@@ -224,7 +225,7 @@ class _SavedQuestionCard extends StatelessWidget {
                   ),
                 if (question.textEnglish.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(
+                  MathText(
                     question.textEnglish,
                     style: const TextStyle(
                       fontSize: 13,
@@ -296,7 +297,7 @@ class _SavedQuestionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: MathText(
                           opt.textBengali ?? opt.text,
                           style: UI.option.copyWith(
                             fontSize: 14.5,
@@ -367,7 +368,7 @@ class _SavedQuestionCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
+                        MathText(
                           [
                             for (final lines in explanationSections(question))
                               lines.join('\n'),
