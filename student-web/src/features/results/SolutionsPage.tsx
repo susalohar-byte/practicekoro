@@ -13,6 +13,7 @@ import { ErrorState, Loader, Message } from '@/components/ui/Feedback';
 import { Button } from '@/components/ui/Button';
 import { Chips } from '@/components/ui/Chips';
 import { useToast } from '@/components/ui/Toast';
+import { MathText } from '@/components/ui/MathText';
 import { OPTION_LETTERS, type SolutionQuestion } from '@/types/models';
 
 type Outcome = 'correct' | 'wrong' | 'skipped';
@@ -175,12 +176,12 @@ export default function SolutionsPage() {
             {q.textBengali ? (
               <>
                 <p lang="bn" className="whitespace-pre-line text-[17px] font-extrabold leading-relaxed text-[#0F172A]">
-                  {q.textBengali}
+                  <MathText>{q.textBengali}</MathText>
                 </p>
-                <p className="mt-1 whitespace-pre-line text-[14px] font-medium text-[#475569]">{q.textEnglish}</p>
+                <p className="mt-1 whitespace-pre-line text-[14px] font-medium text-[#475569]"><MathText>{q.textEnglish}</MathText></p>
               </>
             ) : (
-              <p className="whitespace-pre-line text-[17px] font-extrabold leading-relaxed text-[#0F172A]">{q.textEnglish}</p>
+              <p className="whitespace-pre-line text-[17px] font-extrabold leading-relaxed text-[#0F172A]"><MathText>{q.textEnglish}</MathText></p>
             )}
             {q.imageUrl && <img src={q.imageUrl} alt="Question figure" className="mt-4 max-h-80 max-w-full rounded-card border border-line object-contain" />}
 
@@ -204,7 +205,7 @@ export default function SolutionsPage() {
                     >
                       {l}
                     </span>
-                    <span className="flex-1 whitespace-pre-line text-[15px] font-semibold text-[#0F172A]">{q.options[l]}</span>
+                    <span className="flex-1 whitespace-pre-line text-[15px] font-semibold text-[#0F172A]"><MathText>{q.options[l]}</MathText></span>
                     {(isCorrect || pickedWrong) && (
                       <span className={cn('hidden text-[11px] font-bold sm:inline', isCorrect ? 'text-success' : 'text-[#E11D48]')}>
                         {isCorrect && l === q.selected ? 'Your Answer · Correct' : isCorrect ? 'Correct Answer' : 'Your Answer'}
@@ -251,17 +252,17 @@ export default function SolutionsPage() {
                       {explanationLines(expl).map((line, i) => (
                         <li key={i} lang={q.explanationBengali ? 'bn' : undefined} className="flex gap-2.5 text-[14.5px] font-medium leading-relaxed text-[#0F172A]">
                           <span className="mt-[7px] h-2 w-2 shrink-0 rotate-45 rounded-[2px] bg-brand" aria-hidden />
-                          {line}
+                          <span><MathText>{line}</MathText></span>
                         </li>
                       ))}
                     </ul>
                   ) : (
                     <p lang="bn" className="text-[14.5px] font-medium text-[#0F172A]">
-                      সঠিক উত্তরটি অফিসিয়াল উত্তরপত্র অনুযায়ী "{q.correct}. {correctText}"।
+                      সঠিক উত্তরটি অফিসিয়াল উত্তরপত্র অনুযায়ী "{q.correct}. <MathText>{correctText}</MathText>"।
                     </p>
                   )}
                   {q.explanationBengali && q.explanation && q.explanation !== q.explanationBengali && (
-                    <p className="mt-3 whitespace-pre-line text-[13px] italic text-[#475569]">{q.explanation}</p>
+                    <p className="mt-3 whitespace-pre-line text-[13px] italic text-[#475569]"><MathText>{q.explanation}</MathText></p>
                   )}
                 </div>
               )}

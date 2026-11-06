@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ErrorState, Loader, Message } from '@/components/ui/Feedback';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
+import { MathText } from '@/components/ui/MathText';
 import { OPTION_LETTERS } from '@/types/models';
 
 export default function BookmarksPage() {
@@ -81,10 +82,10 @@ export default function BookmarksPage() {
                 <div className="px-3.5 pb-3.5 pt-3">
                   {q!.textBengali && (
                     <p lang="bn" className="whitespace-pre-line text-[15.5px] font-bold text-[#0F172A]">
-                      {q!.textBengali}
+                      <MathText>{q!.textBengali}</MathText>
                     </p>
                   )}
-                  <p className={cn('whitespace-pre-line', q!.textBengali ? 'mt-1 text-[13px] font-medium text-[#64748B]' : 'text-[15.5px] font-bold text-[#0F172A]')}>{q!.textEnglish}</p>
+                  <p className={cn('whitespace-pre-line', q!.textBengali ? 'mt-1 text-[13px] font-medium text-[#64748B]' : 'text-[15.5px] font-bold text-[#0F172A]')}><MathText>{q!.textEnglish}</MathText></p>
                   <ul className="mt-3 space-y-2">
                     {OPTION_LETTERS.filter((l) => q!.options[l]).map((l) => {
                       const ok = l === q!.correct;
@@ -93,7 +94,7 @@ export default function BookmarksPage() {
                           <span className={cn('flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[12px] font-bold', ok ? 'bg-success text-white' : 'border border-[#CBD5E1] bg-white text-[#475569]')}>
                             {ok ? <Check className="h-4 w-4" /> : l}
                           </span>
-                          <span className={cn('flex-1 text-[13.5px]', ok ? 'font-bold text-[#15803D]' : 'font-medium text-[#1E293B]')}>{q!.options[l]}</span>
+                          <span className={cn('flex-1 text-[13.5px]', ok ? 'font-bold text-[#15803D]' : 'font-medium text-[#1E293B]')}><MathText>{q!.options[l]}</MathText></span>
                           {ok && <span className="rounded bg-[#DCFCE7] px-1.5 text-[10.5px] font-bold text-[#15803D]">Correct</span>}
                         </li>
                       );
@@ -106,7 +107,7 @@ export default function BookmarksPage() {
                         <p lang="bn" className="text-[12.5px] font-extrabold text-[#166534]">
                           ব্যাখ্যা (Explanation):
                         </p>
-                        <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-[#14532D]">{q!.explanationBengali || q!.explanation}</p>
+                        <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-[#14532D]"><MathText>{q!.explanationBengali || q!.explanation}</MathText></p>
                       </div>
                     </div>
                   )}
