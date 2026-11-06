@@ -82,6 +82,7 @@ export default function TestRunnerPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [timeUp, setTimeUp] = useState(false);
   const submittedRef = useRef(false);
+  const autoSubmitTriedRef = useRef(false);
   const startedRef = useRef(false);
   const paletteRef = useRef<HTMLDivElement>(null);
 
@@ -195,12 +196,15 @@ export default function TestRunnerPage() {
     [attempt, answers, spentSeconds, totalSeconds, user, queryClient, navigate]
   );
 
-  // 3. Auto-submit when the clock runs out.
+  // 3. Auto-submit once when the clock runs out. If it fails, the banner's Retry takes over.
+  // A ref (not submitError) guards this: a timer-tick render's pending effect can run after a
+  // failed submit resets submittedRef but before submitError reaches state, which double-submitted.
   useEffect(() => {
-    if (phase === 'ready' && attempt && totalSeconds > 0 && secondsLeft <= 0 && qs.length > 0 && !submittedRef.current && !submitError) {
+    if (phase === 'ready' && attempt && totalSeconds > 0 && secondsLeft <= 0 && qs.length > 0 && !submittedRef.current && !autoSubmitTriedRef.current) {
+      autoSubmitTriedRef.current = true;
       void submit(true);
     }
-  }, [phase, attempt, totalSeconds, secondsLeft, qs.length, submit, submitError]);
+  }, [phase, attempt, totalSeconds, secondsLeft, qs.length, submit]);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(qs.length - 1, i))), [qs.length]);
 
