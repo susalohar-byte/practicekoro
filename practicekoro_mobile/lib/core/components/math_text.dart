@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'chem_text.dart';
 
 /// A piece of question text: plain [text], LaTeX [tex] to typeset, or a plain-text fraction
 /// ([whole] [numerator]/[denominator]) drawn in the question's own font.
@@ -75,14 +76,16 @@ void _splitFractions(String value, List<MathSegment> out) {
   var cursor = 0;
   for (final m in _plainFraction.allMatches(value)) {
     if (m.start > cursor) {
-      out.add(MathSegment.text(value.substring(cursor, m.start)));
+      out.add(MathSegment.text(prettyChem(value.substring(cursor, m.start))));
     }
     out.add(
       MathSegment.fraction(m.group(1), m.group(2)!, m.group(3)!, m.group(0)!),
     );
     cursor = m.end;
   }
-  if (cursor < value.length) out.add(MathSegment.text(value.substring(cursor)));
+  if (cursor < value.length) {
+    out.add(MathSegment.text(prettyChem(value.substring(cursor))));
+  }
 }
 
 /// Splits [value] into plain text and math segments.
@@ -111,6 +114,9 @@ List<MathSegment> splitMath(String value) {
   return out;
 }
 
+// \AA (ångström), which the website's KaTeX knows and flutter_math lacks.
+final _angstrom = RegExp(r'\\AA(?![a-zA-Z])');
+
 // Full-size fractions inline too, as printed in exam papers.
 final _frac = RegExp(r'\\frac(?![a-zA-Z])');
 
@@ -134,7 +140,12 @@ class MathText extends StatelessWidget {
   Widget build(BuildContext context) {
     final segments = splitMath(data);
     if (segments.every((s) => s.isText)) {
-      return Text(data, style: style, maxLines: maxLines, overflow: overflow);
+      return Text(
+        segments.map((s) => s.text).join(),
+        style: style,
+        maxLines: maxLines,
+        overflow: overflow,
+      );
     }
     final base = DefaultTextStyle.of(context).style.merge(style);
     return Text.rich(
@@ -154,9 +165,15 @@ class MathText extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Math.tex(
-                    s.tex!.replaceAll(_frac, r'\dfrac'),
+                    expandMhchem(s.tex!)
+                        .replaceAll(_frac, r'\dfrac')
+                        .replaceAll(_angstrom, r'\mathring{A}'),
                     mathStyle: s.display ? MathStyle.display : MathStyle.text,
-                    textStyle: base.copyWith(height: 1),
+                    // Math in its normal weight even inside a bold question, as on the website.
+                    textStyle: base.copyWith(
+                      height: 1,
+                      fontWeight: FontWeight.w400,
+                    ),
                     onErrorFallback: (_) => Text(s.raw, style: base),
                   ),
                 ),
