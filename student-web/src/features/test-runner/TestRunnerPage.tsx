@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/Button';
 import { DialogHero, Modal } from '@/components/ui/Modal';
 import { ErrorState, Loader, Message, RetryButton } from '@/components/ui/Feedback';
 import { LogoIcon } from '@/components/ui/Brand';
+import { MathText } from '@/components/ui/MathText';
 import { OPTION_LETTERS, type OptionLetter, type Question, type ServerAttempt } from '@/types/models';
 
 type Phase = 'starting' | 'start-error' | 'ready';
@@ -46,12 +47,12 @@ function QuestionText({ q }: { q: Question }) {
       {q.textBengali ? (
         <>
           <p lang="bn" className="whitespace-pre-line text-[17px] font-bold leading-relaxed text-ink">
-            {q.textBengali}
+            <MathText>{q.textBengali}</MathText>
           </p>
-          <p className="mt-1.5 whitespace-pre-line text-[13.5px] leading-relaxed text-muted">{q.textEnglish}</p>
+          <p className="mt-1.5 whitespace-pre-line text-[13.5px] leading-relaxed text-muted"><MathText>{q.textEnglish}</MathText></p>
         </>
       ) : (
-        <p className="whitespace-pre-line text-[17px] font-bold leading-relaxed text-ink">{q.textEnglish}</p>
+        <p className="whitespace-pre-line text-[17px] font-bold leading-relaxed text-ink"><MathText>{q.textEnglish}</MathText></p>
       )}
       {q.imageUrl && <img src={q.imageUrl} alt="Question figure" className="mt-4 max-h-80 max-w-full rounded-card border border-line object-contain" />}
     </div>
@@ -389,7 +390,7 @@ export default function TestRunnerPage() {
                     >
                       {l}
                     </span>
-                    <span className="flex-1 whitespace-pre-line text-[14.5px] font-medium leading-snug text-ink">{q.options[l]}</span>
+                    <span className="flex-1 whitespace-pre-line text-[14.5px] font-medium leading-snug text-ink"><MathText>{q.options[l]}</MathText></span>
                     <span className="hidden text-[11px] font-semibold text-faint lg:inline">{i + 1}</span>
                     {sel && <CheckCircle2 className="h-[22px] w-[22px] shrink-0 text-primary" aria-hidden />}
                   </button>
