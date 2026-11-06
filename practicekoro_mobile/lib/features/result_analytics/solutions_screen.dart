@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/components/math_text.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -525,7 +526,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                           const SizedBox(height: 14),
 
                           // 2. Question Text
-                          Text(
+                          MathText(
                             q.textBengali.isNotEmpty
                                 ? q.textBengali
                                 : q.textEnglish,
@@ -539,7 +540,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                           if (q.textEnglish.isNotEmpty &&
                               q.textEnglish != q.textBengali) ...[
                             const SizedBox(height: 6),
-                            Text(
+                            MathText(
                               q.textEnglish,
                               style: const TextStyle(
                                 fontSize: 14,
@@ -1093,7 +1094,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                MathText(
                   opt.textBengali?.isNotEmpty == true
                       ? opt.textBengali!
                       : (opt.text.isNotEmpty ? opt.text : opt.label),
@@ -1108,7 +1109,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                     opt.text.isNotEmpty &&
                     opt.text != opt.textBengali) ...[
                   const SizedBox(height: 2),
-                  Text(
+                  MathText(
                     opt.text,
                     style: const TextStyle(
                       fontSize: 13,
@@ -1289,7 +1290,7 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                               ),
                             ),
                             Expanded(
-                              child: Text(
+                              child: MathText(
                                 line,
                                 style: UI.explanation.copyWith(
                                   fontSize: 14.5,

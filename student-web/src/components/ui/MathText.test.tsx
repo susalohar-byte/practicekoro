@@ -16,6 +16,22 @@ describe('splitMath', () => {
   it('leaves prices and plain text alone', () => {
     expect(splitMath('costs $5 and $10')).toEqual([{ text: 'costs $5 and $10' }]);
     expect(splitMath('10 জন পুরুষ 15 দিনে')).toEqual([{ text: '10 জন পুরুষ 15 দিনে' }]);
+    expect(splitMath('তারিখ 15/08/2024, অনুপাত 1.5/2')).toEqual([{ text: 'তারিখ 15/08/2024, অনুপাত 1.5/2' }]);
+  });
+
+  it('turns plain-text fractions into LaTeX', () => {
+    expect(splitMath('6 1/3 দিন')).toEqual([
+      { tex: '6\\frac{1}{3}', display: false, raw: '6 1/3' },
+      { text: ' দিন' },
+    ]);
+    expect(splitMath('কাজের 2/3 অংশ')).toEqual([
+      { text: 'কাজের ' },
+      { tex: '\\frac{2}{3}', display: false, raw: '2/3' },
+      { text: ' অংশ' },
+    ]);
+    expect(splitMath('৬ ১/৩')).toEqual([
+      { tex: '\\text{৬}\\frac{\\text{১}}{\\text{৩}}', display: false, raw: '৬ ১/৩' },
+    ]);
   });
 });
 
