@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Question, Subject, Chapter } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { Question, Subject, Chapter, MockTest } from '@/types';
 import { UploadMode } from './questionBankUtils';
 import { api } from '@/services/api';
 import { runConfirmedBatch } from '@/services/domains/admin.mutations';
@@ -10,6 +10,7 @@ import { downloadQuestionTemplate, modeIdx } from './questionImportTemplates';
 interface QuestionImportInput {
   subjects: Subject[];
   topics: Chapter[];
+  exams: { id: string; title: string }[];
   selectedExamFilter: string;
   selectedSubjectFilter: string;
   selectedTopicFilter: string;
@@ -21,6 +22,7 @@ interface QuestionImportInput {
 export function useQuestionImport({
   subjects,
   topics,
+  exams,
   selectedExamFilter,
   selectedSubjectFilter,
   selectedTopicFilter,
@@ -37,6 +39,11 @@ export function useQuestionImport({
   // By Subject import: the subject and topic the uploaded / pasted questions go into
   const [importSubjectId, setImportSubjectId] = useState('');
   const [importTopicId, setImportTopicId] = useState('');
+  // By Exam import: optional mock test (from Mock Test Management) the questions are added to
+  const [importTestId, setImportTestId] = useState('');
+  const [importTests, setImportTests] = useState<MockTest[]>([]);
+  const [isLoadingImportTests, setIsLoadingImportTests] = useState(false);
+  const importExamId = exams.find((ex) => ex.title === importExam)?.id ?? '';
   const importSubject = subjects.find((s) => s.id === importSubjectId);
   const importTopicOptions = topics.filter((t) => t.subjectId === importSubjectId);
   const importTopic = importTopicOptions.find((t) => t.id === importTopicId);
@@ -49,6 +56,31 @@ export function useQuestionImport({
     errorList: string[];
   } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Load the mock tests of the chosen exam. Changing the exam clears the test choice.
+  useEffect(() => {
+    setImportTestId('');
+    if (importMode !== 'exam' || !importExamId) {
+      setImportTests([]);
+      return;
+    }
+    let cancelled = false;
+    const loadTests = async () => {
+      setIsLoadingImportTests(true);
+      try {
+        const tests = await api.getAllAdminTests({ examId: importExamId });
+        if (!cancelled) setImportTests(tests);
+      } catch {
+        if (!cancelled) setImportTests([]);
+      } finally {
+        if (!cancelled) setIsLoadingImportTests(false);
+      }
+    };
+    void loadTests();
+    return () => {
+      cancelled = true;
+    };
+  }, [importMode, importExamId]);
 
   // Download Templates (.CSV) with UTF-8 BOM for Bengali support
   const downloadTemplate = (mode: UploadMode, format: 'csv' | 'txt' = 'csv') =>
@@ -361,20 +393,43 @@ export function useQuestionImport({
             )
           : parsedImportQuestions.map(placeInImportTopic);
       const batch = await runConfirmedBatch(toImport, (q) => api.createQuestion(q));
-      setQuestions((prev) => [...batch.results.map((r) => r.value), ...prev]);
+      const created = batch.results.map((r) => r.value);
+      setQuestions((prev) => [...created, ...prev]);
       setParsedImportQuestions(batch.failures.map((f) => f.input));
-      if (!batch.failures.length) {
+
+      // Questions are already saved in the Question Bank. Adding them to the chosen mock test is
+      // a second step; if it fails for some questions, those stay in the bank and are reported.
+      let linked = 0;
+      let linkFailures: { error: string }[] = [];
+      const testName = importTests.find((t) => t.id === importTestId)?.title;
+      if (importMode === 'exam' && importTestId && created.length) {
+        const link = await runConfirmedBatch(created, (q) =>
+          api.addQuestionToTest(importTestId, q.id, q.defaultMarks ?? 1, 0)
+        );
+        linked = link.results.length;
+        linkFailures = link.failures;
+      }
+
+      if (!batch.failures.length && !linkFailures.length) {
         setIsImportModalOpen(false);
         setImportFile(null);
         setImportPreviewStats(null);
         setImportPasteText('');
       }
+      const linkNote =
+        importMode === 'exam' && importTestId
+          ? ` ${linked} added to "${testName ?? 'selected test'}".` +
+            (linkFailures.length
+              ? ` ${linkFailures.length} could not be added to the test (still in Question Bank): ${linkFailures[0].error}`
+              : '')
+          : '';
       showToast(
-        batch.results.length +
+        created.length +
           ' saved; ' +
           batch.failures.length +
           ' failed.' +
-          (batch.failures[0] ? ' ' + batch.failures[0].error : '')
+          (batch.failures[0] ? ' ' + batch.failures[0].error : '') +
+          linkNote
       );
     } finally {
       setIsImporting(false);
@@ -396,6 +451,10 @@ export function useQuestionImport({
     setImportTopicId,
     importTopicOptions,
     importNeedsTopic,
+    importTestId,
+    setImportTestId,
+    importTests,
+    isLoadingImportTests,
     importFile,
     setImportFile,
     setParsedImportQuestions,

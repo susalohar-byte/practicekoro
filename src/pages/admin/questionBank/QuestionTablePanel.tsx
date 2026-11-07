@@ -27,6 +27,8 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
     liveTestTitleFor,
     activeQuestion,
     handleSelectAll,
+    isSelectingAll,
+    allFilteredSelected,
     paginatedQuestions,
     selectedRowIds,
     filteredTotal,
@@ -62,12 +64,22 @@ export function QuestionTablePanel({ qb }: QuestionTablePanelProps) {
                     <input
                       type="checkbox"
                       onChange={handleSelectAll}
-                      checked={
-                        paginatedQuestions.length > 0 &&
-                        paginatedQuestions.every((q) => selectedRowIds.has(q.id))
+                      checked={allFilteredSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selectedRowIds.size > 0 && !allFilteredSelected;
+                      }}
+                      disabled={isSelectingAll || filteredTotal === 0}
+                      aria-label={
+                        allFilteredSelected
+                          ? 'Clear selection'
+                          : `Select all ${filteredTotal} questions`
                       }
-                      title={`Select All (${filteredTotal} Questions)`}
-                      className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
+                      title={
+                        allFilteredSelected
+                          ? 'Clear selection'
+                          : `Select All (${filteredTotal} Questions)`
+                      }
+                      className="disabled:cursor-wait disabled:opacity-60 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#026BFC] focus:ring-[#026BFC] cursor-pointer"
                     />
                   </th>
                   <th className="py-3 px-2 w-12 text-center">#</th>

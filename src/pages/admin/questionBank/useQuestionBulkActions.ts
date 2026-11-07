@@ -10,7 +10,8 @@ import { getErrorMessage } from '@/lib/errors';
 interface QuestionBulkActionsInput {
   questions: Question[];
   setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
-  paginatedQuestions: Question[];
+  filteredTotal: number;
+  getFilteredQuestionIds: () => Promise<string[]>;
   setActiveQuestion: React.Dispatch<React.SetStateAction<Question | null>>;
   showToast: (msg: string) => void;
 }
@@ -19,20 +20,33 @@ interface QuestionBulkActionsInput {
 export function useQuestionBulkActions({
   questions,
   setQuestions,
-  paginatedQuestions,
+  filteredTotal,
+  getFilteredQuestionIds,
   setActiveQuestion,
   showToast,
 }: QuestionBulkActionsInput) {
   // Selected Rows for Bulk Actions
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [isSelectingAll, setIsSelectingAll] = useState(false);
+  const allFilteredSelected = filteredTotal > 0 && selectedRowIds.size >= filteredTotal;
 
-  // Checkbox Selection Handlers
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedRowIds(new Set(paginatedQuestions.map((q) => q.id)));
-    } else {
-      setSelectedRowIds(new Set());
+  /** Selects every question matching the current filters, across all pages. */
+  const selectAllFiltered = async () => {
+    if (isSelectingAll) return;
+    setIsSelectingAll(true);
+    try {
+      setSelectedRowIds(new Set(await getFilteredQuestionIds()));
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Questions could not be selected.'));
+    } finally {
+      setIsSelectingAll(false);
     }
+  };
+
+  // Header checkbox: all matching questions (every page), or clear
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) void selectAllFiltered();
+    else setSelectedRowIds(new Set());
   };
 
   const handleToggleSelectRow = (id: string) => {
@@ -142,6 +156,9 @@ export function useQuestionBulkActions({
   return {
     selectedRowIds,
     setSelectedRowIds,
+    isSelectingAll,
+    allFilteredSelected,
+    selectAllFiltered,
     handleSelectAll,
     handleToggleSelectRow,
     handleBulkStatusChange,

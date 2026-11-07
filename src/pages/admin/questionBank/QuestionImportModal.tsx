@@ -29,6 +29,10 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     setImportTopicId,
     importTopicOptions,
     importNeedsTopic,
+    importTestId,
+    setImportTestId,
+    importTests,
+    isLoadingImportTests,
     downloadTemplate,
     importFile,
     processImportFile,
@@ -155,6 +159,39 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                     </option>
                   ))}
                 </select>
+
+                {/* Optional: the mock test (from Mock Test Management) these questions are added to */}
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mt-3 mb-1.5">
+                  Mock test (optional, questions will be added to it):
+                </label>
+                <select
+                  aria-label="Mock test"
+                  value={importTestId}
+                  disabled={!importExam || isLoadingImportTests}
+                  onChange={(e) => setImportTestId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {!importExam
+                      ? 'Select an exam first'
+                      : isLoadingImportTests
+                        ? 'Loading tests...'
+                        : importTests.length === 0
+                          ? 'No tests for this exam yet (Question Bank only)'
+                          : '-- Question Bank only (no test) --'}
+                  </option>
+                  {importTests.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                      {t.totalQuestions ? ` (${t.totalQuestions} Q)` : ''}
+                    </option>
+                  ))}
+                </select>
+                {importTestId && (
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Every imported question will be added to this test.
+                  </p>
+                )}
               </div>
             )}
 

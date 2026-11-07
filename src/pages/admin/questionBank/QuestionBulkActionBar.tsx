@@ -8,6 +8,10 @@ export interface QuestionBulkActionBarProps {
 export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
   const {
     selectedRowIds,
+    filteredTotal,
+    allFilteredSelected,
+    isSelectingAll,
+    selectAllFiltered,
     handleBulkStatusChange,
     handleExportSelectedCSV,
     handleBulkDelete,
@@ -25,6 +29,16 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
             <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
               {selectedRowIds.size} selected
             </span>
+            {!allFilteredSelected && filteredTotal > selectedRowIds.size && (
+              <button
+                type="button"
+                onClick={() => void selectAllFiltered()}
+                disabled={isSelectingAll}
+                className="text-xs font-semibold text-[#026BFC] dark:text-blue-300 hover:underline disabled:cursor-wait disabled:opacity-60 cursor-pointer"
+              >
+                {isSelectingAll ? 'Selecting…' : `Select all ${filteredTotal}`}
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
