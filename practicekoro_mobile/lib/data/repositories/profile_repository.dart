@@ -133,7 +133,7 @@ class StudentProfileNotifier extends Notifier<StudentProfileModel> {
 
       final ext = pickedFile.name.split('.').last.toLowerCase();
       final cleanExt =
-          (ext == 'png' || ext == 'webp' || ext == 'gif') ? ext : 'jpg';
+          (ext == 'png' || ext == 'webp') ? ext : 'jpg';
 
       final client = supabaseClient;
       final currentUser = client?.auth.currentUser;
@@ -148,7 +148,13 @@ class StudentProfileNotifier extends Notifier<StudentProfileModel> {
                 path,
                 bytes,
                 fileOptions: FileOptions(
-                  contentType: 'image/$cleanExt',
+                  // The avatars bucket accepts image/png, image/jpeg and
+                  // image/webp only ("image/jpg" is rejected).
+                  contentType: cleanExt == 'png'
+                      ? 'image/png'
+                      : cleanExt == 'webp'
+                          ? 'image/webp'
+                          : 'image/jpeg',
                   upsert: true,
                 ),
               );

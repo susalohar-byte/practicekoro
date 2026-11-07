@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -59,8 +60,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ? a.totalMarks.toInt().toString()
         : a.totalMarks.toStringAsFixed(0);
 
-    // Negative marking calculation: default 0.25 per wrong answer unless test has 0
-    final negativeDeduction = (a.wrongCount * 0.25);
+    // What the server actually deducted: marks for the correct answers minus the
+    // final score (each question carries totalMarks / questions). The test's
+    // own negative marking may be 0, 0.25 or 0.33, so no rate is assumed.
+    final questionCount = a.correctCount + a.wrongCount + a.skippedCount;
+    final perQuestion = questionCount > 0 ? a.totalMarks / questionCount : 0.0;
+    final rawDeduction = a.wrongCount > 0
+        ? a.correctCount * perQuestion - a.score
+        : 0.0;
+    final negativeDeduction =
+        rawDeduction > 0.004 ? (rawDeduction * 100).round() / 100 : 0.0;
     final negativeDisplay = negativeDeduction > 0
         ? '-${negativeDeduction.toStringAsFixed(negativeDeduction == negativeDeduction.roundToDouble() ? 0 : 2)}'
         : '-0';
@@ -107,7 +116,16 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               IconButton(
                 icon: const Icon(Icons.share_outlined, color: Color(0xFF0F172A)),
                 tooltip: 'Share Result',
-                onPressed: () {
+                onPressed: () async {
+                  final score = a.score == a.score.roundToDouble()
+                      ? a.score.toInt().toString()
+                      : a.score.toStringAsFixed(2);
+                  await Clipboard.setData(ClipboardData(
+                    text: '${a.testTitle}: $score / ${a.totalMarks.toStringAsFixed(0)} '
+                        '(${a.correctCount} correct, ${a.wrongCount} wrong, '
+                        '${a.skippedCount} skipped) on PracticeKoro',
+                  ));
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Result summary copied to clipboard!'),

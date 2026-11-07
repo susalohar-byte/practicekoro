@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/components/math_text.dart';
 import '../../core/components/ui.dart';
 import '../../data/models/question_model.dart';
 
@@ -15,13 +16,13 @@ class QuestionText extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        MathText(
           bengali.isNotEmpty ? bengali : english,
           style: UI.question,
         ),
         if (bengali.isNotEmpty && english.isNotEmpty && english != bengali) ...[
           const SizedBox(height: 6),
-          Text(english, style: UI.caption.copyWith(fontSize: 13, height: 1.45)),
+          MathText(english, style: UI.caption.copyWith(fontSize: 13, height: 1.45)),
         ],
       ],
     );

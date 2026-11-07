@@ -163,11 +163,17 @@ class AttemptRepository {
       r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
     ).hasMatch(cleanAttemptId);
 
+    // Why the server gave no solutions, shown when nothing else has an answer key.
+    AttemptFailure? serverFailure;
+
     // Tier 1: Authoritative server RPC for valid UUID attempts with active auth session
     if (isUuid && supabaseClient != null && const AuthRepository().session != null) {
       try {
         final rows = await _call(
-          () => _db.rpc('get_attempt_solutions', params: {'p_attempt_id': cleanAttemptId}),
+          // A hung request ends in an error with Try again, not an endless spinner.
+          () => _db
+              .rpc('get_attempt_solutions', params: {'p_attempt_id': cleanAttemptId})
+              .timeout(const Duration(seconds: 25)),
         );
         if (rows is List && rows.isNotEmpty) {
           final list = <Map<String, dynamic>>[];
@@ -191,9 +197,9 @@ class AttemptRepository {
             );
           }
         }
-      } catch (_) {
-        // Fall through to local cache or question catalog
-      }
+      } on AttemptFailure catch (e) {
+        serverFailure = e;
+      } catch (_) {}
     }
 
     // Tier 2: Check LocalStorageService for this attempt's saved questions & answers
@@ -218,24 +224,19 @@ class AttemptRepository {
             ));
           }
         }
-        if (loaded.isNotEmpty) {
+        // The copy saved at submit time comes from the exam questions, which
+        // carry no answer key. Showing it would be a View Answer page with no
+        // correct answers, so only a copy that has the key is used.
+        if (loaded.isNotEmpty &&
+            loaded.any((q) => q.options.any((o) => o.isCorrect))) {
           return (loaded, savedAnswers);
         }
       }
     }
 
-    // Tier 3: Fetch questions for this testId directly
-    if (testId.trim().isNotEmpty && supabaseClient != null) {
-      try {
-        final testQs = await questions(testId.trim());
-        if (testQs.isNotEmpty) {
-          return (testQs, savedAnswers);
-        }
-      } catch (_) {}
-    }
-
-    // Tier 4: If no questions found anywhere, throw AttemptFailure
-    throw const AttemptFailure('Could not load solutions.');
+    // The exam questions have no answer key either, so there is nothing
+    // further to fall back on: say why the server refused.
+    throw serverFailure ?? const AttemptFailure('Could not load solutions.');
   }
 
   /// The student's finished server attempts, newest first.
@@ -350,6 +351,12 @@ class AttemptRepository {
 
   static String _friendly(PostgrestException e) {
     final m = e.message.toLowerCase();
+    if (e.code == '40302' || m.contains('contest window')) {
+      return 'এই Live Test-এর উত্তর ও ব্যাখ্যা Live Test শেষ হওয়ার পরে দেখা যাবে।';
+    }
+    if (e.code == '40301' || m.contains('only available after test submission')) {
+      return 'টেস্ট জমা দেওয়ার পরে উত্তর দেখা যাবে।';
+    }
     if (e.code == '40300' || m.contains('pro pass')) {
       return 'This test is part of PracticeKoro Pro. Upgrade to unlock it.';
     }

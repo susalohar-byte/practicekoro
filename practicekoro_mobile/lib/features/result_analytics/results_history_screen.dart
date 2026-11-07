@@ -767,7 +767,7 @@ class _RecentResultCard extends StatelessWidget {
     final totalQuestions = attemptedCount + attempt.skippedCount;
     final qCountDisplay = totalQuestions > 0
         ? '$attemptedCount / $totalQuestions Questions'
-        : '5 / 5 Questions';
+        : '- Questions';
 
     return InkWell(
       onTap: onTap,

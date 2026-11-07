@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/components/math_text.dart';
 import '../../core/components/ui.dart';
+import '../../core/explanation_text.dart';
 import '../../data/datasources/local_storage.dart';
 import '../../data/models/question_model.dart';
 
@@ -182,9 +184,9 @@ class _SavedQuestionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Marks: 2.0',
-                  style: TextStyle(
+                Text(
+                  'Marks: ${question.marks}',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF64748B),
@@ -212,7 +214,7 @@ class _SavedQuestionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (question.textBengali.isNotEmpty)
-                  Text(
+                  MathText(
                     question.textBengali,
                     style: UI.question.copyWith(
                       fontSize: 16,
@@ -223,7 +225,7 @@ class _SavedQuestionCard extends StatelessWidget {
                   ),
                 if (question.textEnglish.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(
+                  MathText(
                     question.textEnglish,
                     style: const TextStyle(
                       fontSize: 13,
@@ -295,7 +297,7 @@ class _SavedQuestionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: MathText(
                           opt.textBengali ?? opt.text,
                           style: UI.option.copyWith(
                             fontSize: 14.5,
@@ -335,8 +337,7 @@ class _SavedQuestionCard extends StatelessWidget {
           ),
 
           // Explanation Box (ব্যাখ্যা)
-          if ((question.explanationBengali ?? '').isNotEmpty ||
-              (question.explanationEnglish ?? '').isNotEmpty)
+          if (explanationSections(question).isNotEmpty)
             Container(
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.all(12),
@@ -367,10 +368,11 @@ class _SavedQuestionCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          question.explanationBengali ??
-                              question.explanationEnglish ??
-                              '',
+                        MathText(
+                          [
+                            for (final lines in explanationSections(question))
+                              lines.join('\n'),
+                          ].join('\n\n'),
                           style: UI.explanation.copyWith(
                             fontSize: 13.5,
                             color: const Color(0xFF14532D),

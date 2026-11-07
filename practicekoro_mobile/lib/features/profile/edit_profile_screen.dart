@@ -252,6 +252,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     label: 'Email',
                     icon: Icons.mail_outline_rounded,
                     keyboard: TextInputType.emailAddress,
+                    // The login email changes only through the account, not
+                    // this form; an edit here was never saved anywhere.
+                    readOnly: true,
+                    helper: 'Login email cannot be changed here',
                     validator: (v) {
                       final s = (v ?? '').trim();
                       if (s.isEmpty) return null;
@@ -587,6 +591,8 @@ class _Field extends StatelessWidget {
   final TextCapitalization capitalization;
   final List<TextInputFormatter>? formatters;
   final String? Function(String?)? validator;
+  final bool readOnly;
+  final String? helper;
 
   const _Field({
     required this.controller,
@@ -597,6 +603,8 @@ class _Field extends StatelessWidget {
     this.capitalization = TextCapitalization.none,
     this.formatters,
     this.validator,
+    this.readOnly = false,
+    this.helper,
   });
 
   @override
@@ -609,9 +617,11 @@ class _Field extends StatelessWidget {
         textCapitalization: capitalization,
         inputFormatters: formatters,
         validator: validator,
-        style: UI.body,
+        readOnly: readOnly,
+        style: readOnly ? UI.body.copyWith(color: UI.muted) : UI.body,
         decoration: InputDecoration(
           labelText: label,
+          helperText: helper,
           prefixText: prefix,
           prefixIcon: Icon(icon, color: UI.muted, size: 21),
           filled: true,

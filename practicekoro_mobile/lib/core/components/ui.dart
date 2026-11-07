@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'math_text.dart';
 import 'package:go_router/go_router.dart';
 
 /// PracticeKoro design system.
@@ -1329,14 +1330,14 @@ class UIOptionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      MathText(
                         text,
                         style: UI.option,
                       ),
                       if (secondaryText != null &&
                           secondaryText!.isNotEmpty &&
                           secondaryText != text)
-                        Text(secondaryText!, style: UI.caption),
+                        MathText(secondaryText!, style: UI.caption),
                     ],
                   ),
                 ),

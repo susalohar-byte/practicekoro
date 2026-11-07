@@ -8,6 +8,7 @@ import '../../data/models/question_model.dart';
 import '../../data/models/test_model.dart';
 import '../../data/repositories/attempt_repository.dart';
 import '../../data/repositories/catalog_repository.dart';
+import '../../data/repositories/ranking_repository.dart';
 import 'question_view.dart';
 
 /// Looks up the test (title, duration) from its id, e.g. `test_wbp_3` -> exam `wbp`.
@@ -40,6 +41,11 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
   int _secondsSpent = 0;
   bool _submitting = false;
 
+  /// Wall-clock start and end of a local session. Time is read from the
+  /// clock on every tick, so a paused or backgrounded app never gains time.
+  DateTime? _localStart;
+  DateTime? _localDeadline;
+
   /// Server attempt for real tests (signed-in students); null for local practice.
   ServerAttempt? _server;
   String? _startError;
@@ -55,7 +61,16 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
     setState(() => _startError = null);
     try {
       final attempt = await const AttemptRepository().start(widget.testId);
-      if (mounted) setState(() => _server = attempt);
+      // A resumed attempt keeps the answers picked before leaving the test.
+      final saved = LocalStorageService.getRunnerAnswers(attempt.id);
+      if (mounted) {
+        setState(() {
+          _server = attempt;
+          for (final e in saved.entries) {
+            _answers.putIfAbsent(e.key, () => e.value);
+          }
+        });
+      }
     } on AttemptFailure catch (e) {
       if (mounted) setState(() => _startError = e.message);
     }
@@ -71,6 +86,7 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
     });
     final server = _server;
     if (server != null) {
+      LocalStorageService.saveRunnerAnswers(server.id, Map.of(_answers));
       const AttemptRepository().save(
         server.id,
         Map.of(_answers),
@@ -91,25 +107,33 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
 
   void _startTimerOnce(int minutes) {
     if (_timer != null) return;
-    final server = _server;
-    if (server != null) {
-      // Follow the server clock so a resumed attempt keeps its remaining time.
-      _secondsLeft = server.secondsLeft(DateTime.now());
-      _secondsSpent = DateTime.now().difference(server.startedAt).inSeconds;
-    } else {
-      _secondsLeft = minutes * 60;
+    if (_server == null && _localDeadline == null) {
+      _localStart = DateTime.now();
+      _localDeadline = _localStart!.add(Duration(minutes: minutes));
     }
+    _syncClock();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() {
-        _secondsSpent++;
-        _secondsLeft = (_secondsLeft ?? 0) - 1;
-      });
+      setState(_syncClock);
       if ((_secondsLeft ?? 0) <= 0) {
         final questions = ref.read(testQuestionsProvider(widget.testId)).value;
         if (questions != null) _submit(questions, auto: true);
       }
     });
+  }
+
+  /// Remaining and spent time from the clock (server start for real tests).
+  void _syncClock() {
+    final now = DateTime.now();
+    final server = _server;
+    if (server != null) {
+      _secondsLeft = server.secondsLeft(now);
+      _secondsSpent = now.difference(server.startedAt).inSeconds;
+    } else {
+      _secondsLeft = _localDeadline!.difference(now).inSeconds;
+      _secondsSpent = now.difference(_localStart!).inSeconds;
+    }
+    if (_secondsLeft! < 0) _secondsLeft = 0;
   }
 
   void _goTo(int index) {
@@ -153,8 +177,11 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
           seconds: _secondsSpent,
           questions: questions,
         );
+        unawaited(LocalStorageService.clearRunnerAnswers(server.id));
         ref.invalidate(testAttemptProvider(id));
         ref.invalidate(attemptHistoryProvider);
+        ref.invalidate(rankingSummaryProvider);
+        ref.invalidate(rankPreviewProvider);
         if (!mounted) return;
         if (auto) {
           await showUISuccessDialog(
@@ -167,6 +194,12 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
         if (mounted) context.pushReplacement('/result/$id');
       } on AttemptFailure catch (e) {
         _submitting = false;
+        // A manual submit that failed goes back to the test, so the clock
+        // (and the auto-submit at zero) keeps running.
+        if (!auto) {
+          _timer = null;
+          _startTimerOnce(0);
+        }
         if (!mounted) return;
         await showUIErrorDialog(
           context,
@@ -232,6 +265,8 @@ class _TestRunnerScreenState extends ConsumerState<TestRunnerScreen> {
     });
     ref.invalidate(testAttemptProvider(attemptId));
     ref.invalidate(attemptHistoryProvider);
+    ref.invalidate(rankingSummaryProvider);
+    ref.invalidate(rankPreviewProvider);
 
     if (!mounted) return;
     if (auto) {
