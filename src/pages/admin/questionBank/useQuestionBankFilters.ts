@@ -150,8 +150,11 @@ export function useQuestionBankFilters({
   const [examTestsForFilter, setExamTestsForFilter] = useState<MockTest[]>([]);
   const [testQuestionIds, setTestQuestionIds] = useState<string[]>([]);
   const filterExamId = exams.find((ex) => ex.title === selectedExamFilter)?.id ?? '';
-  const filterTestOptions = examTestsForFilter.filter(
-    (t) => selectedTestTypeFilter === 'all' || t.testType === selectedTestTypeFilter
+  // Only Full Mock and PYQ tests: subject / topic / chapter tests are not listed here
+  const filterTestOptions = examTestsForFilter.filter((t) =>
+    selectedTestTypeFilter === 'all'
+      ? t.testType === 'full_mock' || t.testType === 'pyq'
+      : t.testType === selectedTestTypeFilter
   );
 
   // Load the exam's tests when the exam changes; a test choice from another exam is dropped
