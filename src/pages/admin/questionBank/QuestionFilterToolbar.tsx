@@ -27,6 +27,11 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
     questions,
     selectedTypeFilter,
     setSelectedTypeFilter,
+    selectedTestTypeFilter,
+    changeTestTypeFilter,
+    selectedTestFilter,
+    setSelectedTestFilter,
+    filterTestOptions,
     selectedStatusFilter,
     setSelectedStatusFilter,
     selectedYearFilter,
@@ -210,8 +215,48 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
           </div>
         </div>
 
-        {/* Row 2: Type, Status, Year, Source, Filter, Reset */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-center">
+        {/* Row 2: Test type, Test, Type, Status, Year, Source, Filter, Reset */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 items-center">
+          {/* Test type (Full Mock / PYQ) and the test itself: needs an exam chosen */}
+          <div>
+            <select
+              aria-label="Test type"
+              value={selectedTestTypeFilter}
+              disabled={selectedExamFilter === 'all'}
+              onChange={(e) => {
+                changeTestTypeFilter(e.target.value as 'all' | 'full_mock' | 'pyq');
+                setCurrentPage(1);
+              }}
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="all">Test: All Types</option>
+              <option value="full_mock">Full Mock</option>
+              <option value="pyq">PYQ</option>
+            </select>
+          </div>
+          <div>
+            <select
+              aria-label="Test"
+              value={selectedTestFilter}
+              disabled={selectedExamFilter === 'all'}
+              onChange={(e) => {
+                setSelectedTestFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="all">
+                {selectedExamFilter === 'all' ? 'Select an exam first' : 'Test: All Tests'}
+              </option>
+              {filterTestOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                  {t.totalQuestions ? ` (${t.totalQuestions} Q)` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Type Filter */}
           <div>
             <select

@@ -15,7 +15,7 @@ import type { FilterableQuery } from './queryFilters';
 export interface QuestionBankQuery {
   /** true: only Live Test (live-only) questions; false: only bank questions. */
   liveOnly: boolean;
-  /** Restrict to these question ids (a chosen Live Test paper); an empty list matches nothing. */
+  /** Restrict to these question ids (a chosen Live Test or mock test); an empty list matches nothing. */
   questionIds?: string[];
   /** "By Exam" upload mode / view mode. */
   examMode?: boolean;
@@ -97,10 +97,10 @@ export function questionBankQueryIsEmpty(query: QuestionBankQuery): boolean {
 export function matchesQuestionBankQuery(q: Question, query: QuestionBankQuery): boolean {
   if (query.liveOnly) {
     if (!q.isLiveOnly) return false;
-    if (query.questionIds && !query.questionIds.includes(q.id)) return false;
   } else if (q.isLiveOnly) {
     return false;
   }
+  if (query.questionIds && !query.questionIds.includes(q.id)) return false;
 
   if (query.examMode && q.uploadMode !== 'exam' && !q.sourceExam) return false;
   if (query.subjectMode && q.uploadMode === 'exam' && q.sourceExam) return false;
@@ -151,7 +151,7 @@ function applyQuestionBankQuery<Q extends FilterableQuery>(
   query: QuestionBankQuery
 ): Q {
   let q = builder.eq('is_live_only', query.liveOnly);
-  if (query.liveOnly && query.questionIds) q = q.in('id', query.questionIds);
+  if (query.questionIds) q = q.in('id', query.questionIds);
 
   // Database rows carry no upload mode, so "By Exam" means "names a source exam" and
   // "By Subject" keeps every bank question (same result the in-browser filter produced).

@@ -126,6 +126,12 @@ describe('question bank server query', () => {
     expect(mocks.calls).toHaveLength(0);
   });
 
+  it('restricts a bank query to the questions of one mock test', async () => {
+    await getQuestionBankPage({ liveOnly: false, questionIds: ['a', 'b'] }, 1, 10);
+    expect(opArgs('eq')).toContainEqual(['is_live_only', false]);
+    expect(opArgs('in')).toContainEqual(['id', ['a', 'b']]);
+  });
+
   it('selects only ids for "Select All"', async () => {
     mocks.result = { data: [{ id: 'q1' }, { id: 'q2' }], error: null, count: null };
     expect(await getQuestionBankIds({ liveOnly: false })).toEqual(['q1', 'q2']);
@@ -170,6 +176,15 @@ describe('question bank in-browser filter (demo store)', () => {
       status: 'active',
       ...over,
     }) as Question;
+
+  it('keeps only the chosen test questions in the demo store', () => {
+    expect(matchesQuestionBankQuery(q({ id: 'a' }), { liveOnly: false, questionIds: ['a'] })).toBe(
+      true
+    );
+    expect(matchesQuestionBankQuery(q({ id: 'b' }), { liveOnly: false, questionIds: ['a'] })).toBe(
+      false
+    );
+  });
 
   it('applies the same rules the old page filter used', () => {
     expect(matchesQuestionBankQuery(q({}), { liveOnly: false, search: 'kolkata' })).toBe(true);

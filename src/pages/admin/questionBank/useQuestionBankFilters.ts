@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Question, Subject, Chapter } from '@/types';
+import { Question, Subject, Chapter, MockTest } from '@/types';
 import { api } from '@/services/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { getErrorMessage } from '@/lib/errors';
@@ -86,6 +86,7 @@ interface QuestionBankFiltersInput {
   topics: Chapter[];
   isLoading: boolean;
   liveQuestionIndex: Record<string, string>;
+  exams: { id: string; title: string }[];
   showToast: (msg: string) => void;
 }
 
@@ -118,6 +119,7 @@ export function useQuestionBankFilters({
   topics,
   isLoading,
   liveQuestionIndex,
+  exams,
   showToast,
 }: QuestionBankFiltersInput) {
   // Top Upload Mode Filter: 'all' | 'exam' | 'subject' | 'live'
@@ -138,6 +140,68 @@ export function useQuestionBankFilters({
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedYearFilter, setSelectedYearFilter] = useState('all');
   const [selectedSourceFilter, setSelectedSourceFilter] = useState('all');
+
+  // Exam mode: narrow to the questions of one Full Mock or PYQ test of the selected exam
+  const [selectedTestTypeFilter, setSelectedTestTypeFilter] = useState<'all' | 'full_mock' | 'pyq'>(
+    'all'
+  );
+  const [selectedTestFilter, setSelectedTestFilter] = useState('all');
+  const [examTestsForFilter, setExamTestsForFilter] = useState<MockTest[]>([]);
+  const [testQuestionIds, setTestQuestionIds] = useState<string[]>([]);
+  const filterExamId = exams.find((ex) => ex.title === selectedExamFilter)?.id ?? '';
+  const filterTestOptions = examTestsForFilter.filter(
+    (t) => selectedTestTypeFilter === 'all' || t.testType === selectedTestTypeFilter
+  );
+
+  // Load the exam's tests when the exam changes; a test choice from another exam is dropped
+  useEffect(() => {
+    setSelectedTestFilter('all');
+    setTestQuestionIds([]);
+    if (!filterExamId) {
+      setExamTestsForFilter([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getAllAdminTests({ examId: filterExamId })
+      .then((tests) => {
+        if (!cancelled) setExamTestsForFilter(tests);
+      })
+      .catch(() => {
+        if (!cancelled) setExamTestsForFilter([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filterExamId]);
+
+  // Changing the test type clears a test choice that belongs to the other type
+  const changeTestTypeFilter = (type: 'all' | 'full_mock' | 'pyq') => {
+    setSelectedTestTypeFilter(type);
+    setSelectedTestFilter('all');
+    setTestQuestionIds([]);
+  };
+
+  // Load the questions of the chosen test
+  useEffect(() => {
+    // 'all' needs no ids: the list query only reads testQuestionIds when a test is chosen
+    if (selectedTestFilter === 'all') return;
+    let cancelled = false;
+    api
+      .getTestAssignedQuestions(selectedTestFilter)
+      .then((rows) => {
+        if (!cancelled) setTestQuestionIds(rows.map((r) => r.questionId));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setTestQuestionIds([]);
+          showToast(getErrorMessage(err, 'Could not load the test questions.'));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTestFilter, showToast]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -240,7 +304,9 @@ export function useQuestionBankFilters({
           ? Object.keys(liveQuestionIndex).filter(
               (qid) => liveQuestionIndex[qid] === selectedLiveTestFilter
             )
-          : undefined,
+          : !live && selectedTestFilter !== 'all'
+            ? testQuestionIds
+            : undefined,
       examMode: activeUploadMode === 'exam' || viewModeFilter === 'exam',
       subjectMode: activeUploadMode === 'subject' || viewModeFilter === 'subject',
       search: term || undefined,
@@ -268,6 +334,8 @@ export function useQuestionBankFilters({
     activeUploadMode,
     selectedLiveTestFilter,
     liveQuestionIndex,
+    selectedTestFilter,
+    testQuestionIds,
     debouncedSearch,
     viewModeFilter,
     selectedExamFilter,
@@ -385,6 +453,11 @@ export function useQuestionBankFilters({
     setActiveUploadMode,
     selectedLiveTestFilter,
     setSelectedLiveTestFilter,
+    selectedTestTypeFilter,
+    changeTestTypeFilter,
+    selectedTestFilter,
+    setSelectedTestFilter,
+    filterTestOptions,
     searchQuery,
     setSearchQuery,
     viewModeFilter,
