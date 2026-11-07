@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Question, Subject, Chapter, MockTest } from '@/types';
 import { api } from '@/services/api';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import { getErrorMessage } from '@/lib/errors';
 import {
   computeQuestionBankStats,
@@ -445,6 +446,30 @@ export function useQuestionBankFilters({
     }
   }, [currentPage, totalPages]);
 
+  // Bulk action: add the selected bank questions to a chosen test (any test of the exam list,
+  // independent of the list filter). Questions already in that test are skipped.
+  const linkQuestionsToTest = async (testId: string, ids: string[]) => {
+    const current = await api.getTestAssignedQuestions(testId);
+    const alreadyIn = new Set(current.map((r) => r.questionId));
+    const toAdd = ids.filter((id) => !alreadyIn.has(id));
+    if (toAdd.length === 0) {
+      showToast('The selected questions are already in this test.');
+      return;
+    }
+    const batch = await runConfirmedBatch(toAdd, (id) => api.addQuestionToTest(testId, id, 1, 0));
+    const added = batch.results.map((r) => r.input);
+    if (testId === selectedTestFilter && added.length) {
+      setTestQuestionIds((prev) => [...prev, ...added]);
+    }
+    const testName = filterTestOptions.find((t) => t.id === testId)?.title ?? 'the test';
+    showToast(
+      `${added.length} added to "${testName}".` +
+        (batch.failures.length
+          ? ` ${batch.failures.length} failed: ${batch.failures[0].error}`
+          : '')
+    );
+  };
+
   return {
     activeUploadMode,
     setActiveUploadMode,
@@ -455,6 +480,7 @@ export function useQuestionBankFilters({
     selectedTestFilter,
     setSelectedTestFilter,
     filterTestOptions,
+    linkQuestionsToTest,
     searchQuery,
     setSearchQuery,
     viewModeFilter,

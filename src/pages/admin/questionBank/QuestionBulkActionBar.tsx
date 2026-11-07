@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Download } from 'lucide-react';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 
@@ -16,7 +17,11 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
     handleExportSelectedCSV,
     handleBulkDelete,
     setSelectedRowIds,
+    filterTestOptions,
+    linkQuestionsToTest,
   } = qb;
+  const [targetTestId, setTargetTestId] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
   return (
     <>
       {/* BULK SELECTION ACTION BAR */}
@@ -42,6 +47,34 @@ export function QuestionBulkActionBar({ qb }: QuestionBulkActionBarProps) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <select
+              aria-label="Test to add selected questions to"
+              value={targetTestId}
+              onChange={(e) => setTargetTestId(e.target.value)}
+              className="max-w-[220px] px-2 py-1.5 rounded-lg border border-blue-300 dark:border-blue-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
+            >
+              <option value="">Add to test…</option>
+              {filterTestOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!targetTestId || isLinking}
+              onClick={async () => {
+                setIsLinking(true);
+                try {
+                  await linkQuestionsToTest(targetTestId, [...selectedRowIds]);
+                } finally {
+                  setIsLinking(false);
+                }
+              }}
+              className="px-3 py-1.5 bg-[#026BFC] text-white rounded-lg text-xs font-bold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isLinking ? 'Adding…' : `Add ${selectedRowIds.size} to test`}
+            </button>
             <button
               type="button"
               onClick={() => handleBulkStatusChange('published')}
