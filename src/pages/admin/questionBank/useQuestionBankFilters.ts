@@ -87,7 +87,7 @@ interface QuestionBankFiltersInput {
   topics: Chapter[];
   isLoading: boolean;
   liveQuestionIndex: Record<string, string>;
-  exams: { id: string; title: string }[];
+  exams: { id: string; title: string; slug?: string }[];
   showToast: (msg: string) => void;
 }
 
@@ -318,6 +318,13 @@ export function useQuestionBankFilters({
         ? topics.filter((t) => lower(t.name || '').includes(term)).map((t) => t.id)
         : undefined,
       sourceExam: selectedExamFilter !== 'all' ? selectedExamFilter : undefined,
+      // Questions store the exam's slug (e.g. "wbpsc-clerkship") as well as its title
+      sourceExamAliases:
+        selectedExamFilter !== 'all'
+          ? [exams.find((ex) => ex.title === selectedExamFilter)?.slug].filter((v): v is string =>
+              Boolean(v)
+            )
+          : undefined,
       subjectName,
       subjectIds: subjectName
         ? subjects.filter((s) => lower(s.name || '').includes(lower(subjectName))).map((s) => s.id)
@@ -340,6 +347,7 @@ export function useQuestionBankFilters({
     debouncedSearch,
     viewModeFilter,
     selectedExamFilter,
+    exams,
     selectedSubjectFilter,
     selectedTopicFilter,
     selectedTypeFilter,

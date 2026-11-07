@@ -96,12 +96,12 @@ describe('question bank server query', () => {
     await getQuestionBankPage(query, 1, 10);
 
     expect(opArgs('not')).toContainEqual(['source_exam', 'is', null]);
-    expect(opArgs('ilike')).toContainEqual(['source_exam', '%WBP%']);
     expect(opArgs('in')).toContainEqual(['subject_id', ['sub_geo']]);
     expect(opArgs('in')).toContainEqual(['chapter_id', ['ch_rivers']]);
     expect(opArgs('eq')).toContainEqual(['source_type', 'pyq']);
     expect(opArgs('eq')).toContainEqual(['source_year', 2024]);
     const ors = opArgs('or').map((a) => a[0] as string);
+    expect(ors.some((o) => o.includes('source_exam.ilike."%WBP%"'))).toBe(true);
     const searchOr = ors.find((o) => o.includes('question_text.ilike'));
     expect(searchOr).toContain('option_a.ilike."%kolkata%"');
     expect(searchOr).toContain('subject_id.in.("sub_geo")');

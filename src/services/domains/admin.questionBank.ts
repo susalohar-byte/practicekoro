@@ -27,6 +27,8 @@ export interface QuestionBankQuery {
   searchChapterIds?: string[];
   /** Exam filter: source exam contains this text. */
   sourceExam?: string;
+  /** Other spellings of the source exam (its slug): a question matches if any of them matches. */
+  sourceExamAliases?: string[];
   /** Subject filter: subject name contains `subjectName` (resolved to `subjectIds`). */
   subjectName?: string;
   subjectIds?: string[];
@@ -124,8 +126,11 @@ export function matchesQuestionBankQuery(q: Question, query: QuestionBankQuery):
   }
 
   if (query.sourceExam) {
-    if (!q.sourceExam || !q.sourceExam.toLowerCase().includes(query.sourceExam.toLowerCase()))
-      return false;
+    const names = [query.sourceExam, ...(query.sourceExamAliases ?? [])].map((n) =>
+      n.toLowerCase()
+    );
+    const src = (q.sourceExam ?? '').toLowerCase();
+    if (!src || !names.some((n) => src.includes(n))) return false;
   }
   if (query.subjectName) {
     if (!q.subjectName || !q.subjectName.toLowerCase().includes(query.subjectName.toLowerCase()))
@@ -177,7 +182,12 @@ function applyQuestionBankQuery<Q extends FilterableQuery>(
     q = q.or(parts.join(','));
   }
 
-  if (query.sourceExam) q = q.ilike('source_exam', likeValue(query.sourceExam));
+  if (query.sourceExam) {
+    const names = [query.sourceExam, ...(query.sourceExamAliases ?? [])];
+    q = q.or(
+      names.map((n) => `source_exam.ilike."${likeValue(n).replace(/"/g, '\\"')}"`).join(',')
+    );
+  }
   if (query.subjectName && query.subjectIds) q = q.in('subject_id', query.subjectIds);
   if (query.topicName && query.chapterIds) q = q.in('chapter_id', query.chapterIds);
 
