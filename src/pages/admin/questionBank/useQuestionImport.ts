@@ -93,6 +93,37 @@ export function useQuestionImport({
     };
   }, [importMode, importExamId]);
 
+  // Opening the import box starts from the exam / subject / topic chosen in the list filters
+  useEffect(() => {
+    if (!isImportModalOpen) return;
+    if (!importExam && exams.some((ex) => ex.title === selectedExamFilter)) {
+      setImportExam(selectedExamFilter);
+    }
+    if (!importSubjectId && selectedSubjectFilter !== 'all') {
+      const sub = subjects.find(
+        (s) => s.name.trim().toLowerCase() === selectedSubjectFilter.toLowerCase()
+      );
+      if (sub) {
+        setImportSubjectId(sub.id);
+        const topic = topics.find(
+          (t) =>
+            t.subjectId === sub.id &&
+            t.name.trim().toLowerCase() === selectedTopicFilter.toLowerCase()
+        );
+        if (topic) setImportTopicId(topic.id);
+      }
+    }
+    // Only when the box opens; later filter changes do not overwrite the user's choice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isImportModalOpen]);
+
+  // A preview belongs to the mode it was parsed in: switching mode clears it
+  useEffect(() => {
+    setImportFile(null);
+    setParsedImportQuestions([]);
+    setImportPreviewStats(null);
+  }, [importMode]);
+
   // Download Templates (.CSV) with UTF-8 BOM for Bengali support
   const downloadTemplate = (mode: UploadMode, format: 'csv' | 'txt' = 'csv') =>
     downloadQuestionTemplate(mode, format, showToast);
@@ -149,15 +180,6 @@ export function useQuestionImport({
           errors.push(`Question #${err.questionNumber}: ${err.reason}`);
         });
 
-        const activeSubject =
-          importSubject ??
-          (selectedSubjectFilter !== 'all' ? findSubject(selectedSubjectFilter) : undefined);
-        const activeTopic =
-          importTopic ??
-          (selectedTopicFilter !== 'all'
-            ? findTopic(selectedTopicFilter, activeSubject?.id)
-            : undefined);
-
         parsedTxt.valid.forEach((q) => {
           const base: Question = {
             id: crypto.randomUUID(),
@@ -179,26 +201,13 @@ export function useQuestionImport({
             tags: [],
           };
 
-          if (importMode === 'exam') {
-            parsed.push({
-              ...base,
-              sourceExam: selectedExamFilter !== 'all' ? selectedExamFilter : undefined,
-              sourceType: 'other',
-            });
-          } else {
-            parsed.push({
-              ...base,
-              sourceType: 'topic',
-              subjectName:
-                activeSubject?.name ||
-                (selectedSubjectFilter !== 'all' ? selectedSubjectFilter : undefined),
-              subjectId: activeSubject?.id,
-              topicName:
-                activeTopic?.name ||
-                (selectedTopicFilter !== 'all' ? selectedTopicFilter : undefined),
-              topicId: activeTopic?.id,
-            });
-          }
+          // TXT rows name no exam / subject / topic: the choice made in the import box is applied
+          // when importing, so changing it after the preview still takes effect.
+          parsed.push(
+            importMode === 'exam'
+              ? { ...base, sourceType: 'other' }
+              : { ...base, sourceType: 'topic' }
+          );
         });
 
         setImportPreviewStats({
