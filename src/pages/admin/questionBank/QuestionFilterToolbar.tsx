@@ -222,7 +222,6 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
             <select
               aria-label="Test type"
               value={selectedTestTypeFilter}
-              disabled={selectedExamFilter === 'all'}
               onChange={(e) => {
                 changeTestTypeFilter(e.target.value as 'all' | 'full_mock' | 'pyq');
                 setCurrentPage(1);
@@ -238,19 +237,17 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
             <select
               aria-label="Test"
               value={selectedTestFilter}
-              disabled={selectedExamFilter === 'all'}
               onChange={(e) => {
                 setSelectedTestFilter(e.target.value);
                 setCurrentPage(1);
               }}
               className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="all">
-                {selectedExamFilter === 'all' ? 'Select an exam first' : 'Test: All Tests'}
-              </option>
+              <option value="all">Test: All Tests</option>
               {filterTestOptions.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title}
+                  {selectedExamFilter === 'all' && t.examTitle ? ` · ${t.examTitle}` : ''}
                   {t.totalQuestions ? ` (${t.totalQuestions} Q)` : ''}
                 </option>
               ))}

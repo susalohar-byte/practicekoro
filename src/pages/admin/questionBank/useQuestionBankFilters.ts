@@ -157,13 +157,10 @@ export function useQuestionBankFilters({
   useEffect(() => {
     setSelectedTestFilter('all');
     setTestQuestionIds([]);
-    if (!filterExamId) {
-      setExamTestsForFilter([]);
-      return;
-    }
+    // No exam chosen: list the tests of every exam (the option shows which exam each belongs to)
     let cancelled = false;
     api
-      .getAllAdminTests({ examId: filterExamId })
+      .getAllAdminTests(filterExamId ? { examId: filterExamId } : undefined)
       .then((tests) => {
         if (!cancelled) setExamTestsForFilter(tests);
       })
