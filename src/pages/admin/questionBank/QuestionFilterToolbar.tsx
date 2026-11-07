@@ -302,12 +302,15 @@ export function QuestionFilterToolbar({ qb }: QuestionFilterToolbarProps) {
               className="w-full bg-[#F8FAFC] dark:bg-[#070D1E] border border-slate-200/80 dark:border-slate-700/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#026BFC] cursor-pointer"
             >
               <option value="all">Year: All Years</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-              <option value="2023">2023</option>
-              <option value="2022">2022</option>
-              <option value="2021">2021</option>
+              {/* Old PYQs (e.g. 2007-2020) are listed too: from this year back to 2000 */}
+              {Array.from(
+                { length: new Date().getFullYear() - 1999 },
+                (_, i) => new Date().getFullYear() - i
+              ).map((year) => (
+                <option key={year} value={String(year)}>
+                  {year}
+                </option>
+              ))}
             </select>
           </div>
 

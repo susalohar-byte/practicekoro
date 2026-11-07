@@ -412,6 +412,18 @@ export function useQuestionImport({
       const created = batch.results.map((r) => r.value);
       setQuestions((prev) => [...created, ...prev]);
       setParsedImportQuestions(batch.failures.map((f) => f.input));
+      // The preview must describe what is left to import (the failed rows), not the old upload
+      setImportPreviewStats(
+        batch.failures.length
+          ? {
+              total: batch.failures.length,
+              valid: batch.failures.length,
+              errors: batch.failures.length,
+              duplicates: 0,
+              errorList: batch.failures.slice(0, 5).map((f) => `Not saved: ${f.error}`),
+            }
+          : null
+      );
 
       // Questions are already saved in the Question Bank. Adding them to the chosen mock test is
       // a second step; if it fails for some questions, those stay in the bank and are reported.
