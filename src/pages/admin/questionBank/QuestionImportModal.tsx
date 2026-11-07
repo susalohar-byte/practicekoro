@@ -29,6 +29,8 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     setImportTopicId,
     importTopicOptions,
     importNeedsTopic,
+    importTestType,
+    setImportTestType,
     importTestId,
     setImportTestId,
     importTests,
@@ -160,9 +162,38 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   ))}
                 </select>
 
-                {/* Optional: the mock test (from Mock Test Management) these questions are added to */}
+                {/* Kind of exam test: Full Mock or PYQ */}
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mt-3 mb-1.5">
-                  Mock test (optional, questions will be added to it):
+                  Test type:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { value: 'full_mock', label: 'Full Mock' },
+                      { value: 'pyq', label: 'PYQ' },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={importTestType === opt.value}
+                      onClick={() => setImportTestType(opt.value)}
+                      className={cn(
+                        'px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer',
+                        importTestType === opt.value
+                          ? 'bg-blue-50 dark:bg-blue-950/40 border-[#026BFC] text-[#026BFC]'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Optional: the test (from Mock Test Management) these questions are added to */}
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mt-3 mb-1.5">
+                  {importTestType === 'pyq' ? 'PYQ paper' : 'Full Mock test'} (optional, questions
+                  will be added to it):
                 </label>
                 <select
                   aria-label="Mock test"
@@ -177,7 +208,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                       : isLoadingImportTests
                         ? 'Loading tests...'
                         : importTests.length === 0
-                          ? 'No tests for this exam yet (Question Bank only)'
+                          ? `No ${importTestType === 'pyq' ? 'PYQ' : 'Full Mock'} tests for this exam yet (Question Bank only)`
                           : '-- Question Bank only (no test) --'}
                   </option>
                   {importTests.map((t) => (

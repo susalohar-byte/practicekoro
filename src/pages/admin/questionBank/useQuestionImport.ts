@@ -7,6 +7,9 @@ import { parseCsvRaw } from '@/utils/csvParser';
 import { parseQuestionsTxt } from '@/utils/txtQuestionParser';
 import { downloadQuestionTemplate, modeIdx } from './questionImportTemplates';
 
+/** Exam test kinds that can receive uploaded questions from the By Exam mode. */
+export type ImportTestType = 'full_mock' | 'pyq';
+
 interface QuestionImportInput {
   subjects: Subject[];
   topics: Chapter[];
@@ -40,9 +43,17 @@ export function useQuestionImport({
   const [importSubjectId, setImportSubjectId] = useState('');
   const [importTopicId, setImportTopicId] = useState('');
   // By Exam import: optional mock test (from Mock Test Management) the questions are added to
+  // Which kind of exam test the questions go into: a Full Mock or a PYQ paper
+  const [importTestType, setImportTestTypeState] = useState<ImportTestType>('full_mock');
   const [importTestId, setImportTestId] = useState('');
-  const [importTests, setImportTests] = useState<MockTest[]>([]);
+  const [examTests, setExamTests] = useState<MockTest[]>([]);
+  const importTests = examTests.filter((t) => t.testType === importTestType);
   const [isLoadingImportTests, setIsLoadingImportTests] = useState(false);
+  // Changing the type clears the test choice, since the chosen test may be the other type
+  const setImportTestType = (type: ImportTestType) => {
+    setImportTestTypeState(type);
+    setImportTestId('');
+  };
   const importExamId = exams.find((ex) => ex.title === importExam)?.id ?? '';
   const importSubject = subjects.find((s) => s.id === importSubjectId);
   const importTopicOptions = topics.filter((t) => t.subjectId === importSubjectId);
@@ -61,7 +72,7 @@ export function useQuestionImport({
   useEffect(() => {
     setImportTestId('');
     if (importMode !== 'exam' || !importExamId) {
-      setImportTests([]);
+      setExamTests([]);
       return;
     }
     let cancelled = false;
@@ -69,9 +80,9 @@ export function useQuestionImport({
       setIsLoadingImportTests(true);
       try {
         const tests = await api.getAllAdminTests({ examId: importExamId });
-        if (!cancelled) setImportTests(tests);
+        if (!cancelled) setExamTests(tests);
       } catch {
-        if (!cancelled) setImportTests([]);
+        if (!cancelled) setExamTests([]);
       } finally {
         if (!cancelled) setIsLoadingImportTests(false);
       }
@@ -386,11 +397,16 @@ export function useQuestionImport({
     if (!parsedImportQuestions.length || isImporting || importNeedsExam || importNeedsTopic) return;
     setIsImporting(true);
     try {
+      // A PYQ upload is tagged as PYQ so the question bank's Type filter finds it; Full Mock rows
+      // keep their own source (the bank shows them as "full mock").
       const toImport =
         importMode === 'exam'
-          ? parsedImportQuestions.map((q) =>
-              q.sourceExam ? q : { ...q, sourceExam: importExam || undefined }
-            )
+          ? parsedImportQuestions.map((q) => {
+              const withExam = q.sourceExam ? q : { ...q, sourceExam: importExam || undefined };
+              return importTestType === 'pyq'
+                ? { ...withExam, sourceType: 'pyq' as const }
+                : withExam;
+            })
           : parsedImportQuestions.map(placeInImportTopic);
       const batch = await runConfirmedBatch(toImport, (q) => api.createQuestion(q));
       const created = batch.results.map((r) => r.value);
@@ -451,6 +467,8 @@ export function useQuestionImport({
     setImportTopicId,
     importTopicOptions,
     importNeedsTopic,
+    importTestType,
+    setImportTestType,
     importTestId,
     setImportTestId,
     importTests,

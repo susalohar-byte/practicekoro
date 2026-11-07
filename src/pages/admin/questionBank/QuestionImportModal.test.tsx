@@ -24,6 +24,8 @@ function makeQb(overrides: Record<string, unknown> = {}) {
     setImportTopicId: vi.fn(),
     importTopicOptions: [],
     importNeedsTopic: false,
+    importTestType: 'full_mock',
+    setImportTestType: vi.fn(),
     importTestId: '',
     setImportTestId: vi.fn(),
     importTests: [
@@ -55,6 +57,13 @@ describe('QuestionImportModal mock test picker', () => {
 
     fireEvent.change(select, { target: { value: 't2' } });
     expect(qb.setImportTestId).toHaveBeenCalledWith('t2');
+  });
+
+  it('switches between Full Mock and PYQ test types', () => {
+    const qb = makeQb();
+    render(<QuestionImportModal qb={qb} />);
+    fireEvent.click(screen.getByRole('button', { name: 'PYQ' }));
+    expect(qb.setImportTestType).toHaveBeenCalledWith('pyq');
   });
 
   it('keeps the test picker disabled until an exam is chosen', () => {
