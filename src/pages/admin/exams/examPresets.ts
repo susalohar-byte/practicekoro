@@ -93,7 +93,7 @@ export const CANONICAL_EXAMS_PRESET: EnrichedExamRow[] = [
     statusLabel: 'Published',
     isActive: true,
     orderIndex: 4,
-    iconName: '/images/exams/logo_wbpsc.png',
+    iconName: '/images/exams/logo_wbpsc_official.png',
     createdByName: 'Admin',
     createdAtFormatted: '18 Sep 2026, 03:00 PM',
     updatedAtFormatted: '20 Sep 2026, 01:25 PM',

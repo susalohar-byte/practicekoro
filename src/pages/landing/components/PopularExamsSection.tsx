@@ -68,7 +68,7 @@ export const POPULAR_EXAMS: ExamData[] = [
     id: 'clerkship',
     name: 'Clerkship',
     bengaliName: 'WBPSC ক্লার্কশিপ রিক্রুটমেন্ট পরীক্ষা',
-    logo: presetLogo('logo_wbpsc.png'),
+    logo: presetLogo('logo_wbpsc_official.png'),
     badge: 'PSC Bengal',
     description:
       'ওয়েস্ট বেঙ্গল পাবলিক সার্ভিস কমিশনের ক্লার্কশিপ পার্ট-১ ও পার্ট-২ পরীক্ষার জন্য সেরা প্রশ্নসংগ্রহ ও পূর্ণাঙ্গ টেস্ট সিরিজ।',

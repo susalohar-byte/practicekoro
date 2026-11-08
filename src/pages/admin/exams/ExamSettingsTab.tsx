@@ -96,7 +96,7 @@ export function ExamSettingsTab({ qb, selectedExam }: ExamSettingsTabProps) {
                     url: '/images/exams/logo_kp.png',
                     label: 'Kolkata Police',
                   },
-                  { name: 'WBPSC', url: '/images/exams/logo_wbpsc.png', label: 'WBPSC' },
+                  { name: 'WBPSC', url: '/images/exams/logo_wbpsc_official.png', label: 'WBPSC' },
                   {
                     name: 'WBSSC Group C/D',
                     url: '/images/exams/emblem_wbssc.png',
