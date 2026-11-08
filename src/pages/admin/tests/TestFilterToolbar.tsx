@@ -7,22 +7,25 @@ export interface TestFilterToolbarProps {
 
 export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
   const {
-    exams,
-    subjects,
+    activeTab,
+    examFilterOptions,
+    changeExamFilter,
+    subjectFilterOptions,
+    chapterFilterOptions,
+    changeSubjectFilter,
+    changeChapterFilter,
     searchTerm,
     setSearchTerm,
     selectedExamId,
-    setSelectedExamId,
     selectedSubjectId,
-    setSelectedSubjectId,
     selectedChapterId,
-    setSelectedChapterId,
     selectedStatus,
     setSelectedStatus,
     handleApplyFilter,
     handleResetFilters,
-    filteredChapters,
   } = testsState;
+  // Full Mock and PYQ tests belong to an exam, not to a subject / topic
+  const isExamTab = activeTab === 'full_mock' || activeTab === 'pyq';
   return (
     <>
       {/* Filter Toolbar */}
@@ -41,50 +44,71 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
             />
           </div>
 
-          {/* All Exams Dropdown */}
+          {/* All Exams Dropdown: applies immediately; lists exams that have tests on this tab */}
           <select
+            aria-label="Exam"
             value={selectedExamId}
-            onChange={(e) => setSelectedExamId(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
+            onChange={(e) => changeExamFilter(e.target.value)}
+            className={
+              'px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200 ' +
+              (selectedExamId
+                ? 'border-blue-500 font-semibold'
+                : 'border-slate-200 dark:border-slate-700')
+            }
           >
             <option value="">All Exams</option>
-            {exams.map((ex) => (
+            {examFilterOptions.map((ex) => (
               <option key={ex.id} value={ex.id}>
-                {ex.title}
+                {ex.title} ({ex.count})
               </option>
             ))}
           </select>
 
-          {/* All Subjects Dropdown */}
-          <select
-            value={selectedSubjectId}
-            onChange={(e) => {
-              setSelectedSubjectId(e.target.value);
-              setSelectedChapterId('');
-            }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
-          >
-            <option value="">All Subjects</option>
-            {subjects.map((sub) => (
-              <option key={sub.id} value={sub.id}>
-                {sub.name}
-              </option>
-            ))}
-          </select>
+          {!isExamTab && (
+            <>
+              {/* Subject + Topic dropdowns (topic tests): apply immediately, show test counts */}
+              <select
+                aria-label="Subject"
+                value={selectedSubjectId}
+                onChange={(e) => changeSubjectFilter(e.target.value)}
+                className={
+                  'px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200 ' +
+                  (selectedSubjectId
+                    ? 'border-blue-500 font-semibold'
+                    : 'border-slate-200 dark:border-slate-700')
+                }
+              >
+                <option value="">All Subjects</option>
+                {subjectFilterOptions.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.name} ({sub.count})
+                  </option>
+                ))}
+              </select>
 
-          {/* All Topics Dropdown */}
-          <select
-            value={selectedChapterId}
-            onChange={(e) => setSelectedChapterId(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
-          >
-            <option value="">All Topics</option>
-            {filteredChapters.map((ch) => (
-              <option key={ch.id} value={ch.id}>
-                {ch.name}
-              </option>
-            ))}
-          </select>
+              <select
+                aria-label="Topic"
+                value={selectedChapterId}
+                onChange={(e) => changeChapterFilter(e.target.value)}
+                disabled={!selectedSubjectId}
+                className={
+                  'px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed ' +
+                  (selectedChapterId
+                    ? 'border-blue-500 font-semibold'
+                    : 'border-slate-200 dark:border-slate-700')
+                }
+              >
+                <option value="">
+                  {selectedSubjectId ? 'All Topics' : 'Select a subject first'}
+                </option>
+                {chapterFilterOptions.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.name} ({ch.count})
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
 
           {/* All Status Dropdown */}
           <select

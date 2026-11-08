@@ -332,6 +332,62 @@ export function useAdminTests() {
     });
   }, [tests, activeTab, appliedFilters]);
 
+  // Exam dropdown: only exams that have tests on the current tab, with how many
+  const examFilterOptions = useMemo(() => {
+    const countByExam = new Map<string, number>();
+    for (const t of tests) {
+      if (activeTab !== 'all' && t.testType !== activeTab) continue;
+      if (t.examId) countByExam.set(t.examId, (countByExam.get(t.examId) || 0) + 1);
+    }
+    return exams
+      .filter((ex) => countByExam.has(ex.id) || ex.id === selectedExamId)
+      .map((ex) => ({ id: ex.id, title: ex.title, count: countByExam.get(ex.id) || 0 }));
+  }, [tests, exams, activeTab, selectedExamId]);
+
+  // Subject / topic dropdowns (topic tests): only those that have tests on the current tab
+  const subjectFilterOptions = useMemo(() => {
+    const countBySubject = new Map<string, number>();
+    for (const t of tests) {
+      if (activeTab !== 'all' && t.testType !== activeTab) continue;
+      if (t.subjectId) countBySubject.set(t.subjectId, (countBySubject.get(t.subjectId) || 0) + 1);
+    }
+    return subjects
+      .filter((s) => countBySubject.has(s.id) || s.id === selectedSubjectId)
+      .map((s) => ({ id: s.id, name: s.name, count: countBySubject.get(s.id) || 0 }));
+  }, [tests, subjects, activeTab, selectedSubjectId]);
+
+  const chapterFilterOptions = useMemo(() => {
+    const countByChapter = new Map<string, number>();
+    for (const t of tests) {
+      if (activeTab !== 'all' && t.testType !== activeTab) continue;
+      if (selectedSubjectId && t.subjectId !== selectedSubjectId) continue;
+      if (t.chapterId) countByChapter.set(t.chapterId, (countByChapter.get(t.chapterId) || 0) + 1);
+    }
+    return filteredChapters
+      .filter((c) => countByChapter.has(c.id) || c.id === selectedChapterId)
+      .map((c) => ({ id: c.id, name: c.name, count: countByChapter.get(c.id) || 0 }));
+  }, [tests, filteredChapters, activeTab, selectedSubjectId, selectedChapterId]);
+
+  // Choosing a subject (or topic) filters straight away; a new subject clears the topic
+  const changeSubjectFilter = (subjectId: string) => {
+    setSelectedSubjectId(subjectId);
+    setSelectedChapterId('');
+    setAppliedFilters((prev) => ({ ...prev, subjectId, chapterId: '' }));
+    setCurrentPage(1);
+  };
+  const changeChapterFilter = (chapterId: string) => {
+    setSelectedChapterId(chapterId);
+    setAppliedFilters((prev) => ({ ...prev, chapterId }));
+    setCurrentPage(1);
+  };
+
+  // Choosing an exam filters straight away (no extra "Filter" click needed)
+  const changeExamFilter = (examId: string) => {
+    setSelectedExamId(examId);
+    setAppliedFilters((prev) => ({ ...prev, examId }));
+    setCurrentPage(1);
+  };
+
   // Pagination calculation
   const totalItems = filteredTests.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -492,6 +548,12 @@ export function useAdminTests() {
     searchTerm,
     setSearchTerm,
     selectedExamId,
+    examFilterOptions,
+    changeExamFilter,
+    subjectFilterOptions,
+    chapterFilterOptions,
+    changeSubjectFilter,
+    changeChapterFilter,
     setSelectedExamId,
     selectedSubjectId,
     setSelectedSubjectId,
