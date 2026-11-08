@@ -395,8 +395,35 @@ export function useAdminTests() {
       }
       alert('Mock test deleted successfully.');
     } catch (err) {
+      const message = getErrorMessage(err, 'Delete failed');
+      // The database refuses to delete a test that students attempted (or a Live Test uses),
+      // so their scores and history are not lost. Offer to archive it instead.
+      if (/Cannot delete this test|Archive it instead/i.test(message)) {
+        const test = tests.find((t) => t.id === testId);
+        if (test?.status === 'archived') {
+          alert(
+            'This mock test has student attempts or is used by a Live Test, so it cannot be deleted. It is already archived (hidden from students).'
+          );
+          return;
+        }
+        const archive = confirm(
+          'This mock test cannot be deleted because students have attempted it (or a Live Test uses it). ' +
+            'Deleting it would erase their scores.\n\nArchive it instead? It will be hidden from students and their history is kept.'
+        );
+        if (!archive) return;
+        try {
+          const updated = await api.updateTest(testId, { status: 'archived' });
+          const merged = (t: MockTest): MockTest => (t.id === testId ? { ...t, ...updated } : t);
+          setTests((prev) => prev.map(merged));
+          if (selectedTest?.id === testId) setSelectedTest((prev) => (prev ? merged(prev) : prev));
+          alert('Mock test archived. It is hidden from students.');
+        } catch (archiveErr) {
+          alert('Failed to archive mock test: ' + getErrorMessage(archiveErr, 'Archive failed'));
+        }
+        return;
+      }
       console.error('Delete failed:', err);
-      alert('Failed to delete mock test: ' + getErrorMessage(err, 'Delete failed'));
+      alert('Failed to delete mock test: ' + message);
     }
   };
 
