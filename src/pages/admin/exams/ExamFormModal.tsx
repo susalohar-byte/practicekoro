@@ -221,7 +221,8 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                               disabled={isUploadingLogo}
                               className="hidden"
                               onChange={async (ev) => {
-                                const file = ev.target.files?.[0];
+                                const input = ev.currentTarget;
+                                const file = input.files?.[0];
                                 if (!file) return;
                                 try {
                                   setIsUploadingLogo(true);
@@ -231,6 +232,8 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                                   alert('Failed to upload image: ' + getErrorMessage(err, 'Error'));
                                 } finally {
                                   setIsUploadingLogo(false);
+                                  // Allow picking the same file again (e.g. retry after an error)
+                                  input.value = '';
                                 }
                               }}
                             />

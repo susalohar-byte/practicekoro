@@ -511,6 +511,21 @@ export async function getPublishedExamTestCount(examId: string): Promise<number>
   return [...examByTest.values()].filter((ids) => ids.has(examId)).length;
 }
 
+/**
+ * Exam icon / logo: stored in the `banners` Storage bucket through the validated upload function
+ * (the same path as subject and test icons). Only the public URL is saved on the exam row.
+ */
+export async function uploadExamIcon(file: File): Promise<string> {
+  validateRasterFile(file, 'banners', 2 * 1024 * 1024);
+  if (isSupabaseConfigured) return uploadValidatedImage(file, 'banners');
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Image read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function uploadPopularExamImage(
   file: File,
   _cardId: string,
@@ -573,5 +588,6 @@ export const adminExamsApi = {
   getPublishedExamTestCount,
   savePopularExams,
   uploadPopularExamImage,
+  uploadExamIcon,
   subscribeToPopularExamUpdates,
 };

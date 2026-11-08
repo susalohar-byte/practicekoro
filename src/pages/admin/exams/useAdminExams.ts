@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '@/services/api';
-import { supabaseRuntime, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import type { Exam, MockTest } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
 import { LEGACY_EXAM_CATEGORY_NAMES } from '@/services/domains/admin.examCategories';
@@ -90,31 +90,9 @@ export function useAdminExams() {
   const [formIconName, setFormIconName] = useState('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  // File upload helper: uploads to Supabase storage if available, falls back to Base64 data URL
-  const handleUploadImageFile = async (file: File): Promise<string> => {
-    if (isSupabaseConfigured) {
-      {
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const path = `exam-logos/${Date.now()}-${cleanName}`;
-        const { data, error } = await supabaseRuntime.storage.from('banners').upload(path, file, {
-          cacheControl: '31536000',
-          upsert: true,
-        });
-        if (!error && data) {
-          return supabaseRuntime.storage.from('banners').getPublicUrl(data.path).data.publicUrl;
-        }
-      }
-      throw new Error('Image upload failed. Check Storage permissions.');
-    }
-
-    // Fallback to Base64 Data URL (durable, works offline & online)
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read image file'));
-      reader.readAsDataURL(file);
-    });
-  };
+  // Exam icon upload: goes through the validated Storage upload function (like subject and test
+  // icons). A direct client write to the bucket is rejected by Storage RLS.
+  const handleUploadImageFile = (file: File): Promise<string> => api.uploadExamIcon(file);
 
   // The confirmed backend record remains authoritative even if a later refresh fails.
   const applySavedExam = (saved: Exam) => {
