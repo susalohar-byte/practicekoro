@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import { cn } from '@/lib/utils';
 import { getPageNumbers } from '@/utils/pagination';
@@ -53,6 +55,32 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
     handleDeleteTest,
     handleDuplicateTest,
   } = testsState;
+
+  // The row menu is drawn on top of the page (portal), not inside the table's scroll box,
+  // so it is never cut off on the last rows or when there are only a few tests.
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
+  const closeMenu = () => setOpenActionMenuId(null);
+  useEffect(() => {
+    if (!openActionMenuId) return;
+    // A fixed-position menu would drift away from its row when the page scrolls or resizes
+    const close = () => setOpenActionMenuId(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [openActionMenuId, setOpenActionMenuId]);
+  const MENU_WIDTH = 176; // w-44
+  const MENU_HEIGHT = 250; // six items + divider
+  const menuPosition = (rect: DOMRect): CSSProperties => {
+    const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8));
+    const roomBelow = window.innerHeight - rect.bottom;
+    // Not enough room under the button: open upwards instead
+    return roomBelow < MENU_HEIGHT + 8 && rect.top > roomBelow
+      ? { position: 'fixed', left, bottom: window.innerHeight - rect.top + 4 }
+      : { position: 'fixed', left, top: rect.bottom + 4 };
+  };
   return (
     <>
       {/* Left Column: Table Container */}
@@ -260,107 +288,117 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                         >
                           <button
                             type="button"
-                            onClick={() =>
-                              setOpenActionMenuId(openActionMenuId === t.id ? null : t.id)
-                            }
+                            aria-label={`Actions for ${t.title}`}
+                            aria-haspopup="menu"
+                            aria-expanded={openActionMenuId === t.id}
+                            onClick={(e) => {
+                              if (openActionMenuId === t.id) return closeMenu();
+                              setMenuAnchor(e.currentTarget.getBoundingClientRect());
+                              setOpenActionMenuId(t.id);
+                            }}
                             className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                           >
                             <MoreHorizontal className="w-4 h-4 text-slate-500" />
                           </button>
 
-                          {openActionMenuId === t.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-30"
-                                onClick={() => setOpenActionMenuId(null)}
-                              />
-                              <div className="absolute right-0 mt-1 w-44 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 shadow-xl z-40 py-1 text-xs">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    handleSelectRow(t);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                          {openActionMenuId === t.id &&
+                            menuAnchor &&
+                            createPortal(
+                              <>
+                                <div className="fixed inset-0 z-[90]" onClick={closeMenu} />
+                                <div
+                                  role="menu"
+                                  style={menuPosition(menuAnchor)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-44 rounded-xl bg-white dark:bg-[#0A1024] border border-slate-200 dark:border-slate-800 shadow-xl z-[91] py-1 text-xs"
                                 >
-                                  <FileText className="w-3.5 h-3.5 text-blue-500" />
-                                  View Details
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleSelectRow(t);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                                    View Details
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setSelectedTest(t);
-                                    setShowDetailsPanel(true);
-                                    setDetailsTab('settings');
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5 text-blue-500" />
-                                  Edit Test & Icon
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setSelectedTest(t);
+                                      setShowDetailsPanel(true);
+                                      setDetailsTab('settings');
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                                    Edit Test & Icon
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setPreviewTest(t);
-                                    setIsPreviewModalOpen(true);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                >
-                                  <Play className="w-3.5 h-3.5 text-emerald-500" />
-                                  Preview Test
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setPreviewTest(t);
+                                      setIsPreviewModalOpen(true);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                  >
+                                    <Play className="w-3.5 h-3.5 text-emerald-500" />
+                                    Preview Test
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setSelectedTest(t);
-                                    setIsAddQuestionsModalOpen(true);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-cyan-500" />
-                                  Manage Questions
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setSelectedTest(t);
+                                      setIsAddQuestionsModalOpen(true);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                  >
+                                    <Plus className="w-3.5 h-3.5 text-cyan-500" />
+                                    Manage Questions
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    handleDuplicateTest(t.id);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-amber-500" />
-                                  Duplicate Test
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleDuplicateTest(t.id);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                  >
+                                    <Copy className="w-3.5 h-3.5 text-amber-500" />
+                                    Duplicate Test
+                                  </button>
 
-                                <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                                  <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    if (
-                                      confirm(
-                                        `Are you sure you want to delete mock test "${t.title}"?`
-                                      )
-                                    ) {
-                                      handleDeleteTest(t.id);
-                                    }
-                                  }}
-                                  className="w-full px-3 py-1.5 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Delete Test
-                                </button>
-                              </div>
-                            </>
-                          )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      if (
+                                        confirm(
+                                          `Are you sure you want to delete mock test "${t.title}"?`
+                                        )
+                                      ) {
+                                        handleDeleteTest(t.id);
+                                      }
+                                    }}
+                                    className="w-full px-3 py-1.5 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    Delete Test
+                                  </button>
+                                </div>
+                              </>,
+                              document.body
+                            )}
                         </td>
                       </tr>
                     );
