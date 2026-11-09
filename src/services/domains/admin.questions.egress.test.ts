@@ -17,9 +17,11 @@ import {
   getAdminQuestionsForTestContext,
   getAdminQuestionsPaged,
   getAdminQuestionsByIds,
+  primeOptionImageColumns,
 } from './admin.questions';
 
 beforeEach(() => {
+  primeOptionImageColumns(true);
   vi.clearAllMocks();
   mocks.calls = [];
   mocks.rows = [];

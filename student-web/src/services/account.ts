@@ -17,6 +17,7 @@ import type {
   SupportTicket,
   UpgradeOption,
 } from '@/types/models';
+import { optionImagesFrom } from '@/types/models';
 
 type Row = Record<string, unknown>;
 type Text = string | null;
@@ -126,6 +127,10 @@ interface BookmarkQuestionRow {
   explanation_bengali?: Text;
   difficulty?: Text;
   image_url?: Text;
+  option_a_image_url?: Text;
+  option_b_image_url?: Text;
+  option_c_image_url?: Text;
+  option_d_image_url?: Text;
 }
 
 interface BookmarkRow {
@@ -685,15 +690,7 @@ export async function fetchNotifications(): Promise<AppNotification[]> {
 // browser for the Saved Questions page (the Flutter app keeps it on the phone).
 // ---------------------------------------------------------------------------
 
-export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
-  const { data, error } = await supabase
-    .from('bookmarks')
-    .select(`
-      id,
-      question_id,
-      note,
-      created_at,
-      questions (
+const BOOKMARK_QUESTION_COLUMNS = `
         id,
         question_text,
         question_bengali_text,
@@ -705,11 +702,23 @@ export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
         explanation,
         explanation_bengali,
         difficulty,
-        image_url
+        image_url`;
+const OPTION_IMAGE_COLUMNS = 'option_a_image_url, option_b_image_url, option_c_image_url, option_d_image_url';
+
+export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
+  const read = (withOptionImages: boolean) =>
+    supabase
+      .from('bookmarks')
+      .select(
+        `id, question_id, note, created_at, questions (${BOOKMARK_QUESTION_COLUMNS}${
+          withOptionImages ? `, ${OPTION_IMAGE_COLUMNS}` : ''
+        })`
       )
-    `)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+  let { data, error } = await read(true);
+  // Database without the option image columns yet: read as before
+  if (error && /option_[a-d]_image_url/i.test(error.message ?? '')) ({ data, error } = await read(false));
   if (error) throw error;
   // The embed is many-to-one at runtime; the untyped client's parser guesses an array.
   return ((data ?? []) as unknown as BookmarkRow[]).map((r) => {
@@ -727,6 +736,12 @@ export async function fetchBookmarks(userId: string): Promise<Bookmark[]> {
           C: q.option_c || '',
           D: q.option_d || '',
         },
+        optionImages: optionImagesFrom({
+          optionAImageUrl: q.option_a_image_url,
+          optionBImageUrl: q.option_b_image_url,
+          optionCImageUrl: q.option_c_image_url,
+          optionDImageUrl: q.option_d_image_url,
+        }),
         marks: 1,
         negativeMarks: 0.25,
         selected: null,

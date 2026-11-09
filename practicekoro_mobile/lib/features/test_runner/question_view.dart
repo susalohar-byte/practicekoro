@@ -56,6 +56,7 @@ class QuestionOption extends StatelessWidget {
         state: state,
         stateLabel: stateLabel,
         onTap: onTap,
+        imageUrl: option.hasImage ? option.imageUrl : null,
       ),
     );
   }

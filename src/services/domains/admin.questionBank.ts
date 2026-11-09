@@ -2,7 +2,7 @@ import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabas
 import { loadAllPages } from '@/utils/loadAllPages';
 import type { Question } from '@/types';
 import { mapQuestionRow } from './admin.shared';
-import { ADMIN_QUESTION_COLUMNS, searchOrFilterValue } from './admin.questions';
+import { adminQuestionColumns, searchOrFilterValue } from './admin.questions';
 import type { FilterableQuery } from './queryFilters';
 
 /**
@@ -231,7 +231,7 @@ export async function getQuestionBankPage(
   const from = (Math.max(1, Math.floor(page) || 1) - 1) * size;
   let builder = supabase
     .from('questions')
-    .select(ADMIN_QUESTION_COLUMNS, { count: 'exact' })
+    .select(await adminQuestionColumns(), { count: 'exact' })
     .order('created_at', { ascending: false })
     .order('id', { ascending: false });
   builder = applyQuestionBankQuery(builder, query).range(from, from + size - 1);

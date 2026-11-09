@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'math_text.dart';
+import 'option_image.dart';
 import 'package:go_router/go_router.dart';
 
 /// PracticeKoro design system.
@@ -1248,6 +1249,9 @@ class UIOptionTile extends StatelessWidget {
   final String? stateLabel;
   final VoidCallback? onTap;
 
+  /// Optional option image, shown under the text (or alone for an image-only option).
+  final String? imageUrl;
+
   const UIOptionTile({
     super.key,
     required this.letter,
@@ -1256,6 +1260,7 @@ class UIOptionTile extends StatelessWidget {
     this.state = UIOptionState.normal,
     this.stateLabel,
     this.onTap,
+    this.imageUrl,
   });
 
   @override
@@ -1330,14 +1335,19 @@ class UIOptionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MathText(
-                        text,
-                        style: UI.option,
-                      ),
+                      if (text.isNotEmpty || imageUrl == null)
+                        MathText(
+                          text,
+                          style: UI.option,
+                        ),
                       if (secondaryText != null &&
                           secondaryText!.isNotEmpty &&
                           secondaryText != text)
                         MathText(secondaryText!, style: UI.caption),
+                      if (imageUrl != null && imageUrl!.isNotEmpty) ...[
+                        if (text.isNotEmpty) const SizedBox(height: 8),
+                        OptionImage(url: imageUrl!, label: letter),
+                      ],
                     ],
                   ),
                 ),

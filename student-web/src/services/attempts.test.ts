@@ -30,6 +30,28 @@ const rpcOk = (data: unknown) => mockSupabase.rpc.mockResolvedValueOnce({ data, 
 const rpcErr = (error: unknown) => mockSupabase.rpc.mockResolvedValueOnce({ data: null, error });
 
 describe('fetchQuestions', () => {
+  it('maps option images (image-only options keep empty text)', async () => {
+    rpcOk([
+      {
+        id: 21,
+        questionText: 'Which figure completes the pattern?',
+        optionA: '',
+        optionB: 'Figure 2',
+        optionC: '',
+        optionD: '',
+        optionAImageUrl: 'https://img/a.png',
+        optionBImageUrl: 'https://img/b.png',
+        optionCImageUrl: null,
+        optionDImageUrl: '  ',
+      },
+      { id: 22, questionText: 'Text only', optionA: 'x', optionB: 'y' },
+    ]);
+    const qs = await fetchQuestions('t1');
+    expect(qs[0].options).toEqual({ A: '', B: 'Figure 2', C: '', D: '' });
+    expect(qs[0].optionImages).toEqual({ A: 'https://img/a.png', B: 'https://img/b.png' });
+    expect(qs[1].optionImages).toBeUndefined();
+  });
+
   it('calls get_student_exam_questions and maps each question', async () => {
     rpcOk([
       {

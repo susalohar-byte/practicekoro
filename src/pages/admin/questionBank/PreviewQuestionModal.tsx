@@ -69,10 +69,10 @@ export const PreviewQuestionModal: React.FC<PreviewQuestionModalProps> = ({
 
           <div className="space-y-1.5 pt-1">
             {[
-              { key: 'A', text: question.optionA },
-              { key: 'B', text: question.optionB },
-              { key: 'C', text: question.optionC },
-              { key: 'D', text: question.optionD },
+              { key: 'A', text: question.optionA, image: question.optionAImageUrl },
+              { key: 'B', text: question.optionB, image: question.optionBImageUrl },
+              { key: 'C', text: question.optionC, image: question.optionCImageUrl },
+              { key: 'D', text: question.optionD, image: question.optionDImageUrl },
             ].map((opt) => {
               const isCorrect = question.correctOption === opt.key;
               return (
@@ -86,6 +86,13 @@ export const PreviewQuestionModal: React.FC<PreviewQuestionModalProps> = ({
                 >
                   <span className={bengaliFontClass(opt.text)}>
                     ({opt.key.toLowerCase()}) <MathText>{opt.text}</MathText>
+                    {opt.image && (
+                      <img
+                        src={opt.image}
+                        alt={`Option ${opt.key}`}
+                        className="mt-1.5 block max-h-28 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain bg-white"
+                      />
+                    )}
                   </span>
                   {isCorrect && (
                     <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black">

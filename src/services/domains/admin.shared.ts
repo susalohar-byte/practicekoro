@@ -4,10 +4,18 @@ import type { Tables } from '@/types/database.generated';
 type NameJoin = { name: string | null } | { name: string | null }[] | null;
 
 /** A `questions` row (timestamps optional), optionally with the `subjects` / `chapters` name joins. */
-export type QuestionRow = Omit<Tables<'questions'>, 'created_at' | 'updated_at'> & {
-  subjects?: NameJoin;
-  chapters?: NameJoin;
-};
+type OptionImageColumn =
+  'option_a_image_url' | 'option_b_image_url' | 'option_c_image_url' | 'option_d_image_url';
+
+/** Option image columns are optional: they are not read before their migration is applied. */
+export type QuestionRow = Omit<
+  Tables<'questions'>,
+  'created_at' | 'updated_at' | OptionImageColumn
+> &
+  Partial<Pick<Tables<'questions'>, OptionImageColumn>> & {
+    subjects?: NameJoin;
+    chapters?: NameJoin;
+  };
 
 /** Name from a to-one join; an array-shaped join has no `.name`, as before. */
 const joinName = (j: NameJoin | undefined) => (Array.isArray(j) ? undefined : j?.name || undefined);
@@ -29,6 +37,10 @@ export function mapQuestionRow(q: QuestionRow): Question {
     optionB: q.option_b,
     optionC: q.option_c,
     optionD: q.option_d,
+    optionAImageUrl: q.option_a_image_url || undefined,
+    optionBImageUrl: q.option_b_image_url || undefined,
+    optionCImageUrl: q.option_c_image_url || undefined,
+    optionDImageUrl: q.option_d_image_url || undefined,
     correctOption: (q.correct_option as 'A' | 'B' | 'C' | 'D') || 'A',
     explanation: q.explanation ?? undefined,
     explanationBengali: q.explanation_bengali ?? undefined,

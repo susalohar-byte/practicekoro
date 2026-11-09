@@ -443,6 +443,14 @@ export interface Question {
   optionB: string;
   optionC: string;
   optionD: string;
+  /**
+   * Optional image for each answer option (public Storage URL, never inline data). An option can
+   * be text only, image only (its text is '') or text plus image.
+   */
+  optionAImageUrl?: string;
+  optionBImageUrl?: string;
+  optionCImageUrl?: string;
+  optionDImageUrl?: string;
   correctOption: 'A' | 'B' | 'C' | 'D';
   explanation?: string;
   explanationBengali?: string;

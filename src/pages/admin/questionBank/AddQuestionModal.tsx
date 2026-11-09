@@ -3,6 +3,7 @@ import { Shield, BookOpen, X, AlertTriangle } from 'lucide-react';
 import { QuestionBankStatus, bengaliFontClass } from './questionBankUtils';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
+import { OptionImageField } from './OptionImageField';
 
 export interface AddQuestionModalProps {
   qb: AdminQuestionBankState;
@@ -39,6 +40,9 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
     addOptB,
     addOptC,
     addOptD,
+    addOptImages,
+    setAddOptImage,
+    showToast,
     setAddOptA,
     setAddOptB,
     setAddOptC,
@@ -346,11 +350,19 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                         type="text"
                         value={val}
                         onChange={(e) => setVal(e.target.value)}
-                        placeholder={`Option ${opt} text`}
+                        placeholder={
+                          addOptImages[opt] ? `Option ${opt} text (optional)` : `Option ${opt} text`
+                        }
                         className={cn(
                           'w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-slate-100 font-semibold',
                           bengaliFontClass(val)
                         )}
+                      />
+                      <OptionImageField
+                        option={opt}
+                        value={addOptImages[opt]}
+                        onChange={(url) => setAddOptImage(opt, url)}
+                        onError={showToast}
                       />
                     </div>
                   );

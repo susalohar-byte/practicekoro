@@ -10,7 +10,7 @@ import type {
   ServerAttempt,
   SolutionQuestion,
 } from '@/types/models';
-import { OPTION_LETTERS } from '@/types/models';
+import { OPTION_LETTERS, optionImagesFrom } from '@/types/models';
 
 // Server-graded tests, same RPC contract as AttemptRepository in the Flutter app.
 // Questions arrive without answer keys; the server grades and reveals answers afterwards.
@@ -23,6 +23,10 @@ type Numeric = number | string | null;
 interface QuestionRow extends Row {
   id: string | number;
   imageUrl?: Text;
+  optionAImageUrl?: Text;
+  optionBImageUrl?: Text;
+  optionCImageUrl?: Text;
+  optionDImageUrl?: Text;
 }
 
 interface StartAttemptRow {
@@ -110,6 +114,7 @@ function toQuestion(r: QuestionRow, i: number): Question {
       C: (r.optionC ?? '').toString(),
       D: (r.optionD ?? '').toString(),
     },
+    optionImages: optionImagesFrom(r),
     marks: num(r.marks) ?? 1,
     negativeMarks: num(r.negativeMarks) ?? 0,
   };

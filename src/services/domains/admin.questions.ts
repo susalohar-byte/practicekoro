@@ -75,6 +75,95 @@ export const ADMIN_QUESTION_COLUMNS = `
       chapters:chapter_id (id, name)
     `;
 
+/** Option image columns (migration 20261109120000_question_option_images). */
+export const OPTION_IMAGE_COLUMNS = [
+  'option_a_image_url',
+  'option_b_image_url',
+  'option_c_image_url',
+  'option_d_image_url',
+] as const;
+
+const isMissingOptionImageColumn = (message?: string) =>
+  Boolean(
+    message &&
+    /option_[a-d]_image_url/i.test(message) &&
+    /does not exist|could not find|schema cache/i.test(message)
+  );
+
+let optionImageColumnsProbe: Promise<boolean> | null = null;
+
+/**
+ * Whether the database already has the option image columns. Checked once with a tiny query, so
+ * the admin keeps working (without option images) if this build goes live before the migration.
+ */
+export function optionImageColumnsAvailable(): Promise<boolean> {
+  if (!isSupabaseConfigured) return Promise.resolve(true);
+  if (!optionImageColumnsProbe) {
+    optionImageColumnsProbe = (async () => {
+      const { error } = await supabase
+        .from('questions')
+        .select(OPTION_IMAGE_COLUMNS.join(','))
+        .limit(1);
+      if (error && isMissingOptionImageColumn(error.message)) return false;
+      if (error) optionImageColumnsProbe = null; // e.g. offline: ask again next time
+      return true;
+    })();
+  }
+  return optionImageColumnsProbe;
+}
+
+/** Presets the column check (tests; `null` re-enables the probe). */
+export function primeOptionImageColumns(available: boolean | null): void {
+  optionImageColumnsProbe = available === null ? null : Promise.resolve(available);
+}
+
+/** The admin question column list, with the option image columns when the database has them. */
+export async function adminQuestionColumns(): Promise<typeof ADMIN_QUESTION_COLUMNS> {
+  if (!(await optionImageColumnsAvailable())) return ADMIN_QUESTION_COLUMNS;
+  // Typed as the base list so query typing stays as before; rows are mapped by mapQuestionRow,
+  // which reads the option image fields when present.
+  return ADMIN_QUESTION_COLUMNS.replace(
+    'option_a, option_b, option_c, option_d,',
+    `option_a, option_b, option_c, option_d, ${OPTION_IMAGE_COLUMNS.join(', ')},`
+  ) as typeof ADMIN_QUESTION_COLUMNS;
+}
+
+const OPTION_IMAGE_FIELDS = [
+  ['optionAImageUrl', 'option_a_image_url'],
+  ['optionBImageUrl', 'option_b_image_url'],
+  ['optionCImageUrl', 'option_c_image_url'],
+  ['optionDImageUrl', 'option_d_image_url'],
+] as const;
+
+/**
+ * Option image columns for an insert / update. A new question only writes the images it has; an
+ * update writes the fields it was given ('' clears an image). Text-only questions add nothing, so
+ * they save exactly as before (also on a database without the option image migration).
+ */
+async function optionImagePayload(
+  q: Partial<Question>,
+  mode: 'create' | 'update'
+): Promise<Record<string, string | null>> {
+  const out: Record<string, string | null> = {};
+  let hasImage = false;
+  for (const [field, column] of OPTION_IMAGE_FIELDS) {
+    const value = q[field];
+    if (value === undefined || (mode === 'create' && !value)) continue;
+    out[column] = value ? value : null;
+    if (value) hasImage = true;
+  }
+  if (Object.keys(out).length === 0) return out;
+  if (!(await optionImageColumnsAvailable())) {
+    if (hasImage) throw new Error(OPTION_IMAGES_MIGRATION_MESSAGE);
+    return {}; // only clearing images that cannot exist yet
+  }
+  return out;
+}
+
+/** Thrown when an option image is saved before the database migration is applied. */
+export const OPTION_IMAGES_MIGRATION_MESSAGE =
+  'Option images need the database update "question_option_images". Apply that migration, then upload the option images again.';
+
 export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Promise<Question[]> {
   if (!isSupabaseConfigured) {
     let questions = [...localQuestions];
@@ -152,10 +241,11 @@ export async function getAllAdminQuestions(filters?: AdminQuestionFilters): Prom
 
   // PostgREST caps a single response at 1000 rows, so read every page with a
   // stable order (created_at desc, id desc) until the server returns an empty page.
+  const columns = await adminQuestionColumns();
   const rows = await loadAllPages<QuestionRow>(async (limit, offset) => {
     let query = supabase
       .from('questions')
-      .select(ADMIN_QUESTION_COLUMNS)
+      .select(columns)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -322,7 +412,7 @@ export async function getAdminQuestionsPaged(
 
   let query = supabase
     .from('questions')
-    .select(ADMIN_QUESTION_COLUMNS, { count: 'exact' })
+    .select(await adminQuestionColumns(), { count: 'exact' })
     .order('created_at', { ascending: false })
     .order('id', { ascending: false });
   query = applyQuestionListFilters(query, filters, testQuestionIds);
@@ -349,10 +439,11 @@ export async function getAdminQuestionsByIds(ids: string[]): Promise<Question[]>
   }
   const CHUNK = 150; // keeps the `id=in.(...)` URL well under proxy limits
   const out: Question[] = [];
+  const columns = await adminQuestionColumns();
   for (let i = 0; i < unique.length; i += CHUNK) {
     const { data, error } = await supabase
       .from('questions')
-      .select(ADMIN_QUESTION_COLUMNS)
+      .select(columns)
       .in('id', unique.slice(i, i + CHUNK));
     if (error) throw new Error(error.message);
     out.push(...((data || []) as QuestionRow[]).map((q) => mapQuestionRow(q)));
@@ -460,10 +551,11 @@ export async function getAdminQuestionsForTestContext(
   if (!isSupabaseConfigured) return getAllAdminQuestions();
   const type = ctx.testType;
   const examPattern = ctx.examTitle ? searchOrFilterValue(ctx.examTitle) : '';
+  const columns = await adminQuestionColumns();
   const rows = await loadAllPages<QuestionRow>(async (limit, offset) => {
     let query = supabase
       .from('questions')
-      .select(ADMIN_QUESTION_COLUMNS)
+      .select(columns)
       .eq('is_live_only', false)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
@@ -501,7 +593,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
 
   const { data, error } = await supabase
     .from('questions')
-    .select(ADMIN_QUESTION_COLUMNS)
+    .select(await adminQuestionColumns())
     .eq('id', id)
     .maybeSingle();
 
@@ -615,6 +707,7 @@ export async function createQuestion(qData: Omit<Question, 'id'>): Promise<Quest
       option_b: qData.optionB,
       option_c: qData.optionC,
       option_d: qData.optionD,
+      ...(await optionImagePayload(qData, 'create')),
       correct_option: qData.correctOption,
       explanation: qData.explanation || qData.explanationBengali || null,
       explanation_bengali: qData.explanationBengali || qData.explanation || null,
@@ -672,6 +765,7 @@ export async function updateQuestion(id: string, updates: Partial<Question>): Pr
   if (updates.optionB !== undefined) payload.option_b = updates.optionB;
   if (updates.optionC !== undefined) payload.option_c = updates.optionC;
   if (updates.optionD !== undefined) payload.option_d = updates.optionD;
+  Object.assign(payload, await optionImagePayload(updates, 'update'));
   if (updates.correctOption !== undefined) payload.correct_option = updates.correctOption;
   if (updates.explanation !== undefined) payload.explanation = updates.explanation;
   if (updates.explanationBengali !== undefined)

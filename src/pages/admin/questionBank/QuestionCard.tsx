@@ -125,6 +125,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               >
                 {q.optionA}
               </span>
+              {q.optionAImageUrl && (
+                <img
+                  src={q.optionAImageUrl}
+                  alt={`Option A`}
+                  loading="lazy"
+                  className="mt-1 h-12 max-w-[7rem] rounded border border-slate-200 dark:border-slate-700 object-contain bg-white"
+                />
+              )}
             </div>
             {q.correctOption === 'A' && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md select-none shrink-0 ml-1">
@@ -161,6 +169,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               >
                 {q.optionC}
               </span>
+              {q.optionCImageUrl && (
+                <img
+                  src={q.optionCImageUrl}
+                  alt={`Option C`}
+                  loading="lazy"
+                  className="mt-1 h-12 max-w-[7rem] rounded border border-slate-200 dark:border-slate-700 object-contain bg-white"
+                />
+              )}
             </div>
             {q.correctOption === 'C' && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md select-none shrink-0 ml-1">
@@ -200,6 +216,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               >
                 {q.optionB}
               </span>
+              {q.optionBImageUrl && (
+                <img
+                  src={q.optionBImageUrl}
+                  alt={`Option B`}
+                  loading="lazy"
+                  className="mt-1 h-12 max-w-[7rem] rounded border border-slate-200 dark:border-slate-700 object-contain bg-white"
+                />
+              )}
             </div>
             {q.correctOption === 'B' && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md select-none shrink-0 ml-1">
@@ -236,6 +260,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               >
                 {q.optionD}
               </span>
+              {q.optionDImageUrl && (
+                <img
+                  src={q.optionDImageUrl}
+                  alt={`Option D`}
+                  loading="lazy"
+                  className="mt-1 h-12 max-w-[7rem] rounded border border-slate-200 dark:border-slate-700 object-contain bg-white"
+                />
+              )}
             </div>
             {q.correctOption === 'D' && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md select-none shrink-0 ml-1">

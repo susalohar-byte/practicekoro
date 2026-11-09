@@ -1155,6 +1155,10 @@ export type Database = {
           option_b: string;
           option_c: string;
           option_d: string;
+          option_a_image_url: string | null;
+          option_b_image_url: string | null;
+          option_c_image_url: string | null;
+          option_d_image_url: string | null;
           question_bengali_text: string | null;
           question_text: string;
           question_type: string | null;
@@ -1188,6 +1192,10 @@ export type Database = {
           option_b: string;
           option_c: string;
           option_d: string;
+          option_a_image_url?: string | null;
+          option_b_image_url?: string | null;
+          option_c_image_url?: string | null;
+          option_d_image_url?: string | null;
           question_bengali_text?: string | null;
           question_text: string;
           question_type?: string | null;
@@ -1221,6 +1229,10 @@ export type Database = {
           option_b?: string;
           option_c?: string;
           option_d?: string;
+          option_a_image_url?: string | null;
+          option_b_image_url?: string | null;
+          option_c_image_url?: string | null;
+          option_d_image_url?: string | null;
           question_bengali_text?: string | null;
           question_text?: string;
           question_type?: string | null;

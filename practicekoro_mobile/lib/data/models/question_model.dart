@@ -5,13 +5,19 @@ class OptionModel {
   final String? textBengali;
   final bool isCorrect;
 
+  /// Optional option image (Storage URL). Text-only, image-only (text '') or both.
+  final String? imageUrl;
+
   const OptionModel({
     required this.id,
     required this.label,
     required this.text,
     this.textBengali,
     this.isCorrect = false,
+    this.imageUrl,
   });
+
+  bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
 
   factory OptionModel.fromJson(Map<String, dynamic> json, int index) {
     const labels = ['A', 'B', 'C', 'D', 'E'];
@@ -25,7 +31,13 @@ class OptionModel {
       textBengali:
           json['text_bengali']?.toString() ?? json['text_bn']?.toString(),
       isCorrect: json['is_correct'] as bool? ?? false,
+      imageUrl: _nonEmpty(json['image_url'] ?? json['imageUrl']),
     );
+  }
+
+  static String? _nonEmpty(Object? v) {
+    final s = v?.toString().trim() ?? '';
+    return s.isEmpty ? null : s;
   }
 
   Map<String, dynamic> toJson() => {
@@ -34,6 +46,7 @@ class OptionModel {
     'text': text,
     'text_bengali': textBengali,
     'is_correct': isCorrect,
+    if (imageUrl != null) 'image_url': imageUrl,
   };
 }
 

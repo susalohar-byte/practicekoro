@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/Button';
 import { Chips } from '@/components/ui/Chips';
 import { useToast } from '@/components/ui/Toast';
 import { MathText } from '@/components/ui/MathText';
-import { OPTION_LETTERS, type SolutionQuestion } from '@/types/models';
+import { OPTION_LETTERS, hasOption, type SolutionQuestion } from '@/types/models';
+import { OptionContent } from '@/components/ui/OptionContent';
 
 type Outcome = 'correct' | 'wrong' | 'skipped';
 const outcomeOf = (q: SolutionQuestion): Outcome => (!q.selected ? 'skipped' : q.selected === q.correct ? 'correct' : 'wrong');
@@ -186,7 +187,7 @@ export default function SolutionsPage() {
             {q.imageUrl && <img src={q.imageUrl} alt="Question figure" className="mt-4 max-h-80 max-w-full rounded-card border border-line object-contain" />}
 
             <ul className="mt-5 space-y-3">
-              {OPTION_LETTERS.filter((l) => q.options[l]).map((l) => {
+              {OPTION_LETTERS.filter((l) => hasOption(q, l)).map((l) => {
                 const isCorrect = l === q.correct;
                 const pickedWrong = l === q.selected && !isCorrect;
                 return (
@@ -205,7 +206,7 @@ export default function SolutionsPage() {
                     >
                       {l}
                     </span>
-                    <span className="flex-1 whitespace-pre-line text-[15px] font-semibold text-[#0F172A]"><MathText>{q.options[l]}</MathText></span>
+                    <span className="flex-1 whitespace-pre-line text-[15px] font-semibold text-[#0F172A]"><OptionContent text={q.options[l]} imageUrl={q.optionImages?.[l]} label={l} /></span>
                     {(isCorrect || pickedWrong) && (
                       <span className={cn('hidden text-[11px] font-bold sm:inline', isCorrect ? 'text-success' : 'text-[#E11D48]')}>
                         {isCorrect && l === q.selected ? 'Your Answer · Correct' : isCorrect ? 'Correct Answer' : 'Your Answer'}

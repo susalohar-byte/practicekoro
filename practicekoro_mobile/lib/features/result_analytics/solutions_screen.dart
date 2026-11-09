@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/components/math_text.dart';
+import '../../core/components/option_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -1094,6 +1095,10 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // An image-only option shows just its image (no letter repeated as text)
+                if (!(opt.hasImage &&
+                    opt.text.isEmpty &&
+                    (opt.textBengali?.isEmpty ?? true)))
                 MathText(
                   opt.textBengali?.isNotEmpty == true
                       ? opt.textBengali!
@@ -1117,6 +1122,11 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                       color: Color(0xFF64748B),
                     ),
                   ),
+                ],
+                if (opt.hasImage) ...[
+                  if (opt.text.isNotEmpty || (opt.textBengali?.isNotEmpty ?? false))
+                    const SizedBox(height: 8),
+                  OptionImage(url: opt.imageUrl!, label: opt.label),
                 ],
               ],
             ),

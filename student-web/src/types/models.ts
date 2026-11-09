@@ -95,8 +95,27 @@ export interface Question {
   textBengali: string | null;
   imageUrl: string | null;
   options: Record<OptionLetter, string>;
+  /** Optional image per option (text-only, image-only, or both). */
+  optionImages?: Partial<Record<OptionLetter, string>>;
   marks: number;
   negativeMarks: number;
+}
+
+/** An option is shown when it has text or an image (image-only options have empty text). */
+export function hasOption(q: Pick<Question, 'options' | 'optionImages'>, l: OptionLetter): boolean {
+  return Boolean(q.options[l] || q.optionImages?.[l]);
+}
+
+/** Option images from an RPC row's optionAImageUrl..optionDImageUrl (undefined when none). */
+export function optionImagesFrom(
+  r: Partial<Record<`option${OptionLetter}ImageUrl`, unknown>>
+): Partial<Record<OptionLetter, string>> | undefined {
+  const out: Partial<Record<OptionLetter, string>> = {};
+  for (const l of OPTION_LETTERS) {
+    const v = r[`option${l}ImageUrl`];
+    if (typeof v === 'string' && v.trim()) out[l] = v.trim();
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export interface SolutionQuestion extends Question {

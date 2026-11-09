@@ -11,7 +11,8 @@ import { ErrorState, Loader, Message } from '@/components/ui/Feedback';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 import { MathText } from '@/components/ui/MathText';
-import { OPTION_LETTERS } from '@/types/models';
+import { OPTION_LETTERS, hasOption } from '@/types/models';
+import { OptionContent } from '@/components/ui/OptionContent';
 
 export default function BookmarksPage() {
   const { user } = useAuth();
@@ -87,14 +88,14 @@ export default function BookmarksPage() {
                   )}
                   <p className={cn('whitespace-pre-line', q!.textBengali ? 'mt-1 text-[13px] font-medium text-[#64748B]' : 'text-[15.5px] font-bold text-[#0F172A]')}><MathText>{q!.textEnglish}</MathText></p>
                   <ul className="mt-3 space-y-2">
-                    {OPTION_LETTERS.filter((l) => q!.options[l]).map((l) => {
+                    {OPTION_LETTERS.filter((l) => hasOption(q!, l)).map((l) => {
                       const ok = l === q!.correct;
                       return (
                         <li key={l} className={cn('flex items-center gap-2.5 rounded-[10px] px-3 py-2.5', ok ? 'border-[1.5px] border-success bg-[#F0FDF4]' : 'border border-[#E2E8F0] bg-[#F8FAFC]')}>
                           <span className={cn('flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[12px] font-bold', ok ? 'bg-success text-white' : 'border border-[#CBD5E1] bg-white text-[#475569]')}>
                             {ok ? <Check className="h-4 w-4" /> : l}
                           </span>
-                          <span className={cn('flex-1 text-[13.5px]', ok ? 'font-bold text-[#15803D]' : 'font-medium text-[#1E293B]')}><MathText>{q!.options[l]}</MathText></span>
+                          <span className={cn('flex-1 text-[13.5px]', ok ? 'font-bold text-[#15803D]' : 'font-medium text-[#1E293B]')}><OptionContent text={q!.options[l]} imageUrl={q!.optionImages?.[l]} label={l} /></span>
                           {ok && <span className="rounded bg-[#DCFCE7] px-1.5 text-[10.5px] font-bold text-[#15803D]">Correct</span>}
                         </li>
                       );

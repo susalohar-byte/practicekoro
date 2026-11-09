@@ -47,6 +47,15 @@ export function useAddQuestionForm({
   const [addOptB, setAddOptB] = useState('');
   const [addOptC, setAddOptC] = useState('');
   const [addOptD, setAddOptD] = useState('');
+  // Optional image per option (Storage URL); an option may be text, image, or both
+  const [addOptImages, setAddOptImages] = useState<Record<'A' | 'B' | 'C' | 'D', string>>({
+    A: '',
+    B: '',
+    C: '',
+    D: '',
+  });
+  const setAddOptImage = (opt: 'A' | 'B' | 'C' | 'D', url: string) =>
+    setAddOptImages((prev) => ({ ...prev, [opt]: url }));
   const [addCorrect, setAddCorrect] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [addMarks, setAddMarks] = useState(1);
   const [addNegativeMarks, setAddNegativeMarks] = useState(0.25);
@@ -113,8 +122,9 @@ export function useAddQuestionForm({
       showToast('Question text is required.');
       return;
     }
-    if (!addOptA.trim() || !addOptB.trim()) {
-      showToast('Options A and B are required.');
+    // An option needs text or an image (image-only options are allowed)
+    if ((!addOptA.trim() && !addOptImages.A) || (!addOptB.trim() && !addOptImages.B)) {
+      showToast('Options A and B are required (text or image).');
       return;
     }
 
@@ -127,8 +137,13 @@ export function useAddQuestionForm({
         questionText: addQuestionEnglish.trim() || addQuestionBengali.trim(),
         optionA: addOptA.trim(),
         optionB: addOptB.trim(),
-        optionC: addOptC.trim() || 'None of the above',
-        optionD: addOptD.trim() || 'All of the above',
+        // Empty C / D get the usual default text, unless the option is an image
+        optionC: addOptC.trim() || (addOptImages.C ? '' : 'None of the above'),
+        optionD: addOptD.trim() || (addOptImages.D ? '' : 'All of the above'),
+        optionAImageUrl: addOptImages.A || undefined,
+        optionBImageUrl: addOptImages.B || undefined,
+        optionCImageUrl: addOptImages.C || undefined,
+        optionDImageUrl: addOptImages.D || undefined,
         correctOption: addCorrect,
         uploadMode: modalUploadMode,
         sourceExam: modalUploadMode === 'exam' ? addExam : undefined,
@@ -190,6 +205,7 @@ export function useAddQuestionForm({
       setAddOptB('');
       setAddOptC('');
       setAddOptD('');
+      setAddOptImages({ A: '', B: '', C: '', D: '' });
       setAddExplanation('');
       setAddTags([]);
       setDuplicateWarning(null);
@@ -228,6 +244,8 @@ export function useAddQuestionForm({
     setAddQuestionEnglish,
     addOptA,
     setAddOptA,
+    addOptImages,
+    setAddOptImage,
     addOptB,
     setAddOptB,
     addOptC,

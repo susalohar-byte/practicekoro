@@ -11,6 +11,7 @@ vi.mock('@/lib/supabase', () => ({
   supabaseRuntime: { from: mocks.from },
 }));
 
+import { primeOptionImageColumns } from './admin.questions';
 import {
   getQuestionBankIds,
   getQuestionBankPage,
@@ -22,6 +23,7 @@ import {
 import type { Question } from '@/types';
 
 beforeEach(() => {
+  primeOptionImageColumns(true);
   vi.clearAllMocks();
   mocks.calls = [];
   mocks.result = { data: [], error: null, count: 0 };

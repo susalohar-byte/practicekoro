@@ -112,6 +112,26 @@ describe('TestRunnerPage — starting', () => {
     expect(within(optionsGroup()).getAllByRole('radio')).toHaveLength(2);
   });
 
+  it('shows image-only options with their image and lets the student pick them', async () => {
+    api.startAttempt.mockResolvedValue(attempt());
+    api.fetchQuestions.mockResolvedValue([
+      question('q1', {
+        options: { A: '', B: 'Figure 2', C: '', D: '' },
+        optionImages: { A: 'https://img/a.png', B: 'https://img/b.png' },
+      }),
+    ]);
+    renderRunner();
+    await screen.findByText('Question 1 of 1');
+    const radios = within(optionsGroup()).getAllByRole('radio');
+    expect(radios).toHaveLength(2); // C and D have neither text nor image
+    expect(within(radios[0]).getByRole('img', { name: 'Option A' }).getAttribute('src')).toBe(
+      'https://img/a.png'
+    );
+    expect(within(radios[1]).getByText('Figure 2')).toBeTruthy();
+    fireEvent.click(radios[0]);
+    expect(radios[0].getAttribute('aria-checked')).toBe('true');
+  });
+
   it('shows a friendly error with a retry when the attempt cannot start', async () => {
     api.startAttempt.mockRejectedValueOnce({ code: '40400', message: 'not found' });
     renderRunner();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/components/math_text.dart';
+import '../../core/components/option_image.dart';
 import '../../core/components/ui.dart';
 import '../../core/explanation_text.dart';
 import '../../data/datasources/local_storage.dart';
@@ -297,17 +298,30 @@ class _SavedQuestionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: MathText(
-                          opt.textBengali ?? opt.text,
-                          style: UI.option.copyWith(
-                            fontSize: 14.5,
-                            fontWeight: isCorrect
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: isCorrect
-                                ? const Color(0xFF15803D)
-                                : const Color(0xFF1E293B),
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if ((opt.textBengali ?? opt.text).isNotEmpty ||
+                                !opt.hasImage)
+                              MathText(
+                                opt.textBengali ?? opt.text,
+                                style: UI.option.copyWith(
+                                  fontSize: 14.5,
+                                  fontWeight: isCorrect
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isCorrect
+                                      ? const Color(0xFF15803D)
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                            if (opt.hasImage) ...[
+                              if ((opt.textBengali ?? opt.text).isNotEmpty)
+                                const SizedBox(height: 6),
+                              OptionImage(url: opt.imageUrl!, label: opt.label),
+                            ],
+                          ],
                         ),
                       ),
                       if (isCorrect)

@@ -31,6 +31,15 @@ export function useQuestionDrawer({
     C: '',
     D: '',
   });
+  // Optional image per option (Storage URL), kept in step with drawerOptions
+  const [drawerOptionImages, setDrawerOptionImages] = useState<{ [key: string]: string }>({
+    A: '',
+    B: '',
+    C: '',
+    D: '',
+  });
+  const setDrawerOptionImage = (opt: 'A' | 'B' | 'C' | 'D', url: string) =>
+    setDrawerOptionImages((prev) => ({ ...prev, [opt]: url }));
   const [drawerCorrectOption, setDrawerCorrectOption] = useState<'A' | 'B' | 'C' | 'D'>('A');
   const [drawerUploadMode, setDrawerUploadMode] = useState<UploadMode>('exam');
   const [drawerExam, setDrawerExam] = useState('');
@@ -58,6 +67,12 @@ export function useQuestionDrawer({
         B: activeQuestion.optionB || '',
         C: activeQuestion.optionC || '',
         D: activeQuestion.optionD || '',
+      });
+      setDrawerOptionImages({
+        A: activeQuestion.optionAImageUrl || '',
+        B: activeQuestion.optionBImageUrl || '',
+        C: activeQuestion.optionCImageUrl || '',
+        D: activeQuestion.optionDImageUrl || '',
       });
       setDrawerCorrectOption((activeQuestion.correctOption as 'A' | 'B' | 'C' | 'D') || 'A');
       setDrawerUploadMode(
@@ -116,6 +131,21 @@ export function useQuestionDrawer({
         showToast('Question text is required.');
         return;
       }
+      // An option needs text or an image (image-only options are allowed)
+      const emptyOption = (['A', 'B'] as const).find(
+        (k) => !drawerOptions[k].trim() && !drawerOptionImages[k]
+      );
+      if (emptyOption) {
+        showToast(`Option ${emptyOption} needs text or an image.`);
+        return;
+      }
+      // Only send option images that changed, so text-only edits save exactly as before
+      const imageChanges: Partial<Question> = {};
+      for (const k of ['A', 'B', 'C', 'D'] as const) {
+        const field = `option${k}ImageUrl` as const;
+        if ((activeQuestion[field] || '') !== drawerOptionImages[k])
+          imageChanges[field] = drawerOptionImages[k];
+      }
       const originalType = questionBankType(activeQuestion);
       const subjectId = drawerSubject
         ? subjects.find((s) => s.name === drawerSubject)?.id
@@ -132,6 +162,7 @@ export function useQuestionDrawer({
         optionB: drawerOptions.B.trim(),
         optionC: drawerOptions.C.trim(),
         optionD: drawerOptions.D.trim(),
+        ...imageChanges,
         correctOption: drawerCorrectOption,
         // A Live Test question stays in its Live Test paper (its exam is not edited here).
         sourceExam: activeQuestion.isLiveOnly
@@ -205,21 +236,20 @@ export function useQuestionDrawer({
     setDrawerTags(drawerTags.filter((t) => t !== tagToRemove));
   };
 
-  // Shuffle Options in Drawer
+  // Shuffle Options in Drawer: each option's text and image move together, and the correct
+  // answer follows its option (by position, so image-only options with no text work too).
   const handleShuffleDrawerOptions = () => {
     const keys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
-    const currentCorrectText = drawerOptions[drawerCorrectOption];
-    const values = [drawerOptions.A, drawerOptions.B, drawerOptions.C, drawerOptions.D].sort(
-      () => Math.random() - 0.5
-    );
-    const newOpts: { [key: string]: string } = {
-      A: values[0],
-      B: values[1],
-      C: values[2],
-      D: values[3],
-    };
-    const newCorrect = keys.find((k) => newOpts[k] === currentCorrectText) || 'A';
+    const order = [...keys].sort(() => Math.random() - 0.5);
+    const newOpts: { [key: string]: string } = {};
+    const newImages: { [key: string]: string } = {};
+    keys.forEach((k, i) => {
+      newOpts[k] = drawerOptions[order[i]];
+      newImages[k] = drawerOptionImages[order[i]];
+    });
+    const newCorrect = keys[order.indexOf(drawerCorrectOption)] || 'A';
     setDrawerOptions(newOpts);
+    setDrawerOptionImages(newImages);
     setDrawerCorrectOption(newCorrect);
     showToast('Options shuffled randomly.');
   };
@@ -235,6 +265,8 @@ export function useQuestionDrawer({
     setDrawerEnglishText,
     drawerOptions,
     setDrawerOptions,
+    drawerOptionImages,
+    setDrawerOptionImage,
     drawerCorrectOption,
     setDrawerCorrectOption,
     drawerUploadMode,

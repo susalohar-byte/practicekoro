@@ -147,6 +147,7 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             }`}
           >
             (a) {q.optionA}
+            {q.optionAImageUrl && ' [image]'}
           </div>
           <div
             className={`p-1 rounded text-[10px] line-clamp-1 ${
@@ -156,6 +157,7 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             }`}
           >
             (b) {q.optionB}
+            {q.optionBImageUrl && ' [image]'}
           </div>
           <div
             className={`p-1 rounded text-[10px] line-clamp-1 ${
@@ -165,6 +167,7 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             }`}
           >
             (c) {q.optionC}
+            {q.optionCImageUrl && ' [image]'}
           </div>
           <div
             className={`p-1 rounded text-[10px] line-clamp-1 ${
@@ -174,6 +177,7 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             }`}
           >
             (d) {q.optionD}
+            {q.optionDImageUrl && ' [image]'}
           </div>
         </div>
       </td>

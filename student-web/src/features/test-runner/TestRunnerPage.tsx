@@ -36,7 +36,8 @@ import { DialogHero, Modal } from '@/components/ui/Modal';
 import { ErrorState, Loader, Message, RetryButton } from '@/components/ui/Feedback';
 import { LogoIcon } from '@/components/ui/Brand';
 import { MathText } from '@/components/ui/MathText';
-import { OPTION_LETTERS, type OptionLetter, type Question, type ServerAttempt } from '@/types/models';
+import { OPTION_LETTERS, hasOption, type OptionLetter, type Question, type ServerAttempt } from '@/types/models';
+import { OptionContent } from '@/components/ui/OptionContent';
 
 type Phase = 'starting' | 'start-error' | 'ready';
 
@@ -221,7 +222,7 @@ export default function TestRunnerPage() {
       const l = ['a', 'b', 'c', 'd'].indexOf(k);
       if (n >= 0 || (l >= 0 && !(k === 'c' && e.shiftKey))) {
         const letter = OPTION_LETTERS[n >= 0 ? n : l];
-        if (q.options[letter]) pick(q.id, letter);
+        if (hasOption(q, letter)) pick(q.id, letter);
       } else if (k === 'arrowright') go(index + 1);
       else if (k === 'arrowleft') go(index - 1);
       else if (k === 'm') toggleMark(q.id);
@@ -368,7 +369,7 @@ export default function TestRunnerPage() {
             </div>
             <QuestionText q={q} />
             <div role="radiogroup" aria-label={`Options for question ${index + 1}`} className="mt-5 space-y-2.5">
-              {OPTION_LETTERS.filter((l) => q.options[l]).map((l, i) => {
+              {OPTION_LETTERS.filter((l) => hasOption(q, l)).map((l, i) => {
                 const sel = selected === l;
                 return (
                   <button
@@ -390,7 +391,7 @@ export default function TestRunnerPage() {
                     >
                       {l}
                     </span>
-                    <span className="flex-1 whitespace-pre-line text-[14.5px] font-medium leading-snug text-ink"><MathText>{q.options[l]}</MathText></span>
+                    <span className="flex-1 whitespace-pre-line text-[14.5px] font-medium leading-snug text-ink"><OptionContent text={q.options[l]} imageUrl={q.optionImages?.[l]} label={l} /></span>
                     <span className="hidden text-[11px] font-semibold text-faint lg:inline">{i + 1}</span>
                     {sel && <CheckCircle2 className="h-[22px] w-[22px] shrink-0 text-primary" aria-hidden />}
                   </button>

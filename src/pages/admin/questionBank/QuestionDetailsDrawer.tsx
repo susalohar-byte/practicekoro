@@ -7,6 +7,7 @@ import {
   bengaliFontClass,
 } from './questionBankUtils';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
+import { OptionImageField } from './OptionImageField';
 
 export interface QuestionDetailsDrawerProps {
   qb: AdminQuestionBankState;
@@ -29,6 +30,8 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
     setDrawerCorrectOption,
     drawerOptions,
     setDrawerOptions,
+    drawerOptionImages,
+    setDrawerOptionImage,
     drawerUploadMode,
     setDrawerUploadMode,
     drawerExam,
@@ -202,33 +205,44 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                             >
                               {optKey}
                             </span>
-                            <input
-                              type="text"
-                              value={drawerOptions[optKey] || ''}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                setDrawerOptions({
-                                  ...drawerOptions,
-                                  [optKey]: e.target.value,
-                                })
-                              }
-                              autoComplete="off"
-                              spellCheck={false}
-                              className={cn(
-                                'admin-drawer-option-input admin-transparent-input w-full bg-transparent border-0 outline-none shadow-none text-xs font-medium focus:outline-none focus:ring-0 p-0 m-0',
-                                bengaliFontClass(drawerOptions[optKey]),
-                                isCorrect
-                                  ? 'text-emerald-950 dark:text-emerald-100 font-semibold'
-                                  : 'text-slate-800 dark:text-slate-200'
-                              )}
-                              style={{
-                                backgroundColor: 'transparent',
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                boxShadow: 'none',
-                              }}
-                            />
+                            <div className="flex-1 min-w-0">
+                              <input
+                                type="text"
+                                value={drawerOptions[optKey] || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) =>
+                                  setDrawerOptions({
+                                    ...drawerOptions,
+                                    [optKey]: e.target.value,
+                                  })
+                                }
+                                autoComplete="off"
+                                spellCheck={false}
+                                className={cn(
+                                  'admin-drawer-option-input admin-transparent-input w-full bg-transparent border-0 outline-none shadow-none text-xs font-medium focus:outline-none focus:ring-0 p-0 m-0',
+                                  bengaliFontClass(drawerOptions[optKey]),
+                                  isCorrect
+                                    ? 'text-emerald-950 dark:text-emerald-100 font-semibold'
+                                    : 'text-slate-800 dark:text-slate-200'
+                                )}
+                                style={{
+                                  backgroundColor: 'transparent',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  outline: 'none',
+                                  boxShadow: 'none',
+                                }}
+                              />
+                              {/* Option image: upload / preview / replace / remove (does not change the correct answer) */}
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <OptionImageField
+                                  option={optKey}
+                                  value={drawerOptionImages[optKey]}
+                                  onChange={(url) => setDrawerOptionImage(optKey, url)}
+                                  onError={showToast}
+                                />
+                              </div>
+                            </div>
                           </div>
 
                           {isCorrect && (

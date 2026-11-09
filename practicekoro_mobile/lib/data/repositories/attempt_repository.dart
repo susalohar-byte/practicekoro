@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../datasources/local_storage.dart';
 import '../models/question_model.dart';
@@ -281,6 +282,15 @@ class AttemptRepository {
     ];
   }
 
+  /// Maps one question row from get_student_exam_questions / get_attempt_solutions.
+  @visibleForTesting
+  static QuestionModel questionFromRow(
+    Map<String, dynamic> r,
+    String testId,
+    int index, {
+    required bool withAnswers,
+  }) => _question(r, testId, index, withAnswers: withAnswers);
+
   static QuestionModel _question(
     Map<String, dynamic> r,
     String testId,
@@ -317,6 +327,7 @@ class AttemptRepository {
                 r['option_${l.toLowerCase()}']?.toString() ??
                 '',
             isCorrect: withAnswers && correct != null && correct.trim().toUpperCase() == l,
+            imageUrl: _optionImage(r, l),
           ),
       ],
       explanationEnglish: r['explanation']?.toString() ??
@@ -329,6 +340,14 @@ class AttemptRepository {
           r['subject_name']?.toString() ??
           r['subject']?.toString(),
     );
+  }
+
+  /// Option image URL from the RPC row (optionAImageUrl..optionDImageUrl), or null.
+  static String? _optionImage(Map<String, dynamic> r, String l) {
+    final v = (r['option${l}ImageUrl'] ?? r['option_${l.toLowerCase()}_image_url'])
+        ?.toString()
+        .trim();
+    return (v == null || v.isEmpty) ? null : v;
   }
 
   static double? _num(Object? v) =>
