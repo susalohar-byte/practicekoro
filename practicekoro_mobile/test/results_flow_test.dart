@@ -411,12 +411,13 @@ void main() {
     testWidgets('StudentRankListScreen lists the student\'s own tests and real ranks',
         (tester) async {
       bigScreen(tester);
+      late _FakeRanking fake;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             catalogRepositoryProvider.overrideWithValue(_FakeCatalog(attempts)),
             rankingRepositoryProvider.overrideWith(
-              (ref) => _FakeRanking(ref, _leaderboard),
+              (ref) => fake = _FakeRanking(ref, _leaderboard),
             ),
           ],
           child: const MaterialApp(
@@ -427,7 +428,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Student Rank List'), findsOneWidget);
-      expect(find.text('WBP Mock 01'), findsWidgets);
+      // Opens on the overall rank (all tests)
+      expect(find.text('Overall Rank (all tests)'), findsOneWidget);
+      expect(fake.requestedTestIds.last, overallRankTestId);
       expect(find.text('Ritwik Das'), findsWidgets);
       expect(find.text('192 / 200'), findsOneWidget);
       expect(find.text('Global Rank'), findsOneWidget);
@@ -438,10 +441,15 @@ void main() {
       await tester.tap(find.byTooltip('Filter'));
       await tester.pumpAndSettle();
       expect(find.text('Select Test'), findsOneWidget);
+      expect(find.text('Overall Rank (all tests)'), findsWidgets);
+      expect(find.text('WBP Mock 01'), findsOneWidget);
       expect(find.text('GK Topic Test'), findsOneWidget);
       expect(find.textContaining('Full Mock 01'), findsNothing);
       await tester.tap(find.text('GK Topic Test'));
       await tester.pumpAndSettle();
+      // Picking a test shows that test's rank, as before
+      expect(find.text('GK Topic Test'), findsOneWidget);
+      expect(fake.requestedTestIds.last, isNot(overallRankTestId));
 
       await tester.tap(find.text('District Rank'));
       await tester.pumpAndSettle();
@@ -597,6 +605,7 @@ class _FakeCatalog extends CatalogRepository {
 /// Serves a fixed leaderboard in place of the server RPC.
 class _FakeRanking extends RankingRepository {
   final List<StudentRankItem> rows;
+  final List<String> requestedTestIds = [];
   _FakeRanking(super.ref, this.rows);
 
   @override
@@ -605,5 +614,8 @@ class _FakeRanking extends RankingRepository {
     required String scope,
     String? district,
     String? block,
-  }) async => rows;
+  }) async {
+    requestedTestIds.add(testId);
+    return rows;
+  }
 }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OVERALL_RANK_ID } from '@/types/models';
 import type { User } from '@supabase/supabase-js';
 import { callsTo, mockSupabase, queueTable, resetSupabaseMock } from '@/test/supabaseMock';
 
@@ -302,6 +303,32 @@ describe('fetchLeaderboard', () => {
       'get_test_leaderboard',
       expect.objectContaining({ p_test_id: null, p_district: null, p_block: null })
     );
+  });
+
+  it('overall rank calls get_overall_leaderboard (no test id) and maps tests attempted', async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: [
+        {
+          rank: 4,
+          user_id: 'me',
+          student_name: 'Dipa',
+          score: 10,
+          total_marks: 50,
+          percentage: 20,
+          is_current_user: true,
+          tests_attempted: 1,
+        },
+      ],
+      error: null,
+    });
+    const rows = await fetchLeaderboard({ testId: OVERALL_RANK_ID, scope: 'global' });
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('get_overall_leaderboard', {
+      p_scope: 'global',
+      p_district: null,
+      p_block: null,
+      p_limit: 100,
+    });
+    expect(rows[0]).toMatchObject({ rank: 4, isCurrentUser: true, testsAttempted: 1, percentage: 20 });
   });
 
   it('throws leaderboard errors', async () => {

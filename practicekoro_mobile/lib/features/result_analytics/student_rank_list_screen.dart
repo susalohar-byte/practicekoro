@@ -66,7 +66,6 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
   }
 
   void _showTestPicker(List<_AttemptedTest> tests, String? selectedId) {
-    if (tests.isEmpty) return;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -92,6 +91,40 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                   ),
                 ),
                 const Divider(),
+                // Overall rank across all tests (the default)
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Color(0xFF0158FC),
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Overall Rank (all tests)',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                  ),
+                  subtitle: const Text(
+                    'Best score of every finished test, added up',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: selectedId == overallRankTestId
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF0158FC),
+                        )
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedTestId = overallRankTestId);
+                    Navigator.pop(context);
+                  },
+                ),
                 for (final test in tests)
                   ListTile(
                     leading: Container(
@@ -141,10 +174,13 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(attemptHistoryProvider);
     final tests = _attemptedTests(historyAsync.value ?? const []);
-    final selectedId = _selectedTestId ?? tests.firstOrNull?.id;
+    // Overall rank (all tests) is the default; a test can be picked to see its own rank
+    final selectedId = _selectedTestId ?? overallRankTestId;
+    final isOverall = selectedId == overallRankTestId;
     final selected = tests.where((t) => t.id == selectedId).firstOrNull;
-    final selectedTitle =
-        selected?.title ?? widget.initialTestTitle ?? 'Select a test';
+    final selectedTitle = isOverall
+        ? 'Overall Rank (all tests)'
+        : selected?.title ?? widget.initialTestTitle ?? 'Select a test';
 
     final scopeStr = switch (_selectedTab) {
       RankScopeTab.globalRank => 'global',
@@ -153,7 +189,7 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
     };
 
     final params = RankingParams(
-      testId: selectedId ?? '',
+      testId: selectedId,
       scope: scopeStr,
       district: _selectedTab == RankScopeTab.districtRank
           ? _selectedDistrict
@@ -165,13 +201,14 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
           : null,
     );
 
-    // No test chosen yet: nothing to rank against.
-    final AsyncValue<List<StudentRankItem>> ranksAsync = selectedId == null
-        ? (historyAsync.hasError
-              ? AsyncValue.error(historyAsync.error!, StackTrace.empty)
-              : historyAsync.isLoading
-              ? const AsyncValue.loading()
-              : const AsyncValue.data([]))
+    // A student with no finished test has no overall rank yet: ask for a first test.
+    final noTests =
+        _selectedTestId == null &&
+        historyAsync.hasValue &&
+        !historyAsync.isLoading &&
+        tests.isEmpty;
+    final AsyncValue<List<StudentRankItem>> ranksAsync = noTests
+        ? const AsyncValue.data([])
         : ref.watch(studentRankListProvider(params));
 
     return Scaffold(
@@ -272,8 +309,10 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                           padding: const EdgeInsets.all(32),
                           alignment: Alignment.center,
                           child: Text(
-                            selectedId == null
+                            noTests
                                 ? 'Finish a test to see the student rank list.'
+                                : isOverall
+                                ? 'No ranked students yet. Finish a test to get your overall rank.'
                                 : 'No ranked students for this test yet.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
@@ -391,7 +430,16 @@ class _StudentRankListScreenState extends ConsumerState<StudentRankListScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  if (selected != null)
+                  if (selectedId == overallRankTestId)
+                    const Text(
+                      'Best score of every finished test, added up',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  else if (selected != null)
                     Text(
                       selected.subtitle,
                       style: const TextStyle(
@@ -892,13 +940,29 @@ class _PinnedCurrentUserRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(
-            item.scoreDisplay,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0158FC),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.scoreDisplay,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0158FC),
+                ),
+              ),
+              // Overall rank: how many tests the total covers
+              if (item.testsAttempted != null)
+                Text(
+                  'Overall · ${item.testsAttempted} ${item.testsAttempted == 1 ? 'test' : 'tests'}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

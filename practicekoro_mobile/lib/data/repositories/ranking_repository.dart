@@ -4,6 +4,10 @@ import '../models/ranking_model.dart';
 import 'auth_repository.dart';
 import 'catalog_repository.dart';
 
+/// Rank list "test" id for the overall rank across all tests (the best score of every test
+/// a student finished, added up; see get_overall_leaderboard).
+const String overallRankTestId = '__overall__';
+
 final rankingRepositoryProvider = Provider<RankingRepository>((ref) {
   return RankingRepository(ref);
 });
@@ -136,11 +140,12 @@ class RankingRepository {
     }
     final Object? res;
     try {
+      final overall = testId == overallRankTestId;
       res = await client
           .rpc(
-            'get_test_leaderboard',
+            overall ? 'get_overall_leaderboard' : 'get_test_leaderboard',
             params: {
-              'p_test_id': testId,
+              if (!overall) 'p_test_id': testId,
               'p_scope': scope,
               if (district != null && district.isNotEmpty)
                 'p_district': district,

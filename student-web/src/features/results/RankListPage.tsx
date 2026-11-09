@@ -8,7 +8,7 @@ import { WEST_BENGAL_DISTRICTS } from '@/data/westBengal';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ErrorState, Message, Skeleton } from '@/components/ui/Feedback';
 import { Avatar } from '@/components/ui/Brand';
-import type { LeaderboardScope } from '@/types/models';
+import { OVERALL_RANK_ID, type LeaderboardScope } from '@/types/models';
 import { RankListRow } from './RankRow';
 
 const SCOPES: { value: LeaderboardScope; label: string }[] = [
@@ -29,7 +29,9 @@ export default function RankListPage() {
     return [...m.values()];
   }, [history.data]);
 
-  const testId = params.get('testId') ?? tests[0]?.id ?? null;
+  // Overall rank (all tests) is the default; a test can be picked to see its own rank
+  const testId = params.get('testId') ?? OVERALL_RANK_ID;
+  const isOverall = testId === OVERALL_RANK_ID;
   const testTitle = params.get('title') ?? tests.find((t) => t.id === testId)?.title ?? null;
   const [scope, setScope] = useState<LeaderboardScope>('global');
   const [district, setDistrict] = useState<string | null>(null);
@@ -47,23 +49,24 @@ export default function RankListPage() {
 
       {history.isLoading ? (
         <Skeleton className="mb-4 h-16" />
-      ) : tests.length === 0 && !testId ? (
+      ) : tests.length === 0 && !params.get('testId') ? (
         <Message icon={<Trophy />} title="No rankings yet" message="Finish a test to see where you stand among other students." />
       ) : (
         <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-6">
           <div className="lg:sticky lg:top-20 lg:rounded-2xl lg:border lg:border-line lg:bg-white lg:p-4 lg:shadow-card">
           <label className="mb-4 block">
-            <span className="mb-1.5 block text-[12px] font-semibold text-[#64748B]">Test</span>
+            <span className="mb-1.5 block text-[12px] font-semibold text-[#64748B]">Rank for</span>
             <span className="relative block">
               <select
-                value={testId ?? ''}
+                value={testId}
                 onChange={(e) => {
                   const t = tests.find((x) => x.id === e.target.value);
                   setParams(t ? { testId: t.id, title: t.title } : {}, { replace: true });
                 }}
                 className="h-14 w-full appearance-none rounded-2xl border border-line bg-white pl-4 pr-10 text-[14.5px] font-bold text-ink shadow-card"
               >
-                {testId && !tests.some((t) => t.id === testId) && <option value={testId}>{testTitle ?? 'Selected test'}</option>}
+                <option value={OVERALL_RANK_ID}>Overall Rank (all tests)</option>
+                {!isOverall && !tests.some((t) => t.id === testId) && <option value={testId}>{testTitle ?? 'Selected test'}</option>}
                 {tests.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.title} — {fmtDate(t.date)} • {fmtNum(t.marks)} Marks
@@ -72,6 +75,11 @@ export default function RankListPage() {
               </select>
               <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#64748B]" />
             </span>
+            {isOverall && (
+              <span className="mt-1.5 block text-[11.5px] text-[#64748B]">
+                Total of each student's best score in every test they finished.
+              </span>
+            )}
           </label>
 
           <div role="tablist" aria-label="Ranking scope" className="mb-4 grid grid-cols-3 gap-2">
@@ -153,8 +161,13 @@ export default function RankListPage() {
             <span className="rounded-md bg-brand px-2 py-1 text-[12px] font-extrabold text-white">#{me.rank}</span>
             <Avatar url={me.avatarUrl} name={me.name} size={34} />
             <span className="flex-1 truncate text-[14.5px] font-extrabold text-brand">{me.name} (You)</span>
-            <span className="text-[15px] font-extrabold text-brand">
+            <span className="text-right text-[15px] font-extrabold text-brand">
               {fmtNum(me.score)} / {fmtNum(me.totalMarks)}
+              {isOverall && me.testsAttempted != null && (
+                <span className="block text-[11px] font-semibold text-[#64748B]">
+                  Overall · {me.testsAttempted} {me.testsAttempted === 1 ? 'test' : 'tests'}
+                </span>
+              )}
             </span>
           </div>
         </div>

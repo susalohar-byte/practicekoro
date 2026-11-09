@@ -176,7 +176,12 @@ export interface RankRow {
   district: string | null;
   block: string | null;
   isCurrentUser: boolean;
+  /** Overall (all tests) ranking only: how many tests are counted. */
+  testsAttempted?: number;
 }
+
+/** Leaderboard "test" id for the overall rank across all tests. */
+export const OVERALL_RANK_ID = '__overall__';
 
 export interface Profile {
   id: string;

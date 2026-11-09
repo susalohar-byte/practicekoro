@@ -17,7 +17,7 @@ import type {
   SupportTicket,
   UpgradeOption,
 } from '@/types/models';
-import { optionImagesFrom } from '@/types/models';
+import { OVERALL_RANK_ID, optionImagesFrom } from '@/types/models';
 
 type Row = Record<string, unknown>;
 type Text = string | null;
@@ -281,13 +281,17 @@ export async function fetchLeaderboard(params: {
   district?: string | null;
   block?: string | null;
 }): Promise<RankRow[]> {
-  const { data, error } = await supabase.rpc('get_test_leaderboard', {
-    p_test_id: params.testId,
+  const scopeArgs = {
     p_scope: params.scope,
     p_district: params.scope === 'district' ? params.district || null : null,
     p_block: params.scope === 'district' ? params.block || null : null,
     p_limit: 100,
-  });
+  };
+  // Overall rank: every test's best score added up (get_overall_leaderboard)
+  const { data, error } =
+    params.testId === OVERALL_RANK_ID
+      ? await supabase.rpc('get_overall_leaderboard', scopeArgs)
+      : await supabase.rpc('get_test_leaderboard', { p_test_id: params.testId, ...scopeArgs });
   if (error) throw error;
   return ((data as Row[]) ?? []).map((r) => {
     const score = num(r.score) ?? 0;
@@ -303,6 +307,7 @@ export async function fetchLeaderboard(params: {
       district: str(r.district),
       block: str(r.block),
       isCurrentUser: r.is_current_user === true,
+      testsAttempted: num(r.tests_attempted) ?? undefined,
     };
   });
 }

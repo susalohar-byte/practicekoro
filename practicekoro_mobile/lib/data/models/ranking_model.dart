@@ -14,6 +14,9 @@ class StudentRankItem {
   final String testTitle;
   final bool isCurrentUser;
 
+  /// Overall (all tests) rank only: how many tests are counted.
+  final int? testsAttempted;
+
   const StudentRankItem({
     required this.rank,
     required this.studentId,
@@ -26,6 +29,7 @@ class StudentRankItem {
     this.block,
     this.testTitle = '',
     this.isCurrentUser = false,
+    this.testsAttempted,
   });
 
   String get scoreDisplay {
@@ -127,6 +131,7 @@ class StudentRankItem {
       testTitle: json['test_title']?.toString() ?? '',
       isCurrentUser:
           json['is_current_user'] as bool? ?? json['is_me'] as bool? ?? false,
+      testsAttempted: (json['tests_attempted'] as num?)?.toInt(),
     );
   }
 
