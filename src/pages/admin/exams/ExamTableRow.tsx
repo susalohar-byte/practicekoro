@@ -8,6 +8,7 @@ import {
   Copy,
   MoreHorizontal,
   Camera,
+  GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
@@ -37,7 +38,15 @@ export function ExamTableRow({ qb, e, index }: ExamTableRowProps) {
     handleArchiveExam,
     handleDeleteExam,
     handleDuplicateExam,
+    reorderExam,
+    isSavingOrder,
+    dragExamId,
+    setDragExamId,
+    dragOverExamId,
+    setDragOverExamId,
   } = qb;
+  const isDragging = dragExamId === e.id;
+  const isDropTarget = Boolean(dragExamId && dragOverExamId === e.id && dragExamId !== e.id);
   const rowNumber = pageStart + index + 1;
   const isSelected = Boolean(showDetailsPanel && selectedExam?.id === e.id);
   const isChecked = selectedExamIds.has(e.id);
@@ -46,11 +55,28 @@ export function ExamTableRow({ qb, e, index }: ExamTableRowProps) {
   return (
     <tr
       onClick={() => handleSelectExamRow(e)}
+      // Drop target for drag-to-reorder (the drag starts from the handle in the # column)
+      onDragOver={(evt) => {
+        if (!dragExamId) return;
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'move';
+        if (dragOverExamId !== e.id) setDragOverExamId(e.id);
+      }}
+      onDrop={(evt) => {
+        evt.preventDefault();
+        const id = evt.dataTransfer.getData('text/exam-id') || dragExamId;
+        setDragExamId(null);
+        setDragOverExamId(null);
+        if (id) void reorderExam(id, e.id);
+      }}
       className={cn(
         'transition-colors cursor-pointer group',
         isSelected
           ? 'bg-blue-50/50 dark:bg-blue-950/20'
-          : 'hover:bg-slate-50/60 dark:hover:bg-slate-900/40'
+          : 'hover:bg-slate-50/60 dark:hover:bg-slate-900/40',
+        isDragging && 'opacity-40',
+        isDropTarget &&
+          'outline outline-2 -outline-offset-2 outline-blue-500 bg-blue-50/70 dark:bg-blue-950/30'
       )}
     >
       {/* Checkbox */}
@@ -64,7 +90,36 @@ export function ExamTableRow({ qb, e, index }: ExamTableRowProps) {
       </td>
 
       {/* Row Index */}
-      <td className="py-3.5 px-2 text-center text-slate-400 font-medium">{rowNumber}</td>
+      <td
+        className="py-3.5 px-2 text-center text-slate-400 font-medium"
+        onClick={(evt) => evt.stopPropagation()}
+      >
+        <span
+          draggable={!isSavingOrder}
+          role="button"
+          tabIndex={-1}
+          aria-label={`Drag to reorder ${e.title}`}
+          title="Drag to change the exam order"
+          onDragStart={(evt) => {
+            evt.dataTransfer.effectAllowed = 'move';
+            evt.dataTransfer.setData('text/exam-id', e.id);
+            setDragExamId(e.id);
+          }}
+          onDragEnd={() => {
+            setDragExamId(null);
+            setDragOverExamId(null);
+          }}
+          className={cn(
+            'inline-flex items-center gap-0.5 select-none',
+            isSavingOrder
+              ? 'cursor-wait'
+              : 'cursor-grab active:cursor-grabbing hover:text-slate-600'
+          )}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+          {rowNumber}
+        </span>
+      </td>
 
       {/* Exam Name: Emblem + Title + Subtitle */}
       <td className="py-3.5 px-3 min-w-[200px]">

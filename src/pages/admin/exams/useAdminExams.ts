@@ -556,7 +556,44 @@ export function useAdminExams() {
     }
   };
 
+  // Drag-and-drop exam order: move `dragId` to where `targetId` is, then save the order.
+  // The list updates at once; if saving fails it goes back to the previous order.
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [dragExamId, setDragExamId] = useState<string | null>(null);
+  const [dragOverExamId, setDragOverExamId] = useState<string | null>(null);
+  const reorderExam = async (dragId: string, targetId: string) => {
+    if (!dragId || dragId === targetId || isSavingOrder) return;
+    const previous = exams;
+    const from = previous.findIndex((e) => e.id === dragId);
+    const to = previous.findIndex((e) => e.id === targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const currentOrder = Object.fromEntries(previous.map((e) => [e.id, e.orderIndex]));
+    setExams(next.map((e, i) => ({ ...e, orderIndex: i + 1 })));
+    setIsSavingOrder(true);
+    try {
+      await api.reorderExams(
+        next.map((e) => e.id),
+        currentOrder
+      );
+      setActionSuccessMessage(`Exam order saved: "${moved.title}" moved to position ${to + 1}.`);
+    } catch (err) {
+      setExams(previous);
+      alert('Exam order could not be saved: ' + getErrorMessage(err, 'Save failed'));
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
   return {
+    reorderExam,
+    isSavingOrder,
+    dragExamId,
+    setDragExamId,
+    dragOverExamId,
+    setDragOverExamId,
     exams,
     setExams,
     dbTests,

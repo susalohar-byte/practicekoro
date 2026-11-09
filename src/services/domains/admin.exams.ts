@@ -512,6 +512,41 @@ export async function getPublishedExamTestCount(examId: string): Promise<number>
 }
 
 /**
+ * Saves a new exam order (drag-and-drop in the admin Exams page). `orderedIds` is every exam in
+ * its new order; each gets order_index 1, 2, 3, ... Only exams whose position changed are
+ * written. Students' exam lists sort by order_index, so they follow the same order.
+ */
+export async function reorderExams(
+  orderedIds: string[],
+  currentOrder: Record<string, number | undefined> = {}
+): Promise<void> {
+  const changed = orderedIds
+    .map((id, i) => ({ id, orderIndex: i + 1 }))
+    .filter(({ id, orderIndex }) => currentOrder[id] !== orderIndex);
+  if (!isSupabaseConfigured) {
+    for (const { id, orderIndex } of changed) {
+      const row = localExams.find((e) => e.id === id);
+      if (row) row.orderIndex = orderIndex;
+    }
+    localExams.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+    notifyExamsUpdated();
+    return;
+  }
+  for (const { id, orderIndex } of changed) {
+    requireSavedRow(
+      await supabase
+        .from('exams')
+        .update({ order_index: orderIndex })
+        .eq('id', id)
+        .select('id')
+        .maybeSingle(),
+      id
+    );
+  }
+  notifyExamsUpdated();
+}
+
+/**
  * Exam icon / logo: stored in the `banners` Storage bucket through the validated upload function
  * (the same path as subject and test icons). Only the public URL is saved on the exam row.
  */
@@ -589,5 +624,6 @@ export const adminExamsApi = {
   savePopularExams,
   uploadPopularExamImage,
   uploadExamIcon,
+  reorderExams,
   subscribeToPopularExamUpdates,
 };
