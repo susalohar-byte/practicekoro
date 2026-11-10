@@ -93,6 +93,24 @@ describe('option images when saving questions', () => {
     });
   });
 
+  it('saves a question whose question is an image (figure / table) with no text', async () => {
+    await createQuestion({
+      ...base,
+      questionText: '',
+      imageUrl: 'https://x.supabase.co/storage/v1/object/public/question-images/grid.png',
+      optionA: '12',
+    });
+    expect(mocks.writes[0].payload).toMatchObject({
+      question_text: '',
+      image_url: 'https://x.supabase.co/storage/v1/object/public/question-images/grid.png',
+    });
+  });
+
+  it('an edit can replace or remove the question image', async () => {
+    await updateQuestion('q1', { imageUrl: '' });
+    expect(mocks.writes[0].payload).toEqual({ image_url: null });
+  });
+
   it('before the migration: text edits still save, an image explains the missing update', async () => {
     primeOptionImageColumns(false);
     await updateQuestion('q1', { optionB: 'New text', optionCImageUrl: '' });

@@ -66,6 +66,13 @@ export const PreviewQuestionModal: React.FC<PreviewQuestionModalProps> = ({
           >
             <MathText>{question.questionBengaliText || question.questionText}</MathText>
           </p>
+          {question.imageUrl && (
+            <img
+              src={question.imageUrl}
+              alt="Question figure"
+              className="max-h-72 max-w-full rounded-xl border border-slate-200 dark:border-slate-700 object-contain bg-white"
+            />
+          )}
 
           <div className="space-y-1.5 pt-1">
             {[

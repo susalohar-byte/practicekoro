@@ -40,6 +40,8 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
     addOptB,
     addOptC,
     addOptD,
+    addQuestionImage,
+    setAddQuestionImage,
     addOptImages,
     setAddOptImage,
     showToast,
@@ -299,11 +301,11 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
               {/* Question Text */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Question (Bengali / English) *
+                  Question (Bengali / English) {addQuestionImage ? '(optional with image)' : '*'}
                 </label>
                 <textarea
                   rows={2}
-                  required
+                  required={!addQuestionImage}
                   value={addQuestionBengali}
                   onChange={(e) => {
                     setAddQuestionBengali(e.target.value);
@@ -311,6 +313,16 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
                   }}
                   placeholder="যেমন: ভারতের প্রথম গভর্নর-জেনারেল কে ছিলেন?"
                   className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#070D1E] font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none font-tiro"
+                />
+                {/* Question image: figure, table or diagram (or the whole question as an image) */}
+                <OptionImageField
+                  option="Q"
+                  name="Question"
+                  addLabel="Add question image (figure / table / diagram)"
+                  large
+                  value={addQuestionImage}
+                  onChange={setAddQuestionImage}
+                  onError={showToast}
                 />
               </div>
 

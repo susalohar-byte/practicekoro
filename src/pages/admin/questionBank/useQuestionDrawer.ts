@@ -25,6 +25,8 @@ export function useQuestionDrawer({
   // Drawer Edit Form States
   const [drawerBengaliText, setDrawerBengaliText] = useState('');
   const [drawerEnglishText, setDrawerEnglishText] = useState('');
+  // Question figure / diagram (Storage URL)
+  const [drawerQuestionImage, setDrawerQuestionImage] = useState('');
   const [drawerOptions, setDrawerOptions] = useState<{ [key: string]: string }>({
     A: '',
     B: '',
@@ -62,6 +64,7 @@ export function useQuestionDrawer({
     if (activeQuestion) {
       setDrawerBengaliText(activeQuestion.questionBengaliText || '');
       setDrawerEnglishText(activeQuestion.questionText || '');
+      setDrawerQuestionImage(activeQuestion.imageUrl || '');
       setDrawerOptions({
         A: activeQuestion.optionA || '',
         B: activeQuestion.optionB || '',
@@ -127,8 +130,8 @@ export function useQuestionDrawer({
       setIsUpdatingDrawer(true);
       const englishText = drawerEnglishText.trim();
       const bengaliText = drawerBengaliText.trim();
-      if (!englishText && !bengaliText) {
-        showToast('Question text is required.');
+      if (!englishText && !bengaliText && !drawerQuestionImage) {
+        showToast('Add the question text or a question image.');
         return;
       }
       // An option needs text or an image (image-only options are allowed)
@@ -146,6 +149,9 @@ export function useQuestionDrawer({
         if ((activeQuestion[field] || '') !== drawerOptionImages[k])
           imageChanges[field] = drawerOptionImages[k];
       }
+      // Only send the question image when it changed
+      if ((activeQuestion.imageUrl || '') !== drawerQuestionImage)
+        imageChanges.imageUrl = drawerQuestionImage;
       const originalType = questionBankType(activeQuestion);
       const subjectId = drawerSubject
         ? subjects.find((s) => s.name === drawerSubject)?.id
@@ -263,6 +269,8 @@ export function useQuestionDrawer({
     setDrawerBengaliText,
     drawerEnglishText,
     setDrawerEnglishText,
+    drawerQuestionImage,
+    setDrawerQuestionImage,
     drawerOptions,
     setDrawerOptions,
     drawerOptionImages,

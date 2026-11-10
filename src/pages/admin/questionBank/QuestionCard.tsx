@@ -68,6 +68,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             >
               {questionNumber}. {q.questionBengaliText || q.questionText}
             </h3>
+            {q.imageUrl && (
+              <img
+                src={q.imageUrl}
+                alt="Question figure"
+                loading="lazy"
+                className="mt-2 max-h-40 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 object-contain bg-white"
+              />
+            )}
           </div>
         </div>
 

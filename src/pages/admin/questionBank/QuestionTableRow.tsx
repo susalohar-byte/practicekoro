@@ -69,6 +69,7 @@ export const QuestionTableRow: React.FC<QuestionTableRowProps> = ({
             )}
           >
             {q.questionBengaliText || q.questionText}
+            {q.imageUrl && ' [image]'}
           </p>
           <div className="flex items-center gap-2 pt-0.5">
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-500">

@@ -551,6 +551,10 @@ class _SolutionsScreenState extends ConsumerState<SolutionsScreen> {
                               ),
                             ),
                           ],
+                          if (q.hasImage) ...[
+                            const SizedBox(height: 12),
+                            QuestionImage(url: q.imageUrl!),
+                          ],
                           const SizedBox(height: 16),
 
                           // 3. Option Choices (Matching Screenshot)

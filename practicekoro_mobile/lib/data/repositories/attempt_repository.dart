@@ -339,7 +339,14 @@ class AttemptRepository {
       subjectName: r['subjectName']?.toString() ??
           r['subject_name']?.toString() ??
           r['subject']?.toString(),
+      imageUrl: _questionImage(r),
     );
+  }
+
+  /// Question image URL from the RPC row (imageUrl / image_url), or null.
+  static String? _questionImage(Map<String, dynamic> r) {
+    final v = (r['imageUrl'] ?? r['image_url'])?.toString().trim();
+    return (v == null || v.isEmpty) ? null : v;
   }
 
   /// Option image URL from the RPC row (optionAImageUrl..optionDImageUrl), or null.

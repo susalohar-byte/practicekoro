@@ -44,6 +44,38 @@ void main() {
       expect(q.options[0].text, 'Delhi');
     });
 
+    test('maps the question image; a figure-only question can have no text', () {
+      final q = AttemptRepository.questionFromRow(
+        {
+          'id': 'q3',
+          'questionText': '',
+          'imageUrl': 'https://img/grid.png',
+          'optionA': '12',
+          'optionB': '18',
+          'optionC': '20',
+          'optionD': '16',
+        },
+        't1',
+        0,
+        withAnswers: false,
+      );
+      expect(q.hasImage, isTrue);
+      expect(q.imageUrl, 'https://img/grid.png');
+      expect(q.textEnglish, '');
+
+      final back = QuestionModel.fromJson(q.toJson());
+      expect(back.imageUrl, 'https://img/grid.png');
+
+      final plain = AttemptRepository.questionFromRow(
+        {'id': 'q4', 'questionText': 'Capital?', 'optionA': 'Delhi'},
+        't1',
+        0,
+        withAnswers: false,
+      );
+      expect(plain.hasImage, isFalse);
+      expect(plain.toJson().containsKey('image_url'), isFalse);
+    });
+
     test('saved questions keep option images through toJson / fromJson', () {
       const opt = OptionModel(id: 'A', label: 'A', text: '', imageUrl: 'https://img/a.png');
       final back = OptionModel.fromJson(opt.toJson(), 0);

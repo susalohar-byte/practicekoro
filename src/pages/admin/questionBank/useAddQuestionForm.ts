@@ -43,6 +43,8 @@ export function useAddQuestionForm({
   const [addSubtopic, setAddSubtopic] = useState('');
   const [addQuestionBengali, setAddQuestionBengali] = useState('');
   const [addQuestionEnglish, setAddQuestionEnglish] = useState('');
+  // Question figure / diagram (Storage URL); the question can be the image itself
+  const [addQuestionImage, setAddQuestionImage] = useState('');
   const [addOptA, setAddOptA] = useState('');
   const [addOptB, setAddOptB] = useState('');
   const [addOptC, setAddOptC] = useState('');
@@ -118,8 +120,8 @@ export function useAddQuestionForm({
   const handleCreateQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmittingAdd) return;
-    if (!addQuestionBengali.trim() && !addQuestionEnglish.trim()) {
-      showToast('Question text is required.');
+    if (!addQuestionBengali.trim() && !addQuestionEnglish.trim() && !addQuestionImage) {
+      showToast('Add the question text or a question image.');
       return;
     }
     // An option needs text or an image (image-only options are allowed)
@@ -135,6 +137,7 @@ export function useAddQuestionForm({
         id: newId,
         questionBengaliText: addQuestionBengali.trim(),
         questionText: addQuestionEnglish.trim() || addQuestionBengali.trim(),
+        imageUrl: addQuestionImage || undefined,
         optionA: addOptA.trim(),
         optionB: addOptB.trim(),
         // Empty C / D get the usual default text, unless the option is an image
@@ -201,6 +204,7 @@ export function useAddQuestionForm({
       // Reset form
       setAddQuestionBengali('');
       setAddQuestionEnglish('');
+      setAddQuestionImage('');
       setAddOptA('');
       setAddOptB('');
       setAddOptC('');
@@ -241,6 +245,8 @@ export function useAddQuestionForm({
     addQuestionBengali,
     setAddQuestionBengali,
     addQuestionEnglish,
+    addQuestionImage,
+    setAddQuestionImage,
     setAddQuestionEnglish,
     addOptA,
     setAddOptA,

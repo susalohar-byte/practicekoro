@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/components/math_text.dart';
+import '../../core/components/option_image.dart';
 import '../../core/components/ui.dart';
 import '../../data/models/question_model.dart';
 
@@ -23,6 +24,10 @@ class QuestionText extends StatelessWidget {
         if (bengali.isNotEmpty && english.isNotEmpty && english != bengali) ...[
           const SizedBox(height: 6),
           MathText(english, style: UI.caption.copyWith(fontSize: 13, height: 1.45)),
+        ],
+        if (question.hasImage) ...[
+          if (bengali.isNotEmpty || english.isNotEmpty) const SizedBox(height: 12),
+          QuestionImage(url: question.imageUrl!),
         ],
       ],
     );

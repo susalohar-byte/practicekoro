@@ -13,6 +13,12 @@ export interface OptionImageFieldProps {
   /** Reports upload errors (falls back to alert). */
   onError?: (message: string) => void;
   disabled?: boolean;
+  /** Text of the add button (default: "Add image to option X"). */
+  addLabel?: string;
+  /** What the image is, for alt text and messages (default: "Option X"). */
+  name?: string;
+  /** Larger preview, e.g. for the question figure. */
+  large?: boolean;
 }
 
 /**
@@ -25,7 +31,11 @@ export function OptionImageField({
   onChange,
   onError,
   disabled,
+  addLabel,
+  name,
+  large,
 }: OptionImageFieldProps) {
+  const what = name ?? `Option ${option}`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -37,7 +47,7 @@ export function OptionImageField({
       const url = await api.uploadQuestionImage(file);
       onChange(url);
     } catch (err) {
-      const message = `Option ${option} image could not be uploaded: ${getErrorMessage(err, 'Upload failed')}`;
+      const message = `${what} image could not be uploaded: ${getErrorMessage(err, 'Upload failed')}`;
       if (onError) onError(message);
       else alert(message);
     } finally {
@@ -52,7 +62,7 @@ export function OptionImageField({
         type="file"
         accept="image/png,image/jpeg,image/webp"
         className="hidden"
-        aria-label={`Option ${option} image file`}
+        aria-label={`${what} image file`}
         onChange={(e) => {
           const input = e.currentTarget;
           const file = input.files?.[0];
@@ -66,8 +76,11 @@ export function OptionImageField({
         <div className="flex items-center gap-2">
           <img
             src={value}
-            alt={`Option ${option} image`}
-            className="h-16 max-w-[8rem] rounded-lg border border-slate-200 dark:border-slate-700 object-contain bg-white"
+            alt={`${what} image`}
+            className={
+              (large ? 'max-h-48 max-w-full' : 'h-16 max-w-[8rem]') +
+              ' rounded-lg border border-slate-200 dark:border-slate-700 object-contain bg-white'
+            }
           />
           <div className="flex flex-col gap-1">
             <button
@@ -106,7 +119,7 @@ export function OptionImageField({
           ) : (
             <ImagePlus className="w-3.5 h-3.5" />
           )}
-          {isUploading ? 'Uploading…' : `Add image to option ${option}`}
+          {isUploading ? 'Uploading…' : (addLabel ?? `Add image to option ${option}`)}
         </button>
       )}
     </div>

@@ -236,6 +236,10 @@ class _SavedQuestionCard extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (question.hasImage) ...[
+                  const SizedBox(height: 10),
+                  QuestionImage(url: question.imageUrl!),
+                ],
               ],
             ),
           ),

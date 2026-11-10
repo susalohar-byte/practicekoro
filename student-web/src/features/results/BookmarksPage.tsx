@@ -87,6 +87,7 @@ export default function BookmarksPage() {
                     </p>
                   )}
                   <p className={cn('whitespace-pre-line', q!.textBengali ? 'mt-1 text-[13px] font-medium text-[#64748B]' : 'text-[15.5px] font-bold text-[#0F172A]')}><MathText>{q!.textEnglish}</MathText></p>
+                  {q!.imageUrl && <img src={q!.imageUrl} alt="Question figure" loading="lazy" className="mt-3 max-h-72 max-w-full rounded-card border border-line object-contain" />}
                   <ul className="mt-3 space-y-2">
                     {OPTION_LETTERS.filter((l) => hasOption(q!, l)).map((l) => {
                       const ok = l === q!.correct;

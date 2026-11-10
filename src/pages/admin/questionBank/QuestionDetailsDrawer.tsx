@@ -24,6 +24,8 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
     drawerBengaliText,
     setDrawerBengaliText,
     drawerEnglishText,
+    drawerQuestionImage,
+    setDrawerQuestionImage,
     setDrawerEnglishText,
     handleShuffleDrawerOptions,
     drawerCorrectOption,
@@ -162,6 +164,16 @@ export function QuestionDetailsDrawer({ qb }: QuestionDetailsDrawerProps) {
                     value={drawerEnglishText}
                     onChange={(e) => setDrawerEnglishText(e.target.value)}
                     className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-[#F8FAFC] dark:bg-[#070D1E] text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#026BFC] resize-none"
+                  />
+                  {/* Question image: figure / table / diagram */}
+                  <OptionImageField
+                    option="Q"
+                    name="Question"
+                    addLabel="Add question image (figure / table / diagram)"
+                    large
+                    value={drawerQuestionImage}
+                    onChange={setDrawerQuestionImage}
+                    onError={showToast}
                   />
                 </div>
 

@@ -64,6 +64,11 @@ class QuestionModel {
   final List<String> relatedNotes;
   final String? subjectName;
 
+  /// Question figure / table / diagram (Storage URL). The question can also be the image alone.
+  final String? imageUrl;
+
+  bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
+
   const QuestionModel({
     required this.id,
     this.testId,
@@ -77,6 +82,7 @@ class QuestionModel {
     this.negativeMarks = 0.25,
     this.relatedNotes = const [],
     this.subjectName,
+    this.imageUrl,
   });
 
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
@@ -128,6 +134,7 @@ class QuestionModel {
       negativeMarks: (json['negative_marks'] as num?)?.toDouble() ?? 0.25,
       relatedNotes: notes,
       subjectName: json['subject_name']?.toString() ?? json['subjectName']?.toString(),
+      imageUrl: OptionModel._nonEmpty(json['image_url'] ?? json['imageUrl']),
     );
   }
 
@@ -144,5 +151,6 @@ class QuestionModel {
     'negative_marks': negativeMarks,
     'related_notes': relatedNotes,
     'subject_name': subjectName,
+    if (imageUrl != null) 'image_url': imageUrl,
   };
 }
