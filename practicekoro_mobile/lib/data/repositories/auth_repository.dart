@@ -259,41 +259,62 @@ class AuthRepository {
     }
   }
 
-  /// Saves the editable profile fields to `public.profiles` with resilient fallback,
-  /// and mirrors demographic data into `auth.users` metadata for cross-platform reliability.
+  /// An inline (base64 `data:`) image. Older app versions kept an uploaded photo this way; the
+  /// server rejects it in `profiles.avatar_url`, so it must never be part of a profile save.
+  static bool isInlineImage(Object? v) =>
+      v is String && v.trimLeft().toLowerCase().startsWith('data:');
+
+  /// The `profiles` columns a save sends: editable, non-null, and never an inline image.
+  @visibleForTesting
+  static Map<String, dynamic> profileUpdatePayload(Map<String, dynamic> profile) {
+    final update = <String, dynamic>{};
+    for (final e in profile.entries) {
+      if (_editableProfileColumns.contains(e.key) &&
+          e.value != null &&
+          !isInlineImage(e.value)) {
+        update[e.key] = e.value;
+      }
+    }
+    return update;
+  }
+
+  /// Saves the editable profile fields to `public.profiles` and mirrors them into
+  /// `auth.users` metadata for cross-platform reliability.
+  ///
+  /// Throws [ProfileSaveFailure] when the server did not store the profile, so the caller
+  /// can tell the student instead of reporting a save that the next sync would undo.
   Future<void> pushProfileToServer(Map<String, dynamic> profile) async {
     final client = supabaseClient;
     final uid = client?.auth.currentUser?.id;
     if (client == null || uid == null) return;
 
-    final update = <String, dynamic>{};
-    for (final e in profile.entries) {
-      if (_editableProfileColumns.contains(e.key) && e.value != null) {
-        update[e.key] = e.value;
-      }
-    }
+    final update = profileUpdatePayload(profile);
 
     if (update.isNotEmpty) {
+      Object? fullError;
       try {
-        await client.from('profiles').update(update).eq('id', uid);
+        final saved = await client.from('profiles').update(update).eq('id', uid).select('id');
+        if (saved.isEmpty) throw const ProfileSaveFailure('Your profile was not found on the server.');
       } catch (err) {
-        debugPrint(
-          'Full profile update warning: $err. Retrying with basic fields.',
-        );
+        fullError = err;
+        debugPrint('Full profile update warning: $err. Retrying with basic fields.');
+      }
+      if (fullError != null) {
+        // One field the server cannot take must not block the rest: retry with the name and
+        // basic details only (never the photo).
+        final basicUpdate = <String, dynamic>{
+          'full_name': (profile['full_name'] ?? '').toString(),
+          if (profile['phone'] != null) 'phone': profile['phone'],
+          if (profile['district'] != null) 'district': profile['district'],
+        };
         try {
-          final basicUpdate = <String, dynamic>{
-            'full_name': profile['full_name'] ?? '',
-          };
-          if (profile['phone'] != null) basicUpdate['phone'] = profile['phone'];
-          if (profile['avatar_url'] != null) {
-            basicUpdate['avatar_url'] = profile['avatar_url'];
-          }
-          if (profile['district'] != null) {
-            basicUpdate['district'] = profile['district'];
-          }
-          await client.from('profiles').update(basicUpdate).eq('id', uid);
+          final saved = await client.from('profiles').update(basicUpdate).eq('id', uid).select('id');
+          if (saved.isEmpty) throw const ProfileSaveFailure('Your profile was not found on the server.');
         } catch (basicErr) {
           debugPrint('Basic profile update error: $basicErr');
+          throw basicErr is ProfileSaveFailure
+              ? basicErr
+              : const ProfileSaveFailure('Could not save your profile. Please check your internet and try again.');
         }
       }
     }
@@ -305,8 +326,10 @@ class AuthRepository {
           data: {
             'full_name': profile['full_name'],
             'phone': profile['phone'],
-            'avatar_url': profile['avatar_url'],
-            'custom_avatar_url': profile['custom_avatar_url'],
+            // Inline images would bloat the login token; only real URLs are mirrored
+            if (!isInlineImage(profile['avatar_url'])) 'avatar_url': profile['avatar_url'],
+            if (!isInlineImage(profile['custom_avatar_url']))
+              'custom_avatar_url': profile['custom_avatar_url'],
             'google_avatar_url': profile['google_avatar_url'],
             'district': profile['district'],
             'block': profile['block'],
@@ -412,6 +435,14 @@ class AccountDeletionException implements Exception {
   const AccountDeletionException(this.message);
   final String message;
 
+  @override
+  String toString() => message;
+}
+
+/// The profile could not be saved on the server (the message is shown to the student).
+class ProfileSaveFailure implements Exception {
+  final String message;
+  const ProfileSaveFailure(this.message);
   @override
   String toString() => message;
 }

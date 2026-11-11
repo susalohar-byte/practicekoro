@@ -99,18 +99,30 @@ class StudentProfileNotifier extends Notifier<StudentProfileModel> {
     state = _loadFromStorageAndAuth();
   }
 
-  /// Saves locally on the device immediately and syncs with Supabase in the background.
-  Future<void> save(StudentProfileModel profile) async {
+  /// Saves locally on the device immediately and syncs with Supabase.
+  ///
+  /// With [requireServer] (Edit Profile), a server failure puts the previous profile back and
+  /// throws [ProfileSaveFailure], so the student is not told "saved" for a change the next
+  /// sync would undo. Otherwise (e.g. after a payment) the server sync is best effort.
+  Future<void> save(StudentProfileModel profile, {bool requireServer = false}) async {
+    final previousState = state;
+    final previousJson = LocalStorageService.getProfileJson();
     final json = profile.toJson();
     // 1. Immediately persist on the phone & update Riverpod state
     await LocalStorageService.saveProfileJson(json);
     state = profile;
 
-    // 2. Sync to Supabase server & auth user metadata in background
+    // 2. Sync to Supabase server & auth user metadata
     try {
       await const AuthRepository().pushProfileToServer(json);
     } catch (e) {
-      debugPrint('Background profile sync warning: $e');
+      debugPrint('Profile sync warning: $e');
+      if (!requireServer) return;
+      if (previousJson != null) await LocalStorageService.saveProfileJson(previousJson);
+      state = previousState;
+      throw e is ProfileSaveFailure
+          ? e
+          : const ProfileSaveFailure('Could not save your profile. Please try again.');
     }
   }
 

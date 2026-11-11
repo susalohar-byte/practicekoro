@@ -165,13 +165,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         email: _email.text.trim(),
         phone: _phone.text.replaceAll(RegExp(r'\D'), ''),
       );
-      await ref.read(studentProfileProvider.notifier).save(updatedProfile);
+      await ref
+          .read(studentProfileProvider.notifier)
+          .save(updatedProfile, requireServer: true);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not save your profile. Please try again.'),
+        SnackBar(
+          content: Text(
+            e is ProfileSaveFailure
+                ? e.message
+                : 'Could not save your profile. Please try again.',
+          ),
           backgroundColor: UI.danger,
         ),
       );
