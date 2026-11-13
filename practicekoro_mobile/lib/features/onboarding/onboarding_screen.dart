@@ -10,8 +10,8 @@ import 'widgets/practicekoro_wordmark.dart';
 /// Set once the student has seen (or skipped) onboarding.
 const onboardingDoneKey = 'onboarding_done';
 
-/// Brand splash: displays the official PracticeKoro app logo, brand typography,
-/// and motivational tagline with a smooth fade-in entrance before transitioning.
+/// Brand splash: the PracticeKoro icon pops in, the wordmark slides up under
+/// it, then a light shine sweeps across the wordmark before the app moves on.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -22,41 +22,59 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
-  late final Animation<double> _fadeAnim;
-  late final Animation<double> _scaleAnim;
+
+  // Icon: 0 - 600 ms
+  late final Animation<double> _iconFade;
+  late final Animation<double> _iconScale;
+  late final Animation<double> _iconGlow;
+  // Wordmark: 350 - 900 ms, shine 900 - 1400 ms
+  late final Animation<double> _textFade;
+  late final Animation<Offset> _textSlide;
+  late final Animation<double> _shine;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 550),
+      duration: const Duration(milliseconds: 1400),
     );
 
-    // Start with 0.35 opacity so the logo is immediately visible on first frame
-    _fadeAnim = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    Animation<double> interval(double begin, double end, Curve curve) =>
+        CurvedAnimation(
+          parent: _animController,
+          curve: Interval(begin, end, curve: curve),
+        );
 
-    _scaleAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeOutBack,
-      ),
-    );
+    _iconFade = interval(0.0, 0.3, Curves.easeOut);
+    _iconScale = Tween<double>(begin: 0.6, end: 1.0)
+        .animate(interval(0.0, 0.43, Curves.easeOutBack));
+    _iconGlow = interval(0.2, 0.64, Curves.easeOut);
+    _textFade = interval(0.25, 0.6, Curves.easeOut);
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.6), end: Offset.zero)
+        .animate(interval(0.25, 0.64, Curves.easeOutCubic));
+    _shine = interval(0.64, 1.0, Curves.easeInOut);
 
-    _animController.forward();
     _navigateToNext();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_animController.isAnimating || _animController.isCompleted) return;
+    // Respect the system "remove animations" setting: show the final frame.
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _animController.value = 1.0;
+    } else {
+      _animController.forward();
+    }
   }
 
   Future<void> _navigateToNext() async {
     final isTestEnvironment =
         WidgetsBinding.instance.runtimeType.toString().contains('Test');
     final waitDuration =
-        isTestEnvironment ? Duration.zero : const Duration(milliseconds: 1700);
+        isTestEnvironment ? Duration.zero : const Duration(milliseconds: 1800);
 
     if (waitDuration > Duration.zero) {
       await Future.delayed(waitDuration);
@@ -79,6 +97,109 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  Widget _icon() {
+    return AnimatedBuilder(
+      animation: _iconGlow,
+      builder: (context, child) => Container(
+        width: 108,
+        height: 108,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0158FC)
+                  .withValues(alpha: 0.22 * _iconGlow.value),
+              blurRadius: 36,
+              offset: const Offset(0, 12),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: Image.asset(
+          'assets/images/logo-icon.webp',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (_, _, _) => Container(
+            color: UI.brand,
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.school_rounded,
+              color: Colors.white,
+              size: 54,
+            ),
+          ),
+          excludeFromSemantics: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _wordmark() {
+    final wordmark = Image.asset(
+      'assets/images/logo-text.webp',
+      height: 38,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (_, _, _) => RichText(
+        text: const TextSpan(
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.6,
+          ),
+          children: [
+            TextSpan(
+              text: 'Practice',
+              style: TextStyle(color: Color(0xFF0F172A)),
+            ),
+            TextSpan(
+              text: 'Koro',
+              style: TextStyle(color: Color(0xFF0158FC)),
+            ),
+          ],
+        ),
+      ),
+      semanticLabel: 'PracticeKoro',
+    );
+
+    // A soft white band sweeps left to right across the wordmark's pixels.
+    return AnimatedBuilder(
+      animation: _shine,
+      builder: (context, child) {
+        final t = _shine.value;
+        if (t <= 0 || t >= 1) return child!;
+        final centre = -0.3 + 1.6 * t;
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) => LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Colors.white.withValues(alpha: 0),
+              Colors.white.withValues(alpha: 0.75),
+              Colors.white.withValues(alpha: 0),
+            ],
+            stops: [
+              (centre - 0.15).clamp(0.0, 1.0),
+              centre.clamp(0.0, 1.0),
+              (centre + 0.15).clamp(0.0, 1.0),
+            ],
+          ).createShader(bounds),
+          child: child,
+        );
+      },
+      child: wordmark,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,84 +217,23 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnim,
-            child: ScaleTransition(
-              scale: _scaleAnim,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // App Icon Logo: high-res squircle with ambient glow
-                    Container(
-                      width: 108,
-                      height: 108,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(26),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0158FC).withValues(alpha: 0.22),
-                            blurRadius: 36,
-                            offset: const Offset(0, 12),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(26),
-                        child: Image.asset(
-                          'assets/images/logo-icon.webp',
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (_, _, _) => Container(
-                            color: UI.brand,
-                            alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.school_rounded,
-                              color: Colors.white,
-                              size: 54,
-                            ),
-                          ),
-                          excludeFromSemantics: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Official Brand Typography: PracticeKoro Wordmark
-                    Image.asset(
-                      'assets/images/logo-text.webp',
-                      height: 38,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, _, _) => RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.6,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Practice',
-                              style: TextStyle(color: Color(0xFF0F172A)),
-                            ),
-                            TextSpan(
-                              text: 'Koro',
-                              style: TextStyle(color: Color(0xFF0158FC)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      semanticLabel: 'PracticeKoro',
-                    ),
-                  ],
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FadeTransition(
+                  opacity: _iconFade,
+                  child: ScaleTransition(scale: _iconScale, child: _icon()),
                 ),
-              ),
+                const SizedBox(height: 20),
+                FadeTransition(
+                  opacity: _textFade,
+                  child: SlideTransition(
+                    position: _textSlide,
+                    child: _wordmark(),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
