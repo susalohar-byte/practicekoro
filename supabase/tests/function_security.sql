@@ -67,6 +67,7 @@ insert into fs_class (proname, class, reason) values
   ('get_attempt_rankings', 'user', null),
   ('record_coupon_redemption', 'user', null),
   ('get_attempt_solutions', 'user', null),
+  ('get_overall_leaderboard', 'user', null),
   ('get_my_subscription_purchase_options', 'user', null),
   ('get_student_exam_questions', 'user', null),
   ('get_student_subscription_details', 'user', null),
