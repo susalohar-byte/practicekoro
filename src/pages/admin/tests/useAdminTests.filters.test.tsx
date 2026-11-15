@@ -11,9 +11,14 @@ const mocks = vi.hoisted(() => ({
     getSubjects: vi.fn(),
     getAllAdminChapters: vi.fn(),
   },
+  getExamTestLinks: vi.fn(),
 }));
 
 vi.mock('@/services/api', () => ({ api: mocks.api }));
+vi.mock('@/services/domains/admin.examMappings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/domains/admin.examMappings')>()),
+  getExamTestLinks: mocks.getExamTestLinks,
+}));
 vi.mock('@/lib/supabase', () => ({ isSupabaseConfigured: true }));
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ hasPermission: () => true }) }));
 
@@ -56,19 +61,69 @@ beforeEach(() => {
     { id: 'vedic', name: 'Vedic', subjectId: 'hist' },
     { id: 'rivers', name: 'Rivers', subjectId: 'geo' },
   ]);
+  // fm1 is also a WBP test; WBP's syllabus has the Vedic and Rivers topics
+  mocks.getExamTestLinks.mockResolvedValue({
+    testExams: [{ testId: 'fm1', examId: 'wbp' }],
+    examTopics: [
+      { examId: 'wbp', topicId: 'vedic' },
+      { examId: 'wbp', topicId: 'rivers' },
+    ],
+  });
 });
 
 describe('Mock Test Management filters', () => {
   it('Full Mock tab: lists exams with counts and filters by exam at once', async () => {
     const { result } = setup('full_mock');
     await waitFor(() => expect(result.current.filteredTests).toHaveLength(2));
-    expect(result.current.examFilterOptions).toEqual([
-      { id: 'wbpsc', title: 'WBPSC Clerkship', count: 1 },
-      { id: 'wbp', title: 'WBP Constable', count: 1 },
+    // Every exam is listed, even one with no tests yet
+    await waitFor(() =>
+      expect(result.current.examFilterOptions).toEqual([
+        { id: 'wbpsc', title: 'WBPSC Clerkship', count: 1 },
+        { id: 'wbp', title: 'WBP Constable', count: 2 },
+        { id: 'tet', title: 'Primary TET', count: 0 },
+      ])
+    );
+
+    // fm1's main exam is WBPSC, but it is also linked to WBP
+    act(() => result.current.changeExamFilter('wbp'));
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['fm1', 'fm2']);
+  });
+
+  it('All tab: an exam shows its mocks, PYQs and the topic tests on its topics', async () => {
+    const { result } = setup('all');
+    await waitFor(() => expect(result.current.examFilterOptions[1]?.count).toBe(4));
+
+    act(() => result.current.changeExamFilter('wbp'));
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['fm1', 'fm2', 'tp2', 'tp3']);
+  });
+
+  it('Topic tab: exam narrows subjects and topics, and a new exam clears them', async () => {
+    const { result } = setup('topic');
+    await waitFor(() => expect(result.current.examFilterOptions[1]?.count).toBe(2));
+
+    act(() => result.current.changeSubjectFilter('hist'));
+    act(() => result.current.changeExamFilter('wbp'));
+    expect(result.current.selectedSubjectId).toBe('');
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['tp2', 'tp3']);
+    expect(result.current.subjectFilterOptions.map((s) => `${s.name} ${s.count}`)).toEqual([
+      'History 1',
+      'Geography 1',
     ]);
+
+    act(() => result.current.changeSubjectFilter('hist'));
+    expect(result.current.chapterFilterOptions.map((c) => c.id)).toEqual(['vedic']);
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['tp2']);
+  });
+
+  it("exam links failing to load: falls back to each test's main exam", async () => {
+    mocks.getExamTestLinks.mockRejectedValue(new Error('offline'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = setup('full_mock');
+    await waitFor(() => expect(result.current.filteredTests).toHaveLength(2));
 
     act(() => result.current.changeExamFilter('wbp'));
     expect(result.current.filteredTests.map((x) => x.id)).toEqual(['fm2']);
+    warn.mockRestore();
   });
 
   it('Topic tab: filters by subject, then topic, at once', async () => {

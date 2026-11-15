@@ -7,6 +7,11 @@ import { getErrorMessage } from '@/lib/errors';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import type { TestTypeTab } from './testTypes';
 import { REFERENCE_DEFAULT_TESTS } from './referenceTests';
+import {
+  examIdsByTest as examIdsForTests,
+  getExamTestLinks,
+  type ExamTestLinks,
+} from '@/services/domains/admin.examMappings';
 
 export function useAdminTests() {
   const { hasPermission } = useAuth();
@@ -18,6 +23,7 @@ export function useAdminTests() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [examLinks, setExamLinks] = useState<ExamTestLinks>({ testExams: [], examTopics: [] });
   const [isLoading, setIsLoading] = useState(true);
 
   // Active Type Tab (Strictly: all, full_mock, topic, pyq - NO Subject Test)
@@ -171,11 +177,16 @@ export function useAdminTests() {
   const loadAllData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [testsData, examsData, subjectsData, chaptersData] = await Promise.all([
+      const [testsData, examsData, subjectsData, chaptersData, linksData] = await Promise.all([
         api.getAllAdminTests(),
         api.getExams(),
         api.getSubjects(),
         api.getAllAdminChapters(),
+        // Without the links the exam filter still works on each test's main exam.
+        getExamTestLinks().catch((err) => {
+          console.warn('Could not load exam links for the exam filter:', err);
+          return { testExams: [], examTopics: [] } as ExamTestLinks;
+        }),
       ]);
 
       let freshTests: MockTest[];
@@ -200,6 +211,7 @@ export function useAdminTests() {
       setExams(examsData || []);
       setSubjects(subjectsData || []);
       setChapters(chaptersData || []);
+      setExamLinks(linksData);
     } catch (err) {
       console.error('Failed to load mock tests data:', err);
       if (!isSupabaseConfigured) {
@@ -287,6 +299,18 @@ export function useAdminTests() {
     };
   }, [tests]);
 
+  // Every exam a test belongs to: its main exam, extra exams (test_exams), and for Topic
+  // Tests every exam whose mapped topics include the test's topic (exam_topics).
+  const examIdsByTest = useMemo(() => examIdsForTests(tests, examLinks), [tests, examLinks]);
+  const inExam = useCallback(
+    (t: MockTest, examId: string) => !examId || !!examIdsByTest.get(t.id)?.has(examId),
+    [examIdsByTest]
+  );
+  const onTab = useCallback(
+    (t: MockTest) => activeTab === 'all' || t.testType === activeTab,
+    [activeTab]
+  );
+
   // Filtered Tests
   const filteredTests = useMemo(() => {
     return tests.filter((t) => {
@@ -307,9 +331,7 @@ export function useAdminTests() {
       }
 
       // Exam filter
-      if (appliedFilters.examId && t.examId !== appliedFilters.examId) {
-        return false;
-      }
+      if (!inExam(t, appliedFilters.examId)) return false;
 
       // Subject filter
       if (appliedFilters.subjectId && t.subjectId !== appliedFilters.subjectId) {
@@ -321,52 +343,58 @@ export function useAdminTests() {
         return false;
       }
 
-      // Status filter
-      if (appliedFilters.status !== 'all') {
-        if (appliedFilters.status === 'published' && t.status !== 'published') return false;
-        if (appliedFilters.status === 'draft' && t.status !== 'draft') return false;
-        if (appliedFilters.status === 'under_review' && t.status !== 'archived') return false;
+      // Status filter: archived tests only show in the Archived view
+      if (appliedFilters.status === 'all') {
+        if (t.status === 'archived') return false;
+      } else if (t.status !== appliedFilters.status) {
+        return false;
       }
 
       return true;
     });
-  }, [tests, activeTab, appliedFilters]);
+  }, [tests, activeTab, appliedFilters, inExam]);
 
-  // Exam dropdown: only exams that have tests on the current tab, with how many
+  // Exam dropdown: every exam, with how many tests on the current tab belong to it
   const examFilterOptions = useMemo(() => {
     const countByExam = new Map<string, number>();
     for (const t of tests) {
-      if (activeTab !== 'all' && t.testType !== activeTab) continue;
-      if (t.examId) countByExam.set(t.examId, (countByExam.get(t.examId) || 0) + 1);
+      if (!onTab(t)) continue;
+      examIdsByTest.get(t.id)?.forEach((id) => countByExam.set(id, (countByExam.get(id) || 0) + 1));
     }
-    return exams
-      .filter((ex) => countByExam.has(ex.id) || ex.id === selectedExamId)
-      .map((ex) => ({ id: ex.id, title: ex.title, count: countByExam.get(ex.id) || 0 }));
-  }, [tests, exams, activeTab, selectedExamId]);
+    return exams.map((ex) => ({ id: ex.id, title: ex.title, count: countByExam.get(ex.id) || 0 }));
+  }, [tests, exams, onTab, examIdsByTest]);
 
-  // Subject / topic dropdowns (topic tests): only those that have tests on the current tab
+  // Subject / topic dropdowns: only those with tests on the current tab (and chosen exam)
   const subjectFilterOptions = useMemo(() => {
     const countBySubject = new Map<string, number>();
     for (const t of tests) {
-      if (activeTab !== 'all' && t.testType !== activeTab) continue;
+      if (!onTab(t) || !inExam(t, appliedFilters.examId)) continue;
       if (t.subjectId) countBySubject.set(t.subjectId, (countBySubject.get(t.subjectId) || 0) + 1);
     }
     return subjects
       .filter((s) => countBySubject.has(s.id) || s.id === selectedSubjectId)
       .map((s) => ({ id: s.id, name: s.name, count: countBySubject.get(s.id) || 0 }));
-  }, [tests, subjects, activeTab, selectedSubjectId]);
+  }, [tests, subjects, onTab, inExam, appliedFilters.examId, selectedSubjectId]);
 
   const chapterFilterOptions = useMemo(() => {
     const countByChapter = new Map<string, number>();
     for (const t of tests) {
-      if (activeTab !== 'all' && t.testType !== activeTab) continue;
+      if (!onTab(t) || !inExam(t, appliedFilters.examId)) continue;
       if (selectedSubjectId && t.subjectId !== selectedSubjectId) continue;
       if (t.chapterId) countByChapter.set(t.chapterId, (countByChapter.get(t.chapterId) || 0) + 1);
     }
     return filteredChapters
       .filter((c) => countByChapter.has(c.id) || c.id === selectedChapterId)
       .map((c) => ({ id: c.id, name: c.name, count: countByChapter.get(c.id) || 0 }));
-  }, [tests, filteredChapters, activeTab, selectedSubjectId, selectedChapterId]);
+  }, [
+    tests,
+    filteredChapters,
+    onTab,
+    inExam,
+    appliedFilters.examId,
+    selectedSubjectId,
+    selectedChapterId,
+  ]);
 
   // Choosing a subject (or topic) filters straight away; a new subject clears the topic
   const changeSubjectFilter = (subjectId: string) => {
@@ -381,10 +409,20 @@ export function useAdminTests() {
     setCurrentPage(1);
   };
 
+  const archivedCount = useMemo(() => tests.filter((t) => t.status === 'archived').length, [tests]);
+  const changeStatusFilter = (status: string) => {
+    setSelectedStatus(status);
+    setAppliedFilters((prev) => ({ ...prev, status }));
+    setCurrentPage(1);
+  };
+
   // Choosing an exam filters straight away (no extra "Filter" click needed)
+  // A new exam clears subject and topic, which may not belong to it
   const changeExamFilter = (examId: string) => {
     setSelectedExamId(examId);
-    setAppliedFilters((prev) => ({ ...prev, examId }));
+    setSelectedSubjectId('');
+    setSelectedChapterId('');
+    setAppliedFilters((prev) => ({ ...prev, examId, subjectId: '', chapterId: '' }));
     setCurrentPage(1);
   };
 
@@ -437,42 +475,88 @@ export function useAdminTests() {
     setShowDetailsPanel(true);
   };
 
+  const replaceTest = (testId: string, patch: Partial<MockTest>) => {
+    const merged = (t: MockTest): MockTest => (t.id === testId ? { ...t, ...patch } : t);
+    setTests((prev) => prev.map(merged));
+    if (selectedTest?.id === testId) setSelectedTest((prev) => (prev ? merged(prev) : prev));
+  };
+  const dropTest = (testId: string) => {
+    setTests((prev) => prev.filter((t) => t.id !== testId));
+    setSelectedTestIds((prev) => {
+      const next = new Set(prev);
+      next.delete(testId);
+      return next;
+    });
+    if (selectedTest?.id === testId) {
+      setSelectedTest(null);
+      setShowDetailsPanel(false);
+    }
+  };
+
+  // Permanently delete an archived test, with its attempts and results (trial papers).
+  const handlePermanentDeleteTest = async (testId: string) => {
+    if (!canDeleteTests) {
+      alert('You do not have permission to delete mock tests.');
+      return;
+    }
+    const test = tests.find((t) => t.id === testId);
+    const ok = confirm(
+      `Permanently delete "${test?.title ?? 'this test'}"?\n\n` +
+        'The test, its question list, and every student attempt, score and result for it ' +
+        'will be deleted. This cannot be undone.'
+    );
+    if (!ok) return;
+    try {
+      const { attemptsDeleted } = await api.deleteArchivedTest(testId);
+      dropTest(testId);
+      alert(
+        attemptsDeleted > 0
+          ? `Mock test deleted permanently, with ${attemptsDeleted} attempt(s).`
+          : 'Mock test deleted permanently.'
+      );
+    } catch (err) {
+      alert('Failed to delete mock test: ' + getErrorMessage(err, 'Delete failed'));
+    }
+  };
+
+  // Bring an archived test back as a draft (not shown to students until published).
+  const handleRestoreTest = async (testId: string) => {
+    try {
+      const updated = await api.updateTest(testId, { status: 'draft' });
+      replaceTest(testId, { ...updated, status: 'draft' });
+      alert('Mock test restored as a draft.');
+    } catch (err) {
+      alert('Failed to restore mock test: ' + getErrorMessage(err, 'Restore failed'));
+    }
+  };
+
   const handleDeleteTest = async (testId: string) => {
     if (!canDeleteTests) {
       alert('You do not have permission to delete mock tests.');
       return;
     }
+    const test = tests.find((t) => t.id === testId);
+    // Archived tests were refused a normal delete already: go straight to permanent delete.
+    if (test?.status === 'archived') return handlePermanentDeleteTest(testId);
     try {
       await api.deleteTest(testId);
-      setTests((prev) => prev.filter((t) => t.id !== testId));
-      if (selectedTest?.id === testId) {
-        setSelectedTest(null);
-        setShowDetailsPanel(false);
-      }
+      dropTest(testId);
       alert('Mock test deleted successfully.');
     } catch (err) {
       const message = getErrorMessage(err, 'Delete failed');
       // The database refuses to delete a test that students attempted (or a Live Test uses),
       // so their scores and history are not lost. Offer to archive it instead.
       if (/Cannot delete this test|Archive it instead/i.test(message)) {
-        const test = tests.find((t) => t.id === testId);
-        if (test?.status === 'archived') {
-          alert(
-            'This mock test has student attempts or is used by a Live Test, so it cannot be deleted. It is already archived (hidden from students).'
-          );
-          return;
-        }
         const archive = confirm(
-          'This mock test cannot be deleted because students have attempted it (or a Live Test uses it). ' +
-            'Deleting it would erase their scores.\n\nArchive it instead? It will be hidden from students and their history is kept.'
+          'This mock test cannot be deleted straight away because students have attempted it ' +
+            '(or a Live Test uses it).\n\nArchive it instead? It is hidden from students and ' +
+            'moves to Status → Archived, where you can restore it or delete it permanently.'
         );
         if (!archive) return;
         try {
           const updated = await api.updateTest(testId, { status: 'archived' });
-          const merged = (t: MockTest): MockTest => (t.id === testId ? { ...t, ...updated } : t);
-          setTests((prev) => prev.map(merged));
-          if (selectedTest?.id === testId) setSelectedTest((prev) => (prev ? merged(prev) : prev));
-          alert('Mock test archived. It is hidden from students.');
+          replaceTest(testId, { ...updated, status: 'archived' });
+          alert('Mock test archived. Open Status → Archived to delete it permanently.');
         } catch (archiveErr) {
           alert('Failed to archive mock test: ' + getErrorMessage(archiveErr, 'Archive failed'));
         }
@@ -633,6 +717,10 @@ export function useAdminTests() {
     handleOpenCreateModal,
     handleTestCreated,
     handleDeleteTest,
+    handlePermanentDeleteTest,
+    handleRestoreTest,
+    archivedCount,
+    changeStatusFilter,
     handleDuplicateTest,
     handleDownloadTemplate,
   };
