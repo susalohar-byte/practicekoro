@@ -146,4 +146,35 @@ describe('Mock Test Management filters', () => {
     expect(result.current.selectedChapterId).toBe('');
     expect(result.current.filteredTests.map((x) => x.id)).toEqual(['tp3']);
   });
+
+  it('Type filter: an exam then Full Mock or PYQ, with counts for that exam', async () => {
+    const { result } = setup('all');
+    await waitFor(() => expect(result.current.filteredTests).toHaveLength(6));
+
+    act(() => result.current.changeExamFilter('wbpsc'));
+    expect(result.current.typeFilterOptions.map((o) => `${o.key} ${o.count}`)).toEqual([
+      'all 5',
+      'full_mock 1',
+      'pyq 1',
+      'topic 3',
+    ]);
+
+    act(() => result.current.handleTabChange('full_mock'));
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['fm1']);
+    act(() => result.current.handleTabChange('pyq'));
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['pyq1']);
+  });
+
+  it('Type filter: switching to Full Mock clears a subject / topic choice', async () => {
+    const { result } = setup('all');
+    await waitFor(() => expect(result.current.filteredTests).toHaveLength(6));
+
+    act(() => result.current.changeSubjectFilter('hist'));
+    act(() => result.current.handleTabChange('full_mock'));
+    expect(result.current.selectedSubjectId).toBe('');
+    expect(result.current.filteredTests.map((x) => x.id)).toEqual(['fm1', 'fm2']);
+
+    act(() => result.current.handleResetFilters());
+    expect(result.current.activeTab).toBe('all');
+  });
 });

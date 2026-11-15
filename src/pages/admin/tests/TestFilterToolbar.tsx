@@ -1,5 +1,6 @@
 import { Search, Filter } from 'lucide-react';
 import type { AdminTestsState } from './useAdminTests';
+import type { TestTypeTab } from './testTypes';
 
 export interface TestFilterToolbarProps {
   testsState: AdminTestsState;
@@ -10,6 +11,8 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
     activeTab,
     examFilterOptions,
     changeExamFilter,
+    typeFilterOptions,
+    handleTabChange,
     subjectFilterOptions,
     chapterFilterOptions,
     changeSubjectFilter,
@@ -61,6 +64,25 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
             {examFilterOptions.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.title} ({ex.count})
+              </option>
+            ))}
+          </select>
+
+          {/* Type: Full Mock / PYQ / Topic, the same choice as the tabs above */}
+          <select
+            aria-label="Test type"
+            value={activeTab}
+            onChange={(e) => handleTabChange(e.target.value as TestTypeTab)}
+            className={
+              'px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200 ' +
+              (activeTab !== 'all'
+                ? 'border-blue-500 font-semibold'
+                : 'border-slate-200 dark:border-slate-700')
+            }
+          >
+            {typeFilterOptions.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label} ({opt.count})
               </option>
             ))}
           </select>
