@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     getSubjects: vi.fn(),
     getAllAdminChapters: vi.fn(),
     deleteTest: vi.fn(),
+    deleteArchivedTest: vi.fn(),
     updateTest: vi.fn(),
   },
 }));
@@ -71,6 +72,11 @@ describe('useAdminTests delete', () => {
     await act(() => result.current.handleDeleteTest('t1'));
     expect(mocks.api.updateTest).toHaveBeenCalledWith('t1', { status: 'archived' });
     expect(result.current.tests[0]).toMatchObject({ status: 'archived', isActive: false });
+    // It leaves the normal list and shows under Status -> Archived
+    expect(result.current.filteredTests).toHaveLength(0);
+    expect(result.current.archivedCount).toBe(1);
+    act(() => result.current.changeStatusFilter('archived'));
+    expect(result.current.filteredTests.map((t) => t.id)).toEqual(['t1']);
   });
 
   it('keeps the test unchanged when the admin declines to archive', async () => {
@@ -81,5 +87,50 @@ describe('useAdminTests delete', () => {
     await act(() => result.current.handleDeleteTest('t1'));
     expect(mocks.api.updateTest).not.toHaveBeenCalled();
     expect(result.current.tests[0]).toMatchObject({ status: 'published' });
+  });
+
+  it('deletes an archived test permanently after confirmation', async () => {
+    mocks.api.getAllAdminTests.mockResolvedValue([{ ...test1, status: 'archived' }]);
+    mocks.api.deleteArchivedTest.mockResolvedValue({ success: true, attemptsDeleted: 3 });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { result } = await setup();
+
+    // "Delete" on an archived test goes straight to the permanent delete
+    await act(() => result.current.handleDeleteTest('t1'));
+    expect(confirm.mock.calls[0][0]).toMatch(/cannot be undone/);
+    expect(mocks.api.deleteTest).not.toHaveBeenCalled();
+    expect(mocks.api.deleteArchivedTest).toHaveBeenCalledWith('t1');
+    expect(result.current.tests).toHaveLength(0);
+    expect(window.alert).toHaveBeenCalledWith('Mock test deleted permanently, with 3 attempt(s).');
+  });
+
+  it('keeps an archived test when permanent delete is declined or refused', async () => {
+    mocks.api.getAllAdminTests.mockResolvedValue([{ ...test1, status: 'archived' }]);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { result } = await setup();
+
+    await act(() => result.current.handlePermanentDeleteTest('t1'));
+    expect(mocks.api.deleteArchivedTest).not.toHaveBeenCalled();
+
+    confirm.mockReturnValue(true);
+    mocks.api.deleteArchivedTest.mockRejectedValue(
+      new Error('Only a super admin can permanently delete a test')
+    );
+    await act(() => result.current.handlePermanentDeleteTest('t1'));
+    expect(result.current.tests).toHaveLength(1);
+    expect(window.alert).toHaveBeenCalledWith(
+      'Failed to delete mock test: Only a super admin can permanently delete a test'
+    );
+  });
+
+  it('restores an archived test as a draft', async () => {
+    mocks.api.getAllAdminTests.mockResolvedValue([{ ...test1, status: 'archived' }]);
+    mocks.api.updateTest.mockResolvedValue({ ...test1, status: 'draft', isActive: false });
+    const { result } = await setup();
+
+    await act(() => result.current.handleRestoreTest('t1'));
+    expect(mocks.api.updateTest).toHaveBeenCalledWith('t1', { status: 'draft' });
+    expect(result.current.filteredTests.map((t) => t.id)).toEqual(['t1']);
+    expect(result.current.archivedCount).toBe(0);
   });
 });

@@ -31,6 +31,7 @@ insert into fs_class (proname, class, reason) values
   ('admin_dashboard_overview_stats', 'admin', null),
   ('admin_dashboard_range_stats', 'admin', null),
   ('admin_delete_record', 'admin', null),
+  ('admin_delete_archived_test', 'admin', null),
   ('admin_get_payment_gateway', 'admin', null),
   ('admin_get_payment_health', 'admin', null),
   ('admin_item_analysis', 'admin', null),
