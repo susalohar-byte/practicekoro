@@ -556,6 +556,31 @@ export async function deleteTest(id: string): Promise<boolean> {
   return deleted;
 }
 
+/**
+ * Permanently delete an archived test, including its attempts and results (super admin
+ * only, refused while an upcoming or running Live Test uses it). For trial papers that
+ * deleteTest refuses because they were attempted.
+ */
+export async function deleteArchivedTest(
+  id: string
+): Promise<{ success: true; attemptsDeleted: number }> {
+  if (!isSupabaseConfigured) {
+    const i = localTests.findIndex((e) => e.id === id);
+    if (i < 0) throw new Error('Test not found; nothing was deleted');
+    if (localTests[i].status !== 'archived')
+      throw new Error('Only archived tests can be permanently deleted. Archive this test first.');
+    localTests.splice(i, 1);
+    notifyExamsUpdated();
+    return { success: true, attemptsDeleted: 0 };
+  }
+  const { data, error } = await supabase.rpc('admin_delete_archived_test', { p_test_id: id });
+  if (error) throw new Error(error.message);
+  if (data?.success !== true || data?.deleted_id !== id)
+    throw new Error('Deletion was not confirmed. The test may be missing or protected.');
+  notifyExamsUpdated();
+  return { success: true, attemptsDeleted: Number(data.attempts_deleted ?? 0) };
+}
+
 export async function duplicateTest(id: string): Promise<MockTest | null> {
   const existing = await getTestById(id);
   if (!existing) return null;
@@ -1054,6 +1079,7 @@ export const adminTestsApi = {
   createTest,
   updateTest,
   deleteTest,
+  deleteArchivedTest,
   duplicateTest,
   getTestAttempts,
   getTestResultsForExport,

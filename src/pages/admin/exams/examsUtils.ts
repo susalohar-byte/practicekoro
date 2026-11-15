@@ -41,7 +41,7 @@ export interface EnrichedExamRow extends Exam {
   subtitle?: string;
   categoryLabel?: string;
   subjectsCount: number;
-  /** Full Mock tests whose primary exam is this exam. */
+  /** Full Mock tests of this exam (main exam or an extra exam link). */
   fullMockCount: number;
   totalTestsCount: number;
   enrollmentsCount: number;

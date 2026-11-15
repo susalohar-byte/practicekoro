@@ -8,8 +8,9 @@ import {
   Play,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import { cn } from '@/lib/utils';
@@ -53,22 +54,39 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
     toggleSelectTest,
     handleSelectRow,
     handleDeleteTest,
+    handlePermanentDeleteTest,
+    handleRestoreTest,
     handleDuplicateTest,
+    appliedFilters,
   } = testsState;
 
   // The row menu is drawn on top of the page (portal), not inside the table's scroll box,
   // so it is never cut off on the last rows or when there are only a few tests.
   const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
+  const menuButtonRef = useRef<HTMLElement | null>(null);
   const closeMenu = () => setOpenActionMenuId(null);
   useEffect(() => {
     if (!openActionMenuId) return;
-    // A fixed-position menu would drift away from its row when the page scrolls or resizes
-    const close = () => setOpenActionMenuId(null);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    // A fixed-position menu follows its button when the page or table scrolls (the browser
+    // also scrolls a clicked, partly hidden button into view), and closes once the button
+    // has scrolled out of view.
+    const follow = () => {
+      const button = menuButtonRef.current;
+      const rect = button?.isConnected ? button.getBoundingClientRect() : null;
+      const visible =
+        !!rect &&
+        rect.bottom > 0 &&
+        rect.top < window.innerHeight &&
+        rect.right > 0 &&
+        rect.left < window.innerWidth;
+      if (visible) setMenuAnchor(rect);
+      else setOpenActionMenuId(null);
+    };
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
     return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
     };
   }, [openActionMenuId, setOpenActionMenuId]);
   const MENU_WIDTH = 176; // w-44
@@ -164,7 +182,9 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                 ) : pagedTests.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="py-12 text-center text-slate-400">
-                      No tests found matching the selected filters.
+                      {appliedFilters.status === 'archived'
+                        ? 'No archived tests. Tests that students attempted are archived here when you delete them.'
+                        : 'No tests found matching the selected filters.'}
                     </td>
                   </tr>
                 ) : (
@@ -172,7 +192,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                     const isChecked = selectedTestIds.has(t.id);
                     const isSelected = selectedTest?.id === t.id;
                     const isPublished = t.status === 'published';
-                    const isUnderReview = t.status === 'archived';
+                    const isArchived = t.status === 'archived';
 
                     const isFullMock = t.testType === 'full_mock';
                     const isTopic = t.testType === 'topic';
@@ -274,10 +294,12 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                               'px-2.5 py-0.5 rounded-full text-xs font-medium inline-block',
                               isPublished
                                 ? 'bg-[#E8F8F0] text-[#10B981] dark:bg-emerald-950/60 dark:text-emerald-300'
-                                : 'bg-[#FEF8E7] text-[#D97706] dark:bg-amber-950/60 dark:text-amber-300'
+                                : isArchived
+                                  ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                  : 'bg-[#FEF8E7] text-[#D97706] dark:bg-amber-950/60 dark:text-amber-300'
                             )}
                           >
-                            {isPublished ? 'Published' : isUnderReview ? 'Under Review' : 'Draft'}
+                            {isPublished ? 'Published' : isArchived ? 'Archived' : 'Draft'}
                           </span>
                         </td>
 
@@ -293,6 +315,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                             aria-expanded={openActionMenuId === t.id}
                             onClick={(e) => {
                               if (openActionMenuId === t.id) return closeMenu();
+                              menuButtonRef.current = e.currentTarget;
                               setMenuAnchor(e.currentTarget.getBoundingClientRect());
                               setOpenActionMenuId(t.id);
                             }}
@@ -378,11 +401,27 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
 
                                   <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
 
+                                  {t.status === 'archived' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        handleRestoreTest(t.id);
+                                      }}
+                                      className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-center gap-2"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5 text-emerald-500" />
+                                      Restore as Draft
+                                    </button>
+                                  )}
+
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setOpenActionMenuId(null);
-                                      if (
+                                      if (t.status === 'archived') {
+                                        handlePermanentDeleteTest(t.id);
+                                      } else if (
                                         confirm(
                                           `Are you sure you want to delete mock test "${t.title}"?`
                                         )
@@ -393,7 +432,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                                     className="w-full px-3 py-1.5 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                    Delete Test
+                                    {t.status === 'archived' ? 'Delete Permanently' : 'Delete Test'}
                                   </button>
                                 </div>
                               </>,
