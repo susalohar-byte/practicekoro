@@ -232,6 +232,12 @@ export function useAdminTests() {
   const handleTabChange = (tab: TestTypeTab) => {
     setActiveTab(tab);
     setCurrentPage(1);
+    // Full Mock and PYQ tests have no subject / topic: a leftover choice would hide them all
+    if (tab === 'full_mock' || tab === 'pyq') {
+      setSelectedSubjectId('');
+      setSelectedChapterId('');
+      setAppliedFilters((prev) => ({ ...prev, subjectId: '', chapterId: '' }));
+    }
     if (tab === 'all') {
       searchParams.delete('tab');
     } else {
@@ -253,6 +259,7 @@ export function useAdminTests() {
   };
 
   const handleResetFilters = () => {
+    handleTabChange('all');
     setSearchTerm('');
     setSelectedExamId('');
     setSelectedSubjectId('');
@@ -363,6 +370,23 @@ export function useAdminTests() {
     }
     return exams.map((ex) => ({ id: ex.id, title: ex.title, count: countByExam.get(ex.id) || 0 }));
   }, [tests, exams, onTab, examIdsByTest]);
+
+  // Type dropdown: how many tests of each type the chosen exam has (archived tests left out)
+  const typeFilterOptions = useMemo(() => {
+    const count = (type?: TestTypeTab) =>
+      tests.filter(
+        (t) =>
+          t.status !== 'archived' &&
+          (!type || t.testType === type) &&
+          inExam(t, appliedFilters.examId)
+      ).length;
+    return [
+      { key: 'all' as const, label: 'All Types', count: count() },
+      { key: 'full_mock' as const, label: 'Full Mock', count: count('full_mock') },
+      { key: 'pyq' as const, label: 'Official PYQ', count: count('pyq') },
+      { key: 'topic' as const, label: 'Topic Test', count: count('topic') },
+    ];
+  }, [tests, inExam, appliedFilters.examId]);
 
   // Subject / topic dropdowns: only those with tests on the current tab (and chosen exam)
   const subjectFilterOptions = useMemo(() => {
@@ -634,6 +658,7 @@ export function useAdminTests() {
     selectedExamId,
     examFilterOptions,
     changeExamFilter,
+    typeFilterOptions,
     subjectFilterOptions,
     chapterFilterOptions,
     changeSubjectFilter,
