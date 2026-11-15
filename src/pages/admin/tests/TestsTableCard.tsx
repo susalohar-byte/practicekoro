@@ -10,7 +10,7 @@ import {
   ChevronRight,
   RotateCcw,
 } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { AdminSectionSkeleton } from '@/components/admin/AdminSkeleton';
 import { cn } from '@/lib/utils';
@@ -63,16 +63,30 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
   // The row menu is drawn on top of the page (portal), not inside the table's scroll box,
   // so it is never cut off on the last rows or when there are only a few tests.
   const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
+  const menuButtonRef = useRef<HTMLElement | null>(null);
   const closeMenu = () => setOpenActionMenuId(null);
   useEffect(() => {
     if (!openActionMenuId) return;
-    // A fixed-position menu would drift away from its row when the page scrolls or resizes
-    const close = () => setOpenActionMenuId(null);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    // A fixed-position menu follows its button when the page or table scrolls (the browser
+    // also scrolls a clicked, partly hidden button into view), and closes once the button
+    // has scrolled out of view.
+    const follow = () => {
+      const button = menuButtonRef.current;
+      const rect = button?.isConnected ? button.getBoundingClientRect() : null;
+      const visible =
+        !!rect &&
+        rect.bottom > 0 &&
+        rect.top < window.innerHeight &&
+        rect.right > 0 &&
+        rect.left < window.innerWidth;
+      if (visible) setMenuAnchor(rect);
+      else setOpenActionMenuId(null);
+    };
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
     return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
     };
   }, [openActionMenuId, setOpenActionMenuId]);
   const MENU_WIDTH = 176; // w-44
@@ -301,6 +315,7 @@ export function TestsTableCard({ testsState }: TestsTableCardProps) {
                             aria-expanded={openActionMenuId === t.id}
                             onClick={(e) => {
                               if (openActionMenuId === t.id) return closeMenu();
+                              menuButtonRef.current = e.currentTarget;
                               setMenuAnchor(e.currentTarget.getBoundingClientRect());
                               setOpenActionMenuId(t.id);
                             }}
