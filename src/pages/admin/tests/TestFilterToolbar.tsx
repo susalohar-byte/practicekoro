@@ -20,7 +20,8 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
     selectedSubjectId,
     selectedChapterId,
     selectedStatus,
-    setSelectedStatus,
+    changeStatusFilter,
+    archivedCount,
     handleApplyFilter,
     handleResetFilters,
   } = testsState;
@@ -110,16 +111,22 @@ export function TestFilterToolbar({ testsState }: TestFilterToolbarProps) {
             </>
           )}
 
-          {/* All Status Dropdown */}
+          {/* Status: applies immediately; Archived is where deleted-with-history tests go */}
           <select
+            aria-label="Status"
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200"
+            onChange={(e) => changeStatusFilter(e.target.value)}
+            className={
+              'px-2.5 py-1.5 rounded-lg border bg-white dark:bg-[#070D1E] text-xs text-slate-700 dark:text-slate-200 ' +
+              (selectedStatus === 'archived'
+                ? 'border-amber-500 font-semibold'
+                : 'border-slate-200 dark:border-slate-700')
+            }
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
-            <option value="under_review">Under Review</option>
+            <option value="archived">Archived ({archivedCount})</option>
           </select>
         </div>
 

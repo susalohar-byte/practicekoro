@@ -223,9 +223,11 @@ export function useAdminExams() {
           subjectsCount:
             mappingCounts?.[dbEx.id]?.subjects ??
             allSubjects.filter((x) => x.examId === dbEx.id).length,
-          fullMockCount: (allTests || []).filter(
-            (x) => x.examId === dbEx.id && x.testType === 'full_mock'
-          ).length,
+          // Same exam rule as the Mock Test filter: main exam, test_exams, mapped topics.
+          fullMockCount:
+            dbEx.fullMockCount ??
+            (allTests || []).filter((x) => x.examId === dbEx.id && x.testType === 'full_mock')
+              .length,
           totalTestsCount:
             dbEx.testsCount ?? (allTests || []).filter((x) => x.examId === dbEx.id).length,
           enrollmentsCount: 0,

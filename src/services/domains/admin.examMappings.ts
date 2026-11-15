@@ -304,3 +304,76 @@ export const adminExamMappingsApi = {
   saveExamSubjectTopicMappings,
   getExamRelatedTests,
 };
+
+export interface ExamTestLinks {
+  /** test_exams: extra exams a test is linked to, besides tests.exam_id. */
+  testExams: { testId: string; examId: string }[];
+  /** exam_topics: topics mapped to an exam; Topic Tests on those topics belong to it. */
+  examTopics: { examId: string; topicId: string }[];
+}
+
+/**
+ * Every exam <-> test link, for the Mock Test Management exam filter. Same rules as
+ * getExamRelatedTests, read for all exams at once.
+ */
+export async function getExamTestLinks(): Promise<ExamTestLinks> {
+  if (!isSupabaseConfigured) return { testExams: [], examTopics: [] };
+  const [testExams, examTopics] = await Promise.all([
+    readCompleteQuery(() =>
+      supabase
+        .from('test_exams')
+        .select('test_id, exam_id', { count: 'exact' })
+        .order('test_id', { ascending: true })
+        .order('exam_id', { ascending: true })
+    ) as Promise<{ test_id: string; exam_id: string }[]>,
+    readCompleteQuery(() =>
+      supabase
+        .from('exam_topics')
+        .select('exam_id, topic_id', { count: 'exact' })
+        .order('exam_id', { ascending: true })
+        .order('topic_id', { ascending: true })
+    ) as Promise<{ exam_id: string; topic_id: string }[]>,
+  ]);
+  return {
+    testExams: testExams.map((r) => ({ testId: String(r.test_id), examId: String(r.exam_id) })),
+    examTopics: examTopics.map((r) => ({ examId: String(r.exam_id), topicId: String(r.topic_id) })),
+  };
+}
+
+const TOPIC_TEST_TYPES = new Set(['topic', 'chapter_mock', 'subject_mock']);
+
+/**
+ * Every exam each test belongs to: its main exam (tests.exam_id), extra exams (test_exams),
+ * and for Topic Tests every exam whose mapped topics (exam_topics) include the test's topic.
+ */
+export function examIdsByTest(
+  tests: {
+    id: string;
+    examId?: string | null;
+    testType?: string | null;
+    chapterId?: string | null;
+    associatedExamIds?: string[];
+  }[],
+  links: ExamTestLinks
+): Map<string, Set<string>> {
+  const extraByTest = new Map<string, string[]>();
+  for (const l of links.testExams) {
+    extraByTest.set(l.testId, [...(extraByTest.get(l.testId) || []), l.examId]);
+  }
+  const examsByTopic = new Map<string, string[]>();
+  for (const l of links.examTopics) {
+    examsByTopic.set(l.topicId, [...(examsByTopic.get(l.topicId) || []), l.examId]);
+  }
+  const byTest = new Map<string, Set<string>>();
+  for (const t of tests) {
+    const ids = new Set<string>();
+    if (t.examId) ids.add(t.examId);
+    t.associatedExamIds?.forEach((id) => ids.add(id));
+    extraByTest.get(t.id)?.forEach((id) => ids.add(id));
+    if (t.testType && TOPIC_TEST_TYPES.has(t.testType) && t.chapterId) {
+      examsByTopic.get(t.chapterId)?.forEach((id) => ids.add(id));
+    }
+    byTest.set(t.id, ids);
+  }
+  return byTest;
+}
