@@ -101,16 +101,18 @@ export const ExamSubjectTopicMapper: React.FC<ExamSubjectTopicMapperProps> = ({
 
   const toggleSubject = (subjectId: string) => {
     const nextSubjects = new Set(selectedSubjects);
+    const nextTopics = new Set(selectedTopics);
     if (nextSubjects.has(subjectId)) {
       // Deselecting a subject also removes its topic mappings (records stay intact).
       nextSubjects.delete(subjectId);
-      const nextTopics = new Set(selectedTopics);
       for (const t of topicsBySubject.get(subjectId) || []) nextTopics.delete(t.id);
-      setSelectedTopics(nextTopics);
     } else {
+      // Selecting a subject maps all of its topics; single topics can be unticked after.
       nextSubjects.add(subjectId);
+      for (const t of topicsBySubject.get(subjectId) || []) nextTopics.add(t.id);
       setExpanded((prev) => new Set(prev).add(subjectId));
     }
+    setSelectedTopics(nextTopics);
     setSelectedSubjects(nextSubjects);
     setMessage(null);
   };
