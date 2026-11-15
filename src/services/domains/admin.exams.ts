@@ -1,5 +1,6 @@
 import { uploadValidatedImage, validateRasterFile } from '@/lib/rasterUploads';
 import { readCompleteQuery } from './admin.reporting';
+import { examIdsByTest, getExamTestLinks } from './admin.examMappings';
 import { requireSavedRow, deleteAdminRecord } from './admin.mutations';
 import { supabaseRuntime as supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { localExams, localTests } from '@/services/domains/localStore';
@@ -9,100 +10,83 @@ import type { Exam, PopularExamCard } from '@/types';
 import type { ExamRow } from '@/services/domains/localStore';
 
 /** Section of the admin API: exams (split from domains/admin.ts, same behaviour). */
-// Per-exam content counts by test type. Topic tests are reusable across
-// exams via the test_exams junction, so an exam's topic count includes
-// tests associated through that junction (matching the student catalog).
+// Per-exam content counts by test type. A test counts for an exam through its main exam,
+// an extra exam link (test_exams), or for Topic Tests the exam's mapped topics
+// (exam_topics), the same rule the student catalog and Mock Test filter use.
 export async function getExamContentCounts(): Promise<
   Record<string, { fullMock: number; pyq: number; topic: number }>
 > {
   return withApiCache(
     'exam_content_counts',
     async () => {
-      const counts: Record<string, { fullMock: number; pyq: number; topic: number }> = {};
-      const bump = (examId: string | null | undefined, kind: 'fullMock' | 'pyq' | 'topic') => {
-        if (!examId) return;
-        counts[examId] = counts[examId] || { fullMock: 0, pyq: 0, topic: 0 };
-        counts[examId][kind] += 1;
-      };
       const classify = (type: string | null | undefined): 'fullMock' | 'pyq' | 'topic' | null => {
         if (type === 'full_mock') return 'fullMock';
         if (type === 'pyq') return 'pyq';
         if (type === 'topic' || type === 'chapter_mock' || type === 'subject_mock') return 'topic';
         return null;
       };
-
-      if (!isSupabaseConfigured) {
-        const commonTopicCount = localTests.filter((t) => classify(t.testType) === 'topic').length;
-
-        for (const t of localTests) {
+      const tally = (
+        examIds: string[],
+        tests: { id: string; testType?: string | null }[],
+        byTest: Map<string, Set<string>>
+      ) => {
+        const counts: Record<string, { fullMock: number; pyq: number; topic: number }> = {};
+        for (const id of examIds) counts[id] = { fullMock: 0, pyq: 0, topic: 0 };
+        for (const t of tests) {
           const kind = classify(t.testType);
-          if (kind && kind !== 'topic') bump(t.examId, kind);
-        }
-        for (const e of localExams) {
-          counts[e.id] = counts[e.id] || { fullMock: 0, pyq: 0, topic: 0 };
-          counts[e.id].topic = commonTopicCount;
+          if (!kind) continue;
+          for (const examId of byTest.get(t.id) || []) {
+            counts[examId] = counts[examId] || { fullMock: 0, pyq: 0, topic: 0 };
+            counts[examId][kind] += 1;
+          }
         }
         return counts;
-      }
+      };
 
+      if (!isSupabaseConfigured) {
+        const byTest = examIdsByTest(localTests, { testExams: [], examTopics: [] });
+        return tally(
+          localExams.map((e) => e.id),
+          localTests,
+          byTest
+        );
+      }
       // Read every page (PostgREST caps responses at 1000 rows) and let errors propagate:
       // silently returning partial/empty counts would show invented zeros.
-      const [tests, assoc, allExams] = await Promise.all([
+      const [rows, links, allExams] = await Promise.all([
         readCompleteQuery(() =>
           supabase
             .from('tests')
-            .select('id, exam_id, test_type', { count: 'exact' })
+            .select('id, exam_id, test_type, chapter_id', { count: 'exact' })
             .order('id', { ascending: true })
-        ) as Promise<{ id: string; exam_id: string | null; test_type: string | null }[]>,
-        readCompleteQuery(() =>
-          supabase
-            .from('test_exams')
-            .select('test_id, exam_id', { count: 'exact' })
-            .order('test_id', { ascending: true })
-            .order('exam_id', { ascending: true })
-        ) as Promise<{ test_id: string; exam_id: string }[]>,
+        ) as Promise<
+          {
+            id: string;
+            exam_id: string | null;
+            test_type: string | null;
+            chapter_id: string | null;
+          }[]
+        >,
+        getExamTestLinks(),
         readCompleteQuery(() =>
           supabase.from('exams').select('id', { count: 'exact' }).order('id', { ascending: true })
         ) as Promise<{ id: string }[]>,
       ]);
-
-      // Total topic tests available across the platform (common for all exams)
-      const commonTopicCount = tests.filter((t) => classify(t.test_type) === 'topic').length;
-      const testTypeById = new Map(tests.map((t) => [t.id, t.test_type]));
-
-      const seen = new Set<string>();
-      for (const row of tests) {
-        const kind = classify(row.test_type);
-        if (!kind) continue;
-        if (kind !== 'topic') {
-          bump(row.exam_id, kind);
-        }
-        if (row.exam_id) seen.add(`${row.id}:${row.exam_id}`);
-      }
-      // Extra exam links from the junction (skip duplicates of the owning exam_id)
-      for (const row of assoc) {
-        const kind = classify(testTypeById.get(row.test_id));
-        if (!kind) continue;
-        if (kind !== 'topic') {
-          const key = `${row.test_id}:${row.exam_id}`;
-          if (!seen.has(key)) {
-            bump(row.exam_id, kind);
-            seen.add(key);
-          }
-        }
-      }
-
-      // Ensure every exam receives the common topic count
-      for (const ex of allExams) {
-        counts[ex.id] = counts[ex.id] || { fullMock: 0, pyq: 0, topic: 0 };
-        counts[ex.id].topic = commonTopicCount;
-      }
-      return counts;
+      const tests = rows.map((r) => ({
+        id: r.id,
+        examId: r.exam_id,
+        testType: r.test_type,
+        chapterId: r.chapter_id,
+      }));
+      return tally(
+        allExams.map((e) => e.id),
+        tests,
+        examIdsByTest(tests, links)
+      );
     },
     60_000
   );
 }
-
 // --------------------------------------------------------------------------
 // EXAMS API
 // --------------------------------------------------------------------------
