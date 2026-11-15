@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { chemParts } from './chemText';
 
 type KatexRenderer = (typeof import('katex'))['default'];
 type Segment = { text: string } | { tex: string; display: boolean; raw: string };
@@ -46,8 +47,19 @@ export function splitMath(value: string): Segment[] {
   return segments;
 }
 
+/** Plain text with chemical formula counts as subscripts (H2SO4) and -> / <=> as arrows. */
+function ChemText({ text }: { text: string }) {
+  const parts = useMemo(() => chemParts(text), [text]);
+  return (
+    <>
+      {parts.map((p, i) => (typeof p === 'string' ? <Fragment key={i}>{p}</Fragment> : <sub key={i}>{p.sub}</sub>))}
+    </>
+  );
+}
+
 /**
- * Question, option and explanation text with LaTeX math (fractions, powers, roots) typeset by KaTeX.
+ * Question, option and explanation text with LaTeX math (fractions, powers, roots, \ce{} chemistry,
+ * \pu{} units) typeset by KaTeX, and plain formulas such as H2SO4 written with subscripts.
  * Plain text renders as before; KaTeX loads only when a string actually contains math.
  */
 export function MathText({ children }: { children: string | null | undefined }) {
@@ -59,8 +71,10 @@ export function MathText({ children }: { children: string | null | undefined }) 
   useEffect(() => {
     if (!hasMath || katex) return;
     let active = true;
+    // mhchem registers \ce{} (chemical equations) and \pu{} (physical units) on the same KaTeX instance.
     void Promise.all([import('katex'), import('katex/dist/katex.min.css')])
-      .then(([module]) => {
+      .then(async ([module]) => {
+        await import('katex/contrib/mhchem');
         if (active) setKatex(() => module.default);
       })
       .catch(() => undefined);
@@ -69,11 +83,11 @@ export function MathText({ children }: { children: string | null | undefined }) 
     };
   }, [hasMath, katex]);
 
-  if (!hasMath) return <>{source}</>;
+  if (!hasMath) return <ChemText text={source} />;
   return (
     <>
       {segments.map((s, i) => {
-        if ('text' in s) return <Fragment key={i}>{s.text}</Fragment>;
+        if ('text' in s) return <ChemText key={i} text={s.text} />;
         if (!katex) return <Fragment key={i}>{s.raw}</Fragment>;
         const html = katex.renderToString(s.tex, {
           displayMode: s.display,

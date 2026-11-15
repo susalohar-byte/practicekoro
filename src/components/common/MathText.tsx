@@ -47,8 +47,10 @@ export const MathText: React.FC<MathTextProps> = ({ children, className }) => {
   useEffect(() => {
     if (!hasMath || katex) return;
     let active = true;
+    // mhchem adds \ce{} and \pu{}, so admins preview chemistry the way students see it.
     void Promise.all([import('katex'), import('katex/dist/katex.min.css')])
-      .then(([module]) => {
+      .then(async ([module]) => {
+        await import('katex/contrib/mhchem');
         if (active) setKatex(() => module.default);
       })
       .catch(() => undefined);

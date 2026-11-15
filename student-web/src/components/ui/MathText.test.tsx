@@ -46,4 +46,16 @@ describe('MathText', () => {
     await waitFor(() => expect(container.querySelector('.katex .mfrac')).toBeTruthy());
     expect(container.textContent).toContain('দিন');
   });
+
+  it('typesets \\ce chemical equations', async () => {
+    const { container } = render(<MathText>{'$\\ce{2H2 + O2 -> 2H2O}$'}</MathText>);
+    await waitFor(() => expect(container.querySelector('.katex')).toBeTruthy());
+    expect(container.querySelector('.katex-error')).toBeNull();
+  });
+
+  it('writes plain formulas with subscripts', () => {
+    const { container } = render(<MathText>{'H2O হল জল'}</MathText>);
+    expect(container.querySelector('sub')?.textContent).toBe('2');
+    expect(container.textContent).toBe('H2O হল জল');
+  });
 });

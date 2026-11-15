@@ -115,7 +115,8 @@ export function BulkTxtImportModal({ testQuestionsState, test }: BulkTxtImportMo
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Math/equations: wrap LaTeX in <code>$...$</code>, for example{' '}
                 <code>{'($^{14}\\text{C}$)'}</code>. Use <code>$$...$$</code> for a centered
-                equation.
+                equation. Chemistry: <code>{'$\\ce{2H2 + O2 -> 2H2O}$'}</code>; students see plain
+                H2SO4 as H₂SO₄.
               </p>
             </div>
 
