@@ -18,13 +18,45 @@ class MockTestModel {
   /// Exam year for Official PYQ papers (`tests.year`), when known.
   final int? year;
 
+  /// Subject (`tests.subject_id`) and topic (`tests.chapter_id`), when set.
+  final String? subjectId;
+  final String? topicId;
+
+  /// Paper label such as "Prelims" or "Mains" (`tests.paper_name`), when set.
+  final String? paperName;
+
+  static final _prelimsRe = RegExp(
+    r'\bprelim(s|inary|inaries)?\b|প্রিলি',
+    caseSensitive: false,
+  );
+  static final _mainsRe = RegExp(
+    r'\bmains?\b|মেইন|মেন্স',
+    caseSensitive: false,
+  );
+
+  /// 'Prelims', 'Mains' or null, read from [paperName] first, then [title].
+  String? get stage {
+    for (final text in [paperName, title]) {
+      if (text == null || text.trim().isEmpty) continue;
+      final isPrelims = _prelimsRe.hasMatch(text);
+      final isMains = _mainsRe.hasMatch(text);
+      if (isPrelims && !isMains) return 'Prelims';
+      if (isMains && !isPrelims) return 'Mains';
+    }
+    return null;
+  }
+
   static String normalizeCategory(String? cat) {
     if (cat == null || cat.trim().isEmpty) return 'Full Test';
     final lower = cat.toLowerCase();
-    if (lower.contains('pyq') || lower.contains('previous') || lower.contains('year')) {
+    if (lower.contains('pyq') ||
+        lower.contains('previous') ||
+        lower.contains('year')) {
       return 'PYQ';
     }
-    if (lower.contains('topic') || lower.contains('chapter') || lower.contains('subject')) {
+    if (lower.contains('topic') ||
+        lower.contains('chapter') ||
+        lower.contains('subject')) {
       return 'Topic Test';
     }
     if (lower.contains('full') || lower.contains('mock')) {
@@ -54,6 +86,9 @@ class MockTestModel {
     // numbers (marks, negative marking, duration) instead of generic text.
     this.instructions = const [],
     this.year,
+    this.subjectId,
+    this.topicId,
+    this.paperName,
   });
 
   factory MockTestModel.fromJson(Map<String, dynamic> json) {
@@ -78,6 +113,9 @@ class MockTestModel {
       syllabus: json['syllabus']?.toString() ?? 'Latest Exam Pattern',
       language: json['language']?.toString() ?? 'Bengali + English',
       year: (json['year'] as num?)?.toInt(),
+      subjectId: _nonEmpty(json['subject_id']),
+      topicId: _nonEmpty(json['chapter_id'] ?? json['topic_id']),
+      paperName: _nonEmpty(json['paper_name']),
       instructions: json['instructions'] != null
           ? (json['instructions'] as List).map((e) => e.toString()).toList()
           : const [],
@@ -101,7 +139,15 @@ class MockTestModel {
     'language': language,
     'instructions': instructions,
     'year': year,
+    'subject_id': subjectId,
+    'chapter_id': topicId,
+    'paper_name': paperName,
   };
+
+  static String? _nonEmpty(Object? v) {
+    final s = v?.toString().trim();
+    return s == null || s.isEmpty ? null : s;
+  }
 
   /// [year], or a 4-digit year (19xx/20xx) in the title, e.g. "2019 PYQ".
   int? get paperYear {

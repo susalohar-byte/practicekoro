@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ClipboardList, FileWarning, History, LayoutGrid, Shapes, FileText } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { useExam, useExamTests, useIsPro } from '@/hooks/queries';
+import { useExam, useExamTests, useIsPro, useSubjects, useTopics } from '@/hooks/queries';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ErrorState, Message, Skeleton } from '@/components/ui/Feedback';
 import { ExamLogo } from '@/components/ui/Brand';
 import { Button } from '@/components/ui/Button';
 import { ProDialog } from '@/components/domain/ProDialog';
 import { TestCard } from './TestCard';
+import { applyTestFilters, stageOptions, subjectOptions, topicOptions, type FilterOption } from './testFilters';
 
 const TABS = [
   { key: 'All Tests', icon: LayoutGrid },
@@ -23,15 +24,57 @@ export default function ExamTestsPage() {
   const exam = useExam(examId);
   const tests = useExamTests(examId);
   const isPro = useIsPro();
-  const [tab, setTab] = useState<TabKey>('All Tests');
+  const [tab, setTabState] = useState<TabKey>('All Tests');
   const [proOpen, setProOpen] = useState(false);
+  // Second-level filters: subject → topic for Topic Test, Prelims/Mains for Full Test and PYQ.
+  // null means "All"; all three reset when the tab changes.
+  const [subjectChoice, setSubjectChoice] = useState<string | null>(null);
+  const [topicChoice, setTopicChoice] = useState<string | null>(null);
+  const [stageChoice, setStageChoice] = useState<string | null>(null);
+  const subjects = useSubjects();
+  const topics = useTopics(null);
+  const clearFilters = () => {
+    setSubjectChoice(null);
+    setTopicChoice(null);
+    setStageChoice(null);
+  };
+  const setTab = (key: TabKey) => {
+    setTabState(key);
+    clearFilters();
+  };
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { 'All Tests': tests.data?.length ?? 0 };
     for (const t of tests.data ?? []) c[t.category] = (c[t.category] ?? 0) + 1;
     return c;
   }, [tests.data]);
-  const list = (tests.data ?? []).filter((t) => tab === 'All Tests' || t.category === tab);
+  const inTab = useMemo(
+    () => (tests.data ?? []).filter((t) => tab === 'All Tests' || t.category === tab),
+    [tests.data, tab]
+  );
+  const topicsById = useMemo(() => new Map((topics.data ?? []).map((t) => [t.id, t])), [topics.data]);
+  const subjectChoices = useMemo(
+    () =>
+      tab === 'Topic Test'
+        ? subjectOptions(
+            inTab,
+            topicsById,
+            (subjects.data ?? []).map((s) => ({ id: s.id, label: s.nameEnglish.trim() || s.nameBengali }))
+          )
+        : [],
+    [tab, inTab, topicsById, subjects.data]
+  );
+  const stageChoices = useMemo(() => (tab === 'Full Test' || tab === 'PYQ' ? stageOptions(inTab) : []), [tab, inTab]);
+  // A choice that no longer exists (e.g. after a refetch) counts as "All".
+  const subjectId = subjectChoices.some((o) => o.id === subjectChoice) ? subjectChoice : null;
+  const topicChoices = useMemo(
+    () => (subjectId ? topicOptions(inTab, subjectId, topics.data ?? [], topicsById) : []),
+    [subjectId, inTab, topics.data, topicsById]
+  );
+  const topicId = topicChoices.some((o) => o.id === topicChoice) ? topicChoice : null;
+  const stage = stageChoices.some((o) => o.id === stageChoice) ? stageChoice : null;
+  const filtersActive = !!subjectId || !!stage;
+  const list = applyTestFilters(inTab, topicsById, { subjectId, topicId, stage });
   const title = exam.data?.title ?? 'Exam Tests';
 
   return (
@@ -85,15 +128,43 @@ export default function ExamTestsPage() {
               );
             })}
           </div>
+          {subjectChoices.length > 0 && (
+            <FilterChips
+              label="Subject"
+              allLabel="All Subjects"
+              allCount={inTab.length}
+              options={subjectChoices}
+              selected={subjectId}
+              onSelect={(id) => {
+                setSubjectChoice(id);
+                setTopicChoice(null);
+              }}
+            />
+          )}
+          {topicChoices.length > 0 && (
+            <FilterChips
+              label="Topic"
+              allLabel="All Topics"
+              allCount={topicChoices.reduce((sum, o) => sum + o.count, 0)}
+              options={topicChoices}
+              selected={topicId}
+              onSelect={setTopicChoice}
+            />
+          )}
+          {stageChoices.length > 0 && (
+            <FilterChips label="Paper" allLabel="All" allCount={inTab.length} options={stageChoices} selected={stage} onSelect={setStageChoice} />
+          )}
           {list.length === 0 ? (
             <div className="flex flex-col items-center rounded-[18px] border border-[#E2E8F0] bg-white px-5 py-9 text-center">
               <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB]">
                 <FileWarning className="h-7 w-7" />
               </span>
-              <p className="text-[16px] font-extrabold text-ink">No {tab} available yet</p>
-              <p className="mt-1 text-[13px] text-[#64748B]">Tests for this category will be uploaded soon.</p>
-              <Button size="sm" className="mt-4" onClick={() => setTab('All Tests')}>
-                View All Tests
+              <p className="text-[16px] font-extrabold text-ink">{filtersActive ? 'No tests match this filter' : `No ${tab} available yet`}</p>
+              <p className="mt-1 text-[13px] text-[#64748B]">
+                {filtersActive ? 'Try another subject, topic or paper.' : 'Tests for this category will be uploaded soon.'}
+              </p>
+              <Button size="sm" className="mt-4" onClick={() => (filtersActive ? clearFilters() : setTab('All Tests'))}>
+                {filtersActive ? 'Clear Filter' : 'View All Tests'}
               </Button>
             </div>
           ) : (
@@ -106,6 +177,47 @@ export default function ExamTestsPage() {
         </>
       )}
       <ProDialog open={proOpen} onClose={() => setProOpen(false)} />
+    </div>
+  );
+}
+
+/** A scrolling row of small chips: "All" plus one per option. */
+function FilterChips({
+  label,
+  allLabel,
+  allCount,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  allLabel: string;
+  allCount: number;
+  options: FilterOption[];
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const chips = [{ id: null, label: allLabel, count: allCount }, ...options];
+  return (
+    <div role="group" aria-label={`Filter by ${label.toLowerCase()}`} className="no-scrollbar -mx-1 -mt-1 mb-4 flex gap-1.5 overflow-x-auto px-1 py-0.5">
+      {chips.map((c) => {
+        const sel = selected === c.id;
+        return (
+          <button
+            key={c.id ?? 'all'}
+            type="button"
+            aria-pressed={sel}
+            onClick={() => onSelect(c.id)}
+            className={cn(
+              'inline-flex shrink-0 items-center gap-1.5 rounded-[18px] border px-3 py-1.5 text-[12.5px] transition',
+              sel ? 'border-[#93C5FD] bg-[#EFF6FF] font-extrabold text-[#2563EB]' : 'border-[#E2E8F0] bg-white font-semibold text-[#475569] hover:border-[#CBD5E1]'
+            )}
+          >
+            {c.label}
+            <span className={cn('text-[11px] font-bold', sel ? 'text-[#2563EB]' : 'text-[#94A3B8]')}>{c.count}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

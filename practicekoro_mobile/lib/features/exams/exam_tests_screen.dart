@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/components/ui.dart';
 import '../../data/models/exam_model.dart';
 import '../../data/models/test_model.dart';
+import '../../data/models/topic_model.dart';
 import '../../data/repositories/catalog_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import 'exam_logo.dart';
+import 'exam_test_filters.dart';
 
 /// Available test filter tabs
 const _filterTabs = ['All Tests', 'Full Test', 'Topic Test', 'PYQ'];
@@ -24,11 +26,26 @@ class ExamTestsScreen extends ConsumerStatefulWidget {
 class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
   String _selectedTab = 'All Tests';
 
+  // Second-level filters: subject → topic for Topic Test, Prelims/Mains for
+  // Full Test and PYQ. Null means "All". Reset whenever the tab changes.
+  String? _subjectId;
+  String? _topicId;
+  String? _stage;
+
+  void _selectTab(String tab) => setState(() {
+    _selectedTab = tab;
+    _subjectId = null;
+    _topicId = null;
+    _stage = null;
+  });
+
   @override
   Widget build(BuildContext context) {
     final exams = ref.watch(examsProvider).asData?.value ?? const <ExamModel>[];
     final matches = exams.where(
-      (e) => e.id == widget.examId || (e.slug.isNotEmpty && e.slug == widget.examId),
+      (e) =>
+          e.id == widget.examId ||
+          (e.slug.isNotEmpty && e.slug == widget.examId),
     );
     final exam = matches.isEmpty ? null : matches.first;
     final testsAsync = ref.watch(mockTestsProvider(widget.examId));
@@ -40,7 +57,8 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           color: UI.primary,
-          onRefresh: () async => ref.invalidate(mockTestsProvider(widget.examId)),
+          onRefresh: () async =>
+              ref.invalidate(mockTestsProvider(widget.examId)),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(UI.gutter, 10, UI.gutter, 100),
             children: [
@@ -67,7 +85,11 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                       Positioned(
                         left: 0,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0F172A)),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 20,
+                            color: Color(0xFF0F172A),
+                          ),
                           tooltip: 'Back',
                           onPressed: () {
                             if (GoRouter.of(context).canPop()) {
@@ -86,14 +108,18 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                 exam: exam,
                 title: examTitle,
                 logo: firstTest?.examLogo,
-                totalTestsCount: testsAsync.asData?.value.length ?? exam?.effectiveTotalTests ?? 0,
+                totalTestsCount:
+                    testsAsync.asData?.value.length ??
+                    exam?.effectiveTotalTests ??
+                    0,
               ),
               const SizedBox(height: 16),
               testsAsync.when(
                 loading: () => const UILoading(),
                 error: (_, _) => UIMessage.error(
                   message: 'Could not load tests.',
-                  onAction: () => ref.invalidate(mockTestsProvider(widget.examId)),
+                  onAction: () =>
+                      ref.invalidate(mockTestsProvider(widget.examId)),
                 ),
                 data: _buildTests,
               ),
@@ -124,10 +150,52 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
     final pyqCount = tests.where((t) => t.normalizedCategory == 'PYQ').length;
 
     // Filter tests by selected tab
-    final shown = tests.where((t) {
+    final inTab = tests.where((t) {
       if (_selectedTab == 'All Tests') return true;
       return t.normalizedCategory == _selectedTab;
     }).toList();
+
+    // Second-level filter options for the selected tab
+    final topics =
+        ref.watch(topicsProvider(null)).asData?.value ?? const <TopicModel>[];
+    final topicsById = {for (final t in topics) t.id: t};
+    var subjectChoices = const <FilterOption>[];
+    var topicChoices = const <FilterOption>[];
+    var stageChoices = const <FilterOption>[];
+    if (_selectedTab == 'Topic Test') {
+      final subjects = ref.watch(subjectsProvider).asData?.value ?? const [];
+      subjectChoices = subjectOptions(
+        inTab,
+        topicsById,
+        [for (final s in subjects) s.id],
+        {
+          for (final s in subjects)
+            s.id: s.nameEnglish.trim().isNotEmpty
+                ? s.nameEnglish
+                : s.nameBengali,
+        },
+      );
+    } else if (_selectedTab == 'Full Test' || _selectedTab == 'PYQ') {
+      stageChoices = stageOptions(inTab);
+    }
+    // A choice that no longer exists (e.g. after a refresh) counts as "All".
+    final subjectId = subjectChoices.any((o) => o.id == _subjectId)
+        ? _subjectId
+        : null;
+    if (subjectId != null) {
+      topicChoices = topicOptions(inTab, subjectId, topics, topicsById);
+    }
+    final topicId = topicChoices.any((o) => o.id == _topicId) ? _topicId : null;
+    final stage = stageChoices.any((o) => o.id == _stage) ? _stage : null;
+    final filtersActive = subjectId != null || stage != null;
+
+    final shown = applyTestFilters(
+      inTab,
+      topicsById,
+      subjectId: subjectId,
+      topicId: topicId,
+      stage: stage,
+    );
 
     final isPro = ref.watch(studentProfileProvider).isPro;
 
@@ -161,13 +229,46 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                       : tab == 'Topic Test'
                       ? Icons.category_rounded
                       : Icons.history_edu_rounded,
-                  onTap: () => setState(() => _selectedTab = tab),
+                  onTap: () => _selectTab(tab),
                 ),
                 const SizedBox(width: 8),
               ],
             ],
           ),
         ),
+        if (subjectChoices.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _SubFilterRow(
+            allLabel: 'All Subjects',
+            allCount: inTab.length,
+            options: subjectChoices,
+            selectedId: subjectId,
+            onSelected: (id) => setState(() {
+              _subjectId = id;
+              _topicId = null;
+            }),
+          ),
+        ],
+        if (topicChoices.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _SubFilterRow(
+            allLabel: 'All Topics',
+            allCount: topicChoices.fold(0, (sum, o) => sum + o.count),
+            options: topicChoices,
+            selectedId: topicId,
+            onSelected: (id) => setState(() => _topicId = id),
+          ),
+        ],
+        if (stageChoices.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _SubFilterRow(
+            allLabel: 'All',
+            allCount: inTab.length,
+            options: stageChoices,
+            selectedId: stage,
+            onSelected: (id) => setState(() => _stage = id),
+          ),
+        ],
         const SizedBox(height: 16),
 
         // Tests List or Empty State
@@ -196,7 +297,9 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'No $_selectedTab available yet',
+                  filtersActive
+                      ? 'No tests match this filter'
+                      : 'No $_selectedTab available yet',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -204,17 +307,28 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Tests for this category will be uploaded soon.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                Text(
+                  filtersActive
+                      ? 'Try another subject, topic or paper.'
+                      : 'Tests for this category will be uploaded soon.',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 UIButton(
-                  'View All Tests',
+                  filtersActive ? 'Clear Filter' : 'View All Tests',
                   expand: false,
                   height: 38,
-                  onPressed: () => setState(() => _selectedTab = 'All Tests'),
+                  onPressed: () => filtersActive
+                      ? setState(() {
+                          _subjectId = null;
+                          _topicId = null;
+                          _stage = null;
+                        })
+                      : _selectTab('All Tests'),
                 ),
               ],
             ),
@@ -226,10 +340,108 @@ class _ExamTestsScreenState extends ConsumerState<ExamTestsScreen> {
               child: _TestCard(
                 number: n + 1,
                 test: shown[n],
-                locked: !isPro && shown[n].isPro && shown[n].id != firstOpen?.id,
+                locked:
+                    !isPro && shown[n].isPro && shown[n].id != firstOpen?.id,
               ),
             ),
       ],
+    );
+  }
+}
+
+/// A horizontally scrolling row of small chips: "All" plus one per option.
+class _SubFilterRow extends StatelessWidget {
+  final String allLabel;
+  final int allCount;
+  final List<FilterOption> options;
+  final String? selectedId;
+  final ValueChanged<String?> onSelected;
+
+  const _SubFilterRow({
+    required this.allLabel,
+    required this.allCount,
+    required this.options,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _SubFilterChip(
+            label: allLabel,
+            count: allCount,
+            isSelected: selectedId == null,
+            onTap: () => onSelected(null),
+          ),
+          for (final o in options) ...[
+            const SizedBox(width: 6),
+            _SubFilterChip(
+              label: o.label,
+              count: o.count,
+              isSelected: selectedId == o.id,
+              onTap: () => onSelected(o.id),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SubFilterChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SubFilterChip({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected
+        ? const Color(0xFF2563EB)
+        : const Color(0xFF475569);
+    return Semantics(
+      selected: isSelected,
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF93C5FD)
+                    : const Color(0xFFE2E8F0),
+              ),
+            ),
+            child: Text(
+              '$label  $count',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -368,7 +580,11 @@ class _ExamHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ExamLogo(title ?? exam?.title, iconUrl: logo ?? exam?.iconName, size: 64),
+          ExamLogo(
+            title ?? exam?.title,
+            iconUrl: logo ?? exam?.iconName,
+            size: 64,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -501,10 +717,7 @@ class _TestCard extends StatelessWidget {
               ),
               title: const Row(
                 children: [
-                  Icon(
-                    Icons.workspace_premium_rounded,
-                    color: UI.gold,
-                  ),
+                  Icon(Icons.workspace_premium_rounded, color: UI.gold),
                   SizedBox(width: 8),
                   Text(
                     'PracticeKoro PRO',
@@ -514,11 +727,7 @@ class _TestCard extends StatelessWidget {
               ),
               content: const Text(
                 'This mock test requires a PRO membership. Unlock full tests, detailed solutions, and performance rankings with PRO.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.4,
-                  color: UI.textSoft,
-                ),
+                style: TextStyle(fontSize: 14, height: 1.4, color: UI.textSoft),
               ),
               actions: [
                 TextButton(
