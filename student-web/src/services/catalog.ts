@@ -338,7 +338,7 @@ export async function fetchExamTests(examId: string): Promise<MockTest[]> {
     const topicIds = ((topicRes.data ?? []) as { topic_id: string }[])
       .map((r) => r.topic_id);
 
-    const extraPromises: PromiseLike<{ data: any; error: any }>[] = [];
+    const extraPromises: PromiseLike<{ data: unknown; error: unknown }>[] = [];
     if (assocIds.length > 0) {
       for (let i = 0; i < assocIds.length; i += 100) {
         extraPromises.push(
@@ -380,7 +380,7 @@ export async function fetchExamTests(examId: string): Promise<MockTest[]> {
         }
       }
     }
-  } catch (_) {
+  } catch {
     // Keep direct tests if junction tables fail or are not mocked
   }
 
