@@ -4,6 +4,7 @@ import type { Exam, Subject, Chapter, MockTest } from '@/types';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
+import type { ExamStage } from '@/lib/examStage';
 
 export type MockTestType = 'full_mock' | 'topic' | 'pyq';
 
@@ -56,7 +57,10 @@ export function useCreateMockTestModal({
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
   const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [paperName, setPaperName] = useState('Prelims');
+  // Optional Prelims / Mains (Full Mock and PYQ), only for exams held in two stages.
+  const [stage, setStage] = useState<ExamStage | null>(null);
+  // PYQ only: free-text shift / paper detail, e.g. "Shift 1"
+  const [paperName, setPaperName] = useState('');
   const [setName, setSetName] = useState('');
   // Topic Tests are exam-independent; these optional links only make them show under exams.
   const [associatedExamIds, setAssociatedExamIds] = useState<string[]>([]);
@@ -74,6 +78,11 @@ export function useCreateMockTestModal({
   const [error, setError] = useState<string | null>(null);
 
   const selectedExam = exams.find((e) => e.id === examId);
+  // Saved as the test's paper_name too: older app versions read the stage from there.
+  const fullPaperName =
+    testType === 'topic'
+      ? ''
+      : [stage, testType === 'pyq' ? paperName.trim() : ''].filter(Boolean).join(' ');
 
   // Start every "create" from a clean form for the requested mode.
   useEffect(() => {
@@ -86,7 +95,8 @@ export function useCreateMockTestModal({
     setSubjectId('');
     setChapterId('');
     setYear(new Date().getFullYear());
-    setPaperName('Prelims');
+    setStage(null);
+    setPaperName('');
     setSetName('');
     setAssociatedExamIds([]);
     setGenerateFromBank(false);
@@ -134,7 +144,7 @@ export function useCreateMockTestModal({
     if (testType === 'full_mock') {
       const selectedExam = exams.find((e) => e.id === examId);
       if (selectedExam) {
-        setTitle(`${selectedExam.title} Full Mock Test 01`);
+        setTitle(`${selectedExam.title}${stage ? ` ${stage}` : ''} Full Mock Test 01`);
       }
     } else if (testType === 'topic') {
       const selectedSub = subjects.find((s) => s.id === subjectId);
@@ -148,7 +158,7 @@ export function useCreateMockTestModal({
       const selectedExam = exams.find((e) => e.id === examId);
       if (selectedExam) {
         setTitle(
-          `${selectedExam.title} ${year} ${paperName}${setName ? ` Set ${setName}` : ''} Official PYQ`
+          `${selectedExam.title} ${year}${fullPaperName ? ` ${fullPaperName}` : ''}${setName ? ` Set ${setName}` : ''} Official PYQ`
         );
       }
     }
@@ -217,7 +227,8 @@ export function useCreateMockTestModal({
         chapterId: testType === 'topic' ? chapterId : undefined,
         associatedExamIds: testType === 'topic' ? associatedExamIds : undefined,
         year: testType === 'pyq' ? year : undefined,
-        paperName: testType === 'pyq' ? paperName : undefined,
+        paperName: fullPaperName || undefined,
+        stage: testType === 'topic' ? undefined : stage,
         setName: testType === 'pyq' ? setName.trim() || undefined : undefined,
         durationMinutes: Number(durationMinutes),
         totalMarks: Number(totalMarks),
@@ -268,6 +279,8 @@ export function useCreateMockTestModal({
     setChapterId,
     year,
     setYear,
+    stage,
+    setStage,
     paperName,
     setPaperName,
     setName,

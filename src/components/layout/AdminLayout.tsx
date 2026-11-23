@@ -6,6 +6,7 @@ import { RouteSkeleton } from './adminLayout/RouteSkeleton';
 import { useAdminLayout } from './adminLayout/useAdminLayout';
 import { AdminSidebar } from './adminLayout/AdminSidebar';
 import { AdminHeader } from './adminLayout/AdminHeader';
+import { ToastHost } from '@/components/common/ToastHost';
 
 export const AdminLayout: React.FC = () => {
   const layout = useAdminLayout();
@@ -60,6 +61,7 @@ export const AdminLayout: React.FC = () => {
           </div>
         </main>
       </div>
+      <ToastHost />
     </div>
   );
 };

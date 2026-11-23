@@ -85,4 +85,50 @@ describe('useQuestionImport', () => {
       expect.objectContaining({ subjectId: 's1', topicId: 't1', chapterId: 't1' })
     );
   });
+
+  it("tags questions with the chosen Prelims / Mains and lists only that paper's tests", async () => {
+    mocks.getAllAdminTests.mockResolvedValue([
+      { id: 'p1', title: 'WBCS Prelims Mock 1', testType: 'full_mock' },
+      { id: 'm1', title: 'Mock 2', paperName: 'Mains', testType: 'full_mock' },
+      { id: 'y1', title: 'WBCS 2023 Prelims', testType: 'pyq' },
+    ]);
+    const { result } = setup({ exam: 'WBP Constable' });
+    act(() => result.current.setIsImportModalOpen(true));
+    await waitFor(() => expect(result.current.importTests).toHaveLength(2));
+
+    act(() => result.current.setImportStage('Mains'));
+    expect(result.current.importTests.map((t) => t.id)).toEqual(['m1']);
+
+    act(() => result.current.setImportPasteText(TXT));
+    act(() => result.current.handlePreviewPastedQuestions());
+    await waitFor(() => expect(result.current.importPreviewStats?.valid).toBe(1));
+    await act(() => result.current.handleExecuteImport());
+    expect(mocks.createQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceExam: 'WBP Constable', sourcePaper: 'Mains' })
+    );
+
+    // Clearing the paper (single-paper exams) lists every test again
+    act(() => result.current.setImportStage(null));
+    expect(result.current.importStage).toBeNull();
+    expect(result.current.importTests).toHaveLength(2);
+  });
+
+  it("gives questions the chosen test's paper when no paper is picked", async () => {
+    mocks.getAllAdminTests.mockResolvedValue([
+      { id: 'p1', title: 'WBCS Prelims Mock 1', testType: 'full_mock' },
+    ]);
+    mocks.addQuestionToTest.mockResolvedValue(undefined);
+    const { result } = setup({ exam: 'WBP Constable' });
+    act(() => result.current.setIsImportModalOpen(true));
+    await waitFor(() => expect(result.current.importTests).toHaveLength(1));
+    act(() => result.current.setImportTestId('p1'));
+
+    act(() => result.current.setImportPasteText(TXT));
+    act(() => result.current.handlePreviewPastedQuestions());
+    await waitFor(() => expect(result.current.importPreviewStats?.valid).toBe(1));
+    await act(() => result.current.handleExecuteImport());
+    expect(mocks.createQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({ sourcePaper: 'Prelims' })
+    );
+  });
 });

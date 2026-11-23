@@ -10,6 +10,8 @@ import { QuestionsTab } from './mockTestDetails/QuestionsTab';
 import { SettingsTab } from './mockTestDetails/SettingsTab';
 import { AnalyticsTab } from './mockTestDetails/AnalyticsTab';
 import { DrawerFooter } from './mockTestDetails/DrawerFooter';
+import { hasExamStage, stagePaperUpdate, testStage } from '@/lib/examStage';
+import { toast } from '@/lib/toast';
 
 interface MockTestDetailsDrawerProps {
   test: MockTest | null;
@@ -89,7 +91,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       onRefreshTest();
     } catch (err) {
       console.error('Failed to reorder questions:', err);
-      alert('Failed to update question order.');
+      toast('Failed to update question order.');
       loadQuestions();
     } finally {
       setIsSavingQuestions(false);
@@ -120,7 +122,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
       onRefreshTest();
     } catch (err) {
       console.error('Failed to remove question:', err);
-      alert('Failed to remove question.');
+      toast('Failed to remove question.');
       loadQuestions();
     } finally {
       setIsSavingQuestions(false);
@@ -141,12 +143,16 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
         isPremium: settingsForm.isPremium,
         status: settingsForm.status,
         iconUrl: settingsForm.iconUrl.trim() || undefined,
+        // Only when the paper was changed; the paper name keeps older app versions in step.
+        ...(hasExamStage(test.testType) && settingsForm.stage !== testStage(test)
+          ? { stage: settingsForm.stage, paperName: stagePaperUpdate(test, settingsForm.stage) }
+          : {}),
       });
-      alert('Mock test settings updated successfully!');
+      toast('Mock test settings updated successfully!');
       onRefreshTest();
     } catch (err) {
       console.error('Failed to update settings:', err);
-      alert('Failed to update settings: ' + getErrorMessage(err, 'Update failed'));
+      toast('Failed to update settings: ' + getErrorMessage(err, 'Update failed'));
     } finally {
       setIsSavingSettings(false);
     }
@@ -157,13 +163,13 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
     try {
       const rows = await api.getTestResultsForExport(test.id);
       if (!rows || rows.length === 0) {
-        alert('No candidate attempts recorded yet for this test.');
+        toast('No candidate attempts recorded yet for this test.');
         return;
       }
       api.exportTestResultsToCsv(test.title, rows);
     } catch (err) {
       console.error('Failed to export attempts:', err);
-      alert('Export failed: ' + getErrorMessage(err, 'Export failed'));
+      toast('Export failed: ' + getErrorMessage(err, 'Export failed'));
     } finally {
       setIsExportingAttempts(false);
     }
@@ -234,6 +240,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                 isSavingSettings={isSavingSettings}
                 handleUploadIconFile={handleUploadIconFile}
                 handleSaveSettings={handleSaveSettings}
+                showStage={hasExamStage(test.testType)}
               />
             )}
 

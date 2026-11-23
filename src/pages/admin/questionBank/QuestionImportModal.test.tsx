@@ -26,6 +26,8 @@ function makeQb(overrides: Record<string, unknown> = {}) {
     importNeedsTopic: false,
     importTestType: 'full_mock',
     setImportTestType: vi.fn(),
+    importStage: null,
+    setImportStage: vi.fn(),
     importTestId: '',
     setImportTestId: vi.fn(),
     importTests: [
@@ -64,6 +66,20 @@ describe('QuestionImportModal mock test picker', () => {
     render(<QuestionImportModal qb={qb} />);
     fireEvent.click(screen.getByRole('button', { name: 'PYQ' }));
     expect(qb.setImportTestType).toHaveBeenCalledWith('pyq');
+  });
+
+  it('offers an optional Prelims / Mains paper with nothing chosen by default', () => {
+    const qb = makeQb();
+    render(<QuestionImportModal qb={qb} />);
+    const prelims = screen.getByRole('button', { name: 'Prelims' });
+    expect(prelims.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Mains' }).getAttribute('aria-pressed')).toBe(
+      'false'
+    );
+    expect(screen.getByText('Leave empty if this exam has a single paper.')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mains' }));
+    expect(qb.setImportStage).toHaveBeenCalledWith('Mains');
   });
 
   it('keeps the test picker disabled until an exam is chosen', () => {

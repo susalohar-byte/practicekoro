@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { ExamEmblemBadge } from '@/components/common/ExamEmblemBadge';
 import type { AdminExamsState } from './useAdminExams';
+import { toast } from '@/lib/toast';
 
 export interface ExamFormModalProps {
   qb: AdminExamsState;
@@ -229,7 +230,7 @@ export function ExamFormModal({ qb }: ExamFormModalProps) {
                                   const uploadedUrl = await handleUploadImageFile(file);
                                   setFormIconName(uploadedUrl);
                                 } catch (err) {
-                                  alert('Failed to upload image: ' + getErrorMessage(err, 'Error'));
+                                  toast('Failed to upload image: ' + getErrorMessage(err, 'Error'));
                                 } finally {
                                   setIsUploadingLogo(false);
                                   // Allow picking the same file again (e.g. retry after an error)

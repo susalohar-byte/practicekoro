@@ -11,6 +11,7 @@ import { Button } from '@/components/common/Button';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
+import { toast } from '@/lib/toast';
 
 interface AddQuestionsToTestModalProps {
   test: MockTest | null;
@@ -201,12 +202,12 @@ export const AddQuestionsToTestModal: React.FC<AddQuestionsToTestModalProps> = (
 
       const result = await api.saveTestQuestions(test.id, payload);
       if (!result.success) throw new Error(result.error || 'Save failed');
-      alert(`Successfully saved ${payload.length} questions to "${test.title}"!`);
+      toast(`Successfully saved ${payload.length} questions to "${test.title}"!`);
       onQuestionsAssigned();
       handleSmoothClose();
     } catch (err) {
       console.error('Failed to save test questions:', err);
-      alert('Failed to save questions: ' + getErrorMessage(err, 'Save failed'));
+      toast('Failed to save questions: ' + getErrorMessage(err, 'Save failed'));
     } finally {
       setIsSaving(false);
     }

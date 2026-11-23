@@ -115,7 +115,14 @@ describe('testStage', () => {
     expect(testStage({ title: 'WBCS Preliminary Mock', paperName: null })).toBe('Prelims');
     expect(testStage({ title: 'Mock 1', paperName: 'Mains' })).toBe('Mains');
     expect(testStage({ title: 'WBP মেইন পরীক্ষা', paperName: null })).toBe('Mains');
+    expect(testStage({ title: 'WBP Constable Final Written 2019', paperName: null })).toBe('Mains');
+    expect(testStage({ title: 'Grand Final Mock Test', paperName: null })).toBeNull();
     expect(testStage({ title: 'Domain knowledge test', paperName: null })).toBeNull();
     expect(testStage({ title: 'Prelims + Mains combined', paperName: null })).toBeNull();
+  });
+
+  it('trusts the stage column when the row carries it', () => {
+    expect(testStage({ title: 'WBCS Prelims Mock', paperName: null, stage: 'Mains' })).toBe('Mains');
+    expect(testStage({ title: 'WBCS Prelims Mock', paperName: null, stage: null })).toBeNull();
   });
 });

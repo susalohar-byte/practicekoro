@@ -86,7 +86,10 @@ export async function createQuestionForTest(
     const effectiveSubjectId = qData.subjectId || testSubjectId || undefined;
     const effectiveExam = qData.sourceExam || examId;
     const effectiveYear = qData.sourceYear || (testType === 'pyq' ? testYear : undefined);
-    const effectivePaper = qData.sourcePaper || (testType === 'pyq' ? testPaper : undefined);
+    // PYQ and Full Mock tests pass on their paper (e.g. Prelims / Mains) to their questions.
+    const effectivePaper =
+      qData.sourcePaper ||
+      (testType === 'pyq' || testType === 'full_mock' ? testPaper || undefined : undefined);
     const effectiveShift = qData.sourceShift || (testType === 'pyq' ? testShift : undefined);
 
     const question = await createQuestion({

@@ -3,6 +3,7 @@ import { Trash2, Shield, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/common/Button';
 import type { SettingsFormState } from './mockTestDetailsUtils';
+import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
 
 interface SettingsTabProps {
   settingsForm: SettingsFormState;
@@ -13,6 +14,8 @@ interface SettingsTabProps {
   isSavingSettings: boolean;
   handleUploadIconFile: (file: File) => void;
   handleSaveSettings: (e: React.FormEvent) => void;
+  /** Full Mock and PYQ tests can be marked Prelims / Mains. */
+  showStage?: boolean;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
@@ -24,6 +27,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   isSavingSettings,
   handleUploadIconFile,
   handleSaveSettings,
+  showStage = false,
 }) => (
   <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
     {/* Test Icon Section */}
@@ -142,6 +146,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
       />
     </div>
+
+    {showStage && (
+      <ExamStagePicker
+        buttonClassName="px-3 py-2 rounded-lg"
+        value={settingsForm.stage}
+        onChange={(stage) => setSettingsForm({ ...settingsForm, stage })}
+        chosenHint={(s) => `Shown under ${s} in the app. Click again to clear.`}
+      />
+    )}
 
     <div>
       <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">

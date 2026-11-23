@@ -3,6 +3,8 @@ import type { MockTest, TestQuestionAssignment } from '@/types';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import type { DrawerTab, SettingsFormState } from './mockTestDetailsUtils';
+import { testStage } from '@/lib/examStage';
+import { toast } from '@/lib/toast';
 
 export type TestAttemptRows = Awaited<ReturnType<typeof api.getTestAttempts>>;
 
@@ -31,6 +33,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
     negativeMarking: 0.25,
     isPremium: false,
     status: 'draft',
+    stage: null,
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
@@ -39,7 +42,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
   const handleUploadIconFile = async (file: File) => {
     if (!test?.id) return;
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
+      toast('Please select a valid image file.');
       return;
     }
     try {
@@ -47,7 +50,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
       const uploadedUrl = await api.uploadTestIcon(file, test.id);
       setSettingsForm((prev) => ({ ...prev, iconUrl: uploadedUrl }));
     } catch (err) {
-      alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
+      toast('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
     } finally {
       setIsUploadingIcon(false);
     }
@@ -95,6 +98,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
       negativeMarking: test.negativeMarking ?? 0.25,
       isPremium: Boolean(test.isPremium),
       status: test.status || 'draft',
+      stage: testStage(test),
     });
   }, [test, isOpen]);
 

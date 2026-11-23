@@ -12,6 +12,8 @@ import {
   getExamTestLinks,
   type ExamTestLinks,
 } from '@/services/domains/admin.examMappings';
+import { hasExamStage, stagePaperUpdate, testStage, type ExamStage } from '@/lib/examStage';
+import { toast } from '@/lib/toast';
 
 export function useAdminTests() {
   const { hasPermission } = useAuth();
@@ -86,6 +88,8 @@ export function useAdminTests() {
   const [editIsPremium, setEditIsPremium] = useState(false);
   const [editStatus, setEditStatus] = useState<'draft' | 'published' | 'archived'>('published');
   const [editIconUrl, setEditIconUrl] = useState('');
+  // Prelims / Mains (Full Mock and PYQ only); null for single-paper exams
+  const [editStage, setEditStage] = useState<ExamStage | null>(null);
   const [isUploadingDrawerIcon, setIsUploadingDrawerIcon] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -103,6 +107,7 @@ export function useAdminTests() {
       setEditIsPremium(Boolean(selectedTest.isPremium));
       setEditStatus(selectedTest.status || 'published');
       setEditIconUrl(selectedTest.iconUrl || '');
+      setEditStage(testStage(selectedTest));
       // Keep the "saved" confirmation when the same test is refreshed after a save.
       if (syncedTestIdRef.current !== selectedTest.id) setSaveSuccessMsg(null);
       syncedTestIdRef.current = selectedTest.id;
@@ -124,7 +129,7 @@ export function useAdminTests() {
       setSaveSuccessMsg('Icon uploaded and saved successfully!');
       setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (err) {
-      alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
+      toast('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
     } finally {
       setIsUploadingDrawerIcon(false);
     }
@@ -149,13 +154,17 @@ export function useAdminTests() {
         isPremium: editIsPremium,
         status: isPublishing ? selectedTest.status : editStatus,
         iconUrl: editIconUrl.trim(),
+        // Only when the paper was changed; the paper name keeps older app versions in step.
+        ...(hasExamStage(selectedTest.testType) && editStage !== testStage(selectedTest)
+          ? { stage: editStage, paperName: stagePaperUpdate(selectedTest, editStage) }
+          : {}),
       });
       if (isPublishing) {
         const publishResult = await api.publishTest(selectedTest.id);
         if (!publishResult.success) {
           setTests((prev) => prev.map((t) => (t.id === selectedTest.id ? updated : t)));
           setSelectedTest(updated);
-          alert(
+          toast(
             'Settings saved, but the test was not published: ' +
               (publishResult.error || 'Publish validation failed')
           );
@@ -168,7 +177,7 @@ export function useAdminTests() {
       setSaveSuccessMsg('Changes saved successfully!');
       setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (err) {
-      alert('Failed to save changes: ' + getErrorMessage(err, 'Save failed'));
+      toast('Failed to save changes: ' + getErrorMessage(err, 'Save failed'));
     } finally {
       setIsSavingSettings(false);
     }
@@ -520,7 +529,7 @@ export function useAdminTests() {
   // Permanently delete an archived test, with its attempts and results (trial papers).
   const handlePermanentDeleteTest = async (testId: string) => {
     if (!canDeleteTests) {
-      alert('You do not have permission to delete mock tests.');
+      toast('You do not have permission to delete mock tests.');
       return;
     }
     const test = tests.find((t) => t.id === testId);
@@ -533,13 +542,13 @@ export function useAdminTests() {
     try {
       const { attemptsDeleted } = await api.deleteArchivedTest(testId);
       dropTest(testId);
-      alert(
+      toast(
         attemptsDeleted > 0
           ? `Mock test deleted permanently, with ${attemptsDeleted} attempt(s).`
           : 'Mock test deleted permanently.'
       );
     } catch (err) {
-      alert('Failed to delete mock test: ' + getErrorMessage(err, 'Delete failed'));
+      toast('Failed to delete mock test: ' + getErrorMessage(err, 'Delete failed'));
     }
   };
 
@@ -548,15 +557,15 @@ export function useAdminTests() {
     try {
       const updated = await api.updateTest(testId, { status: 'draft' });
       replaceTest(testId, { ...updated, status: 'draft' });
-      alert('Mock test restored as a draft.');
+      toast('Mock test restored as a draft.');
     } catch (err) {
-      alert('Failed to restore mock test: ' + getErrorMessage(err, 'Restore failed'));
+      toast('Failed to restore mock test: ' + getErrorMessage(err, 'Restore failed'));
     }
   };
 
   const handleDeleteTest = async (testId: string) => {
     if (!canDeleteTests) {
-      alert('You do not have permission to delete mock tests.');
+      toast('You do not have permission to delete mock tests.');
       return;
     }
     const test = tests.find((t) => t.id === testId);
@@ -565,7 +574,7 @@ export function useAdminTests() {
     try {
       await api.deleteTest(testId);
       dropTest(testId);
-      alert('Mock test deleted successfully.');
+      toast('Mock test deleted successfully.');
     } catch (err) {
       const message = getErrorMessage(err, 'Delete failed');
       // The database refuses to delete a test that students attempted (or a Live Test uses),
@@ -580,14 +589,14 @@ export function useAdminTests() {
         try {
           const updated = await api.updateTest(testId, { status: 'archived' });
           replaceTest(testId, { ...updated, status: 'archived' });
-          alert('Mock test archived. Open Status → Archived to delete it permanently.');
+          toast('Mock test archived. Open Status → Archived to delete it permanently.');
         } catch (archiveErr) {
-          alert('Failed to archive mock test: ' + getErrorMessage(archiveErr, 'Archive failed'));
+          toast('Failed to archive mock test: ' + getErrorMessage(archiveErr, 'Archive failed'));
         }
         return;
       }
       console.error('Delete failed:', err);
-      alert('Failed to delete mock test: ' + message);
+      toast('Failed to delete mock test: ' + message);
     }
   };
 
@@ -598,11 +607,11 @@ export function useAdminTests() {
         setTests((prev) => [duplicated, ...prev]);
         setSelectedTest(duplicated);
         setShowDetailsPanel(true);
-        alert('Mock test duplicated successfully!');
+        toast('Mock test duplicated successfully!');
       }
     } catch (err) {
       console.error('Duplicate failed:', err);
-      alert('Failed to duplicate test: ' + getErrorMessage(err, 'Duplicate failed'));
+      toast('Failed to duplicate test: ' + getErrorMessage(err, 'Duplicate failed'));
     }
   };
 
@@ -716,6 +725,8 @@ export function useAdminTests() {
     setEditStatus,
     editIconUrl,
     setEditIconUrl,
+    editStage,
+    setEditStage,
     isUploadingDrawerIcon,
     setIsUploadingDrawerIcon,
     isSavingSettings,

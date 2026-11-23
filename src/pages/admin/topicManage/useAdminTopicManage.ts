@@ -4,6 +4,7 @@ import { api } from '@/services/api';
 import type { Subject, Chapter } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
 import { ITEMS_PER_PAGE } from './topicManageUtils';
+import { toast } from '@/lib/toast';
 
 // All state, data loading and handlers for the admin Topic Management page.
 export function useAdminTopicManage() {
@@ -252,7 +253,7 @@ export function useAdminTopicManage() {
       if (filterSubjectId === sub.id) setFilterSubjectId('all');
       await loadData();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete subject'));
+      toast(getErrorMessage(err, 'Failed to delete subject'));
       setIsLoading(false);
     }
   };
@@ -351,7 +352,7 @@ export function useAdminTopicManage() {
       await api.deleteChapter(topic.id);
       await loadData();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete topic'));
+      toast(getErrorMessage(err, 'Failed to delete topic'));
       setIsLoading(false);
     }
   };

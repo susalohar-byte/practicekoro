@@ -54,3 +54,6 @@ public/env.txt
 
 # Release bundles (kept outside the repo in ~/Documents/PracticeKoro-artifacts)
 release/
+
+# Unrelated video project files kept locally, not part of the app
+/Diagnostic_Centre_*

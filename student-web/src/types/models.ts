@@ -56,6 +56,11 @@ export interface MockTest {
   category: TestCategory;
   year: number | null;
   paperName: string | null;
+  /**
+   * Prelims / Mains from tests.stage; null = single-paper exam. Undefined when the row was
+   * loaded without the column (the title is read instead).
+   */
+  stage?: 'Prelims' | 'Mains' | null;
   shift: string | null;
   examDate: string | null;
   iconUrl: string | null;

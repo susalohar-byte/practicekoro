@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import { FileDropZone } from '@/components/common/FileDropZone';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
+import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
 
 export interface QuestionImportModalProps {
   qb: AdminQuestionBankState;
@@ -31,6 +32,8 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
     importNeedsTopic,
     importTestType,
     setImportTestType,
+    importStage,
+    setImportStage,
     importTestId,
     setImportTestId,
     importTests,
@@ -190,6 +193,17 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                   ))}
                 </div>
 
+                {/* Optional Prelims / Mains, only for exams held in two stages */}
+                <ExamStagePicker
+                  className="mt-3"
+                  labelClassName="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5"
+                  value={importStage}
+                  onChange={setImportStage}
+                  chosenHint={(s) =>
+                    `Questions are saved as ${s}; only ${s} tests are listed below. Click again to clear.`
+                  }
+                />
+
                 {/* Optional: the test (from Mock Test Management) these questions are added to */}
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mt-3 mb-1.5">
                   {importTestType === 'pyq' ? 'PYQ paper' : 'Full Mock test'} (optional, questions
@@ -208,7 +222,7 @@ export function QuestionImportModal({ qb }: QuestionImportModalProps) {
                       : isLoadingImportTests
                         ? 'Loading tests...'
                         : importTests.length === 0
-                          ? `No ${importTestType === 'pyq' ? 'PYQ' : 'Full Mock'} tests for this exam yet (Question Bank only)`
+                          ? `No ${importStage ? `${importStage} ` : ''}${importTestType === 'pyq' ? 'PYQ' : 'Full Mock'} tests for this exam yet (Question Bank only)`
                           : '-- Question Bank only (no test) --'}
                   </option>
                   {importTests.map((t) => (

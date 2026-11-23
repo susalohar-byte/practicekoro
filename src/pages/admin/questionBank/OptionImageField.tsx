@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { ImagePlus, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
+import { toast } from '@/lib/toast';
 
 export interface OptionImageFieldProps {
   /** Option letter, e.g. "A" (used in labels). */
@@ -49,7 +50,7 @@ export function OptionImageField({
     } catch (err) {
       const message = `${what} image could not be uploaded: ${getErrorMessage(err, 'Upload failed')}`;
       if (onError) onError(message);
-      else alert(message);
+      else toast(message);
     } finally {
       setIsUploading(false);
     }

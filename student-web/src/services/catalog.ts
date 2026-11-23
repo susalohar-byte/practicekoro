@@ -74,6 +74,7 @@ export interface TestRow {
   category?: Text;
   year?: Numeric;
   paper_name?: Text;
+  stage?: Text;
   shift?: Text;
   exam_date?: Text;
   icon_url?: Text;
@@ -247,6 +248,7 @@ export function toTest(r: TestRow): MockTest {
     category: normalizeCategory(r.test_type ?? r.category),
     year: num(r.year),
     paperName: r.paper_name ?? null,
+    stage: r.stage === undefined ? undefined : r.stage === 'prelims' ? 'Prelims' : r.stage === 'mains' ? 'Mains' : null,
     shift: r.shift ?? null,
     examDate: r.exam_date ?? null,
     iconUrl: r.icon_url ?? null,
@@ -272,7 +274,7 @@ const LIVE_TEST_COLUMNS =
   'id, test_id, title, exam_id, status, start_at, scheduled_start_time, scheduled_end_time, registration_deadline, duration_minutes, total_questions, total_marks, negative_marking, enrolled_count, logo, exam_logo, ranking_enabled, subscription_required, instructions, tests(id, title, exam_id, duration_minutes, total_questions, total_marks, negative_marking, exams(title))';
 
 const TEST_COLUMNS =
-  'id, exam_id, subject_id, chapter_id, test_series_id, title, description, test_type, duration_minutes, total_questions, total_marks, passing_marks, negative_marking, is_premium, order_index, created_at, year, paper_name, shift, exam_date, icon_url, is_live_only';
+  'id, exam_id, subject_id, chapter_id, test_series_id, title, description, test_type, duration_minutes, total_questions, total_marks, passing_marks, negative_marking, is_premium, order_index, created_at, year, paper_name, stage, shift, exam_date, icon_url, is_live_only';
 
 export async function fetchExams(): Promise<Exam[]> {
   const { data, error } = await supabase
