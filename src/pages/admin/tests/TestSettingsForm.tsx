@@ -6,6 +6,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { renderRowIcon } from './testRowIcon';
 import type { AdminTestsState } from './useAdminTests';
+import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
+import { hasExamStage } from '@/lib/examStage';
 
 export interface TestSettingsFormProps {
   testsState: AdminTestsState;
@@ -32,6 +34,8 @@ export function TestSettingsForm({ testsState, selectedTest }: TestSettingsFormP
     setEditStatus,
     editIconUrl,
     setEditIconUrl,
+    editStage,
+    setEditStage,
     isUploadingDrawerIcon,
     setIsUploadingDrawerIcon,
     isSavingSettings,
@@ -134,6 +138,15 @@ export function TestSettingsForm({ testsState, selectedTest }: TestSettingsFormP
           className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
+      {hasExamStage(selectedTest.testType) && (
+        <ExamStagePicker
+          buttonClassName="px-1.5 py-1.5 rounded-lg truncate"
+          value={editStage}
+          onChange={setEditStage}
+          chosenHint={(s) => `Shown under ${s} in the app. Click again to clear.`}
+        />
+      )}
 
       <div>
         <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">

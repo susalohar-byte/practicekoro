@@ -1,4 +1,5 @@
 import { Shield, BookOpen, Clock } from 'lucide-react';
+import type { ExamStage } from '@/lib/examStage';
 
 export type DrawerTab = 'overview' | 'questions' | 'settings' | 'analytics';
 
@@ -12,6 +13,8 @@ export interface SettingsFormState {
   negativeMarking: number;
   isPremium: boolean;
   status: 'draft' | 'published' | 'archived';
+  /** Prelims / Mains (Full Mock and PYQ only); null for single-paper exams. */
+  stage: ExamStage | null;
 }
 
 export interface ScoredAttempt {

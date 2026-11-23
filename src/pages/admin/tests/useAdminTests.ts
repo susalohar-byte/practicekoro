@@ -12,6 +12,7 @@ import {
   getExamTestLinks,
   type ExamTestLinks,
 } from '@/services/domains/admin.examMappings';
+import { hasExamStage, stagePaperUpdate, testStage, type ExamStage } from '@/lib/examStage';
 
 export function useAdminTests() {
   const { hasPermission } = useAuth();
@@ -86,6 +87,8 @@ export function useAdminTests() {
   const [editIsPremium, setEditIsPremium] = useState(false);
   const [editStatus, setEditStatus] = useState<'draft' | 'published' | 'archived'>('published');
   const [editIconUrl, setEditIconUrl] = useState('');
+  // Prelims / Mains (Full Mock and PYQ only); null for single-paper exams
+  const [editStage, setEditStage] = useState<ExamStage | null>(null);
   const [isUploadingDrawerIcon, setIsUploadingDrawerIcon] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -103,6 +106,7 @@ export function useAdminTests() {
       setEditIsPremium(Boolean(selectedTest.isPremium));
       setEditStatus(selectedTest.status || 'published');
       setEditIconUrl(selectedTest.iconUrl || '');
+      setEditStage(testStage(selectedTest));
       // Keep the "saved" confirmation when the same test is refreshed after a save.
       if (syncedTestIdRef.current !== selectedTest.id) setSaveSuccessMsg(null);
       syncedTestIdRef.current = selectedTest.id;
@@ -149,6 +153,9 @@ export function useAdminTests() {
         isPremium: editIsPremium,
         status: isPublishing ? selectedTest.status : editStatus,
         iconUrl: editIconUrl.trim(),
+        paperName: hasExamStage(selectedTest.testType)
+          ? stagePaperUpdate(selectedTest, editStage)
+          : undefined,
       });
       if (isPublishing) {
         const publishResult = await api.publishTest(selectedTest.id);
@@ -716,6 +723,8 @@ export function useAdminTests() {
     setEditStatus,
     editIconUrl,
     setEditIconUrl,
+    editStage,
+    setEditStage,
     isUploadingDrawerIcon,
     setIsUploadingDrawerIcon,
     isSavingSettings,

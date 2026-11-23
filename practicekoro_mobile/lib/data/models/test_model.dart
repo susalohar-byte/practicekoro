@@ -30,7 +30,8 @@ class MockTestModel {
     caseSensitive: false,
   );
   static final _mainsRe = RegExp(
-    r'\bmains?\b|মেইন|মেন্স',
+    // Mains is also called the Final Written / Final Exam (e.g. WBP Constable).
+    r'\bmains?\b|\bfinal\s+(written|exam)\b|মেইন|মেন্স|ফাইনাল',
     caseSensitive: false,
   );
 

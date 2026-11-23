@@ -30,6 +30,14 @@ void main() {
       expect(_test('c', title: 'WBCS Mains Full Mock 2').stage, 'Mains');
       expect(_test('d', title: 'WBP মেইন পরীক্ষা ২০২৩').stage, 'Mains');
       expect(_test('e', title: 'প্রিলি মক টেস্ট').stage, 'Prelims');
+      expect(
+        _test(
+          'f',
+          title: 'WBP Constable Final Written 2019 Question Paper',
+        ).stage,
+        'Mains',
+      );
+      expect(_test('g', title: 'Grand Final Mock Test').stage, isNull);
     });
 
     test('prefers paper_name and ignores look-alike words', () {

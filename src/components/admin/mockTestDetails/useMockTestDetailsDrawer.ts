@@ -3,6 +3,7 @@ import type { MockTest, TestQuestionAssignment } from '@/types';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import type { DrawerTab, SettingsFormState } from './mockTestDetailsUtils';
+import { testStage } from '@/lib/examStage';
 
 export type TestAttemptRows = Awaited<ReturnType<typeof api.getTestAttempts>>;
 
@@ -31,6 +32,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
     negativeMarking: 0.25,
     isPremium: false,
     status: 'draft',
+    stage: null,
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
@@ -95,6 +97,7 @@ export function useMockTestDetailsDrawer(test: MockTest | null, isOpen: boolean)
       negativeMarking: test.negativeMarking ?? 0.25,
       isPremium: Boolean(test.isPremium),
       status: test.status || 'draft',
+      stage: testStage(test),
     });
   }, [test, isOpen]);
 

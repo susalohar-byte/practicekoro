@@ -10,6 +10,7 @@ import { QuestionsTab } from './mockTestDetails/QuestionsTab';
 import { SettingsTab } from './mockTestDetails/SettingsTab';
 import { AnalyticsTab } from './mockTestDetails/AnalyticsTab';
 import { DrawerFooter } from './mockTestDetails/DrawerFooter';
+import { hasExamStage, stagePaperUpdate } from '@/lib/examStage';
 
 interface MockTestDetailsDrawerProps {
   test: MockTest | null;
@@ -141,6 +142,9 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
         isPremium: settingsForm.isPremium,
         status: settingsForm.status,
         iconUrl: settingsForm.iconUrl.trim() || undefined,
+        paperName: hasExamStage(test.testType)
+          ? stagePaperUpdate(test, settingsForm.stage)
+          : undefined,
       });
       alert('Mock test settings updated successfully!');
       onRefreshTest();
@@ -234,6 +238,7 @@ export const MockTestDetailsDrawer: React.FC<MockTestDetailsDrawerProps> = ({
                 isSavingSettings={isSavingSettings}
                 handleUploadIconFile={handleUploadIconFile}
                 handleSaveSettings={handleSaveSettings}
+                showStage={hasExamStage(test.testType)}
               />
             )}
 

@@ -4,6 +4,7 @@ import { QuestionBankStatus, bengaliFontClass } from './questionBankUtils';
 import { useSmoothModal } from '@/hooks/useSmoothModal';
 import type { AdminQuestionBankState } from './useAdminQuestionBank';
 import { OptionImageField } from './OptionImageField';
+import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
 
 export interface AddQuestionModalProps {
   qb: AdminQuestionBankState;
@@ -25,6 +26,8 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
     setAddYear,
     addPaper,
     setAddPaper,
+    addStage,
+    setAddStage,
     addSection,
     setAddSection,
     addSubject,
@@ -222,18 +225,26 @@ export function AddQuestionModal({ qb }: AddQuestionModalProps) {
 
                       <div>
                         <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Paper / Set
+                          Set
                         </label>
                         <input
                           type="text"
                           value={addPaper}
                           onChange={(e) => setAddPaper(e.target.value)}
-                          placeholder="e.g. Set A or Preliminary"
+                          placeholder="e.g. Set A"
                           className="w-full p-2 bg-white dark:bg-[#070D1E] border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-slate-100 rounded-xl font-semibold"
                         />
                       </div>
                     </>
                   )}
+
+                  <ExamStagePicker
+                    className="sm:col-span-2"
+                    labelClassName="block font-bold text-slate-700 dark:text-slate-300 mb-1"
+                    buttonClassName="p-2 rounded-xl"
+                    value={addStage}
+                    onChange={setAddStage}
+                  />
 
                   <div>
                     <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">

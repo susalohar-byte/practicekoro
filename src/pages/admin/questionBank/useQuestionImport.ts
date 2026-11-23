@@ -6,6 +6,7 @@ import { runConfirmedBatch } from '@/services/domains/admin.mutations';
 import { parseCsvRaw } from '@/utils/csvParser';
 import { parseQuestionsTxt } from '@/utils/txtQuestionParser';
 import { downloadQuestionTemplate, modeIdx } from './questionImportTemplates';
+import { testStage, type ExamStage } from '@/lib/examStage';
 
 /** Exam test kinds that can receive uploaded questions from the By Exam mode. */
 export type ImportTestType = 'full_mock' | 'pyq';
@@ -47,11 +48,20 @@ export function useQuestionImport({
   const [importTestType, setImportTestTypeState] = useState<ImportTestType>('full_mock');
   const [importTestId, setImportTestId] = useState('');
   const [examTests, setExamTests] = useState<MockTest[]>([]);
-  const importTests = examTests.filter((t) => t.testType === importTestType);
+  // Optional Prelims / Mains paper, only for exams held in two stages. Empty = single-paper exam.
+  const [importStage, setImportStageState] = useState<ExamStage | null>(null);
+  const importTests = examTests.filter(
+    (t) => t.testType === importTestType && (!importStage || testStage(t) === importStage)
+  );
   const [isLoadingImportTests, setIsLoadingImportTests] = useState(false);
   // Changing the type clears the test choice, since the chosen test may be the other type
   const setImportTestType = (type: ImportTestType) => {
     setImportTestTypeState(type);
+    setImportTestId('');
+  };
+  // Changing the paper clears the test choice, since the chosen test may be of the other paper.
+  const setImportStage = (stage: ExamStage | null) => {
+    setImportStageState(stage);
     setImportTestId('');
   };
   const importExamId = exams.find((ex) => ex.title === importExam)?.id ?? '';
@@ -402,6 +412,7 @@ export function useQuestionImport({
   };
 
   // Execute Real Bulk Import with controlled concurrency, real IDs and error retention
+  const importTestStage = testStage(importTests.find((t) => t.id === importTestId) ?? {});
   const handleExecuteImport = async () => {
     if (!parsedImportQuestions.length || isImporting || importNeedsExam || importNeedsTopic) return;
     setIsImporting(true);
@@ -411,7 +422,13 @@ export function useQuestionImport({
       const toImport =
         importMode === 'exam'
           ? parsedImportQuestions.map((q) => {
-              const withExam = q.sourceExam ? q : { ...q, sourceExam: importExam || undefined };
+              const withExam = {
+                ...q,
+                sourceExam: q.sourceExam || importExam || undefined,
+                // A row's own paper wins; then the Prelims / Mains chosen in the box, then the
+                // chosen test's own paper.
+                sourcePaper: q.sourcePaper || importStage || importTestStage || undefined,
+              };
               return importTestType === 'pyq'
                 ? { ...withExam, sourceType: 'pyq' as const }
                 : withExam;
@@ -490,6 +507,8 @@ export function useQuestionImport({
     importNeedsTopic,
     importTestType,
     setImportTestType,
+    importStage,
+    setImportStage,
     importTestId,
     setImportTestId,
     importTests,

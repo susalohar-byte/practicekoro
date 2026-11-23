@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { UploadMode, QuestionBankStatus } from './questionBankUtils';
 import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
+import type { ExamStage } from '@/lib/examStage';
 
 type QuestionText = Pick<Question, 'questionText' | 'questionBengaliText'>;
 
@@ -37,6 +38,8 @@ export function useAddQuestionForm({
   );
   const [addYear, setAddYear] = useState('2025');
   const [addPaper, setAddPaper] = useState('Set A');
+  // Optional Prelims / Mains (Full Mock and PYQ), only for exams held in two stages
+  const [addStage, setAddStage] = useState<ExamStage | null>(null);
   const [addSection, setAddSection] = useState('General Awareness');
   const [addSubject, setAddSubject] = useState('General Science');
   const [addTopic, setAddTopic] = useState('Heat & Temperature');
@@ -168,7 +171,12 @@ export function useAddQuestionForm({
               : 'other'
             : 'topic',
         sourceYear: modalUploadMode === 'exam' ? Number(addYear) : undefined,
-        sourcePaper: modalUploadMode === 'exam' ? addPaper : undefined,
+        sourcePaper:
+          modalUploadMode === 'exam'
+            ? [addStage, addExamQuestionType === 'Official PYQ' ? addPaper.trim() : '']
+                .filter(Boolean)
+                .join(' ') || undefined
+            : undefined,
         section: modalUploadMode === 'exam' ? addSection : undefined,
         explanation: addExplanation.trim(),
         explanationBengali: addExplanation.trim(),
@@ -234,6 +242,8 @@ export function useAddQuestionForm({
     setAddYear,
     addPaper,
     setAddPaper,
+    addStage,
+    setAddStage,
     addSection,
     setAddSection,
     addSubject,

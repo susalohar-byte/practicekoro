@@ -2,6 +2,7 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import type { Exam, Subject } from '@/types';
 import { cn } from '@/lib/utils';
+import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
 import type { CreateMockTestForm } from './useCreateMockTestModal';
 
 interface SyllabusLinkFieldsProps {
@@ -30,6 +31,8 @@ export const SyllabusLinkFields: React.FC<SyllabusLinkFieldsProps> = ({
     setGenerateFromBank,
     year,
     setYear,
+    stage,
+    setStage,
     paperName,
     setPaperName,
     setName,
@@ -200,11 +203,11 @@ export const SyllabusLinkFields: React.FC<SyllabusLinkFieldsProps> = ({
 
           <div>
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Paper / Shift
+              Shift (optional)
             </label>
             <input
               type="text"
-              placeholder="e.g. Prelims / Shift 1"
+              placeholder="e.g. Shift 1"
               value={paperName}
               onChange={(e) => setPaperName(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#070D1E] text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
@@ -224,6 +227,16 @@ export const SyllabusLinkFields: React.FC<SyllabusLinkFieldsProps> = ({
             />
           </div>
         </div>
+      )}
+
+      {testType !== 'topic' && (
+        <ExamStagePicker
+          labelClassName="font-semibold text-slate-700 dark:text-slate-300 block mb-1"
+          buttonClassName="px-3.5 py-2.5 rounded-xl"
+          value={stage}
+          onChange={setStage}
+          chosenHint={(s) => `This test is shown under ${s} in the app. Click again to clear.`}
+        />
       )}
     </>
   );

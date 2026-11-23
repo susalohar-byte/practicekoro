@@ -11,7 +11,8 @@ export type ExamStage = 'Prelims' | 'Mains';
 export const EXAM_STAGES: ExamStage[] = ['Prelims', 'Mains'];
 
 const PRELIMS_RE = /\bprelim(s|inary|inaries)?\b|প্রিলি/i;
-const MAINS_RE = /\bmains?\b|মেইন|মেন্স/i;
+// Mains is also called the Final Written / Final Exam (e.g. WBP Constable).
+const MAINS_RE = /\bmains?\b|\bfinal\s+(written|exam)\b|মেইন|মেন্স|ফাইনাল/i;
 
 /** 'Prelims', 'Mains' or null, read from paper_name first, then the title (same rule as the app). */
 export function testStage(test: Pick<MockTest, 'paperName' | 'title'>): ExamStage | null {
