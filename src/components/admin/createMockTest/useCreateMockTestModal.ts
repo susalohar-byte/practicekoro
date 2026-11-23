@@ -78,7 +78,7 @@ export function useCreateMockTestModal({
   const [error, setError] = useState<string | null>(null);
 
   const selectedExam = exams.find((e) => e.id === examId);
-  // Saved as the test's paper_name, which the student app reads for its Prelims / Mains filter.
+  // Saved as the test's paper_name too: older app versions read the stage from there.
   const fullPaperName =
     testType === 'topic'
       ? ''
@@ -228,6 +228,7 @@ export function useCreateMockTestModal({
         associatedExamIds: testType === 'topic' ? associatedExamIds : undefined,
         year: testType === 'pyq' ? year : undefined,
         paperName: fullPaperName || undefined,
+        stage: testType === 'topic' ? undefined : stage,
         setName: testType === 'pyq' ? setName.trim() || undefined : undefined,
         durationMinutes: Number(durationMinutes),
         totalMarks: Number(totalMarks),

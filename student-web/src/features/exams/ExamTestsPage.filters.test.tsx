@@ -120,4 +120,9 @@ describe('testStage', () => {
     expect(testStage({ title: 'Domain knowledge test', paperName: null })).toBeNull();
     expect(testStage({ title: 'Prelims + Mains combined', paperName: null })).toBeNull();
   });
+
+  it('trusts the stage column when the row carries it', () => {
+    expect(testStage({ title: 'WBCS Prelims Mock', paperName: null, stage: 'Mains' })).toBe('Mains');
+    expect(testStage({ title: 'WBCS Prelims Mock', paperName: null, stage: null })).toBeNull();
+  });
 });

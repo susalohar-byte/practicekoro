@@ -14,8 +14,12 @@ const PRELIMS_RE = /\bprelim(s|inary|inaries)?\b|প্রিলি/i;
 // Mains is also called the Final Written / Final Exam (e.g. WBP Constable).
 const MAINS_RE = /\bmains?\b|\bfinal\s+(written|exam)\b|মেইন|মেন্স|ফাইনাল/i;
 
-/** 'Prelims', 'Mains' or null, read from paper_name first, then the title (same rule as the app). */
-export function testStage(test: Pick<MockTest, 'paperName' | 'title'>): ExamStage | null {
+/**
+ * 'Prelims', 'Mains' or null. tests.stage decides when the row carries it; otherwise it is read
+ * from paper_name first, then the title (same rule as the app).
+ */
+export function testStage(test: Pick<MockTest, 'paperName' | 'title' | 'stage'>): ExamStage | null {
+  if (test.stage !== undefined) return test.stage;
   for (const text of [test.paperName, test.title]) {
     if (!text?.trim()) continue;
     const prelims = PRELIMS_RE.test(text);

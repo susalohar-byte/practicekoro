@@ -6,22 +6,44 @@ const PRELIMS_RE = /\bprelim(s|inary|inaries)?\b|প্রিলি/i;
 // Mains is also called the Final Written / Final Exam (e.g. WBP Constable).
 const MAINS_RE = /\bmains?\b|\bfinal\s+(written|exam)\b|মেইন|মেন্স|ফাইনাল/i;
 
-/**
- * 'Prelims', 'Mains' or null for a test, read from its paper name first, then its title.
- * Same rule the student app and web use for their Prelims / Mains filter.
- */
-export function testStage(test: {
+/** Value of the tests.stage column. */
+export type DbStage = 'prelims' | 'mains';
+
+export const stageToDb = (stage: ExamStage | null): DbStage | null =>
+  stage ? (stage.toLowerCase() as DbStage) : null;
+
+export const stageFromDb = (value: string | null | undefined): ExamStage | null =>
+  value === 'prelims' ? 'Prelims' : value === 'mains' ? 'Mains' : null;
+
+/** 'Prelims', 'Mains' or null read from a text such as a paper name or title. */
+function stageInText(text: string | null | undefined): ExamStage | null {
+  if (!text?.trim()) return null;
+  const prelims = PRELIMS_RE.test(text);
+  const mains = MAINS_RE.test(text);
+  if (prelims && !mains) return 'Prelims';
+  if (mains && !prelims) return 'Mains';
+  return null;
+}
+
+/** Stage named by a test's paper name, else its title. Used where the stage column is unset. */
+export function stageFromText(test: {
   paperName?: string | null;
   title?: string | null;
 }): ExamStage | null {
-  for (const text of [test.paperName, test.title]) {
-    if (!text?.trim()) continue;
-    const prelims = PRELIMS_RE.test(text);
-    const mains = MAINS_RE.test(text);
-    if (prelims && !mains) return 'Prelims';
-    if (mains && !prelims) return 'Mains';
-  }
-  return null;
+  return stageInText(test.paperName) ?? stageInText(test.title);
+}
+
+/**
+ * 'Prelims', 'Mains' or null for a test. The tests.stage column decides when the row carries it
+ * (null there means a single-paper exam). Rows loaded without the column fall back to the paper
+ * name / title, the rule used before the column existed.
+ */
+export function testStage(test: {
+  stage?: ExamStage | null;
+  paperName?: string | null;
+  title?: string | null;
+}): ExamStage | null {
+  return test.stage !== undefined ? test.stage : stageFromText(test);
 }
 
 /** The stage word on its own in a paper name, e.g. "Prelims" in "Prelims Shift 1". */
@@ -46,7 +68,7 @@ export const hasExamStage = (testType: string | undefined) =>
  * the paper is unchanged ('' clears the paper name).
  */
 export function stagePaperUpdate(
-  test: { paperName?: string | null; title?: string | null },
+  test: { stage?: ExamStage | null; paperName?: string | null; title?: string | null },
   stage: ExamStage | null
 ): string | undefined {
   if (stage === testStage(test)) return undefined;

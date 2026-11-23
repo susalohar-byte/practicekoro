@@ -35,8 +35,22 @@ class MockTestModel {
     caseSensitive: false,
   );
 
-  /// 'Prelims', 'Mains' or null, read from [paperName] first, then [title].
+  /// Whether the row carried `tests.stage` (false for rows loaded before the column existed).
+  final bool hasStageColumn;
+
+  /// `tests.stage`: 'prelims', 'mains' or null (single-paper exam).
+  final String? stageColumn;
+
+  /// 'Prelims', 'Mains' or null. `tests.stage` decides when the row carries it; otherwise it is
+  /// read from [paperName] first, then [title].
   String? get stage {
+    if (hasStageColumn) {
+      return switch (stageColumn) {
+        'prelims' => 'Prelims',
+        'mains' => 'Mains',
+        _ => null,
+      };
+    }
     for (final text in [paperName, title]) {
       if (text == null || text.trim().isEmpty) continue;
       final isPrelims = _prelimsRe.hasMatch(text);
@@ -90,6 +104,8 @@ class MockTestModel {
     this.subjectId,
     this.topicId,
     this.paperName,
+    this.hasStageColumn = false,
+    this.stageColumn,
   });
 
   factory MockTestModel.fromJson(Map<String, dynamic> json) {
@@ -117,6 +133,8 @@ class MockTestModel {
       subjectId: _nonEmpty(json['subject_id']),
       topicId: _nonEmpty(json['chapter_id'] ?? json['topic_id']),
       paperName: _nonEmpty(json['paper_name']),
+      hasStageColumn: json.containsKey('stage'),
+      stageColumn: _nonEmpty(json['stage'])?.toLowerCase(),
       instructions: json['instructions'] != null
           ? (json['instructions'] as List).map((e) => e.toString()).toList()
           : const [],
@@ -143,6 +161,7 @@ class MockTestModel {
     'subject_id': subjectId,
     'chapter_id': topicId,
     'paper_name': paperName,
+    if (hasStageColumn) 'stage': stageColumn,
   };
 
   static String? _nonEmpty(Object? v) {

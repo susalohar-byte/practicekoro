@@ -408,6 +408,11 @@ export interface MockTest {
   isPremium: boolean;
   year?: number;
   paperName?: string;
+  /**
+   * Prelims / Mains (tests.stage) of a Full Mock or PYQ test; null for single-paper exams.
+   * Undefined when the row was loaded without the column.
+   */
+  stage?: 'Prelims' | 'Mains' | null;
   shift?: string;
   setName?: string;
   examDate?: string;

@@ -153,9 +153,10 @@ export function useAdminTests() {
         isPremium: editIsPremium,
         status: isPublishing ? selectedTest.status : editStatus,
         iconUrl: editIconUrl.trim(),
-        paperName: hasExamStage(selectedTest.testType)
-          ? stagePaperUpdate(selectedTest, editStage)
-          : undefined,
+        // Only when the paper was changed; the paper name keeps older app versions in step.
+        ...(hasExamStage(selectedTest.testType) && editStage !== testStage(selectedTest)
+          ? { stage: editStage, paperName: stagePaperUpdate(selectedTest, editStage) }
+          : {}),
       });
       if (isPublishing) {
         const publishResult = await api.publishTest(selectedTest.id);

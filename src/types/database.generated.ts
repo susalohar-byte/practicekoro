@@ -2051,6 +2051,7 @@ export type Database = {
           set_name: string | null;
           shift: string | null;
           slug: string;
+          stage: string | null;
           status: string;
           subject_id: string | null;
           test_series_id: string | null;
@@ -2080,6 +2081,7 @@ export type Database = {
           set_name?: string | null;
           shift?: string | null;
           slug: string;
+          stage?: string | null;
           status?: string;
           subject_id?: string | null;
           test_series_id?: string | null;
@@ -2109,6 +2111,7 @@ export type Database = {
           set_name?: string | null;
           shift?: string | null;
           slug?: string;
+          stage?: string | null;
           status?: string;
           subject_id?: string | null;
           test_series_id?: string | null;

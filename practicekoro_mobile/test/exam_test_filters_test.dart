@@ -47,6 +47,25 @@ void main() {
       expect(_test('d', title: 'Prelims + Mains combined').stage, isNull);
     });
 
+    test('trusts the stage column when the row carries it', () {
+      MockTestModel row(Map<String, dynamic> extra) => MockTestModel.fromJson({
+        'id': 't',
+        'title': 'WBCS Prelims Mock',
+        ...extra,
+      });
+      expect(row({'stage': 'mains'}).stage, 'Mains');
+      // null in the column = single-paper exam, even if the title names a stage
+      expect(row({'stage': null}).stage, isNull);
+      // row loaded without the column: fall back to the title
+      expect(row({}).stage, 'Prelims');
+      // survives the offline cache round trip
+      expect(
+        MockTestModel.fromJson(row({'stage': 'mains'}).toJson()).stage,
+        'Mains',
+      );
+      expect(MockTestModel.fromJson(row({}).toJson()).stage, 'Prelims');
+    });
+
     test('parses subject, topic and paper from database rows', () {
       final t = MockTestModel.fromJson({
         'id': 't1',

@@ -26,6 +26,7 @@ import type {
 import type { QuestionRow } from '@/services/domains/localStore';
 import type { Tables } from '@/types/database.generated';
 import type { TestWithRefsRow } from './catalog.tests';
+import { hasExamStage, stageFromDb, stageFromText, stageToDb } from '@/lib/examStage';
 
 /** A `test_attempts` row, optionally with the student's profile embedded. */
 type AttemptWithProfileRow = Tables<'test_attempts'> & {
@@ -157,6 +158,7 @@ async function fetchAdminTests(filter?: {
     testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
+    stage: row.stage === undefined ? undefined : stageFromDb(row.stage),
     shift: row.shift ?? undefined,
     setName: row.set_name ?? undefined,
     examDate: row.exam_date ?? undefined,
@@ -245,6 +247,7 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
     testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
+    stage: row.stage === undefined ? undefined : stageFromDb(row.stage),
     shift: row.shift ?? undefined,
     setName: row.set_name ?? undefined,
     examDate: row.exam_date ?? undefined,
@@ -264,6 +267,10 @@ export async function getTestById(testId: string): Promise<MockTest | null> {
     testSeriesTitle: row.test_series?.title || undefined,
   };
 }
+
+/** PostgREST / Postgres error for a tests table that has no stage column yet. */
+const isMissingStageColumn = (message: string) =>
+  /'stage' column|column "?(tests\.)?stage"? does not exist/i.test(message);
 
 export async function createTest(
   testData: Omit<MockTest, 'id' | 'status'> & { status?: 'draft' | 'published' | 'archived' }
@@ -334,6 +341,12 @@ export async function createTest(
   };
   // Only sent for Live Test papers, so regular test creation does not depend on the column.
   if (testData.isLiveOnly) insertPayload.is_live_only = true;
+  // Prelims / Mains of a Full Mock or PYQ: the chosen stage, else the one its paper name or
+  // title names. Only sent when there is one, so creation does not depend on the column.
+  const newStage = hasExamStage(testData.testType)
+    ? stageToDb(testData.stage ?? stageFromText(testData))
+    : null;
+  if (newStage) insertPayload.stage = newStage;
 
   const selectCols = `
     *,
@@ -352,6 +365,13 @@ export async function createTest(
         'Test icon storage is unavailable. Apply the tests icon_url migration before saving an icon.'
       );
     delete insertPayload.icon_url;
+    insertRes = await supabase.from('tests').insert(insertPayload).select(selectCols).single();
+  }
+
+  // Resilience: a database without the stage column yet still gets the test; the paper name
+  // carries the stage for it.
+  if (insertRes.error && isMissingStageColumn(insertRes.error.message)) {
+    delete insertPayload.stage;
     insertRes = await supabase.from('tests').insert(insertPayload).select(selectCols).single();
   }
 
@@ -405,6 +425,7 @@ export async function createTest(
     testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
+    stage: row.stage === undefined ? undefined : stageFromDb(row.stage),
     shift: row.shift ?? undefined,
     setName: row.set_name ?? undefined,
     examDate: row.exam_date ?? undefined,
@@ -451,6 +472,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
   if (updates.testType !== undefined) payload.test_type = updates.testType;
   if (updates.year !== undefined) payload.year = updates.year || null;
   if (updates.paperName !== undefined) payload.paper_name = updates.paperName || null;
+  if (updates.stage !== undefined) payload.stage = stageToDb(updates.stage);
   if (updates.shift !== undefined) payload.shift = updates.shift || null;
   if (updates.setName !== undefined) payload.set_name = updates.setName || null;
   if (updates.examDate !== undefined) payload.exam_date = updates.examDate || null;
@@ -496,6 +518,20 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
       .single();
   }
 
+  // Resilience: a database without the stage column yet keeps the other changes; the paper
+  // name carries the stage for it.
+  if (updateRes.error && isMissingStageColumn(updateRes.error.message)) {
+    delete payload.stage;
+    if (Object.keys(payload).length === 0)
+      throw new Error('Prelims / Mains cannot be saved yet. Apply the tests stage migration.');
+    updateRes = await supabase
+      .from('tests')
+      .update(payload)
+      .eq('id', id)
+      .select(selectCols)
+      .single();
+  }
+
   const { data, error } = updateRes;
 
   if (error) {
@@ -523,6 +559,7 @@ export async function updateTest(id: string, updates: Partial<MockTest>): Promis
     testType: row.test_type as MockTest['testType'],
     year: row.year ? Number(row.year) : undefined,
     paperName: row.paper_name ?? undefined,
+    stage: row.stage === undefined ? undefined : stageFromDb(row.stage),
     shift: row.shift ?? undefined,
     setName: row.set_name ?? undefined,
     examDate: row.exam_date ?? undefined,
@@ -616,6 +653,7 @@ export async function duplicateTest(id: string): Promise<MockTest | null> {
     isActive: false,
     year: existing.year,
     paperName: existing.paperName,
+    stage: existing.stage,
     shift: existing.shift,
     setName: existing.setName,
     examDate: existing.examDate,

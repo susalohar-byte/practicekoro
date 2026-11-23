@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { hasExamStage, stagePaperUpdate, testStage, withStage } from './examStage';
+import {
+  hasExamStage,
+  stageFromDb,
+  stagePaperUpdate,
+  stageToDb,
+  testStage,
+  withStage,
+} from './examStage';
 
 describe('examStage', () => {
   it('reads the paper from paper name, then title (same rule as the apps)', () => {
@@ -28,6 +35,23 @@ describe('examStage', () => {
     );
     expect(stagePaperUpdate({ title: 'Mock', paperName: 'Prelims' }, null)).toBe('');
     expect(stagePaperUpdate({ title: 'Mock 1' }, 'Mains')).toBe('Mains');
+  });
+
+  it('trusts the stage column over the title when the row carries it', () => {
+    expect(testStage({ title: 'WBCS Prelims Mock', stage: 'Mains' })).toBe('Mains');
+    // null in the column = single-paper exam, even if the title mentions a stage
+    expect(testStage({ title: 'WBCS Prelims Mock', stage: null })).toBeNull();
+    // loaded without the column: fall back to the title
+    expect(testStage({ title: 'WBCS Prelims Mock' })).toBe('Prelims');
+    expect(stagePaperUpdate({ title: 'WBCS Prelims Mock', stage: null }, null)).toBeUndefined();
+  });
+
+  it('maps the column value to and from the UI label', () => {
+    expect(stageToDb('Prelims')).toBe('prelims');
+    expect(stageToDb(null)).toBeNull();
+    expect(stageFromDb('mains')).toBe('Mains');
+    expect(stageFromDb(null)).toBeNull();
+    expect(stageFromDb('other')).toBeNull();
   });
 
   it('applies to Full Mock and PYQ only', () => {

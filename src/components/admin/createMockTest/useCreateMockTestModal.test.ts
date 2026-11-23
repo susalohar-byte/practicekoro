@@ -38,7 +38,7 @@ describe('useCreateMockTestModal Prelims / Mains', () => {
     act(() => result.current.setTitle('WBCS Full Mock 1'));
     await act(() => result.current.handleSubmit(submitEvent));
     expect(mocks.createTest).toHaveBeenCalledWith(
-      expect.objectContaining({ testType: 'full_mock', paperName: undefined })
+      expect.objectContaining({ testType: 'full_mock', paperName: undefined, stage: null })
     );
   });
 
@@ -49,7 +49,9 @@ describe('useCreateMockTestModal Prelims / Mains', () => {
     act(() => result.current.handleAutoSuggestTitle());
     expect(result.current.title).toBe('WBCS Mains Full Mock Test 01');
     await act(() => result.current.handleSubmit(submitEvent));
-    expect(mocks.createTest).toHaveBeenCalledWith(expect.objectContaining({ paperName: 'Mains' }));
+    expect(mocks.createTest).toHaveBeenCalledWith(
+      expect.objectContaining({ paperName: 'Mains', stage: 'Mains' })
+    );
 
     act(() => result.current.setStage(null));
     expect(result.current.stage).toBeNull();
@@ -65,7 +67,7 @@ describe('useCreateMockTestModal Prelims / Mains', () => {
     expect(result.current.title).toBe('WBCS 2023 Prelims Shift 1 Official PYQ');
     await act(() => result.current.handleSubmit(submitEvent));
     expect(mocks.createTest).toHaveBeenCalledWith(
-      expect.objectContaining({ testType: 'pyq', paperName: 'Prelims Shift 1' })
+      expect.objectContaining({ testType: 'pyq', paperName: 'Prelims Shift 1', stage: 'Prelims' })
     );
   });
 });
