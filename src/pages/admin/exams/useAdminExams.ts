@@ -16,6 +16,7 @@ import {
   getExamOverridesCache,
   type EnrichedExamRow,
 } from './examsUtils';
+import { toast } from '@/lib/toast';
 
 export function useAdminExams() {
   // Data States
@@ -130,7 +131,7 @@ export function useAdminExams() {
       await loadData();
       setActionSuccessMessage('Exam logo saved.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to update logo'));
+      toast(getErrorMessage(err, 'Failed to update logo'));
     }
   };
 
@@ -156,7 +157,7 @@ export function useAdminExams() {
       await loadData();
       setActionSuccessMessage('Exam status saved.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Status update failed'));
+      toast(getErrorMessage(err, 'Status update failed'));
     }
   };
 
@@ -175,7 +176,7 @@ export function useAdminExams() {
       await loadData();
       setActionSuccessMessage('Exam settings saved.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Settings save failed'));
+      toast(getErrorMessage(err, 'Settings save failed'));
     } finally {
       setIsSavingSettings(false);
     }
@@ -474,7 +475,7 @@ export function useAdminExams() {
       await loadData();
       setActionSuccessMessage('Exam archived.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Archive failed'));
+      toast(getErrorMessage(err, 'Archive failed'));
     }
   };
 
@@ -511,7 +512,7 @@ export function useAdminExams() {
       setCurrentPage(1);
       setActionSuccessMessage('Exam deleted in the backend.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Delete failed; archive linked exams instead.'));
+      toast(getErrorMessage(err, 'Delete failed; archive linked exams instead.'));
     }
   };
 
@@ -528,7 +529,7 @@ export function useAdminExams() {
       await loadData();
       setActionSuccessMessage('Draft exam created.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Duplicate failed'));
+      toast(getErrorMessage(err, 'Duplicate failed'));
     }
   };
 
@@ -542,7 +543,7 @@ export function useAdminExams() {
       setNewCategoryInput('');
       setActionSuccessMessage('Category saved.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Category save failed'));
+      toast(getErrorMessage(err, 'Category save failed'));
     }
   };
 
@@ -554,7 +555,7 @@ export function useAdminExams() {
       await api.getExamCategories();
       setActionSuccessMessage(`Category "${catName}" deleted.`);
     } catch (err) {
-      alert(getErrorMessage(err, 'Category delete failed'));
+      toast(getErrorMessage(err, 'Category delete failed'));
     }
   };
 
@@ -583,7 +584,7 @@ export function useAdminExams() {
       setActionSuccessMessage(`Exam order saved: "${moved.title}" moved to position ${to + 1}.`);
     } catch (err) {
       setExams(previous);
-      alert('Exam order could not be saved: ' + getErrorMessage(err, 'Save failed'));
+      toast('Exam order could not be saved: ' + getErrorMessage(err, 'Save failed'));
     } finally {
       setIsSavingOrder(false);
     }

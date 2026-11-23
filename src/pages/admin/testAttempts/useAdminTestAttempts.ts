@@ -7,6 +7,7 @@ import { calculatePaginationRange } from '@/utils/pagination';
 import { getDateRangeBounds, getKolkataDateString } from '@/services/domains/admin.dashboard';
 import { AdminTestAttempt, DateRangeFilter, LEGACY_STORAGE_KEY } from './testAttemptTypes';
 import { attemptTimestamp } from './testAttemptUtils';
+import { toast } from '@/lib/toast';
 
 export function useAdminTestAttempts() {
   const [pageLoading, setPageLoading] = useState(true);
@@ -261,7 +262,7 @@ export function useAdminTestAttempts() {
       : filteredAttempts;
 
     if (targetData.length === 0) {
-      alert('No test attempts to export.');
+      toast('No test attempts to export.');
       return;
     }
 
@@ -337,7 +338,7 @@ export function useAdminTestAttempts() {
       })
     );
     setOpenActionMenuId(null);
-    alert('Attempt has been re-evaluated and recalculated successfully.');
+    toast('Attempt has been re-evaluated and recalculated successfully.');
   };
 
   // Delete attempt
@@ -350,7 +351,7 @@ export function useAdminTestAttempts() {
       setDeleteConfirmationId(null);
       setOpenActionMenuId(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Delete failed');
+      toast(err instanceof Error ? err.message : 'Delete failed');
     }
   };
 
@@ -365,7 +366,7 @@ export function useAdminTestAttempts() {
     setAttempts((prev) => prev.filter((a) => !gone.has(a.id)));
     setSelectedRowIds(new Set(batch.failures.map((f) => f.input)));
     if (selectedAttemptId && gone.has(selectedAttemptId)) setSelectedAttemptId(null);
-    alert(
+    toast(
       gone.size +
         ' deleted; ' +
         batch.failures.length +

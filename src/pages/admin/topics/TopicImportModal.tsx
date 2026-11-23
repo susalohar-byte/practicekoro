@@ -1,5 +1,6 @@
 import { Upload, X, HelpCircle } from 'lucide-react';
 import type { AdminTopicsState } from './useAdminTopics';
+import { toast } from '@/lib/toast';
 
 export interface TopicImportModalProps {
   tp: AdminTopicsState;
@@ -64,7 +65,7 @@ export function TopicImportModal({ tp }: TopicImportModalProps) {
                 <button
                   type="button"
                   onClick={() => {
-                    alert('Demo file validated! 12 new topics prepared for import.');
+                    toast('Demo file validated! 12 new topics prepared for import.');
                     setIsImportModalOpen(false);
                   }}
                   className="px-5 py-2 rounded-xl bg-[#026BFC] hover:bg-blue-700 text-white font-semibold shadow-2xs"

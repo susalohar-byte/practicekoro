@@ -8,6 +8,7 @@ import { useContentLanguage } from '@/context/MaintenanceContext';
 import { useTestQuestionSelection } from './useTestQuestionSelection';
 import { useBulkTxtImport } from './useBulkTxtImport';
 import { useCreateTestQuestion } from './useCreateTestQuestion';
+import { toast } from '@/lib/toast';
 
 export interface UseAdminTestQuestionsOptions {
   /** Load this test instead of the `:testId` route param. */
@@ -432,7 +433,7 @@ export function useAdminTestQuestions(options: UseAdminTestQuestionsOptions = {}
 
   const handleApplySectionalMarks = () => {
     if (!sectionalSubjectId) {
-      alert('Please select a section / subject.');
+      toast('Please select a section / subject.');
       return;
     }
     setAssignedQuestions((prev) =>

@@ -8,6 +8,7 @@ import { renderRowIcon } from './testRowIcon';
 import type { AdminTestsState } from './useAdminTests';
 import { ExamStagePicker } from '@/components/admin/ExamStagePicker';
 import { hasExamStage } from '@/lib/examStage';
+import { toast } from '@/lib/toast';
 
 export interface TestSettingsFormProps {
   testsState: AdminTestsState;
@@ -115,7 +116,7 @@ export function TestSettingsForm({ testsState, selectedTest }: TestSettingsFormP
                     const uploadedUrl = await api.uploadTestIcon(file, selectedTest.id);
                     setEditIconUrl(uploadedUrl);
                   } catch (err) {
-                    alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
+                    toast('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
                   } finally {
                     setIsUploadingDrawerIcon(false);
                   }

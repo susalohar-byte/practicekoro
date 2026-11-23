@@ -4,6 +4,7 @@ import { api } from '@/services/api';
 import { getErrorMessage } from '@/lib/errors';
 import { TopicIconBadge } from './TopicIconBadge';
 import type { AdminTopicsState } from './useAdminTopics';
+import { toast } from '@/lib/toast';
 
 export interface TopicFormModalProps {
   tp: AdminTopicsState;
@@ -251,7 +252,7 @@ export function TopicFormModal({ tp }: TopicFormModalProps) {
                               );
                               setFormData((prev) => ({ ...prev, iconName: uploadedUrl }));
                             } catch (err) {
-                              alert('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
+                              toast('Failed to upload icon: ' + getErrorMessage(err, 'Error'));
                             } finally {
                               setIsUploadingTopicIcon(false);
                             }
